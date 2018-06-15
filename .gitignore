@@ -1,0 +1,12 @@
+node_modules/*
+**.ckd2
+testdb/*
+.idea/*
+config.json
+log/*
+**/*.ckd2*
+**/nohup.out
+pid/*
+**/*.log
+web/js/babel/*
+dist/*

@@ -1,0 +1,12 @@
+!!!!! REMOVE ALL COMMENTS !!!!!
+{
+  "port": 8989, // HTTP listen port
+  "username": "user", // Optional username. Delete this field to disable auth.
+  "password": "pass", // Optional password. Delete this field to disable auth.
+  "libraryPath": "/path/to/media/library",
+  "cachePath": "/path/to/media/cache", // Important! This cannot be inside the library! It also gets quite big.
+  "mysql_host": "localhost",
+  "mysql_username": "user",
+  "mysql_password": "pass",
+  "mysql_database": "database"
+}

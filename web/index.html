@@ -1,0 +1,528 @@
+<!doctype html> <html lang="en" style="height:100%;"> <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/lib/hls.js"></script>
+
+    <style>
+    .default-alert {
+        position: fixed;
+        bottom: 5px;
+        left: 2%;
+        width: 96%;
+        z-index: 2000;
+    }
+    video {
+        width: 100%;
+        height: 100%;
+    }
+    #imagePanel {
+        object-fit:contain;
+        height:100%;
+        display:block;
+        margin-left:auto;
+        margin-right:auto;
+    }
+    .gallery-img {
+        width: 200px;
+        height: 120px;
+        object-fit: contain;
+    }
+    </style>
+
+    <title>Vimtur Media Library</title>
+</head>
+<body style="height:100%;" onresize="onResize()">
+    <nav class="navbar navbar-expand-xl navbar-dark bg-dark fixed-top" id="navBar">
+        <button class="btn btn-outline-success my-2 my-sm-0 navbar-brand" type="submit" onclick="toggleTagsAndUpdate()">Tags</button>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="imageCallbacks.previous()" style="margin-right:0.5em">&#8592;</button>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="imageCallbacks.next()">&#8594;</button>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" onclick="fullscreen()">Fullscreen</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" onclick="shuffle()">Shuffle</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" onclick="deleteCurrent()">Delete</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" data-toggle="modal" data-target="#galleryModal" onclick="openGallery()">Gallery</a>
+                </li>
+                <li class="nav-item active">
+                    <a class="nav-link" href="#" data-toggle="modal" data-target="#searchModal">Advanced Search</a>
+                </li>
+                <li class="nav-item dropdown active">
+                    <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
+                    <div class="dropdown-menu" aria-labelledby="dropdown01">
+                        <a class="dropdown-item" href="#" onclick="goto()">Goto</a>
+                        <a class="dropdown-item" href="#" onclick="viewFolder()">View Folder</a>
+                        <a class="dropdown-item" href="#" onclick="unshuffle()">Unshuffle</a>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#metadataModal">Metadata</a>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#adminModal">Admin</a>
+                        <a class="dropdown-item" href="#" onclick="addNewTag()">Add Tag</a>
+                        <a class="dropdown-item" href="#" onclick="deleteTag()">Delete Tag</a>
+                    </div>
+                </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0" onsubmit="simpleSearch(); return false">
+                <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" id="simpleSearchText">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </form>
+        </div>
+    </nav>
+
+    <main role="main" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
+        <div class="row" id="mainRowContainer" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;margin-left:0;margin-right:0;">
+            <div class="col-lg-auto" id="listColumn0" style="display:none;"></div>
+            <div class="col-lg-auto" id="listColumn1" style="display:none;"></div>
+            <div class="col" id="content" style="padding-left:0; padding-right:0; width:auto; height:100%; object-fit:contain;">
+                <video style="display:none;" controls="controls" loop="loop" id="videoPanel"></video>
+                <img style="display:block; width:100%; height:100%" id="imagePanel"></img>
+            </div>
+        </div>
+
+    </main><!-- /.container -->
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">
+        <div class="modal-dialog modal-m" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="margin:0;">Please wait...</h3>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="progress" style="margin-bottom:0;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div class="modal fade" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="searchModalLongTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document" style="max-width:95%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="searchModalLongTitle">Advanced Search</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" onclick="resetSearch()">Reset Search</button>
+                                    <button type="button" class="btn btn-primary" onclick="search()">Search</button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Keyword Search</label>
+                                    <input type="text" class="form-control" id="keywordSearch"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>Minimum Resolution</label>
+                                    <select class="form-control" id="resolutionSearch">
+                                        <option selected="selected">None</option>
+                                        <option>480p</option>
+                                        <option>720p</option>
+                                        <option>1080p</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Type</label>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterVideo">
+                                        <label class="form-check-label" for="typeFilterVideo">Video</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterGif">
+                                        <label class="form-check-label" for="typeFilterGif">Gif</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterStill">
+                                        <label class="form-check-label" for="typeFilterStill">Still</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Artist (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="artistLex"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>Album (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="albumLex"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>Title (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="titleLex"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tags (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="tagsLex"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>Path (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="pathLex"></input>
+                                </div>
+                                <div class="form-group">
+                                    <label>General (Lex: [!|()&amp;])</label>
+                                    <input type="text" class="form-control" id="generalLex"></input>
+                                </div>
+                            </div>
+                            <div class="col-md-3" id="searchAll">All</div>
+                            <div class="col-md-3" id="searchAny">Any</div>
+                            <div class="col-md-3" id="searchNone">None</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tag Modal -->
+    <div class="modal fade" id="tagModal" tabindex="-1" role="dialog" aria-labelledby="tagModalLongTitle" aria-hidden="true" style="display:none;">
+        <div class="modal-dialog" role="document" style="max-width:95%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="searchModalLongTitle">Tags</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md" id="tagModalList0"></div>
+                            <div class="col-md" id="tagModalList1"></div>
+                            <div class="col-md" id="tagModalList2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div class="modal fade" id="adminModal" tabindex="-1" role="dialog" aria-labelledby="adminModalLongTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document" style="max-width:95%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminModalLongTitle">Admin</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">Log</div>
+                                    <div class="card-body">
+                                        <textarea class="card-body" style="width:100%; max-height:100%; min-height:40em" id="adminStatusArea"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">Basic</div>
+                                    <div class="card-body container-fluid">
+                                        <div class="container-fluid">
+                                            <div class="form-group row">
+                                                <button type="button" class="btn btn-primary col-4" onclick="fullImport()">Import</button>
+                                                <div class="form-check col">
+                                                    <input type="checkbox" class="form-check-input col" id="fullImportDeleteClones"></input>
+                                                    <label class="form-check-label col" for="fullImportDeleteClones">Delete Clones?</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <br />
+                                <div class="card">
+                                    <div class="card-header">Advanced</div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-primary" onclick="runScan()">Run Scan</button>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-primary" onclick="importNew()">Index New Files</button>
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="importDeleteClones"></input>
+                                                <label class="form-check-label" for="importDeleteClones">Delete Clones?</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-primary" onclick="runCache()">Start Caching</button>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-primary" onclick="deleteMissing()">Delete Missing</button>
+                                        </div>
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-primary" onclick="rebuildSearchIndex()">Rebuild Search Index</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata Modal -->
+    <div class="modal fade" id="metadataModal" tabindex="-1" role="dialog" aria-labelledby="metadataModalLongTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="metadataModalLongTitle">Metadata</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid" style="padding-left: 0;">
+                        <form onsubmit="return false;">
+                            <div class="row form-group">
+                                <label class="col-sm-2" for="artistMetadata">Artist</label>
+                                <input type="text" class="form-control col-sm-5" id="artistMetadata"></input>
+                                <div class="pl-2 col-sm-2">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('artist', false)">Apply</button>
+                                </div>
+                                <div class="pl-2 col-sm-3">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('artist', true)">Apply To Set</button>
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <label class="col-sm-2" for="albumMetadata">Album</label>
+                                <input type="text" class="form-control col-sm-5" id="albumMetadata"></input>
+                                <div class="pl-2 col-sm-2">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('album', false)">Apply</button>
+                                </div>
+                                <div class="pl-2 col-sm-3">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('album', true)">Apply To Set</button>
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <label class="col-sm-2" for="titleMetadata">Title</label>
+                                <input type="text" class="form-control col-sm-5" id="titleMetadata"></input>
+                                <div class="pl-2 col-sm-2">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('title', false)">Apply</button>
+                                </div>
+                                <div class="pl-2 col-sm-3">
+                                    <button type="button" class="btn btn-primary" onclick="applyMetadata('title', true)">Apply To Set</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div class="modal fade" id="galleryModal" tabindex="-1" role="dialog" aria-labelledby="galleryModalLongTitle" aria-hidden="true" style="display:none;">
+        <div class="modal-dialog" role="document" style="max-width:70%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="galleryModalLongTitle">Gallery</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination pagination-lg justify-content-center">
+                            <li class="page-item">
+                                <a class="page-link" href="#" aria-label="Previous" onclick="galleryPrevious()">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Previous</span>
+                                </a>
+                            </li>
+                            <li class="page-item page-link" id="galleryPageNumber">0 of 0</li>
+                            <li class="page-item">
+                                <a class="page-link" href="#" aria-label="Next" onclick="galleryNext()">
+                                    <span aria-hidden="true">&raquo;</span>
+                                    <span class="sr-only">Next</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="row text-center text-lg-left">
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb0" alt="" />
+                                <div class="caption" style="text-align: center" id="thumbCaption0"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb1" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption1"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb2" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption2"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb3" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption3"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb4" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption4"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb5" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption5"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb6" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption6"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb7" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption7"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb8" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption8"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb9" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption9"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb10" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption10"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb11" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption11"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb12" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption12"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb13" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption13"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb14" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption14"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb15" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption15"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb16" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption16"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb17" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption17"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb18" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption18"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb19" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption19"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb20" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption20"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb21" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption21"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb22" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption22"></div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-xs-6">
+                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
+                                <img class="img-fluid img-thumbnail gallery-img" id="thumb23" alt="">
+                                <div class="caption" style="text-align: center" id="thumbCaption23"></div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="js/lib/jquery-3.2.1.slim.min.js"></script>
+    <script src="js/lib/popper.min.js"></script>
+    <script src="js/lib/bootstrap.min.js"></script>
+    <script src="js/lib/bootbox.min.js"></script>
+
+    <script src="js/src/bootstrap_utils.js"></script>
+    <script src="js/src/bootstrap_ui.js"></script>
+    <script>if (window.module) module = window.module;</script>
+</html>

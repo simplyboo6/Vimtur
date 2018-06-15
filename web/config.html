@@ -1,0 +1,309 @@
+<!doctype html> <html lang="en"> <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <title>Vimtur Configuration</title>
+</head>
+<body class="bg-light">
+    <div class="container">
+        <div class="py-5 text-center">
+            <h2>Vimtur Configuration</h2>
+            <p class="lead">Please configure Vimtur with the form below and click Apply when complete</p>
+            <div class="alert alert-danger" id="formError" style="display:none;"></p>
+        </div>
+        <form id="configForm">
+            <div class="form-group">
+                <label for="configPath">Configuration Path</label>
+                <input type="text" class="form-control" id="configPath" aria-describedby="configPathHelp" disabled="true">
+                <small id="configPathHelp" class="form-text text-muted">Fixed path to the config.json file. Launch Vimtur with config.json as a parameter to change</small>
+            </div>
+            <div class="form-group">
+                <label for="port">Port</label>
+                <input type="number" class="form-control" id="port" aria-describedby="portHelp" placeholder="Port number">
+                <small id="portHelp" class="form-text text-muted">The port for Vimtur to listen on</small>
+            </div>
+            <div class="form-group">
+                <label for="libraryPath">Library Path</label>
+                <input type="text" class="form-control" id="libraryPath" aria-describedby="libraryPathHelp" placeholder="Enter library path" oninput="updateDefaultDbPath()">
+                <small id="libraryPathHelp" class="form-text text-muted">Enter the full path to your media library</small>
+            </div>
+            <div class="form-group">
+                <label for="cachePath">Cache Path</label>
+                <input type="text" class="form-control" id="cachePath" aria-describedby="cachePathHelp" placeholder="Enter cache path">
+                <small id="cachePathHelp" class="form-text text-muted">Enter the full path to where you would like to cache videos and thumbnails. This can't be under the library directory and can grow quite large</small>
+            </div>
+            <div class="form-group">
+                <label for="username">Login Username</label>
+                <input type="text" class="form-control" id="username" aria-describedby="usernameHelp" placeholder="Login Username (Optional)">
+                <small id="usernameHelp" class="form-text text-muted">Optional username to require when logging in. Password must also be set to enable</small>
+            </div>
+            <div class="form-group">
+                <label for="password">Login Password</label>
+                <input type="text" class="form-control" id="password" aria-describedby="passwordHelp" placeholder="Login Password (Optional)">
+                <small id="passwordHelp" class="form-text text-muted">Optional username to require when logging in. Username must also be set to enable. Warning! Stored in plain-text!</small>
+            </div>
+            <div class="border">
+                <div class="form-group">
+                    <label for="databaseProvider">Database Provider</label>
+                    <select class="custom-select d-block w-100" id="databaseProvider" required onchange="updateSelectedProvider()">
+                        <option value="sqlite3" selected>SQLite3</option>
+                        <option value="mysql">MySQL</option>
+                    </select>
+                </div>
+                <div id="sqlite3Provider" style="display:block;" class="form-group">
+                    <label for="sqlite3_databasePath">Database Path</label>
+                    <input type="text" class="form-control" id="sqlite3_databasePath" aria-describedby="sqlite3_databasePathHelp" placeholder="Database File Path">
+                    <small id="sqlite3_databasePathHelp" class="form-text text-muted">Path to SQLite3 database. Defaults to vimtur.db under the media library path</small>
+                </div>
+                <div id="mysqlProvider" style="display:none;">
+                    <div class="form-group">
+                        <label for="mysql_host">MySQL Hostname</label>
+                        <input type="text" class="form-control" id="mysql_host" placeholder="MySQL Hostname" aria-describedby="mysql_hostHelp">
+                        <small id="mysql_hostHelp" class="form-text text-muted">This can include a port in the format hostname:port</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="mysql_database">MySQL Database</label>
+                        <input type="text" class="form-control" id="mysql_database" placeholder="MySQL Database">
+                    </div>
+                    <div class="form-group">
+                        <label for="mysql_username">MySQL Username</label>
+                        <input type="text" class="form-control" id="mysql_username" placeholder="MySQL Username">
+                    </div>
+                    <div class="form-group">
+                        <label for="mysql_password">MySQL Password</label>
+                        <input type="text" class="form-control" id="mysql_password" placeholder="MySQL Password">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="applyButton">Apply</button>
+        </form>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">
+        <div class="modal-dialog modal-m" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="margin:0;">Please wait...</h3>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="progress" style="margin-bottom:0;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="my-5 pt-5 text-muted text-center text-small">
+        <p class="mb-1">Vimtur Media Manager</p>
+        <ul class="list-inline">
+            <li class="list-inline-item"><a href="/web/index.html">Media Viewer</a></li>
+        </ul>
+    </footer>
+
+    </body>
+
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script src="js/lib/jquery-3.2.1.slim.min.js"></script>
+    <script src="js/lib/popper.min.js"></script>
+    <script src="js/lib/bootstrap.min.js"></script>
+
+    <script src="js/src/bootstrap_utils.js"></script>
+
+    <script>
+        function updateSelectedProvider() {
+            $('#sqlite3Provider').hide();
+            $('#mysqlProvider').hide();
+            switch ($('#databaseProvider').val()) {
+                case 'sqlite3':
+                    $('#sqlite3Provider').show();
+                    break;
+                case 'mysql':
+                    $('#mysqlProvider').show();
+                    break;
+                default:
+                    showError(`Unexpected provider: ${$('#databaseProvider').val()}`);
+                    break;
+            }
+        }
+        function generateDefaultDbPath() {
+            const library = $('#libraryPath').val();
+            if (library.includes('/')) {
+                return `${library}${library.endsWith('/') ? '' : '/'}vimtur.db`;
+            } else if (library.includes('\\')) {
+                return `${library}${library.endsWith('\\') ? '' : '\\'}vimtur.db`;
+            }
+            return null;
+        }
+        function updateDefaultDbPath() {
+            const path = generateDefaultDbPath();
+            if (path) {
+                $('#sqlite3_databasePath').attr('placeholder', path);
+            }
+        }
+        function updateForm(config) {
+            $('#configPath').val(config.configPath);
+            $('#port').val(config.config.port);
+            $('#libraryPath').val(config.config.libraryPath);
+            $('#cachePath').val(config.config.cachePath);
+            $('#username').val(config.config.username);
+            $('#password').val(config.config.password);
+            if (config.config.database) {
+                const database = config.config.database;
+                $('#databaseProvider').val(database.provider);
+                updateSelectedProvider();
+                switch (database.provider) {
+                    case 'sqlite3':
+                        $('#sqlite3_databasePath').val(database.path);
+                        updateDefaultDbPath();
+                        break;
+                    case 'mysql':
+                        $('#mysql_host').val(database.host);
+                        $('#mysql_database').val(database.database);
+                        $('#mysql_username').val(database.username);
+                        $('#mysql_password').val(database.password);
+                        break;
+                    default:
+                        showError(`Unknown database provider: ${database.provider}`);
+                        break;
+                }
+            }
+        }
+
+        function showError(message) {
+            $('#formError').html(message);
+            $('#formError').show();
+            window.scrollTo(0, document.getElementById('formError').offsetTop);
+            return false;
+        }
+
+        function isValidPath(path) {
+            return path.includes('/') || path.includes('\\');
+        }
+
+        function validateForm() {
+            if (isNaN($('#port').val())) {
+                return showError('Port must be a number');
+            }
+            if (parseInt($('#port').val()) < 0 || parseInt($('#port').val()) > 65535) {
+                return showError('Invalid port number');
+            }
+            if (!isValidPath($('#libraryPath').val())) {
+                return showError('Invalid library path');
+            }
+            if (!isValidPath($('#cachePath').val())) {
+                return showError('Invalid cache path');
+            }
+            if ($('#username').val() && !$('#password').val()) {
+                return showError('Password must be set when the username is set');
+            }
+            if (!$('#username').val() && $('#password').val()) {
+                return showError('Username must be set when the password is set');
+            }
+            switch ($('#databaseProvider').val()) {
+                case 'sqlite3':
+                    if ($('#sqlite3_databasePath').val()) {
+                        if (!isValidPath($('#sqlite3_databasePath').val())) {
+                            return showError('Invalid SQLite3 database path');
+                        }
+                    }
+                    break;
+                case 'mysql':
+                    if (!$('mysql_host').val()) {
+                        return showError('MySQL hostname not set');
+                    }
+                    if (!$('mysql_database').val()) {
+                        return showError('MySQL database not set');
+                    }
+                    if (!$('mysql_username').val()) {
+                        return showError('MySQL username not set');
+                    }
+                    if (!$('mysql_password').val()) {
+                        return showError('MySQL password not set');
+                    }
+                    break;
+                default:
+                    return showError(`Unexpected provider: ${$('#databaseProvider').val()}`);
+                    break;
+            }
+            $('#formError').hide();
+            return true;
+        }
+        async function saveConfig() {
+            if (validateForm()) {
+                const config = {
+                    port: parseInt($('#port').val()),
+                    libraryPath: $('#libraryPath').val(),
+                    cachePath: $('#cachePath').val()
+                };
+                if ($('#username').val() && $('#password').val()) {
+                    config.username = $('#username').val();
+                    config.password = $('#password').val();
+                }
+                switch ($('#databaseProvider').val()) {
+                    case 'sqlite3':
+                        config.database = {
+                            provider: 'sqlite3'
+                        }
+                        if ($('#sqlite3_databasePath').val()) {
+                            config.database.path = $('#sqlite3_databasePath').val();
+                        } else {
+                            config.database.path = generateDefaultDbPath();
+                        }
+                        break;
+                    case 'mysql':
+                        config.database = {
+                            provider: 'mysql',
+                            host: $('#mysql_host').val(),
+                            database: $('#mysql_database').val(),
+                            username: $('#mysql_username').val(),
+                            password: $('#mysql_password').val()
+                        }
+                        break;
+                    default:
+                        return showError(`Unexpected provider: ${$('#databaseProvider').val()}`);
+                }
+                showModal("#loadingModal");
+                $('#applyButton').prop('disabled', true);
+                console.log(config);
+                try {
+                    await request(`/api/config/${encodeURIComponent(JSON.stringify(config))}`);
+                    showMessage('Config saved, redirecting to app in 3 seconds');
+                    window.scrollTo(0, document.getElementById('alertDiv').offsetTop);
+                    setTimeout(function() {
+                        window.location.replace(`http://${window.location.hostname}:${config.port}/web/index.html`);
+                    }, 3000);
+                } catch (err) {
+                    console.log(err);
+                    showError(err.message);
+                }
+                hideModal("#loadingModal");
+                $('#applyButton').prop('disabled', false);
+            }
+        }
+        (async function() {
+            showModal("#loadingModal");
+            try {
+                const config = await request('/api/config');
+                updateForm(config);
+            } catch (err) {
+                console.log(err);
+                showError(`Error loading config: ${err.message}`);
+            }
+            $('#configForm').on("submit", function(e) {
+                e.preventDefault();
+                saveConfig();
+            });
+            hideModal("#loadingModal");
+        })();
+    </script>
+    <script>if (window.module) module = window.module;</script>
+</html>
