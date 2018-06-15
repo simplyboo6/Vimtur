@@ -18,7 +18,7 @@
 * Requires ffmpeg for transcoding and thumbnails (included). Requires graphicsmagick for extracting EXIF data.
 * Caching data takes a lot of space. All videos are re-transcoded to be h264 and HLS compatible.
 * Because of pre-caching it's possible to quickly skip through videos and loading times are minimal.
-* All videos are transcoded to their original quality if it's h264 or quite high otherwise. Often this means h264 source videos are transcoded quickly but it also means a reaosnably fast network is required.
+* All videos are transcoded a high-quality, if the source is h264 it's just copied. Often this means h264 source videos are transcoded quickly but it also means a reasonably fast network is required.
 * Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
 
 ## Setup
