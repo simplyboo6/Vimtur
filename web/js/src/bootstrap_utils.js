@@ -1,4 +1,5 @@
-const MAX_COLUMNS = 5;
+const MAX_COLUMNS = 10;
+const NUM_GALLERY_THUMBNAILS = 24;
 // The minimum width that the tag panel can be used instead of the modal.
 const MIN_WIDTH_TAG_PANEL = 1700;
 
@@ -123,23 +124,41 @@ function toggleTags(state) {
     const container = document.getElementById("content");
     const numColumns = getNumColumns('listColumn');
     if (isTagsVisible()) {
-        for (let i = 0; i < numColumns; i++) {
-            document.getElementById(`listColumn${i}`).style.display = 'none';
-        }
+        $('#tagColumnsContainer').hide();
         hideModal("#tagModal");
     } else {
         if (window.innerWidth > MIN_WIDTH_TAG_PANEL && !isMobile()) {
-            for (let i = 0; i < numColumns; i++) {
-                document.getElementById(`listColumn${i}`).style.display = 'block';
-            }
+            $('#tagColumnsContainer').show();
         } else {
             showModal("#tagModal");
         }
     }
 }
 
+function addTagColumn() {
+    const count = getNumColumns('listColumn');
+    if (count >= MAX_COLUMNS) {
+        return false;
+    }
+    // Don't include child nodes in the clone.
+    const col = document.getElementById('listColumn0').cloneNode(false);
+    col.id = `listColumn${count}`;
+    document.getElementById('tagColumnRow').appendChild(col);
+    localStorage.setItem('tagColumnCount', getNumColumns('listColumn'));
+}
+
+function removeTagColumn() {
+    if (getNumColumns('listColumn') <= 1) {
+        return false;
+    }
+    const list = document.getElementById('tagColumnRow');
+    const col = document.getElementById(`listColumn${getNumColumns('listColumn') - 1}`);
+    list.removeChild(col);
+    localStorage.setItem('tagColumnCount', getNumColumns('listColumn'));
+}
+
 function isTagsVisible() {
-    return document.getElementById("listColumn0").style.display != 'none' || document.getElementById("tagModal").style.display != 'none';
+    return document.getElementById("tagColumnsContainer").style.display != 'none';
 }
 
 function setTags(tagList, callback) {
@@ -296,3 +315,23 @@ async function request(url) {
         xhttp.send();
     });
 }
+
+(function() {
+    const colCount = parseInt(localStorage.getItem('tagColumnCount'));
+    if (colCount && colCount <= MAX_COLUMNS) {
+        // Already one existing column.
+        for (let i = 1; i < colCount; i++) {
+            addTagColumn();
+        }
+    }
+    // Propagate the gallery with 15 more containers from the template.
+    const galleryTemplate = document.getElementById('thumbContainer0');
+    const container = document.getElementById('galleryRowContainer');
+    for (let i = 1; i < NUM_GALLERY_THUMBNAILS; i++) {
+        const thumb = galleryTemplate.cloneNode(true);
+        thumb.id = `thumbContainer${i}`;
+        thumb.children[0].children[0].id = `thumb${i}`;
+        thumb.children[0].children[1].id = `thumbCaption${i}`;
+        container.appendChild(thumb);
+    }
+})();

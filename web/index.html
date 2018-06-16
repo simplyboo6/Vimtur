@@ -82,10 +82,18 @@
         </div>
     </nav>
 
-    <main role="main" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
+    <main role="main" class="container-fluid bg-light" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
         <div class="row" id="mainRowContainer" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;margin-left:0;margin-right:0;">
-            <div class="col-lg-auto" id="listColumn0" style="display:none;"></div>
-            <div class="col-lg-auto" id="listColumn1" style="display:none;"></div>
+            <div class="container-fluid col-lg-auto" id="tagColumnsContainer" style="display:block;">
+                <div class="row">
+                    <button class="btn btn-outline-primary btn-sm col-lg-6" type="submit" onclick="removeTagColumn(); resetTagList()">&#45;</button>
+                    <button class="btn btn-outline-primary btn-sm col-lg-6" type="submit" onclick="addTagColumn(); resetTagList()">&#43;</button>
+                </div>
+                <div class="row" id="tagColumnRow">
+                    <!-- Column used as a template. Allow a shallow copy. -->
+                    <div class="col-lg-auto" id="listColumn0"></div>
+                </div>
+            </div>
             <div class="col" id="content" style="padding-left:0; padding-right:0; width:auto; height:100%; object-fit:contain;">
                 <video style="display:none;" controls="controls" loop="loop" id="videoPanel"></video>
                 <img style="display:block; width:100%; height:100%" id="imagePanel"></img>
@@ -365,149 +373,12 @@
                             </li>
                         </ul>
                     </nav>
-                    <div class="row text-center text-lg-left">
-                        <div class="col-lg-2 col-md-4 col-xs-6">
+                    <div class="row text-center text-lg-left" id="galleryRowContainer">
+                        <!-- Used as a template, make sure to keep the general structure the same -->
+                        <div class="col-lg-2 col-md-4 col-xs-6" id="thumbContainer0">
                             <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
                                 <img class="img-fluid img-thumbnail gallery-img" id="thumb0" alt="" />
                                 <div class="caption" style="text-align: center" id="thumbCaption0"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb1" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption1"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb2" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption2"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb3" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption3"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb4" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption4"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb5" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption5"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb6" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption6"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb7" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption7"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb8" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption8"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb9" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption9"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb10" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption10"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb11" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption11"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb12" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption12"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb13" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption13"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb14" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption14"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb15" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption15"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb16" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption16"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb17" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption17"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb18" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption18"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb19" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption19"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb20" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption20"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb21" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption21"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb22" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption22"></div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-xs-6">
-                            <a href="#" class="d-block mb-4 h-100" data-toggle="tooltip" data-placement="bottom" title="">
-                                <img class="img-fluid img-thumbnail gallery-img" id="thumb23" alt="">
-                                <div class="caption" style="text-align: center" id="thumbCaption23"></div>
                             </a>
                         </div>
                     </div>

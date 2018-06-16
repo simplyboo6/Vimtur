@@ -422,6 +422,15 @@ function buildSearch() {
     }
 }
 
+function resetTagList() {
+    if (appData.tags) {
+        setTags(appData.tags, tagCallback);
+        if (appData.currentImage && appData.currentImage.tags) {
+            setChecked(appData.currentImage.tags);
+        }
+    }
+}
+
 async function getSubset(constraints) {
     appData.imageSet.constraints = constraints;
     appData.imageSet.seed = null;
