@@ -162,7 +162,7 @@ class SQLiteDatabase extends MediaManager {
         if (ratings) {
             for (let i = 0; i < ratings.length; i++) {
                 const row = ratings[i];
-                super.updateMedia(row.hash, row.rating);
+                super.updateMedia(row.hash, { rating: row.rating ? row.rating : 0 });
             }
         }
 
