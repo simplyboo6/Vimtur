@@ -24,14 +24,6 @@ const ui = {
     type: "still"
 };
 
-function showLoadingModal() {
-    showModal("#loadingModal");
-}
-
-function hideLoadingModal() {
-    hideModal("#loadingModal");
-}
-
 ui.videoPanel = document.getElementById("videoPanel");
 ui.hls = new Hls();
 ui.hls.attachMedia(ui.videoPanel);
@@ -67,46 +59,10 @@ ui.setType = function (image) {
     ui.type = type;
 };
 
-function getImageTitle(image) {
-    let title = '';
-    if (image.metadata) {
-        const elements = [];
-        const metadata = image.metadata;
-        if (metadata.artist) {
-            elements.push(metadata.artist);
-            document.getElementById("artistMetadata").value = metadata.artist;
-        } else {
-            document.getElementById("artistMetadata").value = "";
-        }
-        if (metadata.album) {
-            elements.push(metadata.album);
-            document.getElementById("albumMetadata").value = metadata.album;
-        } else {
-            document.getElementById("albumMetadata").value = "";
-        }
-        if (metadata.title) {
-            elements.push(metadata.title);
-            document.getElementById("titleMetadata").value = metadata.title;
-        } else {
-            document.getElementById("titleMetadata").value = "";
-        }
-        for (let i = 0; i < elements.length; i++) {
-            title = `${title}${i > 0 ? ' / ' : ''}${elements[i]}`;
-        }
-    }
-    if (!title) {
-        title = image.path;
-    } else {
-        title = `${title} - ${decodeURIComponent(appData.currentImage.path)}`;
-    }
-    return title;
-}
-
 function updateTitle() {
     document.title = `Vimtur [${appData.imageSet.current + 1}/${getMap().length}] (${getImageTitle(appData.currentImage)})`;
 }
 
-const GALLERY_COUNT = 24;
 async function updateGallery() {
     const pageNum = document.getElementById("galleryPageNumber");
     pageNum.innerHTML = `${Math.floor(appData.imageSet.galleryOffset / GALLERY_COUNT) + 1} of ${Math.ceil(getMap().length / GALLERY_COUNT)}`;
@@ -240,10 +196,6 @@ async function deleteTag() {
         setTags(appData.tags, tagCallback);
         await imageCallbacks.updateImage();
     }
-}
-
-function isGalleryVisible() {
-    return document.getElementById('galleryModal').style.display != 'none';
 }
 
 window.addEventListener("keydown", function(e) {
@@ -382,46 +334,6 @@ async function goto() {
     }
 }
 
-function buildSearch() {
-    const all = document.getElementById("searchAll");
-    all.innerHTML = "All";
-    const any = document.getElementById("searchAny");
-    any.innerHTML = "Any";
-    const none = document.getElementById("searchNone");
-    none.innerHTML = "None";
-    all.appendChild(makeCheckbox(`allTag-selectAll`, `allTag-selectAll`, `Select All`, function(name, state) {
-        for (let i = 0; i < appData.tags.length; i++) {
-            const boxes = document.getElementsByClassName(`allTag-${appData.tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                console.log(boxes[j]);
-                boxes[j].checked = state;
-            }
-        }
-    }));
-    any.appendChild(makeCheckbox(`anyTag-selectAll`, `anyTag-selectAll`, `Select All`, function(name, state) {
-        for (let i = 0; i < appData.tags.length; i++) {
-            const boxes = document.getElementsByClassName(`anyTag-${appData.tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                boxes[j].checked = state;
-            }
-        }
-    }));
-    none.appendChild(makeCheckbox(`noneTag-selectAll`, `noneTag-selectAll`, `Select All`, function(name, state) {
-        for (let i = 0; i < appData.tags.length; i++) {
-            const boxes = document.getElementsByClassName(`noneTag-${appData.tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                boxes[j].checked = state;
-            }
-        }
-    }));
-    for (let i = 0; i < appData.tags.length; i++) {
-        const tag = appData.tags[i];
-        all.appendChild(makeCheckbox(`allTag-${tag}`, `allTag-${tag}`, `${tag}`));
-        any.appendChild(makeCheckbox(`anyTag-${tag}`, `anyTag-${tag}`, `${tag}`));
-        none.appendChild(makeCheckbox(`noneTag-${tag}`, `noneTag-${tag}`, `${tag}`));
-    }
-}
-
 function resetTagList() {
     if (appData.tags) {
         setTags(appData.tags, tagCallback);
@@ -524,7 +436,7 @@ async function search() {
 }
 
 function updateState() {
-    console.log(appData.imageSet);
+    // Update the URL to be the current state.
     if (getMap() && appData.imageSet.constraints) {
         const state = {
             constraints: appData.imageSet.constraints,
@@ -539,26 +451,6 @@ function updateState() {
     } else {
         console.log('Map or constraints undefined', getMap().length, appData.imageSet.constraints);
     }
-}
-
-function resetSearch() {
-    for (let i = 0; i < appData.tags.length; i++) {
-        const tag = appData.tags[i];
-        document.getElementsByClassName(`allTag-${tag}`)[0].checked = false;
-        document.getElementsByClassName(`anyTag-${tag}`)[0].checked = false;
-        document.getElementsByClassName(`noneTag-${tag}`)[0].checked = false;
-    }
-    document.getElementById("typeFilterVideo").checked = false;
-    document.getElementById("typeFilterGif").checked = false;
-    document.getElementById("typeFilterStill").checked = false;
-    document.getElementById("resolutionSearch").selectedIndex = 0;
-    document.getElementById("artistLex").value = "";
-    document.getElementById("albumLex").value = "";
-    document.getElementById("titleLex").value = "";
-    document.getElementById("tagsLex").value = "";
-    document.getElementById("pathLex").value = "";
-    document.getElementById("generalLex").value = "";
-    document.getElementById("keywordSearch").value = "";
 }
 
 async function deleteCurrent() {
@@ -614,7 +506,7 @@ async function addNewTag() {
         appData.tags = await request(`/api/tags/add/${result}`);
         setTags(appData.tags, tagCallback);
         await imageCallbacks.updateImage();
-        buildSearch();
+        buildSearch(appData.tags);
         toggleTags(true);
     } catch (err) {
         showMessage(`Error adding new tag ${result}`);
@@ -653,7 +545,7 @@ async function fullImport() {
 
 async function deleteMissing() {
     try {
-        await request('/api/scan/deleteMissing');
+        await request('/api/scanner/deleteMissing');
         runScan();
     } catch (err) {
         showMessage('Error calling deleteMissing');
@@ -757,7 +649,7 @@ socket.on('scanStatus', function (data) {
         }
     }
     setTags(appData.tags, tagCallback);
-    buildSearch();
+    buildSearch(appData.tags);
 
     try {
         if (window.location.hash) {

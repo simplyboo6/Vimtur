@@ -1,5 +1,5 @@
 const MAX_COLUMNS = 10;
-const NUM_GALLERY_THUMBNAILS = 24;
+const GALLERY_COUNT = 24;
 // The minimum width that the tag panel can be used instead of the modal.
 const MIN_WIDTH_TAG_PANEL = 1700;
 
@@ -65,6 +65,89 @@ function makeCheckbox(id, className, name, callback) {
     }
 
     return div;
+}
+
+function buildSearch(tags) {
+    const all = document.getElementById("searchAll");
+    all.innerHTML = "All";
+    const any = document.getElementById("searchAny");
+    any.innerHTML = "Any";
+    const none = document.getElementById("searchNone");
+    none.innerHTML = "None";
+    all.appendChild(makeCheckbox(`allTag-selectAll`, `allTag-selectAll`, `Select All`, function(name, state) {
+        for (let i = 0; i < tags.length; i++) {
+            const boxes = document.getElementsByClassName(`allTag-${tags[i]}`);
+            for (let j = 0; j < boxes.length; j++) {
+                console.log(boxes[j]);
+                boxes[j].checked = state;
+            }
+        }
+    }));
+    any.appendChild(makeCheckbox(`anyTag-selectAll`, `anyTag-selectAll`, `Select All`, function(name, state) {
+        for (let i = 0; i < tags.length; i++) {
+            const boxes = document.getElementsByClassName(`anyTag-${tags[i]}`);
+            for (let j = 0; j < boxes.length; j++) {
+                boxes[j].checked = state;
+            }
+        }
+    }));
+    none.appendChild(makeCheckbox(`noneTag-selectAll`, `noneTag-selectAll`, `Select All`, function(name, state) {
+        for (let i = 0; i < tags.length; i++) {
+            const boxes = document.getElementsByClassName(`noneTag-${tags[i]}`);
+            for (let j = 0; j < boxes.length; j++) {
+                boxes[j].checked = state;
+            }
+        }
+    }));
+    for (let i = 0; i < appData.tags.length; i++) {
+        const tag = appData.tags[i];
+        all.appendChild(makeCheckbox(`allTag-${tag}`, `allTag-${tag}`, `${tag}`));
+        any.appendChild(makeCheckbox(`anyTag-${tag}`, `anyTag-${tag}`, `${tag}`));
+        none.appendChild(makeCheckbox(`noneTag-${tag}`, `noneTag-${tag}`, `${tag}`));
+    }
+}
+
+function showLoadingModal() {
+    showModal("#loadingModal");
+}
+
+function hideLoadingModal() {
+    hideModal("#loadingModal");
+}
+
+function getImageTitle(image) {
+    let title = '';
+    if (image.metadata) {
+        const elements = [];
+        const metadata = image.metadata;
+        if (metadata.artist) {
+            elements.push(metadata.artist);
+            document.getElementById("artistMetadata").value = metadata.artist;
+        } else {
+            document.getElementById("artistMetadata").value = "";
+        }
+        if (metadata.album) {
+            elements.push(metadata.album);
+            document.getElementById("albumMetadata").value = metadata.album;
+        } else {
+            document.getElementById("albumMetadata").value = "";
+        }
+        if (metadata.title) {
+            elements.push(metadata.title);
+            document.getElementById("titleMetadata").value = metadata.title;
+        } else {
+            document.getElementById("titleMetadata").value = "";
+        }
+        for (let i = 0; i < elements.length; i++) {
+            title = `${title}${i > 0 ? ' / ' : ''}${elements[i]}`;
+        }
+    }
+    if (!title) {
+        title = image.path;
+    } else {
+        title = `${title} - ${decodeURIComponent(appData.currentImage.path)}`;
+    }
+    return title;
 }
 
 function makeAlert(message) {
@@ -316,6 +399,30 @@ async function request(url) {
     });
 }
 
+function isGalleryVisible() {
+    return document.getElementById('galleryModal').style.display != 'none';
+}
+
+function resetSearch() {
+    for (let i = 0; i < appData.tags.length; i++) {
+        const tag = appData.tags[i];
+        document.getElementsByClassName(`allTag-${tag}`)[0].checked = false;
+        document.getElementsByClassName(`anyTag-${tag}`)[0].checked = false;
+        document.getElementsByClassName(`noneTag-${tag}`)[0].checked = false;
+    }
+    document.getElementById("typeFilterVideo").checked = false;
+    document.getElementById("typeFilterGif").checked = false;
+    document.getElementById("typeFilterStill").checked = false;
+    document.getElementById("resolutionSearch").selectedIndex = 0;
+    document.getElementById("artistLex").value = "";
+    document.getElementById("albumLex").value = "";
+    document.getElementById("titleLex").value = "";
+    document.getElementById("tagsLex").value = "";
+    document.getElementById("pathLex").value = "";
+    document.getElementById("generalLex").value = "";
+    document.getElementById("keywordSearch").value = "";
+}
+
 (function() {
     const colCount = parseInt(localStorage.getItem('tagColumnCount'));
     if (colCount && colCount <= MAX_COLUMNS) {
@@ -327,7 +434,7 @@ async function request(url) {
     // Propagate the gallery with 15 more containers from the template.
     const galleryTemplate = document.getElementById('thumbContainer0');
     const container = document.getElementById('galleryRowContainer');
-    for (let i = 1; i < NUM_GALLERY_THUMBNAILS; i++) {
+    for (let i = 1; i < GALLERY_COUNT; i++) {
         const thumb = galleryTemplate.cloneNode(true);
         thumb.id = `thumbContainer${i}`;
         thumb.children[0].children[0].id = `thumb${i}`;

@@ -126,7 +126,8 @@ class Scanner {
             state: this.state,
             libraryPath: utils.config.libraryPath,
             importStatus: this.importStatus,
-            cacheStatus: this.cacheStatus
+            cacheStatus: this.cacheStatus,
+            scanStatus: null
         }
         if (this.scanStatus) {
             status.scanStatus = utils.slimScannerStatus(this.scanStatus);
@@ -139,6 +140,15 @@ class Scanner {
             this.callback(this.getStatus());
         }
     }
+
+    async deleteMissing() {
+        const missing = scanner.getStatus().scanStatus;
+        if (scanStatus) {
+            for (let i = 0; i < scanStatus.missing.length; i++) {
+                await global.db.removeMedia(scanStatus.missing[i]);
+            }
+        }
+    }
 }
 
 const scanner = new Scanner(function(status) {
@@ -146,12 +156,6 @@ const scanner = new Scanner(function(status) {
         global.io.sockets.emit('scanStatus', status);
     }
 });
-
-async function deleteMissing() {
-    for (let i = 0; i < gData.scanResults.missing.length; i++) {
-        await global.db.removeMedia(gData.scanResults.missing[i]);
-    }
-}
 
 async function saveMetadata(hash, metadata) {
     const media = global.db.getMedia(hash);
@@ -220,9 +224,9 @@ app.get('/api/scanner/import', configCheckConnector, function (req, res) {
     res.json(scanner.getStatus());
 });
 
-app.get('/api/scan/deleteMissing', configCheckConnector, async function (req, res) {
-    await deleteMissing();
-    runScan();
+app.get('/api/scanner/deleteMissing', configCheckConnector, async function (req, res) {
+    await scanner.deleteMissing();
+    await scanner.scan();
     res.json(utils.slimScannerStatus(gData.scanResults));
 });
 
@@ -248,6 +252,19 @@ app.get('/api/tags/remove/:tag', configCheckConnector, async function (req, res)
 
 app.get('/api/images', configCheckConnector, function (req, res) {
     res.json(global.db.cropImageMap(global.db.getDefaultMap()));
+});
+
+app.get('/api/images/subset/:constraints', configCheckConnector, async function (req, res) {
+    try {
+        const constraints = JSON.parse(req.params.constraints);
+        console.log('Search request.', constraints);
+        const subset = global.db.cropImageMap(await global.db.subset(constraints));
+        console.log('Sending search result.');
+        res.json(subset);
+    } catch (err) {
+        console.log(err);
+        res.status(503).send(err);
+    }
 });
 
 app.get('/api/images/:hash', configCheckConnector, function (req, res) {
@@ -280,19 +297,6 @@ app.get('/api/images/:hash/delete', configCheckConnector, async function (req, r
         console.log(`Delete: Hash does not exist: ${hash}`);
         res.status(404);
         res.json({message: `Hash does not exist: ${hash}`});
-    }
-});
-
-app.get('/api/images/subset/:constraints', configCheckConnector, async function (req, res) {
-    try {
-        const constraints = JSON.parse(req.params.constraints);
-        console.log('Search request.', constraints);
-        const subset = global.db.cropImageMap(await global.db.subset(constraints));
-        console.log('Sending reuslt.');
-        res.json(subset);
-    } catch (err) {
-        console.log(err);
-        res.status(503).send(err);
     }
 });
 
@@ -329,17 +333,6 @@ app.get('/api/images/:hash/addTag/:tag', configCheckConnector, async function (r
 app.get('/api/images/:hash/removeTag/:tag', configCheckConnector, async function (req, res) {
     await global.db.removeTag(req.params.tag, req.params.hash);
     res.send(global.db.getMedia(req.params.hash));
-});
-
-app.get('/api/images/find/:image', configCheckConnector, function (req, res) {
-    const map = global.db.getDefaultMap();
-    const index = global.db.getMediaIndex(req.params.image, map);
-    if (index >= 0) {
-        res.send(global.db.getMedia(map[index]));
-    } else {
-        res.status(404);
-        res.type('txt').send('Not found');
-    }
 });
 
 app.get('/api/search/rebuildIndex', configCheckConnector, async function (req, res) {

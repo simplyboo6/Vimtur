@@ -36,6 +36,12 @@ class MediaManager {
     updateMedia(hash, args) {
         const media = this.media[hash];
         if (media) {
+            // Do some validation.
+            if (args.rating !== undefined) {
+                if (args.rating < 0 || args.rating > 5) {
+                    throw new Error('Rating must be between 0 and 5 inclusive');
+                }
+            }
             const metadata = {};
             if (args.metadata) {
                 Object.assign(metadata, args.metadata);
@@ -363,6 +369,28 @@ class MediaManager {
                 }
             }
             keys = newKeys;
+        }
+
+        if (constraints.rating !== undefined) {
+            let newKeys = [];
+            for (let i = 0; i < keys.length; i++) {
+                const image = this.media[keys[i]];
+                if (!image.rating) {
+                    continue;
+                }
+                if (constraints.rating.value !== undefined && image.rating !== constraints.rating.value) {
+                    continue;
+                }
+                if (constraints.rating.min !== undefined && image.rating < constraints.rating.min) {
+                    continue;
+                }
+                if (constraints.rating.max !== undefined && image.rating > constraints.rating.max) {
+                    continue;
+                }
+                newKeys.push(image.hash);
+            }
+            keys = newKeys;
+            await this.search.wait();
         }
 
         if (constraints.keywordSearch) {

@@ -34,17 +34,22 @@ try {
     }
     const file = path.resolve(process.argv[process.argv.length - 1]);
     console.log(`Attempting to load ${file}`);
-    if (path.basename(file) !== "config.json") {
+    if (!file.endsWith(".json")) {
         throw new Error('Specified file is not a config.json');
     }
-    exports.config = require(file);
-    console.log(exports.config);
+    try {
+        exports.config = require(file);
+        console.log(`Config loaded from: ${file}`);
+    } catch (err) {
+        // Doesn't matter if it fails to load. Just means it's a new config.
+    }
     exports.configPath = path.resolve(file);
 } catch (err) {
     const configPath = path.resolve(path.dirname(require.main.filename), 'config.json');
     console.log(`Attempting to use default config config.json (${configPath})`);
     try {
         exports.config = require(configPath);
+        console.log(`Config loaded from: ${configPath}`);
     } catch (err) {
         console.log("Failed to load ../config.json");
         console.log("Redirecting access to setup");

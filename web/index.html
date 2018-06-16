@@ -72,6 +72,8 @@
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#adminModal">Admin</a>
                         <a class="dropdown-item" href="#" onclick="addNewTag()">Add Tag</a>
                         <a class="dropdown-item" href="#" onclick="deleteTag()">Delete Tag</a>
+                        <a class="dropdown-item" href="#" onclick="addTagColumn(); resetTagList()">Add Tag Column</a>
+                        <a class="dropdown-item" href="#" onclick="removeTagColumn(); resetTagList()">Remove Tag Column</a>
                     </div>
                 </li>
             </ul>
@@ -85,10 +87,6 @@
     <main role="main" class="container-fluid bg-light" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
         <div class="row" id="mainRowContainer" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;margin-left:0;margin-right:0;">
             <div class="container-fluid col-lg-auto" id="tagColumnsContainer" style="display:block;">
-                <div class="row">
-                    <button class="btn btn-outline-primary btn-sm col-lg-6" type="submit" onclick="removeTagColumn(); resetTagList()">&#45;</button>
-                    <button class="btn btn-outline-primary btn-sm col-lg-6" type="submit" onclick="addTagColumn(); resetTagList()">&#43;</button>
-                </div>
                 <div class="row" id="tagColumnRow">
                     <!-- Column used as a template. Allow a shallow copy. -->
                     <div class="col-lg-auto" id="listColumn0"></div>

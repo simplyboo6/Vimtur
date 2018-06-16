@@ -90,7 +90,8 @@ class MySQLDatabase extends MediaManager {
                 title: row.title
             } : undefined,
             transcode: !!row.priority_transcode,
-            corrupted: !!row.corrupted
+            corrupted: !!row.corrupted,
+            rating: row.rating ? row.rating : 0
         };
         super.updateMedia(row.hash, additional);
     }
@@ -115,10 +116,14 @@ class MySQLDatabase extends MediaManager {
                 images.*,
                 IF(corrupted.hash IS NULL, FALSE, TRUE) AS corrupted,
                 IF(priority_transcode.hash IS NULL, FALSE, TRUE) AS priority_transcode,
-                IF(cached.hash IS NULL, FALSE, TRUE) AS cached, cached.* from images
+                IF(cached.hash IS NULL, FALSE, TRUE) AS cached,
+                cached.*,
+                ratings.rating
+                from images
                 LEFT JOIN corrupted ON (corrupted.hash = images.hash)
                 LEFT JOIN priority_transcode ON (priority_transcode.hash = images.hash)
-                LEFT JOIN cached ON (cached.hash = images.hash) ORDER BY path`,
+                LEFT JOIN cached ON (cached.hash = images.hash)
+                LEFT JOIN ratings ON (ratings.hash = images.hash) ORDER BY path`,
             function (row) {
                 $this.saveMediaRow(row);
             });
@@ -150,6 +155,9 @@ class MySQLDatabase extends MediaManager {
             }
             if (args.hashDate !== undefined) {
                 await this.query('UPDATE images SET hash_date=? WHERE hash=?', [media.hashDate, media.hash]);
+            }
+            if (args.rating !== undefined) {
+                await this.query('INERT IGNORE INTO ratings (hash, rating) VALUES (?, ?) ON DUPLICATE KEY UPDATE rating=?', [media.hash, media.rating, media.rating]);
             }
             if (args.metadata) {
                 await this.query("INSERT INTO cached (hash, width, height, length, artist, album, title) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE artist=?, album=?, title=?",

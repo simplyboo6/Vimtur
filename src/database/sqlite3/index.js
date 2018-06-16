@@ -157,7 +157,16 @@ class SQLiteDatabase extends MediaManager {
             }
         }
 
-        console.log("Files marked.");
+        console.log("Files marked. Loading ratings.");
+        const ratings = await this.query("SELECT * from ratings");
+        if (ratings) {
+            for (let i = 0; i < ratings.length; i++) {
+                const row = ratings[i];
+                super.updateMedia(row.hash, row.rating);
+            }
+        }
+
+        console.log("Ratings loaded");
     }
 
     async updateMedia(hash, args) {
@@ -183,6 +192,12 @@ class SQLiteDatabase extends MediaManager {
                 await this.query("INSERT OR IGNORE INTO cached (hash, width, height, length, artist, album, title) VALUES (?, ?, ?, ?, ?, ?, ?)",
                           [media.hash, media.metadata.width, media.metadata.height, media.metadata.length, media.metadata.artist, media.metadata.album,
                            media.metadata.title]);
+            }
+            if (args.rating !== undefined) {
+                // Effects zero rows if it has no stored rating.
+                await this.query("UPDATE ratings SET rating=? WHERE hash=?", [media.rating, media.hash]);
+                // If there's already a rating then skip this.
+                await this.query("INSERT OR IGNORE INTO ratings (hash, rating) VALUES (?, ?)", [media.hash, media.rating]);
             }
             if (args.corrupted !== undefined) {
                 if (args.corrupted) {

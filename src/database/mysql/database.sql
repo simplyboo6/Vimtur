@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS `corrupted` (
   FOREIGN KEY (`hash`) REFERENCES `images` (`hash`)
 );
 
+CREATE TABLE IF NOT EXISTS `ratings` (
+  `hash` varchar(32) NOT NULL,
+  `rating` TINYINT DEFAULT '0',
+  PRIMARY KEY (`hash`),
+  FOREIGN KEY (`hash`) REFERENCES `images` (`hash`)
+);
+
 CREATE TABLE IF NOT EXISTS `tags` (
   `tag` varchar(20) NOT NULL,
   PRIMARY KEY (`tag`)
