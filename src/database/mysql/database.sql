@@ -26,6 +26,20 @@ CREATE TABLE IF NOT EXISTS `ratings` (
   FOREIGN KEY (`hash`) REFERENCES `images` (`hash`)
 );
 
+CREATE TABLE IF NOT EXISTS `collections` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` TEXT NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE IF NOT EXISTS `collection_data` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `hash` varchar(32) NOT NULL,
+  PRIMARY KEY (`id`,`hash`),
+  FOREIGN KEY (`id`) REFERENCES `collections` (`id`),
+  FOREIGN KEY (`hash`) REFERENCES `images` (`hash`)
+);
+
 CREATE TABLE IF NOT EXISTS `tags` (
   `tag` varchar(20) NOT NULL,
   PRIMARY KEY (`tag`)

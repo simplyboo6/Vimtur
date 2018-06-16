@@ -15,6 +15,7 @@ class MediaManager {
     constructor(config) {
         this.config = config;
         this.media = {};
+        this.collections = {};
         this.tags = [];
     }
 
@@ -167,6 +168,81 @@ class MediaManager {
         return -1;
     };
 
+    addCollection(id, name) {
+        if (this.collections[id]) {
+            return false;
+        }
+        this.collections[id] = {
+            name: name,
+            media: []
+        };
+        return true;
+    }
+
+    removeCollection(id) {
+        if (!this.collections[id]) {
+            return false;
+        }
+        delete this.collections[id];
+    }
+
+    addMediaToCollection(id, hash) {
+        if (!this.collections[id]) {
+            return false;
+        }
+        if (!this.media[hash]) {
+            return false;
+        }
+        if (this.collections[id].media.includes(hash)) {
+            return false;
+        }
+        this.collections[id].media.push(hash);
+        return true;
+    }
+
+    removeMediaFromCollection(id, hash) {
+        if (!this.collections[id]) {
+            return false;
+        }
+        if (!this.media[hash]) {
+            return false;
+        }
+        if (!this.collections[id].media.includes(hash)) {
+            return false;
+        }
+        this.collections[id].media.splice(this.collections[id].media.indexOf(hash), 1);
+        return true;
+    }
+
+    updateCollection(id, args) {
+        if (!this.collections[id]) {
+            return false;
+        }
+        Object.assign(this.collections[id], args);
+        return true;
+    }
+
+    getCollection(id) {
+        if (this.collections[id]) {
+            const collection = Object.assign({}, this.collections[id]);
+            collection.id = id;
+            return collection;
+        }
+        return null;
+    }
+
+    getCollections() {
+        const keys = Object.keys(this.collections);
+        const strippedCollection = [];
+        for (let i = 0; i < keys.length; i++) {
+            strippedCollection.push({
+                id: keys[i],
+                name: this.collections[keys[i]].name
+            });
+        }
+        return strippedCollection;
+    }
+    
     async subset(constraints, keys) {
         if (keys == null) {
             keys = this.getDefaultMap();
@@ -369,6 +445,20 @@ class MediaManager {
                 }
             }
             keys = newKeys;
+        }
+
+        if (constraints.collection !== undefined) {
+            const collection = this.collections[contraints.collection];
+            if (collection) {
+                let newKeys = [];
+                for (let i = 0; i < keys.length; i++) {
+                    if (collection.media.includes(keys[i])) {
+                        newKeys.push(keys[i]);
+                    }
+                }
+                keys = newKeys;
+                
+            }
         }
 
         if (constraints.rating !== undefined) {

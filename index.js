@@ -335,6 +335,38 @@ app.get('/api/images/:hash/removeTag/:tag', configCheckConnector, async function
     res.send(global.db.getMedia(req.params.hash));
 });
 
+app.get('/api/collections', configCheckConnector, function (req, res) {
+    res.json(global.db.getCollections());
+});
+
+app.get('/api/collections/:id', configCheckConnector, async function (req, res) {
+    res.json(global.db.getCollection(req.params.id));
+});
+
+app.get('/api/collections/add/:name', configCheckConnector, async function (req, res) {
+    await global.db.addCollection(req.params.name);
+    if (result) {
+        res.json(global.db.getCollections());
+    } else {
+        res.status(503).json({ message: 'Error adding collection' });
+    }
+});
+
+app.get('/api/collections/remove/:id', configCheckConnector, async function (req, res) {
+    await global.db.removeCollection(req.params.id);
+    res.json(global.db.getCollections());
+});
+
+app.get('/api/collections/add/:id/:hash', configCheckConnector, async function (req, res) {
+    await global.db.addMediaToCollection(req.params.id, req.params.hash);
+    res.json(global.db.getCollection(req.params.id));
+});
+
+app.get('/api/collections/remove/:id/:hash', configCheckConnector, async function (req, res) {
+    await global.db.removeMediaFromCollection(req.params.id, req.params.hash);
+    res.json(global.db.getCollection(req.params.id));
+});
+
 app.get('/api/search/rebuildIndex', configCheckConnector, async function (req, res) {
     await global.db.search.rebuildIndex();
     res.send('Index rebuilt');

@@ -166,7 +166,23 @@ class SQLiteDatabase extends MediaManager {
             }
         }
 
-        console.log("Ratings loaded");
+        console.log("Ratings loaded. Loading collections");
+        console.time('Loading collections');
+        const collections = await this.query('SELECT * FROM collections');
+        if (collections) {
+            for (let i = 0; i < collections.length; i++) {
+                const row = collections[i];
+                super.addCollection(parseInt(row.id), row.name);
+            }
+        }
+        const collectionData = await this.query('SELECT * FROM collection_data');
+        if (collectionData) {
+            for (let i = 0; i < collectionData.length; i++) {
+                const row = collectionData[i];
+                $this.addMediaToCollection(parseInt(row.id), row.hash);
+            }
+        }
+        console.timeEnd('Loading collections');
     }
 
     async updateMedia(hash, args) {
@@ -229,10 +245,39 @@ class SQLiteDatabase extends MediaManager {
             await this.query("DELETE FROM cached WHERE hash=?", [media.hash]);
             await this.query("DELETE FROM priority_transcode WHERE hash=?", [media.hash]);
             await this.query("DELETE FROM corrupted WHERE hash=?", [media.hash]);
+            await this.query("DELETE FROM collection_data WHERE hash=?", [media.hash]);
             await this.query('DELETE FROM images WHERE hash=?', [media.hash]);
             return true;
         }
         return false;
+    }
+
+    async addCollection(name) {
+        const results = await this.query('INSERT OR IGNORE INTO collections (name) VALUES (?)', [name]);
+        if (super.addCollection(results.insertId, name)) {
+            return global.db.getCollection(results.insertId);
+        } else {
+            return null;
+        }
+    }
+
+    async removeCollection(id) {
+        if (super.removeCollection(id)) {
+            await this.query('DELETE FROM collection_data WHERE id=?', [id]);
+            await this.query('DELETE FROM collections WHERE id=?', [id]);
+        }
+    }
+
+    async addMediaToCollection(id, hash) {
+        if (super.addMediaToCollection(id, hash)) {
+            await this.query('INSERT OR IGNORE INTO collection_data (id, hash) VALUES (?, ?)', [id, hash]);
+        }
+    }
+
+    async removeMediaFromCollection(id, hash) {
+        if (super.removeMediaFromCollection(id, hash)) {
+            await this.query('DELETE FROM collection_data WHERE id=? AND hash=?', [id, hash]);
+        }
     }
 
     async addTag(tag, hash) {
