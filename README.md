@@ -28,7 +28,7 @@ sudo apt-get install graphicsmagick
 For Windows install graphicsmagick.
 
 ### As a server
-`npm install --production && npm run server`
+`npm install && npm run server`
 
 ### As an Electron app
 `npm install && npm run postinstall && npm run electron`

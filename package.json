@@ -24,8 +24,8 @@
     "ffprobe-static": "^2.0.0"
   },
   "scripts": {
-    "start": "nodejs index.js",
-    "server": "nodejs index.js",
+    "start": "node index.js",
+    "server": "node index.js",
     "electron": "electron electron.js",
     "postinstall": "install-app-deps",
     "dist": "electron-builder"
