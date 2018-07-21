@@ -186,6 +186,12 @@ class SQLiteDatabase extends MediaManager {
     }
 
     async updateMedia(hash, args) {
+        if (!this.media[hash]) {
+            if (super.addMedia(args.hash, args.path, 0, args.type, args.hashDate)) {
+                const media = this.media[hash];
+                await this.query('INSERT INTO images (hash, path, type, hash_date) VALUES (?, ?, ?, ?)', [media.hash, media.path, media.type, media.hashDate]);
+            }
+        }
         if (super.updateMedia(hash, args)) {
             const media = this.media[hash];
             if (args.path !== undefined) {
@@ -229,10 +235,6 @@ class SQLiteDatabase extends MediaManager {
                     await this.query("DELETE FROM priority_transcode WHERE hash=?", [media.hash]);
                 }
             }
-            return true;
-        } else if (super.addMedia(args.hash, args.path, 0, args.type, args.hashDate)) {
-            const media = this.media[hash];
-            await this.query('INSERT INTO images (hash, path, type, hash_date) VALUES (?, ?, ?, ?)', [media.hash, media.path, media.type, media.hashDate]);
             return true;
         }
         return false;

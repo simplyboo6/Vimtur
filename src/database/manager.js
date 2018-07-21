@@ -20,6 +20,25 @@ class MediaManager {
     }
 
     addMedia(hash, path, rotation, type, hashDate) {
+        if (!hash) {
+            console.log('Skipping file. Hash not set');
+            return false;
+        }
+        if (!path) {
+            console.log(`Skipping ${hash}. Path not set`);
+            return false;
+        }
+        switch (type) {
+            case 'still':
+            case 'gif':
+            case 'video':
+                // Continue normally.
+                break;
+            default:
+                console.log(`Skipping ${path}. Unsupported type: ${type}`);
+                return false;
+        }
+        // Hash date can be null. It's not crucial.
         const media = {
             hash: hash,
             path: decodeURIComponent((path + '').replace(/\+/g, '%20')).replace(/\\/g, '/'),
@@ -39,6 +58,7 @@ class MediaManager {
         if (media) {
             // Do some validation.
             if (args.rating !== undefined) {
+                // For this one throw an error because it means something is really broken.
                 if (args.rating < 0 || args.rating > 5) {
                     throw new Error('Rating must be between 0 and 5 inclusive');
                 }
@@ -72,6 +92,9 @@ class MediaManager {
     }
 
     addTag(tag, hash) {
+        if (!tag) {
+            return false;
+        }
         tag = stripTag(tag);
         if (Array.isArray(this.config.filter)) {
             if (this.config.filter.includes(tag)) {
@@ -87,12 +110,10 @@ class MediaManager {
             if (!this.tags.includes(tag)) {
                 return false;
             }
-            if (this.tags.indexOf(tag) >= 0 && media) {
-                if (media.tags.indexOf(tag) < 0) {
-                    this.media[hash].tags.push(tag);
-                }
-                return true;
+            if (media.tags.indexOf(tag) < 0) {
+                this.media[hash].tags.push(tag);
             }
+            return true;
         } else {
             if (!this.tags.includes(tag) && tag.length > 0) {
                 this.tags.push(tag);
@@ -104,6 +125,9 @@ class MediaManager {
     }
 
     removeTag(tag, hash) {
+        if (!tag) {
+            return false;
+        }
         tag = stripTag(tag);
         if (hash) {
             const media = this.getMedia(hash);
@@ -122,6 +146,7 @@ class MediaManager {
                 }
             }
         }
+        return true;
     }
 
     getMedia(hash) {
@@ -242,7 +267,7 @@ class MediaManager {
         }
         return strippedCollection;
     }
-    
+
     async subset(constraints, keys) {
         if (keys == null) {
             keys = this.getDefaultMap();
@@ -457,7 +482,7 @@ class MediaManager {
                     }
                 }
                 keys = newKeys;
-                
+
             }
         }
 
@@ -465,7 +490,7 @@ class MediaManager {
             let newKeys = [];
             for (let i = 0; i < keys.length; i++) {
                 const image = this.media[keys[i]];
-                if (!image.rating) {
+                if (image.rating === undefined) {
                     continue;
                 }
                 if (constraints.rating.value !== undefined && image.rating !== constraints.rating.value) {
@@ -497,9 +522,9 @@ class MediaManager {
         const $this = this;
         // Start a loop to rebuild the index every 5 minutes.
         async function rebuildIndex() {
-            console.time('Rebuilding index took');
+            console.time('Rebuilding search index took');
             await $this.search.rebuildIndex();
-            console.timeEnd('Rebuilding index took');
+            console.timeEnd('Rebuilding search index took');
             $this.rebuildTimeout = setTimeout(rebuildIndex, 5 * 60 * 1000);
         }
         this.rebuildTimeout = setTimeout(rebuildIndex, 5 * 60 * 1000);

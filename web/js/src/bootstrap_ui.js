@@ -148,6 +148,7 @@ const imageCallbacks = {
             setChecked(appData.currentImage.tags);
             updateTitle();
             updateState();
+            setDisplayedRating(appData.currentImage.rating);
         } catch (err) {
             showMessage('Error in updateImage callback');
             console.log(err);
@@ -397,6 +398,29 @@ async function search() {
         default: break;
     }
 
+    const minimumRatingElement = document.getElementById("ratingMinimum");
+    const minimumRating = minimumRatingElement.options[minimumRatingElement.selectedIndex].text;
+    if (minimumRating !== "None") {
+        constraints.rating = {
+            min: parseInt(minimumRating)
+        };
+    }
+
+    const maximumRatingElement = document.getElementById("ratingMaximum");
+    const maximumRating = maximumRatingElement.options[maximumRatingElement.selectedIndex].text;
+    if (maximumRating !== "None") {
+        if (maximumRating === "Unrated") {
+            constraints.rating = {
+                max: 0
+            };
+        } else {
+            constraints.rating = {
+                max: parseInt(maximumRating)
+            };
+        }
+    }
+
+
     function setMap(elementName, varName) {
         const element = document.getElementById(elementName);
         if (element.value) {
@@ -619,6 +643,17 @@ async function rebuildSearchIndex() {
     }
 }
 
+async function onRatingChange(rating) {
+    const data = { rating: rating };
+    try {
+        await request(`/api/images/${getMap()[appData.imageSet.current]}/update/${encodeURIComponent(JSON.stringify(data))}`);
+        appData.currentImage.rating = rating;
+    } catch (err) {
+        console.log(err);
+        showMessage("Failed to update rating");
+    }
+}
+
 socket.on('message', function (data) {
     console.log(data);
     showMessage(data);
@@ -648,6 +683,28 @@ socket.on('scanStatus', function (data) {
             showMessage(err.message);
         }
     }
+
+    appData.config = (await request('/api/config')).config;
+    let colCount = DEFAULT_COLUMN_COUNT;
+    if (appData.config.defaultColumnCount) {
+        console.log(`Default column count: ${appData.config.defaultColumnCount}`);
+        colCount = appData.config.defaultColumnCount;
+    }
+    const storageCount = parseInt(localStorage.getItem('tagColumnCount'));
+    if (storageCount) {
+        console.log(`Local storage column count: ${storageCount}`);
+        colCount = storageCount;
+    }
+    if (colCount > MAX_COLUMNS) {
+        console.log('Warning, too many columns. Settings to max');
+        colCount = MAX_COLUMNS;
+    }
+
+    // Already one existing column.
+    for (let i = DEFAULT_COLUMN_COUNT; i < colCount; i++) {
+        addTagColumn();
+    }
+
     setTags(appData.tags, tagCallback);
     buildSearch(appData.tags);
 

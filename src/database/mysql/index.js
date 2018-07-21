@@ -188,6 +188,12 @@ class MySQLDatabase extends MediaManager {
     }
 
     async updateMedia(hash, args) {
+        if (!this.media[hash]) {
+            if (super.addMedia(args.hash, args.path, 0, args.type, args.hashDate)) {
+                const media = this.media[hash];
+                await this.query('INSERT INTO images (hash, path, type, hash_date) VALUES (?, ?, ?, ?)', [media.hash, media.path, media.type, media.hashDate]);
+            }
+        }
         if (super.updateMedia(hash, args)) {
             const media = this.media[hash];
             if (args.path !== undefined) {
@@ -203,7 +209,7 @@ class MySQLDatabase extends MediaManager {
                 await this.query('UPDATE images SET hash_date=? WHERE hash=?', [media.hashDate, media.hash]);
             }
             if (args.rating !== undefined) {
-                await this.query('INERT IGNORE INTO ratings (hash, rating) VALUES (?, ?) ON DUPLICATE KEY UPDATE rating=?', [media.hash, media.rating, media.rating]);
+                await this.query('INSERT INTO ratings (hash, rating) VALUES (?, ?) ON DUPLICATE KEY UPDATE rating=?', [media.hash, media.rating, media.rating]);
             }
             if (args.metadata) {
                 await this.query("INSERT INTO cached (hash, width, height, length, artist, album, title) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE artist=?, album=?, title=?",
@@ -224,10 +230,6 @@ class MySQLDatabase extends MediaManager {
                     await this.query("DELETE FROM priority_transcode WHERE hash=?", [media.hash]);
                 }
             }
-            return true;
-        } else if (super.addMedia(args.hash, args.path, 0, args.type, args.hashDate)) {
-            const media = this.media[hash];
-            await this.query('INSERT INTO images (hash, path, type, hash_date) VALUES (?, ?, ?, ?)', [media.hash, media.path, media.type, media.hashDate]);
             return true;
         }
         return false;

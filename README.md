@@ -13,6 +13,7 @@
 * Thumbnail generation for all media
 * Auto-transcode videos for web-browser compatibility
 * Electron support
+* Import and export database to JSON format
 
 ## Notes
 * Requires ffmpeg for transcoding and thumbnails (included). Requires graphicsmagick for extracting EXIF data.

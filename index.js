@@ -310,6 +310,16 @@ app.get('/api/images/:hash/metadata/:metadata', configCheckConnector, async func
     }
 });
 
+app.get('/api/images/:hash/update/:data', configCheckConnector, async function (req, res) {
+    const data = JSON.parse(req.params.data);
+    if (await global.db.updateMedia(req.params.hash, data)) {
+        res.send(global.db.getMedia(req.params.hash));
+    } else {
+        res.status(503);
+        res.type('txt').send('Failed to update image data.');
+    }
+});
+
 app.get('/api/images/:hash/file', configCheckConnector, function (req, res) {
     const img = global.db.getMedia(req.params.hash);
     if (img != undefined) {

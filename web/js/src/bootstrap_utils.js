@@ -2,6 +2,7 @@ const MAX_COLUMNS = 10;
 const GALLERY_COUNT = 24;
 // The minimum width that the tag panel can be used instead of the modal.
 const MIN_WIDTH_TAG_PANEL = 1700;
+const DEFAULT_COLUMN_COUNT = 1;
 
 class BootBox {
     static async alert(msg) {
@@ -423,14 +424,17 @@ function resetSearch() {
     document.getElementById("keywordSearch").value = "";
 }
 
-(function() {
-    const colCount = parseInt(localStorage.getItem('tagColumnCount'));
-    if (colCount && colCount <= MAX_COLUMNS) {
-        // Already one existing column.
-        for (let i = 1; i < colCount; i++) {
-            addTagColumn();
+function setDisplayedRating(rating, selected) {
+    for (let i = 1; i <= 5; i++) {
+        if (rating >= i) {
+            $(`#rating-${i}`).addClass(selected ? 'rating-hover' : 'rating-checked');
+        } else {
+            $(`#rating-${i}`).removeClass(selected ? 'rating-hover' : 'rating-checked');
         }
     }
+}
+
+(function() {
     // Propagate the gallery with 15 more containers from the template.
     const galleryTemplate = document.getElementById('thumbContainer0');
     const container = document.getElementById('galleryRowContainer');
@@ -440,5 +444,18 @@ function resetSearch() {
         thumb.children[0].children[0].id = `thumb${i}`;
         thumb.children[0].children[1].id = `thumbCaption${i}`;
         container.appendChild(thumb);
+    }
+
+    for (let i = 1; i <= 5; i++) {
+        $(`#rating-${i}`).hover(function() {
+            setDisplayedRating(i, true)
+            $(`#rating-${i}`).addClass('rating-hover');
+        }, function() {
+            setDisplayedRating(0, true);
+        });
+        $(`#rating-${i}`).click(function() {
+            setDisplayedRating(i);
+            onRatingChange(i);
+        });
     }
 })();
