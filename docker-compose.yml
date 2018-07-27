@@ -1,0 +1,20 @@
+version: "2"
+services:
+  node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /opt/app
+    environment:
+      - NODE_ENV=production
+      - CACHE_PATH=/cache/
+      - DATA_PATH=/data/
+      - USERNAME
+      - PASSWORD
+    volumes:
+      - ${DATA_DIR}:/data/
+      - ${CACHE_DIR}:/cache/
+    ports:
+      - "${PORT}:3523"
+    command:
+        "node index.js /cache/config.json"

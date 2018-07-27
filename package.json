@@ -12,7 +12,6 @@
     "http-auth": "~3.2.3",
     "inflight": "^1.0.6",
     "md5-file": "~3.1.1",
-    "mysql": "^2.13.0",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
     "rimraf": "^2.6.2",
@@ -65,6 +64,7 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "2.0.2",
-    "electron-builder": "20.15.1"
+    "electron-builder": "20.15.1",
+    "mysql": "^2.13.0"
   }
 }

@@ -1,0 +1,8 @@
+node_modules/*
+.idea/*
+config.json
+log/*
+**/nohup.out
+pid/*
+**/*.log
+dist/*

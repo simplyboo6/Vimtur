@@ -43,6 +43,17 @@ Specifying a path as the last argument when doing any launch will set the config
 Such as: `npm run start /data/Pictures/config.json`.
 Doing this allows multiple libraries to be acessed, if it's not specified a default config.json is created in the application directory.
 
+## Docker
+The server can be run as a Docker instance. It accepts the following environment variables:
+* (required) DATA_DIR - The path to the media library.
+* (required) CACHE_DIR - The directory to cache thumbnails, videos, and store the config and database. Cannot be inside the DATA_DIR.
+* (optional) USERNAME - A username to login with. PASSWORD also required.
+* (optional) PASSWORD - A password to login with. USERNAME required too.
+* (optional) PORT - A port for the Docker instance to expose. Default 3523.
+
+## Example
+```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up```
+
 ## Screenshots
 ![Preview Image](screenshots/admin.png)
 ![Preview Image](screenshots/metadata.png)

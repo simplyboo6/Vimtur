@@ -52,9 +52,28 @@ try {
         console.log(`Config loaded from: ${configPath}`);
     } catch (err) {
         console.log("Failed to load ../config.json");
-        console.log("Redirecting access to setup");
     }
     exports.configPath = configPath;
+}
+
+function mapEnv(env, obj, dest) {
+    if (process.env[env]) {
+        console.log(`Using ${process.env[env]} from ${env}`);
+        obj[dest] = process.env[env];
+    }
+}
+
+mapEnv("DATA_PATH", exports.config, "libraryPath");
+mapEnv("CACHE_PATH", exports.config, "cachePath");
+mapEnv("USERNAME", exports.config, "username");
+mapEnv("PASSWORD", exports.config, "password");
+
+if (!exports.config.database) {
+    exports.config.database = {
+        provider: "sqlite3",
+        path: `${exports.config.cachePath}/vimtur.db`
+    }
+    console.log(`No default database found, defaulting to SQLite3 at ${exports.config.database.path}`);
 }
 
 exports.isSetup = async function() {
