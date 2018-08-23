@@ -7,7 +7,7 @@
 * Video, gif and image support
 * Tagging media
 * Various forms of searching (weighted keyword, tag selection, expression)
-* Metadata support for Artist/Album/Title
+* Metadata support for Artist/Album/Title/[People/Actors]
 * Auto-scraped metadata from files where possible
 * Internal image gallery for faster browser
 * Thumbnail generation for all media
