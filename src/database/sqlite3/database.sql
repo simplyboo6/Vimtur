@@ -74,4 +74,17 @@ CREATE TABLE IF NOT EXISTS `version` (
   PRIMARY KEY (`version`)
 );
 
+CREATE TABLE IF NOT EXISTS `actors` (
+  `actor` varchar(80) NOT NULL,
+  PRIMARY KEY (`actor`)
+);
+
+CREATE TABLE IF NOT EXISTS `media_actors` (
+  `hash` varchar(32) NOT NULL,
+  `actor` varchar(80) NOT NULL,
+  PRIMARY KEY (`hash`,`actor`),
+  FOREIGN KEY (`hash`) REFERENCES `images` (`hash`),
+  FOREIGN KEY (`actor`) REFERENCES `actors` (`actor`)
+);
+
 INSERT OR REPLACE INTO version(version) VALUES (0);

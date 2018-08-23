@@ -142,10 +142,15 @@ class Scanner {
     }
 
     async deleteMissing() {
-        const missing = scanner.getStatus().scanStatus;
-        if (scanStatus) {
-            for (let i = 0; i < scanStatus.missing.length; i++) {
-                await global.db.removeMedia(scanStatus.missing[i]);
+        if (!this.scanStatus) {
+            console.log("Cannot delete missing without a scan first");
+            return false;
+        }
+        const missing = this.scanStatus.missing;
+        if (missing) {
+            for (let i = 0; i < missing.length; i++) {
+                console.log(`Deleting missing image ${missing[i].hash}`);
+                await global.db.removeMedia(missing[i].hash);
             }
         }
     }
@@ -227,7 +232,7 @@ app.get('/api/scanner/import', configCheckConnector, function (req, res) {
 app.get('/api/scanner/deleteMissing', configCheckConnector, async function (req, res) {
     await scanner.deleteMissing();
     await scanner.scan();
-    res.json(utils.slimScannerStatus(gData.scanResults));
+    res.json(scanner.getStatus());
 });
 
 app.get('/api/tags', configCheckConnector, function (req, res) {
@@ -248,6 +253,26 @@ app.get('/api/tags/remove/:tag', configCheckConnector, async function (req, res)
     }
     await global.db.removeTag(req.params.tag);
     res.json(global.db.getTags());
+});
+
+app.get('/api/actors', configCheckConnector, function (req, res) {
+    res.json(global.db.getActors());
+});
+
+app.get('/api/actors/add/:actor', configCheckConnector, async function (req, res) {
+    if (!req.params.actor) {
+        return res.status(422).type('txt').send('No actor specified');
+    }
+    await global.db.addActor(req.params.actor);
+    res.json(global.db.getActors());
+});
+
+app.get('/api/actors/remove/:actor', configCheckConnector, async function (req, res) {
+    if (!req.params.actor) {
+        return res.status(422).type('txt').send('No actor specified');
+    }
+    await global.db.removeActor(req.params.actor);
+    res.json(global.db.getActors());
 });
 
 app.get('/api/images', configCheckConnector, function (req, res) {
@@ -281,18 +306,22 @@ app.get('/api/images/:hash/delete', configCheckConnector, async function (req, r
     const hash = req.params.hash;
     const media = global.db.getMedia(hash);
     if (media) {
-        await global.db.removeMedia(media);
-        fs.unlink(media.absolutePath, function() {
-            console.log(`${media.absolutePath} removed`);
-        });
-        fs.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, function() {
-            console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
-        });
-        rimraf(`${utils.config.cachePath}/${hash}/`, function () {
-            console.log(`${utils.config.cachePath}/${hash}/ removed`);
-        });
-        console.log(`${hash} deleted.`);
-        res.json({message: `${hash} deleted.`});
+        if (await global.db.removeMedia(hash)) {
+            fs.unlink(media.absolutePath, function() {
+                console.log(`${media.absolutePath} removed`);
+            });
+            fs.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, function() {
+                console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
+            });
+            rimraf(`${utils.config.cachePath}/${hash}/`, function () {
+                console.log(`${utils.config.cachePath}/${hash}/ removed`);
+            });
+            console.log(`${hash} deleted.`);
+            res.json({message: `${hash} deleted.`});
+        } else {
+            res.status(404);
+            res.json({message: "Could not remove media from database"});
+        }
     } else {
         console.log(`Delete: Hash does not exist: ${hash}`);
         res.status(404);
@@ -342,6 +371,21 @@ app.get('/api/images/:hash/addTag/:tag', configCheckConnector, async function (r
 
 app.get('/api/images/:hash/removeTag/:tag', configCheckConnector, async function (req, res) {
     await global.db.removeTag(req.params.tag, req.params.hash);
+    res.send(global.db.getMedia(req.params.hash));
+});
+
+app.get('/api/images/:hash/addActor/:actor', configCheckConnector, async function (req, res) {
+    const result = await global.db.addActor(req.params.actor, req.params.hash);
+    if (result) {
+        res.send(global.db.getMedia(req.params.hash));
+    } else {
+        res.status(404);
+        res.type('txt').send('Not found');
+    }
+});
+
+app.get('/api/images/:hash/removeActor/:actor', configCheckConnector, async function (req, res) {
+    await global.db.removeActor(req.params.actor, req.params.hash);
     res.send(global.db.getMedia(req.params.hash));
 });
 
@@ -494,7 +538,7 @@ async function setup() {
         global.db = await Database.setup(utils.config);
         scanner.scan();
     } catch (err) {
-        console.log(`Config is invalid: ${err.message}`);
+        console.log(`Config is invalid: ${err.message}`, err);
     }
 }
 

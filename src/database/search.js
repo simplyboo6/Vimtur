@@ -148,16 +148,16 @@ class Search {
         }
         function addMetadata(md) {
             if (md) {
-                const split = md.split(" ");
-                for (let i = 0; i < split.length; i++) {
-                    tokens.push(split[i].toLowerCase().replace(/[^a-z0-9]/gi,''));
-                }
+                tokens.push(md.toLowerCase().replace(/[^a-z0-9]/gi,''));
             }
         }
         if (media.metadata) {
             addMetadata(media.metadata.artist);
             addMetadata(media.metadata.album);
             addMetadata(media.metadata.title);
+        }
+        for (let i = 0; i < media.actors.length; i++) {
+            addMetadata(media.actors[i]);
         }
         const pathSplit = media.path.split("/");
         // Remove the extension from the final element.

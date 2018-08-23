@@ -2,6 +2,7 @@ const socket = io();
 
 const appData = {
     tags: [],
+    actors: [],
     imageSet: {
         current: 0,
         map: [],
@@ -139,6 +140,10 @@ function openGallery() {
     updateGallery();
 }
 
+function updateSelectedActors() {
+    $('#actorsMetadata').val(appData.currentImage.actors).trigger('change');
+}
+
 const imageCallbacks = {
     updateImage: async function() {
         try {
@@ -148,6 +153,7 @@ const imageCallbacks = {
             setChecked(appData.currentImage.tags);
             updateTitle();
             updateState();
+            updateSelectedActors();
             setDisplayedRating(appData.currentImage.rating);
         } catch (err) {
             showMessage('Error in updateImage callback');
@@ -434,6 +440,7 @@ async function search() {
     setMap("pathLex", "path");
     setMap("generalLex", "generalLexer");
     setMap("keywordSearch", "keywordSearch");
+    setMap("actorLex", "actorLexer");
 
     $('#searchModal').modal('hide');
     try {
@@ -669,6 +676,94 @@ socket.on('scanStatus', function (data) {
     updateAdminStatus();
 });
 
+function updateActorsList() {
+    const actors = [];
+    for (let i = 0; i < appData.actors.length; i++) {
+        actors.push({
+            id: appData.actors[i],
+            text: appData.actors[i]
+        });
+    }
+    $('#actorsList').off();
+    $('#actorsList').select2({
+        width: 'resolve',
+        data: actors,
+        tags: true
+    }).change();
+    $('#actorsList').val(appData.actors).change();
+    $('#actorsList').on('select2:select', async function (e) {
+        const actor = e.params.data.text.trim();
+        if (!actor) {
+            return;
+        }
+        console.log(`Adding actor ${actor}`);
+        if (!appData.actors.includes(actor)) {
+            const result = await BootBox.confirm(`Are you sure you want to create ${actor}?`);
+            if (!result) {
+                return;
+            }
+            await request(`/api/actors/add/${encodeURIComponent(actor)}`);
+            appData.actors.push(actor);
+        }
+        const result = await request(`/api/images/${appData.currentImage.hash}/addActor/${encodeURIComponent(actor)}`);
+        appData.currentImage.actors.push(actor);
+        updateActorsList();
+    });
+    $('#actorsList').on('select2:unselect', async function (e) {
+        const actor = e.params.data.text.trim();
+        if (!actor) {
+            return;
+        }
+        console.log(`Removing actor ${actor}`);
+        const result = await BootBox.confirm(`Are you sure you want to delete ${actor}?`);
+        if (!result) {
+            return;
+        }
+        await request(`/api/actors/remove/${encodeURIComponent(actor)}`);
+        appData.actors.splice(appData.actors.indexOf(actor));
+        updateActorsList();
+        if (appData.currentImage.actors.includes(actor)) {
+            appData.currentImage.actors.splice(appData.currentImage.actors.indexOf(actor));
+            updateSelectedActors();
+        }
+    });
+
+    $('#actorsMetadata').off();
+    $('#actorsMetadata').select2({
+        width: 'resolve',
+        data: actors,
+        tags: true
+    }).change();
+    $('#actorsMetadata').on('select2:select', async function (e) {
+        const actor = e.params.data.text.trim();
+        if (!actor) {
+            return;
+        }
+        console.log(`Adding actor ${actor} from ${appData.currentImage.hash}`);
+        if (!appData.actors.includes(actor)) {
+            const result = await BootBox.confirm(`Are you sure you want to create ${actor}?`);
+            if (!result) {
+                return;
+            }
+            appData.actors.push(actor);
+        }
+        const result = await request(`/api/images/${appData.currentImage.hash}/addActor/${encodeURIComponent(actor)}`);
+        appData.currentImage.actors.push(actor);
+        updateActorsList();
+        updateSelectedActors();
+    });
+    $('#actorsMetadata').on('select2:unselect', async function (e) {
+        const actor = e.params.data.text.trim();
+        if (!actor) {
+            return;
+        }
+        console.log(`Removing actor ${actor} from ${appData.currentImage.hash}`);
+        const result = await request(`/api/images/${appData.currentImage.hash}/removeActor/${encodeURIComponent(actor)}`);
+        appData.currentImage.actors.splice(appData.currentImage.actors.indexOf(actor));
+        updateActorsList();
+    });
+}
+
 (async function() {
     $('#loadingModal').modal('show');
     try {
@@ -707,6 +802,9 @@ socket.on('scanStatus', function (data) {
 
     setTags(appData.tags, tagCallback);
     buildSearch(appData.tags);
+
+    appData.actors = await request(`/api/actors`);
+    updateActorsList();
 
     try {
         if (window.location.hash) {

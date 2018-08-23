@@ -101,6 +101,17 @@ class SQLiteDatabase extends MediaManager {
             }
         }
 
+        console.log("Loading actors.");
+        const actors = await this.query("SELECT * FROM actors");
+        if (actors) {
+            for (let i = 0; i < actors.length; i++) {
+                const row = actors[i];
+                if (row.actor.length > 0) {
+                    super.addActor(row.actor);
+                }
+            }
+        }
+
         console.log(`Tags loaded (${this.tags.length}). Loading media.`);
         const media = await this.query("SELECT * from images ORDER BY path");
         if (media) {
@@ -119,7 +130,18 @@ class SQLiteDatabase extends MediaManager {
             }
         }
 
-        console.log("Tags loaded. Loading metdata.");
+        console.log('Loading media actors');
+        console.time('Loading media actors');
+        const mediaActors = await this.query("SELECT * FROM media_actors");
+        if (mediaActors) {
+            for (let i = 0; i < mediaActors.length; i++) {
+                const row = mediaActors[i];
+                super.addActor(row.actor, row.hash);
+            }
+        }
+        console.timeEnd('Loading media actors');
+
+        console.log("Loading metdata.");
         const metadata = await this.query("SELECT * from cached");
         if (metadata) {
             for (let i = 0; i < metadata.length; i++) {
@@ -240,15 +262,15 @@ class SQLiteDatabase extends MediaManager {
         return false;
     }
 
-    async removeMedia(media) {
-        if (super.removeMedia(media)) {
-            await this.query('INSERT OR IGNORE INTO deleted (hash, time) VALUES (?, ?)', [media.hash, Math.floor(Date.now() / 1000)]);
-            await this.query('DELETE FROM imgtags WHERE hash=?', [media.hash]);
-            await this.query("DELETE FROM cached WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM priority_transcode WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM corrupted WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM collection_data WHERE hash=?", [media.hash]);
-            await this.query('DELETE FROM images WHERE hash=?', [media.hash]);
+    async removeMedia(hash) {
+        if (super.removeMedia(hash)) {
+            await this.query('INSERT OR IGNORE INTO deleted (hash, time) VALUES (?, ?)', [hash, Math.floor(Date.now() / 1000)]);
+            await this.query('DELETE FROM imgtags WHERE hash=?', [hash]);
+            await this.query("DELETE FROM cached WHERE hash=?", [hash]);
+            await this.query("DELETE FROM priority_transcode WHERE hash=?", [hash]);
+            await this.query("DELETE FROM corrupted WHERE hash=?", [hash]);
+            await this.query("DELETE FROM collection_data WHERE hash=?", [hash]);
+            await this.query('DELETE FROM images WHERE hash=?', [hash]);
             return true;
         }
         return false;
@@ -301,6 +323,30 @@ class SQLiteDatabase extends MediaManager {
             } else {
                 await this.query('DELETE FROM imgtagss WHERE tag=?', [tag]);
                 await this.query('DELETE FROM tags WHERE tag=?', [tag]);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    async addActor(actor, hash) {
+        if (super.addActor(actor, hash)) {
+            await this.query('INSERT OR IGNORE INTO actors VALUES(?)', [actor]);
+            if (hash) {
+                await this.query('INSERT OR IGNORE INTO media_actors VALUES(?, ?)', [hash, actor]);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    async removeActor(actor, hash) {
+        if (super.removeActor(actor, hash)) {
+            if (hash) {
+                await this.query('DELETE FROM media_actors WHERE hash=? AND actor=?', [hash, actor]);
+            } else {
+                await this.query('DELETE FROM media_actors WHERE actor=?', [actor]);
+                await this.query('DELETE FROM actors WHERE actor=?', [actor]);
             }
             return true;
         }

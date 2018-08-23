@@ -107,11 +107,11 @@ class ExpressionParser {
     }
 
     parse(input) {
-        this.lexer.setInput(input);
+        this.lexer.setInput(input.trim().toLowerCase());
         const tokens = [];
         let token;
         while (token = this.lexer.lex()) {
-            tokens.push(token.trim());
+            tokens.push(token.trim().toLowerCase());
         }
 
         const polish = this.parser.parse(tokens);

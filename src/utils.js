@@ -255,7 +255,7 @@ exports.generateMediaFromFile = async function (mediaFile) {
             }
             const image = {
                 hash: hash,
-                path: encodeURIComponent(path.relative(exports.config.libraryPath, mediaFile.absolutePath)),
+                path: path.relative(exports.config.libraryPath, mediaFile.absolutePath),
                 absolutePath: mediaFile.absolutePath,
                 dir: path.dirname(mediaFile.absolutePath),
                 rotation: 0,

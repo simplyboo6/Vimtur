@@ -8,7 +8,6 @@ const MediaManager = require('../manager.js');
 class MySQLDatabase extends MediaManager {
     constructor(config) {
         super(config);
-        this.db = null;
     }
 
     async loadDefaultSql() {
@@ -24,9 +23,10 @@ class MySQLDatabase extends MediaManager {
     }
 
     async each(query, callback, values) {
+        const $this = this;
         return new Promise((resolve, reject) => {
             try {
-                const result = this.db.query(query, values);
+                const result = $this.pool.query(query, values);
                 result.on('error', function(err) {
                     reject(err);
                 });
@@ -41,11 +41,16 @@ class MySQLDatabase extends MediaManager {
     }
 
     async query(query, values) {
+        const $this = this;
         return new Promise((resolve, reject) => {
             try {
-                this.db.query(query, values, function (error, results, fields) {
+                $this.pool.query(
+                {
+                    sql: query,
+                    values: values
+                }, function (error, results, fields) {
                     if (error) {
-                        reject(new Error(`Error running query: ${query} - ${JSON.stringify(values)}: ${error}`));
+                        reject(new Error(`Error running query: ${query} - values(${JSON.stringify(values)}): ${error}`));
                     } else {
                         resolve(results);
                     }
@@ -72,7 +77,7 @@ class MySQLDatabase extends MediaManager {
                 clearTimeout($this.rebuildTimeout);
                 $this.rebuildTimeout = null;
             }
-            $this.db.end(function (err) {
+            $this.pool.end(function(err) {
                 resolve();
             });
         });
@@ -137,6 +142,17 @@ class MySQLDatabase extends MediaManager {
             }
         }
 
+        console.log("Loading actors.");
+        const actors = await this.query("SELECT * FROM actors");
+        if (actors) {
+            for (let i = 0; i < actors.length; i++) {
+                const row = actors[i];
+                if (row.actor.length > 0) {
+                    super.addActor(row.actor);
+                }
+            }
+        }
+
         console.log(`Tags loaded (${this.tags.length}). Loading media.`);
         console.time('Loading media');
         await this.each(`
@@ -167,6 +183,17 @@ class MySQLDatabase extends MediaManager {
             }
         }
         console.timeEnd('Loading media tags');
+
+        console.log('Loading media actors');
+        console.time('Loading media actors');
+        const mediaActors = await this.query("SELECT * FROM media_actors");
+        if (mediaActors) {
+            for (let i = 0; i < mediaActors.length; i++) {
+                const row = mediaActors[i];
+                super.addActor(row.actor, row.hash);
+            }
+        }
+        console.timeEnd('Loading media actors');
 
         console.log('Loading collections');
         console.time('Loading collections');
@@ -235,15 +262,15 @@ class MySQLDatabase extends MediaManager {
         return false;
     }
 
-    async removeMedia(media) {
-        if (super.removeMedia(media)) {
-            await this.query('INSERT IGNORE INTO deleted (hash, time) VALUES (?, ?)', [media.hash, Math.floor(Date.now() / 1000)]);
-            await this.query('DELETE FROM imgtags WHERE hash=?', [media.hash]);
-            await this.query("DELETE FROM cached WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM priority_transcode WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM corrupted WHERE hash=?", [media.hash]);
-            await this.query("DELETE FROM collection_data WHERE hash=?", [media.hash]);
-            await this.query('DELETE FROM images WHERE hash=?', [media.hash]);
+    async removeMedia(hash) {
+        if (super.removeMedia(hash)) {
+            await this.query('INSERT IGNORE INTO deleted (hash, time) VALUES (?, ?)', [hash, Math.floor(Date.now() / 1000)]);
+            await this.query('DELETE FROM imgtags WHERE hash=?', [hash]);
+            await this.query("DELETE FROM cached WHERE hash=?", [hash]);
+            await this.query("DELETE FROM priority_transcode WHERE hash=?", [hash]);
+            await this.query("DELETE FROM corrupted WHERE hash=?", [hash]);
+            await this.query("DELETE FROM collection_data WHERE hash=?", [hash]);
+            await this.query('DELETE FROM images WHERE hash=?', [hash]);
             return true;
         }
         return false;
@@ -274,45 +301,37 @@ class MySQLDatabase extends MediaManager {
         return false;
     }
 
+    async addActor(actor, hash) {
+        if (super.addActor(actor, hash)) {
+            await this.query('INSERT IGNORE INTO actors VALUES(?)', [actor]);
+            if (hash) {
+                await this.query('INSERT IGNORE INTO media_actors VALUES(?, ?)', [hash, actor]);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    async removeActor(actor, hash) {
+        if (super.removeActor(actor, hash)) {
+            if (hash) {
+                await this.query('DELETE FROM media_actors WHERE hash=? AND actor=?', [hash, actor]);
+            } else {
+                await this.query('DELETE FROM media_actors WHERE actor=?', [actor]);
+                await this.query('DELETE FROM actors WHERE actor=?', [actor]);
+            }
+            return true;
+        }
+        return false;
+    }
+
     async connect(host, username, password, database) {
         const $this = this;
-        return new Promise((resolve, reject) => {
-            try {
-                function connect(callback) {
-                    const local_db = mysql.createConnection({
-                        host: host,
-                        user: username,
-                        password: password,
-                        database: database,
-                        multipleStatements: true,
-                        charset: "utf8mb4_general_ci"
-                    });
-
-                    local_db.on('error', function (err) {
-                        console.log("MySQL DB Error", err);
-                        if (err.code == 'PROTOCOL_CONNECTION_LOST') {
-                            connect();
-                        }
-                    });
-
-                    local_db.connect(function(err) {
-                        if (err) {
-                            console.log("Failed to connect to MySQL server, retrying in 10 seconds.");
-                            setTimeout(function() { connect(callback) }, 10000);
-                        } else {
-                            console.log("Connected to MySQL server.");
-                            if (callback) {
-                                callback();
-                            }
-                            $this.db = local_db;
-                        }
-                    });
-                }
-
-                connect(resolve);
-            } catch(err) {
-                reject(err);
-            }
+        this.pool = mysql.createPool({
+            host: host,
+            user: username,
+            database: database,
+            password: password
         });
     }
 }
@@ -323,7 +342,15 @@ async function setup(config) {
     console.log(`Using database: mysql://${config.database.username}@${config.database.host}/${config.database.database}`);
     console.log("MySQL database connected.");
     const setupQuery = await db.loadDefaultSql();
-    await db.query(setupQuery);
+    // With a pooled connection there seems to be issues with running multiple statements
+    // in a single query. This splits them up before running them.
+    const entries = setupQuery.split(");");
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i].trim();
+        if (entry) {
+            await db.query(entry + ");");
+        }
+    }
     const version = await db.getVersion();
     switch(version) {
         default: break

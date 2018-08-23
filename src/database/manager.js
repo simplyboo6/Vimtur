@@ -17,6 +17,7 @@ class MediaManager {
         this.media = {};
         this.collections = {};
         this.tags = [];
+        this.actors = [];
     }
 
     addMedia(hash, path, rotation, type, hashDate) {
@@ -45,6 +46,7 @@ class MediaManager {
             rotation: rotation,
             type: type,
             tags: [],
+            actors: [],
             hashDate: hashDate
         };
         media.absolutePath = Path.resolve(this.config.libraryPath, media.path);
@@ -149,6 +151,49 @@ class MediaManager {
         return true;
     }
 
+    addActor(actor, hash) {
+        if (!actor) {
+            return false;
+        }
+        if (!this.actors.includes(actor)) {
+            this.actors.push(actor);
+        }
+        if (hash) {
+            const media = this.media[hash];
+            if (!media) {
+                return false;
+            }
+            if (!media.actors.includes(actor)) {
+                media.actors.push(actor);
+            }
+        }
+        return true;
+    }
+
+    removeActor(actor, hash) {
+        if (hash) {
+            const media = this.media[hash];
+            if (!media) {
+                return false;
+            }
+            if (media.actors.includes(actor)) {
+                media.actors.splice(media.actors.indexOf(actor));
+            }
+        } else {
+            if (this.actors.includes(actor)) {
+                this.actors.splice(this.actors.indexOf(actor), 1);
+                const map = this.getDefaultMap();
+                for (let i = 0; i < map.length; i++) {
+                    const media = this.getMedia(map[i]);
+                    if (media.actors.indexOf(actor) >= 0) {
+                        media.actors.splice(media.actors.indexOf(actor));
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     getMedia(hash) {
         const original = this.media[hash];
         if (original) {
@@ -159,6 +204,10 @@ class MediaManager {
 
     getTags() {
         return this.tags;
+    }
+
+    getActors() {
+        return this.actors;
     }
 
     getDefaultMap() {
@@ -318,9 +367,6 @@ class MediaManager {
                 for (let i = 0; i < inputKeys.length; i++) {
                     let field = getField(inputKeys[i]);
                     if (field) {
-                        if (field instanceof String || typeof field === 'string') {
-                            field = field.toLowerCase();
-                        }
                         if (parsedExpression.match(field)) {
                             outputKeys.push(inputKeys[i]);
                         }
@@ -336,6 +382,11 @@ class MediaManager {
 
         keys = expressionFilter(constraints.tagLexer, keys, function(hash) {
             return $this.media[hash].tags;
+        });
+        await this.search.wait();
+
+        keys = expressionFilter(constraints.actorLexer, keys, function(hash) {
+            return $this.media[hash].actors;
         });
         await this.search.wait();
 
