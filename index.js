@@ -460,20 +460,28 @@ app.get('/api/config', async function (req, res) {
 
 app.get('/api/config/:config', async function (req, res) {
     try {
-        const originalPort = utils.config.port;
+        // There's two sorts of config updates. User settings and server settings.
+        // Currently the server settings are updated from a separate page than the
+        // user settings. So if the user object is set then only save the new user setting.
         const config = JSON.parse(req.params.config);
-        if (global.db) {
-            await global.db.close();
-            global.db = null;
-        }
-        try {
-            global.db = await Database.setup(config);
-        } catch (err) {
-            console.log('Updating config failed setting up databse', err);
-            throw new Error('Failed to setup database');
+        const originalPort = utils.config.port;
+        
+        if (!config.user) {
+            if (global.db) {
+                await global.db.close();
+                global.db = null;
+            }
+            try {
+                global.db = await Database.setup(config);
+            } catch (err) {
+                console.log('Updating config failed setting up databse', err);
+                throw new Error('Failed to setup database');
+            }
         }
         await utils.saveConfig(config);
-        scanner.scan();
+        if (!config.user) {
+            scanner.scan();
+        }
         res.json({
             message: 'Config saved',
             configPath: utils.configPath,

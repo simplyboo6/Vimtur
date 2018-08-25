@@ -1,10 +1,8 @@
-const MAX_COLUMNS = 10;
-const GALLERY_COUNT = 24;
+export const GALLERY_COUNT = 24;
 // The minimum width that the tag panel can be used instead of the modal.
-const MIN_WIDTH_TAG_PANEL = 1700;
-const DEFAULT_COLUMN_COUNT = 1;
+export const MIN_WIDTH_TAG_PANEL = 1700;
 
-class BootBox {
+export class BootBox {
     static async alert(msg) {
         return new Promise(function(resolve) {
             bootbox.alert(msg, resolve);
@@ -22,13 +20,13 @@ class BootBox {
     }
 }
 
-function showModal(id) {
+export function showModal(id) {
     $(id).addClass("in");
     $('body').addClass('modal-open');
     $(id).modal();
 }
 
-function hideModal(id) {
+export function hideModal(id) {
     $(id).removeClass("in");
     $(".modal-backdrop").remove();
     $('body').removeClass('modal-open');
@@ -36,8 +34,8 @@ function hideModal(id) {
     $(id).hide();
 }
 
-function getNumColumns(type) {
-    for (let i = 0; i < MAX_COLUMNS; i++) {
+export function getNumColumns(type) {
+    for (let i = 0; true; i++) {
         if (!document.getElementById(`${type}${i}`)) {
             return i;
         }
@@ -45,7 +43,7 @@ function getNumColumns(type) {
     return 0;
 }
 
-function makeCheckbox(id, className, name, callback) {
+export function makeCheckbox(id, className, name, callback) {
     const div = document.createElement("div");
     div.className = "form-check";
     const box = document.createElement("input");
@@ -68,7 +66,7 @@ function makeCheckbox(id, className, name, callback) {
     return div;
 }
 
-function buildSearch(tags) {
+export function buildSearch(tags) {
     const all = document.getElementById("searchAll");
     all.innerHTML = "All";
     const any = document.getElementById("searchAny");
@@ -100,23 +98,23 @@ function buildSearch(tags) {
             }
         }
     }));
-    for (let i = 0; i < appData.tags.length; i++) {
-        const tag = appData.tags[i];
+    for (let i = 0; i < tags.length; i++) {
+        const tag = tags[i];
         all.appendChild(makeCheckbox(`allTag-${tag}`, `allTag-${tag}`, `${tag}`));
         any.appendChild(makeCheckbox(`anyTag-${tag}`, `anyTag-${tag}`, `${tag}`));
         none.appendChild(makeCheckbox(`noneTag-${tag}`, `noneTag-${tag}`, `${tag}`));
     }
 }
 
-function showLoadingModal() {
+export function showLoadingModal() {
     showModal("#loadingModal");
 }
 
-function hideLoadingModal() {
+export function hideLoadingModal() {
     hideModal("#loadingModal");
 }
 
-function getImageTitle(image) {
+export function getImageTitle(image) {
     let title = '';
     if (image.metadata) {
         const elements = [];
@@ -146,12 +144,12 @@ function getImageTitle(image) {
     if (!title) {
         title = image.path;
     } else {
-        title = `${title} - ${decodeURIComponent(appData.currentImage.path)}`;
+        title = `${title} - ${decodeURIComponent(image.path)}`;
     }
     return title;
 }
 
-function makeAlert(message) {
+export function makeAlert(message) {
     const alertDiv = document.createElement("div");
     alertDiv.setAttribute("class", "default-alert alert alert-primary alert-dismissible");
     alertDiv.setAttribute("role", "alert");
@@ -173,7 +171,7 @@ function makeAlert(message) {
     return alertDiv;
 }
 
-function showMessage(message) {
+export function showMessage(message) {
     if (document.getElementById("alertDiv")) {
         const alo = document.getElementById("alertDiv");
         clearTimeout(alo.timeout);
@@ -187,7 +185,7 @@ function showMessage(message) {
     }, 3000);
 }
 
-function addCheckbox(id, name, callback, index, total) {
+export function addCheckbox(id, name, callback, index, total) {
     const numColumns = getNumColumns("listColumn");
     const col = document.getElementById(`listColumn${Math.floor((index / total) * numColumns)}`);
     const checkbox = makeCheckbox(`${id}0`, id, name, callback);
@@ -199,53 +197,30 @@ function addCheckbox(id, name, callback, index, total) {
     tagModalList.appendChild(modalCheckbox);
 }
 
-function toggleTags(state) {
+export function toggleTags(state) {
     if (state !== undefined) {
         if (state == isTagsVisible()) {
             return;
         }
     }
-    const container = document.getElementById("content");
-    const numColumns = getNumColumns('listColumn');
+
     if (isTagsVisible()) {
-        $('#tagColumnsContainer').hide();
+        $('#tagColumnsContainer').css("cssText", "display: none !important");
         hideModal("#tagModal");
     } else {
         if (window.innerWidth > MIN_WIDTH_TAG_PANEL && !isMobile()) {
-            $('#tagColumnsContainer').show();
+            $('#tagColumnsContainer').css("cssText", "");
         } else {
             showModal("#tagModal");
         }
     }
 }
 
-function addTagColumn() {
-    const count = getNumColumns('listColumn');
-    if (count >= MAX_COLUMNS) {
-        return false;
-    }
-    // Don't include child nodes in the clone.
-    const col = document.getElementById('listColumn0').cloneNode(false);
-    col.id = `listColumn${count}`;
-    document.getElementById('tagColumnRow').appendChild(col);
-    localStorage.setItem('tagColumnCount', getNumColumns('listColumn'));
+export function isTagsVisible() {
+    return $("#tagColumnsContainer").is(":visible"); 
 }
 
-function removeTagColumn() {
-    if (getNumColumns('listColumn') <= 1) {
-        return false;
-    }
-    const list = document.getElementById('tagColumnRow');
-    const col = document.getElementById(`listColumn${getNumColumns('listColumn') - 1}`);
-    list.removeChild(col);
-    localStorage.setItem('tagColumnCount', getNumColumns('listColumn'));
-}
-
-function isTagsVisible() {
-    return document.getElementById("tagColumnsContainer").style.display != 'none';
-}
-
-function setTags(tagList, callback) {
+export function setTags(tagList, callback) {
     const visible = isTagsVisible();
     console.log(`Visible: ${visible}`);
     const numColumns = getNumColumns("listColumn");
@@ -261,22 +236,22 @@ function setTags(tagList, callback) {
     }
 }
 
-function setChecked(checkedList) {
-    for (let i = 0; i < appData.tags.length; i++) {
-        const tagBoxes = document.getElementsByClassName(`tag-${appData.tags[i]}`);
+export function setChecked(tags, checkedList) {
+    for (let i = 0; i < tags.length; i++) {
+        const tagBoxes = document.getElementsByClassName(`tag-${tags[i]}`);
         for (let j = 0; j < tagBoxes.length; j++) {
-            tagBoxes[j].checked = checkedList.includes(appData.tags[i]);
+            tagBoxes[j].checked = checkedList.includes(tags[i]);
         }
     }
 }
 
-function isMobile() {
+export function isMobile() {
     let check = false;
     (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
     return check;
 }
 
-function formatScannerStatus(data) {
+export function formatScannerStatus(data) {
     let scanStatus = "";
     if (data.time != undefined) {
         const date = new Date();
@@ -292,7 +267,7 @@ function formatScannerStatus(data) {
     return scanStatus;
 }
 
-function formatAdminStatus(appData) {
+export function formatAdminStatus(appData) {
     let result = `Library Path: ${appData.libraryPath}\nState: ${appData.state}\n\n`;
 
     if (appData.scanStatus != undefined) {
@@ -332,41 +307,7 @@ function formatAdminStatus(appData) {
     return result;
 }
 
-class PRNG {
-    constructor(seed) {
-        this.seed = seed;
-    }
-    nextFloat() {
-        this.seed = (this.seed * 9301 + 49297) % 233280;
-        const rnd = this.seed / 233280;
-
-        return rnd;
-    }
-}
-
-function shuffleArray(array, seed) {
-    if (!seed && seed !== 0) {
-        seed = Math.random();
-    }
-    const prng = new PRNG(seed);
-    let currentIndex = array.length, temporaryValue, randomIndex;
-
-    // While there remain elements to shuffle...
-    while (0 !== currentIndex) {
-        // Pick a remaining element...
-        randomIndex = Math.floor(prng.nextFloat() * currentIndex);
-        currentIndex -= 1;
-
-        // And swap it with the current element.
-        temporaryValue = array[currentIndex];
-        array[currentIndex] = array[randomIndex];
-        array[randomIndex] = temporaryValue;
-    }
-
-    return array;
-}
-
-function fullscreen() {
+export function fullscreen() {
     if (document.documentElement.requestFullScreen) {
         document.documentElement.requestFullScreen();
     } else if (document.documentElement.mozRequestFullScreen) {
@@ -376,7 +317,7 @@ function fullscreen() {
     }
 }
 
-async function request(url) {
+export async function request(url) {
     return new Promise(function (resolve, reject) {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function() {
@@ -400,11 +341,11 @@ async function request(url) {
     });
 }
 
-function isGalleryVisible() {
+export function isGalleryVisible() {
     return document.getElementById('galleryModal').style.display != 'none';
 }
 
-function resetSearch() {
+export function resetSearch() {
     for (let i = 0; i < appData.tags.length; i++) {
         const tag = appData.tags[i];
         document.getElementsByClassName(`allTag-${tag}`)[0].checked = false;
@@ -424,38 +365,21 @@ function resetSearch() {
     document.getElementById("keywordSearch").value = "";
 }
 
-function setDisplayedRating(rating, selected) {
+export function setDisplayedRating(rating, selected) {
     for (let i = 1; i <= 5; i++) {
         if (rating >= i) {
-            $(`#rating-${i}`).addClass(selected ? 'rating-hover' : 'rating-checked');
+            $(`.rating-${i}`).addClass(selected ? 'rating-hover' : 'rating-checked');
         } else {
-            $(`#rating-${i}`).removeClass(selected ? 'rating-hover' : 'rating-checked');
+            $(`.rating-${i}`).removeClass(selected ? 'rating-hover' : 'rating-checked');
         }
     }
 }
 
-(function() {
-    // Propagate the gallery with 15 more containers from the template.
-    const galleryTemplate = document.getElementById('thumbContainer0');
-    const container = document.getElementById('galleryRowContainer');
-    for (let i = 1; i < GALLERY_COUNT; i++) {
-        const thumb = galleryTemplate.cloneNode(true);
-        thumb.id = `thumbContainer${i}`;
-        thumb.children[0].children[0].id = `thumb${i}`;
-        thumb.children[0].children[1].id = `thumbCaption${i}`;
-        container.appendChild(thumb);
+export async function err(func, msg) {
+    try {
+        await func();
+    } catch (err) {
+        showMessage(msg ? msg : err.message);
+        console.log(err);
     }
-
-    for (let i = 1; i <= 5; i++) {
-        $(`#rating-${i}`).hover(function() {
-            setDisplayedRating(i, true)
-            $(`#rating-${i}`).addClass('rating-hover');
-        }, function() {
-            setDisplayedRating(0, true);
-        });
-        $(`#rating-${i}`).click(function() {
-            setDisplayedRating(i);
-            onRatingChange(i);
-        });
-    }
-})();
+}

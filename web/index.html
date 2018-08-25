@@ -47,15 +47,18 @@
     .rating-hover {
         color: darkorange !important;
     }
+    .card-small {
+        padding: 0.1rem;
+    }
     </style>
 
     <title>Vimtur Media Library</title>
 </head>
-<body style="height:100%;" onresize="onResize()">
+<body style="height:100%;">
     <nav class="navbar navbar-expand-xl navbar-dark bg-dark fixed-top" id="navBar">
-        <button class="btn btn-outline-success my-2 my-sm-0 navbar-brand" type="submit" onclick="toggleTagsAndUpdate()">Tags</button>
-        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="imageCallbacks.previous()" style="margin-right:0.5em">&#8592;</button>
-        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="imageCallbacks.next()">&#8594;</button>
+        <button class="btn btn-outline-success my-2 my-sm-0 navbar-brand" type="submit" onclick="toggleTags()">Tags</button>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="previous()" style="margin-right:0.5em">&#8592;</button>
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit" onclick="next()">&#8594;</button>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -87,10 +90,9 @@
                         <a class="dropdown-item" href="#" onclick="viewFolder()">View Folder</a>
                         <a class="dropdown-item" href="#" onclick="unshuffle()">Unshuffle</a>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#adminModal">Admin</a>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#configModal">Config</a>
                         <a class="dropdown-item" href="#" onclick="addNewTag()">Add Tag</a>
                         <a class="dropdown-item" href="#" onclick="deleteTag()">Delete Tag</a>
-                        <a class="dropdown-item" href="#" onclick="addTagColumn(); resetTagList()">Add Tag Column</a>
-                        <a class="dropdown-item" href="#" onclick="removeTagColumn(); resetTagList()">Remove Tag Column</a>
                     </div>
                 </li>
             </ul>
@@ -103,20 +105,29 @@
 
     <main role="main" class="container-fluid bg-light" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
         <div class="row" id="mainRowContainer" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;margin-left:0;margin-right:0;">
-            <div class="container-fluid col-lg-auto d-flex flex-column" id="tagColumnsContainer" style="display:block;">
-                <div class="row flex-row flex-fill flex-grow-1" id="tagColumnRow">
-                    <!-- Column used as a template. Allow a shallow copy. -->
-                    <div class="col-lg-auto" id="listColumn0"></div>
+            <div class="container-fluid col-lg-auto d-flex flex-column" id="tagColumnsContainer" style="display:none !important;">
+                <div class="card row flex-fill flex-grow-1">
+                    <div class="card-header card-small">Tags</div>
+                    <div class="card-body card-small row" id="tagColumnRow">
+                        <!-- Column used as a template. Allow a shallow copy. -->
+                        <div class="col-lg-auto" id="listColumn0"></div>
+                    </div>
                 </div>
-                <div class="row">
-                    <h4>Rating</h4>
+                <div class="card row">
+                    <div class="card-header card-small">Rating</div>
+                    <div class="card-body card-small">
+                        <span class="fa fa-star rating-size rating-1"></span>
+                        <span class="fa fa-star rating-size rating-2"></span>
+                        <span class="fa fa-star rating-size rating-3"></span>
+                        <span class="fa fa-star rating-size rating-4"></span>
+                        <span class="fa fa-star rating-size rating-5"></span>
+                    </div>
                 </div>
-                <div class="row">
-                    <span id="rating-1" class="fa fa-star rating-size"></span>
-                    <span id="rating-2" class="fa fa-star rating-size"></span>
-                    <span id="rating-3" class="fa fa-star rating-size"></span>
-                    <span id="rating-4" class="fa fa-star rating-size"></span>
-                    <span id="rating-5" class="fa fa-star rating-size"></span>
+                <div class="card row">
+                    <div class="card-header card-small">People</div>
+                    <div class="card-body card-small">
+                        <select class="form-control actorsMetadata" multiple="multiple" style="width:100%;"></select>
+                    </div>
                 </div>
             </div>
             <div class="col" id="content" style="padding-left:0; padding-right:0; width:auto; height:100%; object-fit:contain;">
@@ -285,6 +296,38 @@
         </div>
     </div>
 
+    <!-- Config Modal -->
+    <div class="modal fade" id="configModal" tabindex="-1" role="dialog" aria-labelledby="configModalLongTitle" aria-hidden="true" style="display:none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="configModalLongTitle">Configuration</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary btn-block" onclick="addTagColumn()">Add Tag Column</button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary btn-block" onclick="removeTagColumn()">Remove Tag Column</button>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="autoplayCheckbox" onclick="autoplayCheckboxClick()">
+                            <label class="form-check-label" for="autoplayCheckbox">
+                                Enable autoplay?
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin Modal -->
     <div class="modal fade" id="adminModal" tabindex="-1" role="dialog" aria-labelledby="adminModalLongTitle" aria-hidden="true">
         <div class="modal-dialog" role="document" style="max-width:95%;">
@@ -346,6 +389,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                <br />
                                 <div class="card">
                                     <div class="card-header">Misc</div>
                                     <div class="card-body">
@@ -412,8 +456,17 @@
                             <div class="row form-group">
                                 <label class="col-sm-2" for="actorsMetadata">People</label>
                                 <div class="col-sm-10" style="padding-left:0px;padding-right:0px">
-                                    <select class="form-control" id="actorsMetadata" multiple="multiple" style="width:100%;">
-                                    </select>
+                                    <select class="form-control actorsMetadata" id="actorsMetadata" multiple="multiple" style="width:100%;"></select>
+                                </div>
+                            </div>
+                            <div class="row form-group">
+                                <label class="col-sm-2" for="ratingsMetadata">Rating</label>
+                                <div class="col-sm-10" class="ratingMetdata" style="padding-left:0px;padding-right:0px">
+                                    <span class="fa fa-star rating-size rating-1"></span>
+                                    <span class="fa fa-star rating-size rating-2"></span>
+                                    <span class="fa fa-star rating-size rating-3"></span>
+                                    <span class="fa fa-star rating-size rating-4"></span>
+                                    <span class="fa fa-star rating-size rating-5"></span>
                                 </div>
                             </div>
                         </form>
@@ -472,7 +525,6 @@
     <script src="js/lib/bootbox.min.js"></script>
     <script src="js/lib/select2.min.js"></script>
 
-    <script src="js/src/bootstrap_utils.js"></script>
-    <script src="js/src/bootstrap_ui.js"></script>
+    <script src="js/src/ui.js" crossorigin type="module"></script>
     <script>if (window.module) module = window.module;</script>
 </html>

@@ -116,9 +116,8 @@
     <script src="js/lib/popper.min.js"></script>
     <script src="js/lib/bootstrap.min.js"></script>
 
-    <script src="js/src/bootstrap_utils.js"></script>
-
-    <script>
+    <script crossorigin type="module">
+        import { request, showModal, hideModal } from './js/src/utils.js';
         function updateSelectedProvider() {
             $('#sqlite3Provider').hide();
             $('#mysqlProvider').hide();
@@ -302,6 +301,8 @@
                 e.preventDefault();
                 saveConfig();
             });
+            window.updateDefaultDbPath = updateDefaultDbPath;
+            window.updateSelectedProvider = updateSelectedProvider;
             hideModal("#loadingModal");
         })();
     </script>

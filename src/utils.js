@@ -85,10 +85,20 @@ exports.isSetup = async function() {
 }
 
 exports.saveConfig = async function(config) {
-    await exports.validateConfig(config);
-    exports.config = config;
-    exports.configValid = false;
-    await exports.validateConfig();
+    // There's two sorts of config updates. User settings and server settings.
+    // Currently the server settings are updated from a separate page than the
+    // user settings. So if the user object is set then only save the new user setting.
+    if (config.user) {
+        if (!exports.config.user) {
+            exports.config.user = {};
+        }
+        Object.assign(exports.config.user, config.user);
+    } else {
+        await exports.validateConfig(config);
+        exports.config = config;
+        exports.configValid = false;
+        await exports.validateConfig();
+    }
     await saveFile(exports.configPath, JSON.stringify(exports.config, null, 2));
     console.log(`Config file saved to ${exports.configPath}`);
 };
