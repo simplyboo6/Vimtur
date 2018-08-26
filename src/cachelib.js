@@ -1,14 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const ffmpegStatic = require('ffmpeg-static');
-const ffprobeStatic = require('ffprobe-static');
 const ffmpeg = require("fluent-ffmpeg");
 const rimraf = require('rimraf');
 const gm = require('gm');
 const utils = require("./utils.js");
-
-ffmpeg.setFfmpegPath(ffmpegStatic.path);
-ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 async function getMetadata(path) {
     return new Promise((resolve, reject) => {

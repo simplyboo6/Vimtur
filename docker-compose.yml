@@ -11,6 +11,12 @@ services:
       - DATA_PATH=/data/
       - USERNAME
       - PASSWORD
+      - DATABASE
+      - SQLITE_PATH
+      - MYSQL_HOST
+      - MYSQL_DATABASE
+      - MYSQL_USERNAME
+      - MYSQL_PASSWORD
     volumes:
       - ${DATA_DIR}:/data/
       - ${CACHE_DIR}:/cache/
