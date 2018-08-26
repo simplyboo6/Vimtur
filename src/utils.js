@@ -10,11 +10,9 @@ exports.usage = function () {
     console.log("Usage: " + prog + " </path/to/config.json>");
 };
 
-const DefaultConfig = {
+exports.config = {
     "port": 3523
 };
-
-exports.config = DefaultConfig;
 
 async function saveFile(file, data) {
     return new Promise(function(resolve, reject) {
@@ -28,53 +26,93 @@ async function saveFile(file, data) {
     });
 }
 
-try {
-    if (process.argv.length < 1) {
-        throw new Error('No parameters supplied');
-    }
-    const file = path.resolve(process.argv[process.argv.length - 1]);
-    console.log(`Attempting to load ${file}`);
-    if (!file.endsWith(".json")) {
-        throw new Error('Specified file is not a config.json');
-    }
-    try {
-        exports.config = require(file);
-        console.log(`Config loaded from: ${file}`);
-    } catch (err) {
-        // Doesn't matter if it fails to load. Just means it's a new config.
-    }
-    exports.configPath = path.resolve(file);
-} catch (err) {
-    const configPath = path.resolve(path.dirname(require.main.filename), 'config.json');
-    console.log(`Attempting to use default config config.json (${configPath})`);
-    try {
-        exports.config = require(configPath);
-        console.log(`Config loaded from: ${configPath}`);
-    } catch (err) {
-        console.log("Failed to load ../config.json");
-    }
-    exports.configPath = configPath;
+async function readFile(file) {
+    return new Promise(function(resolve, reject) {
+        fs.readFile(file, function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+async function loadConfig(file) {
+    const data = await readFile(file);
+    return JSON.parse(data);
 }
 
 function mapEnv(env, obj, dest) {
     if (process.env[env]) {
         console.log(`Using ${process.env[env]} from ${env}`);
-        obj[dest] = process.env[env];
+        let node = obj;
+        for (let i = 0; i < dest.length - 1; i++) {
+            obj[dest] = process.env[env];
+            if (!node[dest[i]]) {
+                node[dest[i]] = {};
+            }
+            node = node[dest[i]];
+        }
+        node[dest[dest.length - 1]] = process.env[env];
+        if (!isNaN(node[dest[dest.length - 1]])) {
+            node[dest[dest.length - 1]] = parseInt(node[dest[dest.length - 1]]);
+        }
     }
 }
 
-mapEnv("DATA_PATH", exports.config, "libraryPath");
-mapEnv("CACHE_PATH", exports.config, "cachePath");
-mapEnv("USERNAME", exports.config, "username");
-mapEnv("PASSWORD", exports.config, "password");
-
-if (!exports.config.database) {
-    exports.config.database = {
-        provider: "sqlite3",
-        path: `${exports.config.cachePath}/vimtur.db`
+exports.setup = async function() {
+    // First, find if there's a config path.
+    // First load in CONFIG_PATH, if the command-line argument is set,
+    // then use that instead. Lastly if CACHE_PATH is set then derive a config path.
+    mapEnv("CONFIG_PATH", exports, ["configPath"]);
+    exports.configPath = process.env["CONFIG_PATH"];
+    if (process.argv.length > 2) {
+        exports.configPath = process.argv[process.argv.length - 1];
     }
-    console.log(`No default database found, defaulting to SQLite3 at ${exports.config.database.path}`);
-}
+    if (!exports.configPath && !process.env["CACHE_PATH"]) {
+        console.log("Please specify either CONFIG_PATH, CACHE_PATH or a config on the command line")
+        process.exit(0);
+    }
+    if (!exports.configPath) {
+        exports.configPath = `${process.env["CACHE_PATH"]}/config.json`;
+    }
+    exports.configPath = path.resolve(exports.configPath);
+    console.log(`Using '${exports.configPath}' as config`);
+    try {
+        exports.config = await loadConfig(exports.configPath);
+        console.log(`Loaded config from ${exports.configPath}`);
+    } catch (err) {
+        console.log(`Unable to load an existing config from ${exports.configPath}`);
+    }
+    
+    // Load these environment variables after loading the configuration
+    // so that the environment variables can over-write the config.
+    
+    // General config
+    mapEnv("PORT", exports, ["config", "port"]);
+    mapEnv("DATA_PATH", exports, ["config", "libraryPath"]);
+    mapEnv("CACHE_PATH", exports, ["config", "cachePath"]);
+    mapEnv("USERNAME", exports, ["config", "username"]);
+    mapEnv("PASSWORD", exports, ["config", "password"]);
+    // Database mapping
+    mapEnv("DATABASE", exports, ["config", "database", "provider"]);
+    // SQLite3
+    mapEnv("SQLITE_PATH", exports, ["config", "database", "path"]);
+    // MySQL
+    mapEnv("MYSQL_HOST", exports, ["config", "database", "host"]);
+    mapEnv("MYSQL_DATABASE", exports, ["config", "database", "database"]);
+    mapEnv("MYSQL_USERNAME", exports, ["config", "database", "username"]);
+    mapEnv("MYSQL_PASSWORD", exports, ["config", "database", "password"]);
+    
+    if (exports.config.database &&
+            exports.config.database.provider == "sqlite3" &&
+            !exports.config.database.path) {
+        exports.config.database.path = `${exports.config.cachePath}/vimtur.db`;
+    }
+
+    await exports.validateConfig();
+};
 
 exports.isSetup = async function() {
     if (exports.configValid) {

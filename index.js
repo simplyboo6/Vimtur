@@ -537,6 +537,8 @@ async function setupApp(port) {
 }
 
 async function setup() {
+    console.log("Setting up config");
+    await utils.setup();
     console.log(`Setting up HTTP server on ${utils.config.port}`);
     await setupApp(utils.config.port);
     try {
