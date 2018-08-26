@@ -18,7 +18,8 @@
     "socket.io": "~2.0.3",
     "sqlite3": "^4.0.0",
     "walk": "^2.3.9",
-    "wrappy": "^1.0.2"
+    "wrappy": "^1.0.2",
+    "mysql": "^2.13.0"
   },
   "scripts": {
     "start": "node index.js",
@@ -62,7 +63,10 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "2.0.8",
-    "electron-builder": "20.15.1",
-    "mysql": "^2.13.0"
+    "electron-builder": "20.15.1"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/simplyboo6/Vimtur"
   }
 }
