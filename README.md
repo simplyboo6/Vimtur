@@ -55,6 +55,11 @@ The server can be run as a Docker instance. It accepts the following environment
 ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up```
 
 ## Screenshots
+### Admin
 ![Preview Image](screenshots/admin.png)
+### Metadata
 ![Preview Image](screenshots/metadata.png)
+### Search
 ![Preview Image](screenshots/search.png)
+### Configuration
+![Preview Image](screenshots/configuration_video.png)
