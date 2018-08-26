@@ -143,7 +143,7 @@ class MediaManager {
                 for (let i = 0; i < map.length; i++) {
                     const media = this.getMedia(map[i]);
                     if (media.tags.indexOf(tag) >= 0) {
-                        media.tags.splice(media.tags.indexOf(tag));
+                        media.tags.splice(media.tags.indexOf(tag), 1);
                     }
                 }
             }
@@ -178,7 +178,7 @@ class MediaManager {
                 return false;
             }
             if (media.actors.includes(actor)) {
-                media.actors.splice(media.actors.indexOf(actor));
+                media.actors.splice(media.actors.indexOf(actor), 1);
             }
         } else {
             if (this.actors.includes(actor)) {
@@ -187,7 +187,7 @@ class MediaManager {
                 for (let i = 0; i < map.length; i++) {
                     const media = this.getMedia(map[i]);
                     if (media.actors.indexOf(actor) >= 0) {
-                        media.actors.splice(media.actors.indexOf(actor));
+                        media.actors.splice(media.actors.indexOf(actor), 1);
                     }
                 }
             }

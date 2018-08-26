@@ -307,7 +307,7 @@ class AppData {
         } else {
             this.tags = await Utils.request(`/api/tags/remove/${tag}`);
             if (this.currentImage && this.currentImage.tags.includes(actor)) {
-                this.currentImage.tags.splice(this.currentImage.tags.indexOf(tag));
+                this.currentImage.tags.splice(this.currentImage.tags.indexOf(tag), 1);
             }
             await this.fire('tags', true);
         }
@@ -337,7 +337,7 @@ class AppData {
         } else {
             this.actors = await Utils.request(`/api/actors/remove/${actor}`);
             if (this.currentImage && this.currentImage.actors.includes(actor)) {
-                this.currentImage.actors.splice(this.currentImage.actors.indexOf(actor));
+                this.currentImage.actors.splice(this.currentImage.actors.indexOf(actor), 1);
             }
             this.fire('actors', true);
         }
