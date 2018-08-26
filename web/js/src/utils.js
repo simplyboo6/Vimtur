@@ -330,7 +330,7 @@ export async function request(url) {
             if (xhttp.status == 200) {
                 resolve(response);
             } else {
-                reject(response);
+                reject(new Error(response));
             }
         }
         xhttp.onerror = function(target, type) {

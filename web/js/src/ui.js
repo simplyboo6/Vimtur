@@ -276,7 +276,9 @@ class Gallery {
                 tags: true
             }).change();
         }
-        $('.actorsMetadata').val(AppData.currentImage.actors).trigger('change');
+        if (AppData.currentImage) {
+            $('.actorsMetadata').val(AppData.currentImage.actors).trigger('change');
+        }
     });
     
     AppData.on('gallery', function() {
@@ -287,14 +289,8 @@ class Gallery {
     try {
         await AppData.fetchAll();
     } catch (err) {
-        if (err.type && err.type === 'config') {
-            console.log(`Invalid config (${err.message}), redirecting to setup...`);
-            window.location.replace('/web/config.html');
-            return;
-        } else {
-            console.log(err);
-            Utils.showMessage(err.message);
-        }
+        console.log(`Invalid config (${err.message}), redirecting to setup...`, err);
+        return window.location.replace('/web/config.html');
     }
 
     // Already one existing column.
@@ -373,4 +369,9 @@ class Gallery {
 
     ui.resize();
     Utils.hideLoadingModal();
+
+    if (AppData.imageSet.map.length == 0) {
+        Utils.showMessage("No media found. Click 'Import' in the admin panel");
+        Utils.showModal("#adminModal");
+    }
 })();

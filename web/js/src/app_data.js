@@ -100,7 +100,12 @@ class AppData {
             }
         } catch (err) {
             await this.getSubset({ type: 'still' }, { preserve: false, noUpdate: true });
-            await this.shuffle();
+            if (this.imageSet.map.length == 0) {
+                await this.getSubset({}, { preserve: false, noUpdate: true });
+            }
+            if (this.imageSet.map.length > 0) {
+                await this.shuffle();
+            }
         }
         
         await this.fire('tags', true);
