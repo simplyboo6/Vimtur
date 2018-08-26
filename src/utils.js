@@ -28,11 +28,11 @@ async function saveFile(file, data) {
 
 async function readFile(file) {
     return new Promise(function(resolve, reject) {
-        fs.readFile(file, function(err) {
+        fs.readFile(file, function(err, data) {
             if (err) {
                 reject(err);
             } else {
-                resolve();
+                resolve(data);
             }
         });
     });
@@ -40,7 +40,12 @@ async function readFile(file) {
 
 async function loadConfig(file) {
     const data = await readFile(file);
-    return JSON.parse(data);
+    try {
+        return JSON.parse(data);
+    } catch (err) {
+        console.log("Error parsing config JSON", err, data);
+        throw err;
+    }
 }
 
 function mapEnv(env, obj, dest) {
