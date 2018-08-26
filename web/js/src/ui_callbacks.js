@@ -188,15 +188,11 @@ export async function addNewTag() {
     try {
         await AppData.addTag(result);
         // Show the tags list if it's not visible
-        Utils.toggleTags(true);
+        toggleTags(true);
     } catch (err) {
         Utils.showMessage(`Error adding new tag ${result}`);
         console.log(err);
     }
-}
-
-export async function toggleTags() {
-    Utils.toggleTags();
 }
 
 export async function runScan() {
@@ -319,4 +315,25 @@ export async function autoplayCheckboxClick() {
     await Utils.err(async function() {
         await AppData.saveConfig({ user: { autoplayEnabled: checked }});
     }, "Unable to save autoplay settings");
+}
+
+export function toggleTags(state) {
+    if (state !== undefined) {
+        if (state == Utils.isTagsVisible()) {
+            return;
+        }
+    }
+
+    if (Utils.isTagsVisible()) {
+        $('#tagColumnsContainer').css("cssText", "display: none !important");
+        Utils.hideModal("#tagModal");
+    } else {
+        if (window.innerWidth > Utils.MIN_WIDTH_TAG_PANEL && !Utils.isMobile()) {
+            $('#tagColumnsContainer').css("cssText", "");
+            // Fire tags redraw event to re-calculate the width when it's opened.
+            AppData.fire('tags', true);
+        } else {
+            Utils.showModal("#tagModal");
+        }
+    }
 }

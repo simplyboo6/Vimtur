@@ -246,6 +246,8 @@ class Gallery {
                     }
                 }, "Error saving tag state");
             });
+            // Fire actors redraw so the width is correctly shown
+            AppData.fire('actors', true);
             Utils.buildSearch(AppData.tags);
         }
         if (AppData.currentImage) {
@@ -269,7 +271,6 @@ class Gallery {
                 tags: true
             }).change();
             $('#actorsList').val(AppData.actors).change();
-        
             $('.actorsMetadata').select2({
                 width: 'resolve',
                 data: actors,

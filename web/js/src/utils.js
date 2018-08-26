@@ -197,25 +197,6 @@ export function addCheckbox(id, name, callback, index, total) {
     tagModalList.appendChild(modalCheckbox);
 }
 
-export function toggleTags(state) {
-    if (state !== undefined) {
-        if (state == isTagsVisible()) {
-            return;
-        }
-    }
-
-    if (isTagsVisible()) {
-        $('#tagColumnsContainer').css("cssText", "display: none !important");
-        hideModal("#tagModal");
-    } else {
-        if (window.innerWidth > MIN_WIDTH_TAG_PANEL && !isMobile()) {
-            $('#tagColumnsContainer').css("cssText", "");
-        } else {
-            showModal("#tagModal");
-        }
-    }
-}
-
 export function isTagsVisible() {
     return $("#tagColumnsContainer").is(":visible"); 
 }
