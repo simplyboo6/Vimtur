@@ -50,6 +50,9 @@
     .card-small {
         padding: 0.1rem;
     }
+    .tag-card {
+        margin-top: 0.2rem;
+    }
     </style>
 
     <title>Vimtur Media Library</title>
@@ -106,14 +109,14 @@
     <main role="main" class="container-fluid bg-light" style="height:100%; padding-left:0; padding-right:0;" id="mainContainer">
         <div class="row" id="mainRowContainer" class="container-fluid" style="height:100%; padding-left:0; padding-right:0;margin-left:0;margin-right:0;">
             <div class="container-fluid col-lg-auto d-flex flex-column" id="tagColumnsContainer" style="display:none !important;">
-                <div class="card row flex-fill flex-grow-1">
+                <div class="card row flex-fill flex-grow-1 tag-card">
                     <div class="card-header card-small">Tags</div>
                     <div class="card-body card-small row" id="tagColumnRow">
                         <!-- Column used as a template. Allow a shallow copy. -->
                         <div class="col-lg-auto" id="listColumn0"></div>
                     </div>
                 </div>
-                <div class="card row">
+                <div class="card row tag-card">
                     <div class="card-header card-small">Rating</div>
                     <div class="card-body card-small">
                         <span class="fa fa-star rating-size rating-1"></span>
@@ -123,7 +126,7 @@
                         <span class="fa fa-star rating-size rating-5"></span>
                     </div>
                 </div>
-                <div class="card row">
+                <div class="card row tag-card">
                     <div class="card-header card-small">People</div>
                     <div class="card-body card-small">
                         <select class="form-control actorsMetadata" multiple="multiple" style="width:100%;"></select>

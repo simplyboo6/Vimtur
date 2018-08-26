@@ -309,15 +309,16 @@ class AppData {
     }
 
     async addActor(actor, hash) {
+        if (!this.actors.includes(actor)) {
+            this.actors = await Utils.request(`/api/actors/add/${actor}`);
+            this.fire('actors', true);
+        }
         if (hash) {
             const result = await Utils.request(`/api/images/${hash}/addActor/${encodeURIComponent(actor)}`);
             if (this.currentImage && this.currentImage.hash == hash) {
                 this.currentImage = result;
                 await this.fire('actors', false);
             }
-        } else {
-            this.actors = await Utils.request(`/api/actors/add/${actor}`);
-            this.fire('actors', true);
         }
     }
 

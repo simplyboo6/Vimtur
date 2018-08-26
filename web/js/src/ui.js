@@ -140,33 +140,28 @@ class Gallery {
         const pageNum = document.getElementById("galleryPageNumber");
         pageNum.innerHTML = `${Math.floor(AppData.imageSet.galleryOffset / Utils.GALLERY_COUNT) + 1} of ${Math.ceil(AppData.getMap().length / Utils.GALLERY_COUNT)}`;
         for (let i = 0; i < Utils.GALLERY_COUNT; i++) {
-            const thumbnail = document.getElementById(`thumb${i}`);
-            const caption = document.getElementById(`thumbCaption${i}`);
-            console.log(caption);
-            const url = thumbnail.parentNode;
-            url.title = "";
-            let index = AppData.imageSet.galleryOffset + i;
-            if (index >= AppData.getMap().length) {
-                url.onclick = function() {};
-                thumbnail.style.display = 'none';
-                caption.innerHTML = '';
-            } else {
-                const hash = AppData.getMap()[index];
-                thumbnail.src = `/cache/thumbnails/${hash}.png`;
-                thumbnail.style.display = 'block';
-                url.onclick = function() {
-                    AppData.goto(hash);
-                    $('#galleryModal').modal('hide');
-                }
+            Utils.err(async function() {
+                const thumbnail = document.getElementById(`thumb${i}`);
+                const caption = document.getElementById(`thumbCaption${i}`);
+                const url = thumbnail.parentNode;
+                url.title = "";
+                let index = AppData.imageSet.galleryOffset + i;
+                if (index >= AppData.getMap().length) {
+                    url.onclick = function() {};
+                    thumbnail.style.display = 'none';
+                    caption.innerHTML = '';
+                } else {
+                    const hash = AppData.getMap()[index];
+                    thumbnail.src = `/cache/thumbnails/${hash}.png`;
+                    thumbnail.style.display = 'block';
+                    url.onclick = function() {
+                        AppData.goto(hash);
+                        $('#galleryModal').modal('hide');
+                    }
     
-                const promise = Utils.request(`/api/images/${hash}`);
-                promise.catch(function(err) {
-                    Utils.showMessage('Error updating media');
-                    console.log(err);
-                });
-                promise.then(function(metadata) {
-                    url.title = getImageTitle(metadata);
-                    switch (metadata.type) {
+                    const media = await Utils.request(`/api/images/${hash}`);
+                    url.title = Utils.getImageTitle(media);
+                    switch (media.type) {
                         case 'video':
                             caption.innerHTML = 'Video';
                             break;
@@ -180,8 +175,8 @@ class Gallery {
                             caption.innerHTML = "";
                             break;
                     }
-                });
-            }
+                }
+            });
         }
     }
 }

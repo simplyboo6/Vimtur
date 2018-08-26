@@ -3,8 +3,8 @@ const Parser = require('./shunt.js');
 
 class AndOp {
   constructor(opA, opB) {
-    this.opA = opA;
-    this.opB = opB;
+      this.opA = opA;
+      this.opB = opB;
   }
   valid(list) {
       return this.opA.valid(list) && this.opB.valid(list);
@@ -16,8 +16,8 @@ class AndOp {
 
 class OrOp {
   constructor(opA, opB) {
-    this.opA = opA;
-    this.opB = opB;
+      this.opA = opA;
+      this.opB = opB;
   }
   valid(list) {
       return this.opA.valid(list) || this.opB.valid(list);
@@ -29,7 +29,7 @@ class OrOp {
 
 class NotOp {
   constructor(opA) {
-    this.opA = opA;
+      this.opA = opA;
   }
   valid(list) {
       return !this.opA.valid(list);
@@ -41,7 +41,7 @@ class NotOp {
 
 class Tag {
     constructor(tag) {
-      this.tag = tag;
+        this.tag = tag.toLowerCase();
     }
     valid(list) {
         return list.includes(this.tag) || this.tag == '*';
@@ -86,7 +86,7 @@ class ExpressionParser {
     }
 
     buildTree(polish) {
-        var stack = [];
+        const stack = [];
         polish.forEach(function (c) {
             switch (c) {
             case "&":
@@ -126,6 +126,11 @@ class ExpressionParser {
     }
 
     match(list) {
+        // Either an array of strings or a string
+        if (Array.isArray(list)) {
+            list = list.join(" ");
+        }
+        list = list.toLowerCase();
         return this.tree.valid(list);
     }
 

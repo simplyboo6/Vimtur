@@ -157,6 +157,7 @@ class MediaManager {
         }
         if (!this.actors.includes(actor)) {
             this.actors.push(actor);
+            this.actors.sort();
         }
         if (hash) {
             const media = this.media[hash];
