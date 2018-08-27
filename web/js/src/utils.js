@@ -209,7 +209,7 @@ export function setTags(tagList, callback) {
         document.getElementById(`listColumn${i}`).innerHTML = "";
     }
     const numColumns2 = getNumColumns("tagModalList");
-    for (let j = 0; j < numColumns2.length; j++) {
+    for (let j = 0; j < numColumns2; j++) {
         document.getElementById(`tagModalList${j}`).innerHTML = "";
     }
     for (let i = 0; i < tagList.length; i++) {
