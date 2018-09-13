@@ -17,6 +17,10 @@
 * Import and export database to JSON format
 * Rating system
 
+## Quick-Start
+1) Install Docker CE (https://docs.docker.com/install)
+2) Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
+
 ## Notes
 * Requirements
   * ffmpeg for transcoding and thumbnails.
@@ -25,25 +29,6 @@
 * Because of pre-caching it's possible to quickly skip through videos and loading times are minimal.
 * All videos are transcoded to a high-quality, if the source video is h264 it's just copied. Often this means h264 source videos are transcoded quickly but it also means a reasonably fast network is required.
 * Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
-
-## Setup
-On Ubuntu/Debian run:
-`sudo apt-get install graphicsmagick ffmpeg`
-
-For Windows install graphicsmagick, ffmpeg and ffprobe. Make sure they're in your `PATH` variable.
-
-### As a server
-`npm install && npm run server`
-
-### As an Electron app
-`npm install && npm run postinstall && npm run electron`
-
-Or to create binaries run:
-`npm install && npm run dist`
-
-## Running
-Specifying a path as the last argument when doing any launch will set the config to be used by the instance.
-Such as: `npm run start /data/Pictures/config.json`. It's also possible to set `CONFIG_PATH` or `DATA_DIR` and `CACHE_DIR` as specified under the Docker section instead.
 
 ## Docker
 The server can be run as a Docker instance. It accepts the following environment variables:
@@ -67,6 +52,26 @@ Note: Any of these variables can be used when starting the NodeJS app natively.
 ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache DATABASE=mysql MYSQL_HOST=localhost MYSQL_DATABASE=photos MYSQL_USERNAME=username MYSQL_PASSWORD=password docker-compose up```
 ### Config and Database in `DATA_DIR`
 ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache CONFIG_PATH=/data/config.json SQLITE_PATH=/data/vimtur.db docker-compose up```
+
+## Running Natively
+### Setup
+On Ubuntu/Debian run:
+`sudo apt-get install graphicsmagick ffmpeg`
+
+For Windows install graphicsmagick, ffmpeg and ffprobe. Make sure they're in your `PATH` variable.
+
+#### As a server
+`npm install && npm run server`
+
+#### As an Electron app
+`npm install && npm run postinstall && npm run electron`
+
+Or to create binaries run:
+`npm install && npm run dist`
+
+### Running
+Specifying a path as the last argument when doing any launch will set the config to be used by the instance.
+Such as: `npm run start /data/Pictures/config.json`. It's also possible to set `CONFIG_PATH` or `DATA_DIR` and `CACHE_DIR` as specified under the Docker section instead.
 
 ## Screenshots
 ### Admin
