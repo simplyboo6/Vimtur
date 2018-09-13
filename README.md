@@ -19,6 +19,8 @@
 
 ## Quick-Start
 1) Install Docker CE (https://docs.docker.com/install)
+2) ```git clone https://github.com/simplyboo6/Vimtur```
+3) ```cd Vimtur```
 2) Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
 
 ## Notes
