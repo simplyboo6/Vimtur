@@ -50,7 +50,9 @@ class MySQLDatabase extends MediaManager {
                     values: values
                 }, function (error, results, fields) {
                     if (error) {
-                        reject(new Error(`Error running query: ${query} - values(${JSON.stringify(values)}): ${error}`));
+                        const extra = new Error(`Error running query: ${query} - values(${JSON.stringify(values)}): ${error}`);
+                        extra.source = error;
+                        reject(extra);
                     } else {
                         resolve(results);
                     }
@@ -340,25 +342,44 @@ async function setup(config) {
     const db = new MySQLDatabase(config);
     await db.connect(config.database.host, config.database.username, config.database.password, config.database.database);
     console.log(`Using database: mysql://${config.database.username}@${config.database.host}/${config.database.database}`);
-    console.log("MySQL database connected.");
     const setupQuery = await db.loadDefaultSql();
     // With a pooled connection there seems to be issues with running multiple statements
     // in a single query. This splits them up before running them.
-    const entries = setupQuery.split(");");
-    for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i].trim();
-        if (entry) {
-            await db.query(entry + ");");
+    async function connect() {
+        const entries = setupQuery.split(");");
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i].trim();
+            if (entry) {
+                await db.query(entry + ");");
+            }
+        }
+        const version = await db.getVersion();
+        switch(version) {
+            default: break
+        }
+        console.time('Database load took');
+        await db.load();
+        await db.setup();
+        console.timeEnd('Database load took');
+    }
+
+    async function sleep(timeout) {
+        return new Promise(function(resolve, reject) {
+            setTimeout(resolve, timeout);
+        });
+    }
+
+    // Keep attempting to connect.
+    while (true) {
+        try {
+            await connect();
+            return db;
+        } catch (err) {
+            // Show the source of the MySQL error, such as connection refused.
+            console.log(`Error connecting to database, retrying in 30 seconds. Error: ${err.source.message}`);
+            await sleep(30000);
         }
     }
-    const version = await db.getVersion();
-    switch(version) {
-        default: break
-    }
-    console.time('Database load took');
-    await db.load();
-    await db.setup();
-    console.timeEnd('Database load took');
 
     return db;
 }
