@@ -285,6 +285,10 @@ class Gallery {
     AppData.on('gallery', function() {
         gallery.update();
     });
+
+    AppData.on('state', function(stateUrl) {
+        $('#stateUrlField').val(stateUrl);
+    });
     
     // Fetch config, tags etc from the server.
     try {
@@ -367,6 +371,7 @@ class Gallery {
     }
 
     $("#autoplayCheckbox").prop("checked", AppData.isAutoplayEnabled());
+    $("#stateCheckbox").prop("checked", AppData.isStateEnabled());
 
     ui.resize();
     Utils.hideLoadingModal();

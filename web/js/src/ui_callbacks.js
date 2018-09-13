@@ -317,6 +317,14 @@ export async function autoplayCheckboxClick() {
     }, "Unable to save autoplay settings");
 }
 
+export async function stateCheckboxClick() {
+    const checked = $("#stateCheckbox").is(':checked');
+    await Utils.err(async function() {
+        await AppData.saveConfig({ user: { stateEnabled: checked }});
+        await AppData.updateState();
+    }, "Unable to save autoplay settings");
+}
+
 export function toggleTags(state) {
     if (state !== undefined) {
         if (state == Utils.isTagsVisible()) {

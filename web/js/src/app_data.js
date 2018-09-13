@@ -69,7 +69,9 @@ class AppData {
     }
 
     async fire(event, data) {
-        this.updateState();
+        if (event !== 'state') {
+            this.updateState();
+        }
         if (event == 'change') {
             this.currentImage = await Utils.request(`/api/images/${this.getMap()[this.imageSet.current]}`);
             await this.fire('actors', false);
@@ -131,6 +133,14 @@ class AppData {
         return this.config &&
             this.config.user &&
             this.config.user.autoplayEnabled;
+    }
+
+    isStateEnabled() {
+        // By default if autoplay is not defined then return that to make
+        // if be disabled by default.
+        return this.config &&
+            this.config.user &&
+            this.config.user.stateEnabled;
     }
 
     getMap() {
@@ -259,7 +269,11 @@ class AppData {
                 if (this.imageSet.seed !== null && this.imageSet.seed !== undefined) {
                     state.seed = this.imageSet.seed;
                 }
-                window.location.hash = `#${encodeURIComponent(JSON.stringify(state))}`;
+                const stateText = `#${encodeURIComponent(JSON.stringify(state))}`;
+                this.fire('state', stateText);
+                if (this.isStateEnabled()) {
+                    window.location.hash = stateText;
+                }
             }
         } else {
             console.log('Map or constraints undefined', this.getMap().length, this.imageSet.constraints);

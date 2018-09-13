@@ -311,7 +311,11 @@ export async function request(url) {
             if (xhttp.status == 200) {
                 resolve(response);
             } else {
-                reject(new Error(response));
+                if (response.message) {
+                    reject(new Error(response.message));
+                } else {
+                    reject(new Error(response));
+                }
             }
         }
         xhttp.onerror = function(target, type) {
