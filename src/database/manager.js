@@ -366,7 +366,7 @@ class MediaManager {
                 }
                 const outputKeys = [];
                 for (let i = 0; i < inputKeys.length; i++) {
-                    let field = getField(inputKeys[i]);
+                    const field = getField(inputKeys[i]);
                     if (field) {
                         if (parsedExpression.match(field)) {
                             outputKeys.push(inputKeys[i]);

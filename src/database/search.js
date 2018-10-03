@@ -19,7 +19,7 @@ class Mutex {
         const $this = this;
         return new Promise(function(resolve, reject) {
             if ($this.locked) {
-                this.clients.push(resolve);
+                $this.clients.push(resolve);
             } else {
                 $this.locked = true;
                 resolve();
