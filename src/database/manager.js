@@ -22,7 +22,7 @@ class MediaManager {
 
     addMedia(hash, path, rotation, type, hashDate) {
         if (!hash) {
-            console.log('Skipping file. Hash not set');
+            console.log(`Skipping file. Hash not set: ${path}`);
             return false;
         }
         if (!path) {
@@ -42,7 +42,7 @@ class MediaManager {
         // Hash date can be null. It's not crucial.
         const media = {
             hash: hash,
-            path: decodeURIComponent((path + '').replace(/\+/g, '%20')).replace(/\\/g, '/'),
+            path: path,
             rotation: rotation,
             type: type,
             tags: [],

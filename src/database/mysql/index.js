@@ -163,7 +163,7 @@ class MySQLDatabase extends MediaManager {
                 IF(corrupted.hash IS NULL, FALSE, TRUE) AS corrupted,
                 IF(priority_transcode.hash IS NULL, FALSE, TRUE) AS priority_transcode,
                 IF(cached.hash IS NULL, FALSE, TRUE) AS cached,
-                cached.*,
+                cached.width, cached.height, cached.length, cached.artist, cached.album, cached.title,
                 ratings.rating
                 from images
                 LEFT JOIN corrupted ON (corrupted.hash = images.hash)
@@ -272,6 +272,8 @@ class MySQLDatabase extends MediaManager {
             await this.query("DELETE FROM priority_transcode WHERE hash=?", [hash]);
             await this.query("DELETE FROM corrupted WHERE hash=?", [hash]);
             await this.query("DELETE FROM collection_data WHERE hash=?", [hash]);
+            await this.query("DELETE FROM ratings WHERE hash=?", [hash]);
+            await this.query("DELETE FROM media_actors WHERE hash=?", [hash]);
             await this.query('DELETE FROM images WHERE hash=?', [hash]);
             return true;
         }

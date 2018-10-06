@@ -270,6 +270,8 @@ class SQLiteDatabase extends MediaManager {
             await this.query("DELETE FROM priority_transcode WHERE hash=?", [hash]);
             await this.query("DELETE FROM corrupted WHERE hash=?", [hash]);
             await this.query("DELETE FROM collection_data WHERE hash=?", [hash]);
+            await this.query("DELETE FROM ratings WHERE hash=?", [hash]);
+            await this.query("DELETE FROM media_actors WHERE hash=?", [hash]);
             await this.query('DELETE FROM images WHERE hash=?', [hash]);
             return true;
         }

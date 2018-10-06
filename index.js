@@ -23,6 +23,19 @@ const configCheckConnector = async function (req, res, next) {
     next();
 };
 
+function deleteMedia(media) {
+    const hash = media.hash;
+    fs.unlink(media.absolutePath, function() {
+        console.log(`${media.absolutePath} removed`);
+    });
+    fs.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, function() {
+        console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
+    });
+    rimraf(`${utils.config.cachePath}/${hash}/`, function () {
+        console.log(`${utils.config.cachePath}/${hash}/ removed`);
+    });
+}
+
 class Scanner {
     constructor(callback) {
         this.state = "IDLE";
@@ -121,7 +134,7 @@ class Scanner {
         };
     }
 
-    getStatus() {
+    getStatus(verbose) {
         const status = {
             state: this.state,
             libraryPath: utils.config.libraryPath,
@@ -131,6 +144,10 @@ class Scanner {
         }
         if (this.scanStatus) {
             status.scanStatus = utils.slimScannerStatus(this.scanStatus);
+            if (verbose) {
+                status.scanStatus.newFiles = this.scanStatus.newFiles;
+                status.scanStatus.missingFiles = this.scanStatus.missingFiles;
+            }
         }
         return status;
     }
@@ -151,6 +168,22 @@ class Scanner {
             for (let i = 0; i < missing.length; i++) {
                 console.log(`Deleting missing image ${missing[i].hash}`);
                 await global.db.removeMedia(missing[i].hash);
+            }
+        }
+    }
+
+    async deleteCorrupted() {
+        const map = global.db.getDefaultMap();
+        for (let i = 0; i < map.length; i++) {
+            const media = global.db.getMedia(map[i]);
+            if (media.corrupted) {
+                console.log(`Deleting corrupted media ${media.path}`);
+                if (await global.db.removeMedia(media.hash)) {
+                    deleteMedia(media);
+                    console.log(`${media.hash} deleted.`);
+                } else {
+                    console.log(`Failed to delete ${media.hash}`);
+                }
             }
         }
     }
@@ -204,7 +237,7 @@ function wrapReq(func) {
 }
 
 app.get('/api/scanner/status', configCheckConnector, function (req, res) {
-    res.json(scanner.getStatus());
+    res.json(scanner.getStatus(req.query.verbose));
 });
 
 app.get('/api/scanner/index', configCheckConnector, function (req, res) {
@@ -233,7 +266,7 @@ app.get('/api/scanner/import', configCheckConnector, function (req, res) {
     }
     (async function() {
         await scanner.scan();
-        await scanner.index();
+        await scanner.index(deleteClones);
         await scanner.cache();
         await global.db.search.rebuildIndex();
     })();
@@ -243,6 +276,11 @@ app.get('/api/scanner/import', configCheckConnector, function (req, res) {
 app.get('/api/scanner/deleteMissing', configCheckConnector, wrapReq(async function (req, res) {
     await scanner.deleteMissing();
     await scanner.scan();
+    res.json(scanner.getStatus());
+}));
+
+app.get('/api/scanner/deleteCorrupted', configCheckConnector, wrapReq(async function (req, res) {
+    await scanner.deleteCorrupted();
     res.json(scanner.getStatus());
 }));
 
@@ -318,15 +356,7 @@ app.get('/api/images/:hash/delete', configCheckConnector, wrapReq(async function
     const media = global.db.getMedia(hash);
     if (media) {
         if (await global.db.removeMedia(hash)) {
-            fs.unlink(media.absolutePath, function() {
-                console.log(`${media.absolutePath} removed`);
-            });
-            fs.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, function() {
-                console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
-            });
-            rimraf(`${utils.config.cachePath}/${hash}/`, function () {
-                console.log(`${utils.config.cachePath}/${hash}/ removed`);
-            });
+            deleteMedia(media);
             console.log(`${hash} deleted.`);
             res.json({message: `${hash} deleted.`});
         } else {
