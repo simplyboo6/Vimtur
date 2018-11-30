@@ -352,7 +352,7 @@ class Gallery {
             return;
         }
         console.log(`Removing actor ${actor} from ${AppData.currentImage.hash}`);
-        await AppData.removeActor(actor, appData.currentImage.hash);
+        await AppData.removeActor(actor, AppData.currentImage.hash);
     });
 
     for (let i = 1; i <= 5; i++) {
