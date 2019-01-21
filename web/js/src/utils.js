@@ -326,6 +326,63 @@ export async function request(url) {
     });
 }
 
+export async function post(url, data) {
+    return new Promise(function (resolve, reject) {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function() {
+            let response = xhttp.responseText;
+            try {
+                response = JSON.parse(response);
+            } catch (err) {
+                // Ignore
+            }
+            if (xhttp.status == 200) {
+                resolve(response);
+            } else {
+                if (response.message) {
+                    reject(new Error(response.message));
+                } else {
+                    reject(new Error(response));
+                }
+            }
+        }
+        xhttp.onerror = function(target, type) {
+            reject('Connection error.');
+        }
+        xhttp.open('POST', url, true);
+        xhttp.setRequestHeader('Content-type', 'application/json');
+        xhttp.send(JSON.stringify(data));
+    });
+}
+
+export async function remove(url) {
+    return new Promise(function (resolve, reject) {
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = function() {
+            let response = xhttp.responseText;
+            try {
+                response = JSON.parse(response);
+            } catch (err) {
+                // Ignore
+            }
+            if (xhttp.status == 200) {
+                resolve(response);
+            } else {
+                if (response.message) {
+                    reject(new Error(response.message));
+                } else {
+                    reject(new Error(response));
+                }
+            }
+        }
+        xhttp.onerror = function(target, type) {
+            reject('Connection error.');
+        }
+        xhttp.open('DELETE', url, true);
+        xhttp.send();
+    });
+}
+
 export function isGalleryVisible() {
     return document.getElementById('galleryModal').style.display != 'none';
 }

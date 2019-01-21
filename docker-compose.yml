@@ -4,23 +4,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    working_dir: /opt/app
     environment:
-      - NODE_ENV=production
       - CACHE_PATH=/cache/
       - DATA_PATH=/data/
       - USERNAME
       - PASSWORD
       - DATABASE
-      - SQLITE_PATH
-      - MYSQL_HOST
-      - MYSQL_DATABASE
-      - MYSQL_USERNAME
-      - MYSQL_PASSWORD
+      - MONGO_HOST
+      - MONGO_DATABASE
+      - MONGO_USERNAME
+      - MONGO_PASSWORD
+      - MONGO_PORT
     volumes:
       - ${DATA_DIR}:/data/
       - ${CACHE_DIR}:/cache/
     ports:
       - "${PORT}:3523"
-    command:
-        "node index.js /cache/config.json"

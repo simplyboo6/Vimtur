@@ -2,8 +2,9 @@ const auth = require('http-auth');
 const walk = require('walk');
 const path = require('path');
 const md5File = require('md5-file');
-const fs = require('fs');
-const pathIsInside = require("path-is-inside");
+const FS = require('fs');
+const RimRaf = require('rimraf');
+const PathIsInside = require("path-is-inside");
 
 exports.usage = function () {
     const prog = process.argv[0] + ' ' + process.argv[1];
@@ -16,7 +17,7 @@ exports.config = {
 
 async function saveFile(file, data) {
     return new Promise(function(resolve, reject) {
-        fs.writeFile(file, data, function(err) {
+        FS.writeFile(file, data, function(err) {
             if (err) {
                 reject(err);
             } else {
@@ -28,7 +29,7 @@ async function saveFile(file, data) {
 
 async function readFile(file) {
     return new Promise(function(resolve, reject) {
-        fs.readFile(file, function(err, data) {
+        FS.readFile(file, function(err, data) {
             if (err) {
                 reject(err);
             } else {
@@ -102,19 +103,12 @@ exports.setup = async function() {
     mapEnv("PASSWORD", exports, ["config", "password"]);
     // Database mapping
     mapEnv("DATABASE", exports, ["config", "database", "provider"]);
-    // SQLite3
-    mapEnv("SQLITE_PATH", exports, ["config", "database", "path"]);
-    // MySQL
-    mapEnv("MYSQL_HOST", exports, ["config", "database", "host"]);
-    mapEnv("MYSQL_DATABASE", exports, ["config", "database", "database"]);
-    mapEnv("MYSQL_USERNAME", exports, ["config", "database", "username"]);
-    mapEnv("MYSQL_PASSWORD", exports, ["config", "database", "password"]);
-    
-    if (exports.config.database &&
-            exports.config.database.provider == "sqlite3" &&
-            !exports.config.database.path) {
-        exports.config.database.path = `${exports.config.cachePath}/vimtur.db`;
-    }
+    // MongoDB
+    mapEnv("MONGO_HOST", exports, ["config", "database", "host"]);
+    mapEnv("MONGO_DATABASE", exports, ["config", "database", "database"]);
+    mapEnv("MONGO_USERNAME", exports, ["config", "database", "username"]);
+    mapEnv("MONGO_PASSWORD", exports, ["config", "database", "password"]);
+    mapEnv("MONGO_PORT", exports, ["config", "database", "port"]);
 
     await exports.validateConfig();
 };
@@ -148,7 +142,7 @@ exports.saveConfig = async function(config) {
 
 async function exists(file) {
     return new Promise(function(resolve, reject) {
-        fs.access(file, fs.constants.F_OK, (err) => {
+        FS.access(file, FS.constants.F_OK, (err) => {
             resolve(err ? false : true);
         });
     });
@@ -169,14 +163,14 @@ exports.validateConfig = async function(config) {
     if (!config.cachePath) {
         throw new Error('Cache path not set.');
     }
-    if (pathIsInside(path.resolve(config.cachePath), path.resolve(config.libraryPath))) {
+    if (PathIsInside(path.resolve(config.cachePath), path.resolve(config.libraryPath))) {
         throw new Error('Cache folder cannot be inside the library');
     }
     if (!config.database) {
         throw new Error('No database provider defined');
     }
     switch (config.database.provider) {
-        case 'mysql':
+        case 'mongodb':
             if (!config.database.host) {
                 throw new Error('Database host not defined');
             }
@@ -188,11 +182,6 @@ exports.validateConfig = async function(config) {
             }
             if (!config.database.password) {
                 throw new Error('Database password not defined');
-            }
-            break;
-        case 'sqlite3':
-            if (!(await exists(path.dirname(config.database.path)))) {
-                throw new Error(`Database directory does not exist: ${path.dirname(config.database.path)}`);
             }
             break;
         default:
@@ -401,4 +390,28 @@ exports.scan = async function() {
             resolve(returns);
         });
     });
+};
+
+exports.deleteMedia = (media) => {
+    const hash = media.hash;
+    FS.unlink(media.absolutePath, () => {
+        console.log(`${media.absolutePath} removed`);
+    });
+    FS.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, () => {
+        console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
+    });
+    RimRaf(`${utils.config.cachePath}/${hash}/`, () => {
+        console.log(`${utils.config.cachePath}/${hash}/ removed`);
+    });
+};
+
+exports.wrap = (func) => {
+    return async(req, res) => {
+        try {
+            await func(req, res);
+        } catch (err) {
+            res.status(503).json({ error: err, message: err.message });
+            console.log(req.params, req.query, err);
+        }
+    };
 };

@@ -26,16 +26,11 @@ export async function simpleSearch() {
         console.log("Search box empty");
         return false;
     }
-    const constraints = {};
-    if (text.includes('|') || text.includes('&') || text.includes('(') ||
-            text.includes(')') || text.includes('!')) {
-        console.log("Doing lex search");
-        constraints.generalLexer = text;
-    } else {
-        console.log("Doing keyword search");
-        constraints.keywordSearch = text;
-    }
-    await Utils.err(async function() {
+    const constraints = {
+        keywordSearch: text
+    };
+    Utils.showMessage("Running search...");
+    await Utils.err(async() => {
         if (!(await AppData.getSubset(constraints))) {
             Utils.showMessage("No media matching search criteria");
         }
@@ -119,14 +114,15 @@ export async function search() {
     const maximumRatingElement = document.getElementById("ratingMaximum");
     const maximumRating = maximumRatingElement.options[maximumRatingElement.selectedIndex].text;
     if (maximumRating !== "None") {
+        constraints.rating = constraints.rating || {};
         if (maximumRating === "Unrated") {
-            constraints.rating = {
+            Object.assign(constraints.rating, {
                 max: 0
-            };
+            });
         } else {
-            constraints.rating = {
+            Object.assign(constraints.rating, {
                 max: parseInt(maximumRating)
-            };
+            });
         }
     }
 
@@ -137,17 +133,18 @@ export async function search() {
             constraints[varName] = element.value;
         }
     }
-    setMap("artistLex", "artist");
-    setMap("albumLex", "album");
-    setMap("titleLex", "title");
-    setMap("tagsLex", "tagLexer");
-    setMap("pathLex", "path");
-    setMap("generalLex", "generalLexer");
+    //setMap("artistLex", "artist");
+    //setMap("albumLex", "album");
+    //setMap("titleLex", "title");
+    //setMap("tagsLex", "tagLexer");
+    //setMap("pathLex", "path");
+    //setMap("generalLex", "generalLexer");
     setMap("keywordSearch", "keywordSearch");
-    setMap("actorLex", "actorLexer");
+    //setMap("actorLex", "actorLexer");
 
     $('#searchModal').modal('hide');
-    
+
+    Utils.showMessage('Running search...');
     await Utils.err(async function() {
         if (!(await AppData.getSubset(constraints, { preserve: true }))) {
             Utils.showMessage('No search results found');
@@ -253,11 +250,11 @@ export async function applyMetadata(type, multi) {
             if (result) {
                 Utils.showMessage(`Applying '${value}' to ${type} for ${AppData.getMap().length} images`);
                 $('#metadataModal').modal('hide');
-                await AppData.updateSet(AppData.getMap(), metadata)
+                await AppData.updateSet(AppData.getMap(), {metadata})
                 Utils.showMessage(`Metdata applied to ${map.length} images`);
             }
         } else {
-            await AppData.update(AppData.currentImage.hash, metadata);
+            await AppData.update(AppData.currentImage.hash, {metadata});
             $('#metadataModal').modal('hide');
             Utils.showMessage("Metadata saved");
         }

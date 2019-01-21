@@ -1,6 +1,8 @@
 const Database = require('../src/database');
 const utils = require('../src/utils.js');
 const fs = require('fs');
+const Mongo = require('mongodb');
+const Util = require('util');
 
 (async function() {
     console.log("Setting up config");
@@ -26,10 +28,21 @@ const fs = require('fs');
     // Convert from hashmap to array.
     for (let i = 0; i < map.length; i++) {
         const media = global.db.getMedia(map[i]);
+        media['_id'] = media.hash;
         output.media.push(media);
     }
 
-    fs.writeFileSync('output.json', JSON.stringify(output, null, 2));
-
     await global.db.close();
+
+    const MongoClient = require('mongodb').MongoClient;
+    const url = "mongodb://root:example@localhost:27017/";
+
+    const server = await Util.promisify(MongoClient.connect)(url);
+    const db = server.db('chocolatekoala');
+    await Util.promisify(db.createCollection.bind(db))('media');
+
+    const mediaCollection = db.collection('media');
+    await Util.promisify(mediaCollection.insertMany.bind(mediaCollection))(output.media);
+
+    server.close();
 })();

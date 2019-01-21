@@ -1,13 +1,14 @@
 {
   "name": "Vimtur",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "description": "Vimtur Media library and viewer.",
-  "main": "electron.js",
+  "main": "src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/simplyboo6/Vimtur"
   },
   "dependencies": {
+    "body-parser": "^1.18.3",
     "compression": "^1.7.1",
     "express": "~4.16.3",
     "fluent-ffmpeg": "~2.1.0",
@@ -15,57 +16,17 @@
     "http-auth": "~3.2.3",
     "inflight": "^1.0.6",
     "md5-file": "~4.0.0",
+    "mongodb": "^3.1.10",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
     "rimraf": "^2.6.2",
     "socket.io": "~2.1.1",
-    "sqlite3": "^4.0.0",
     "walk": "^2.3.9",
-    "wrappy": "^1.0.2",
-    "mysql": "^2.13.0"
+    "wrappy": "^1.0.2"
   },
   "scripts": {
-    "start": "node index.js",
-    "server": "node index.js",
-    "electron": "electron electron.js",
-    "deps": "install-app-deps",
-    "dist": "electron-builder"
-  },
-  "build": {
-    "asar": false,
-    "linux": {
-      "target": [
-        {
-          "target": "tar.gz",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "files": [
-      "web/**/*",
-      "src/**/*",
-      "node_modules/**/*",
-      "package.json",
-      "index.js",
-      "electron.js"
-    ]
+    "start": "node src/index.js"
   },
   "author": "SimplyBoo",
-  "license": "MIT",
-  "devDependencies": {
-    "electron": "2.0.8",
-    "electron-builder": "20.28.2"
-  }
+  "license": "MIT"
 }

@@ -101,7 +101,7 @@ class AppData {
                 throw new Error('Hash not defined');
             }
         } catch (err) {
-            await this.getSubset({ type: 'still' }, { preserve: false, noUpdate: true });
+            await this.getSubset({ type: ['still'] }, { preserve: false, noUpdate: true });
             if (this.imageSet.map.length == 0) {
                 await this.getSubset({}, { preserve: false, noUpdate: true });
             }
@@ -155,7 +155,7 @@ class AppData {
             options = {};
         }
         const hash = this.currentImage ? this.currentImage.hash : null;
-        const result = await Utils.request(`/api/images/subset/${encodeURIComponent(JSON.stringify(constraints))}`);
+        const result = await Utils.post(`/api/images/subset`, constraints);
         if (result.length <= 0) {
             return false;
         }
@@ -284,7 +284,7 @@ class AppData {
         if (!this.currentImage) {
             throw new Error('No image found to delete');
         }
-        await Utils.request(`/api/images/${this.currentImage.hash}/delete`);
+        await Utils.remove(`/api/images/${this.currentImage.hash}`);
         this.imageSet.map.splice(this.imageSet.map.indexOf(this.currentImage.hash), 1);
         if (this.imageSet.shuffleMap) {
             const index = this.imageSet.shuffleMap.indexOf(this.currentImage.hash);
@@ -300,27 +300,38 @@ class AppData {
 
     async addTag(tag, hash) {
         if (hash) {
-            const result = await Utils.request(`/api/images/${hash}/addTag/${encodeURIComponent(tag)}`);
+            this.currentImage.tags.push(tag);
+            this.currentImage.tags.sort();
+            const result = await Utils.post(`/api/images/${hash}`, {
+                tags: this.currentImage.tags
+            });
             if (this.currentImage && this.currentImage.hash == hash) {
                 this.currentImage = result;
                 await this.fire('tags', false);
             }
         } else {
-            this.tags = await Utils.request(`/api/tags/add/${tag}`);
+            this.tags = await Utils.post('/api/tags', {tag});
             await this.fire('tags', true);
         }
     }
 
     async removeTag(tag, hash) {
         if (hash) {
-            const result = await Utils.request(`/api/images/${hash}/removeTag/${encodeURIComponent(tag)}`);
+            const tagIndex = this.currentImage.tags.indexOf(tag);
+            if (tagIndex < 0) {
+                return;
+            }
+            this.currentImage.tags.splice(tagIndex, 1);
+            const result = await Utils.post(`/api/images/${hash}`, {
+                tags: this.currentImage.tags
+            });
             if (this.currentImage && this.currentImage.hash == hash) {
                 this.currentImage = result;
                 await this.fire('tags', false);
             }
         } else {
-            this.tags = await Utils.request(`/api/tags/remove/${tag}`);
-            if (this.currentImage && this.currentImage.tags.includes(actor)) {
+            this.tags = await Utils.remove(`/api/tags/${tag}`);
+            if (this.currentImage && this.currentImage.tags.includes(tag)) {
                 this.currentImage.tags.splice(this.currentImage.tags.indexOf(tag), 1);
             }
             await this.fire('tags', true);
@@ -329,11 +340,15 @@ class AppData {
 
     async addActor(actor, hash) {
         if (!this.actors.includes(actor)) {
-            this.actors = await Utils.request(`/api/actors/add/${actor}`);
+            this.actors = await Utils.post('/api/actors', {actor});
             this.fire('actors', true);
         }
         if (hash) {
-            const result = await Utils.request(`/api/images/${hash}/addActor/${encodeURIComponent(actor)}`);
+            this.currentImage.actors.push(actor);
+            this.currentImage.actors.sort();
+            const result = await Utils.post(`/api/images/${hash}`, {
+                actors: this.currentImage.actors
+            });
             if (this.currentImage && this.currentImage.hash == hash) {
                 this.currentImage = result;
                 await this.fire('actors', false);
@@ -343,13 +358,20 @@ class AppData {
 
     async removeActor(actor, hash) {
         if (hash) {
-            const result = await Utils.request(`/api/images/${hash}/removeActor/${encodeURIComponent(actor)}`);
+            const actorIndex = this.currentImage.actors.indexOf(actor);
+            if (actorIndex < 0) {
+                return;
+            }
+            this.currentImage.actors.splice(actorIndex, 1);
+            const result = await Utils.post(`/api/images/${hash}`, {
+                actors: this.currentImage.actors
+            });
             if (this.currentImage && this.currentImage.hash == hash) {
                 this.currentImage = result;
                 await this.fire('actors', false);
             }
         } else {
-            this.actors = await Utils.request(`/api/actors/remove/${actor}`);
+            this.actors = await Utils.remove(`/api/actors/${actor}`);
             if (this.currentImage && this.currentImage.actors.includes(actor)) {
                 this.currentImage.actors.splice(this.currentImage.actors.indexOf(actor), 1);
             }
@@ -358,7 +380,7 @@ class AppData {
     }
 
     async update(hash, data) {
-        await Utils.request(`/api/images/${hash}/update/${encodeURIComponent(JSON.stringify(data))}`);
+        await Utils.post(`/api/images/${hash}`, data);
         if (this.currentImage && hash == this.currentImage.hash) {
             Object.assign(this.currentImage, data);
             if (data.metadata) {
@@ -401,7 +423,7 @@ class AppData {
     }
 
     async saveConfig(config) {
-        const result = await Utils.request(`/api/config/${encodeURIComponent(JSON.stringify(config))}`);
+        const result = await Utils.post('/api/config', config);
         this.config = result.config;
     }
 }
