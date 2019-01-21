@@ -32,7 +32,7 @@ if (Utils.config.username && Utils.config.password) {
     App.use(Auth.connect(basicAuth));
 }
 
-//App.use('/api/scanner', configCheckConnector, ScannerRouter);
+App.use('/api/scanner', configCheckConnector, ScannerRouter);
 
 App.get('/api/tags', configCheckConnector, Utils.wrap(async(req, res) => {
     res.json(await global.db.getTags());
@@ -42,14 +42,16 @@ App.post('/api/tags', configCheckConnector, Utils.wrap(async(req, res) => {
     if (!req.body.tag) {
         return res.status(422).type('txt').send('No tag specified');
     }
-    res.json(await global.db.addTag(req.body.tag));
+    await global.db.addTag(req.body.tag);
+    res.json(await global.db.getTags());
 }));
 
 App.delete('/api/tags/:tag', configCheckConnector, Utils.wrap(async(req, res) => {
     if (!req.params.tag) {
         return res.status(422).type('txt').send('No tag specified');
     }
-    res.json(await global.db.removeTag(req.params.tag));
+    await global.db.removeTag(req.params.tag)
+    res.json(await global.db.getTags());
 }));
 
 App.get('/api/actors', configCheckConnector, Utils.wrap(async(req, res) => {
@@ -76,6 +78,8 @@ App.post('/api/images/subset', configCheckConnector, Utils.wrap(async(req, res) 
     try {
         const constraints = req.body;
         console.log('Search request.', constraints);
+        constraints.corrupted = false;
+        constraints.cached = true;
         const subset = await global.db.subset(constraints);
         console.log('Sending search result.');
         res.json(subset);
@@ -96,21 +100,13 @@ App.get('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) =>
 }));
 
 App.delete('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) => {
-    const hash = req.params.hash;
-    const media = await global.db.getMedia(hash);
+    const media = await global.db.getMedia(req.params.hash);
     if (media) {
-        if (await global.db.removeMedia(hash)) {
-            deleteMedia(media);
-            console.log(`${hash} deleted.`);
-            res.json({message: `${hash} deleted.`});
-        } else {
-            res.status(404);
-            res.json({message: "Could not remove media from database"});
-        }
+        await global.db.removeMedia(req.params.hash);
+        await Utils.deleteMedia(media);
+        res.sendStatus(200);
     } else {
-        console.log(`Delete: Hash does not exist: ${hash}`);
-        res.status(404);
-        res.json({message: `Hash does not exist: ${hash}`});
+        res.status(404).json({ message: 'Media not found.' });
     }
 }));
 
@@ -174,7 +170,7 @@ App.post('/api/config', Utils.wrap(async(req, res) => {
         // user settings. So if the user object is set then only save the new user setting.
         const config = req.body;
         const originalPort = Utils.config.port;
-        
+
         if (!config.user) {
             if (global.db) {
                 await global.db.close();

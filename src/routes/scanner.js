@@ -41,7 +41,6 @@ Router.get('/import', function (req, res) {
         await scanner.scan();
         await scanner.index(deleteClones);
         await scanner.cache();
-        await global.db.search.rebuildIndex();
     })();
     res.json(scanner.getStatus());
 });

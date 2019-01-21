@@ -99,7 +99,7 @@ async function doTranscode(input, output, args) {
 }
 
 async function transcode(hash) {
-    const media = global.db.getMedia(hash);
+    const media = await global.db.getMedia(hash);
     console.log(`Setting up to transcode ${media.absolutePath}`);
     media.metadata = await getMetadata(media.absolutePath);
     // If any transcoded artefacts exist, remove them.
@@ -116,16 +116,17 @@ async function transcode(hash) {
     await doTranscode(media.absolutePath, `${utils.config.cachePath}/${media.hash}/index.m3u8`, args);
     await generateThumb(media);
     console.log(`Saving metadata for ${media.absolutePath}`);
-    await global.db.updateMedia(media.hash, {
+    await global.db.saveMedia(media.hash, {
         metadata: media.metadata,
-        transcode: false
+        transcode: false,
+        cached: true
     });
     console.log('-------------------------------------');
 }
 
 async function transcodeSet(set, callback) {
     for (let i = 0; i < set.length; i++) {
-        const media = global.db.getMedia(set[i]);
+        const media = await global.db.getMedia(set[i]);
         try {
             if (media.corrupted) {
                 console.log(`Skipping corrupted file ${media.absolutePath}`);
@@ -135,7 +136,7 @@ async function transcodeSet(set, callback) {
         } catch(err) {
             console.log(`Failed to transcode ${media.absolutePath}`);
             console.log(err);
-            await global.db.updateMedia(media.hash, { corrupted: true });
+            await global.db.saveMedia(media.hash, { corrupted: true });
         }
         if (callback) {
             callback(i);
@@ -161,7 +162,7 @@ async function runCache(callback) {
     await mkdir(path.resolve(utils.config.cachePath, 'thumbnails'));
     module.exports.cacheStatus = { state: 'Caching image metadata and thumbnails', corrupted: [] };
     // Image metadata extraction first.
-    const images = await global.db.subset({type: ['still', 'gif']}, global.db.getDefaultMap());
+    const images = await global.db.subset({type: ['still', 'gif']});
     const imagesNotCached = [];
     for (let i = 0; i < images.length; i++) {
         const media = global.db.getMedia(images[i]);
@@ -178,7 +179,7 @@ async function runCache(callback) {
     const corruptedImages = [];
     console.log(`${imagesNotCached.length} images not cached.`)
     for (let i = 0; i < imagesNotCached.length; i++) {
-        const media = global.db.getMedia(imagesNotCached[i]);
+        const media = await global.db.getMedia(imagesNotCached[i]);
         try {
             if (media.corrupted) {
                 console.log(`Skipping corrupted file ${media.absolutePath}`);
@@ -187,13 +188,13 @@ async function runCache(callback) {
                 console.log(`Getting metadata for ${media.absolutePath}`);
                 const metadata = await getExifData(media.absolutePath);
                 await generateThumb(media);
-                await global.db.updateMedia(media.hash, { metadata: metadata });
+                await global.db.saveMedia(media.hash, { metadata: metadata, cached: true });
             }
         } catch (err) {
             console.log(err);
             console.log(`Marking ${media.absolutePath} as corrupted.`);
             corruptedImages.push(imagesNotCached[i]);
-            await global.db.updateMedia(media.hash, { corrupted: true });
+            await global.db.saveMedia(media.hash, { corrupted: true });
         }
         module.exports.cacheStatus.progress = i;
         if (callback) {
@@ -202,12 +203,12 @@ async function runCache(callback) {
     }
     console.log(`${corruptedImages.length} corrupted images.`);
 
-    const videos = await global.db.subset({type: 'video'}, global.db.getDefaultMap());
+    const videos = await global.db.subset({type: ['video']});
     console.log(`Videos length: ${videos.length}`);
     const notTranscoded = [];
     const priorityTranscode = [];
     for (let i = 0; i < videos.length; i++) {
-        const media = global.db.getMedia(videos[i]);
+        const media = await global.db.getMedia(videos[i]);
         if (media.transcode) {
             priorityTranscode.push(videos[i]);
         } else if (!media.metadata) {
@@ -244,9 +245,9 @@ async function runCache(callback) {
         }
     });
 
-    const allMedia = global.db.getDefaultMap();
+    const allMedia = await global.db.subset();
     for (let i = 0; i < allMedia.length; i++) {
-        const media = global.db.getMedia(allMedia[i]);
+        const media = await global.db.getMedia(allMedia[i]);
         if (media.corrupted) {
             module.exports.cacheStatus.corrupted.push(media.absolutePath);
         }

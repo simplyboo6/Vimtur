@@ -109,7 +109,7 @@ class AppData {
                 await this.shuffle();
             }
         }
-        
+
         await this.fire('tags', true);
         await this.fire('actors', true);
     }
@@ -250,7 +250,7 @@ class AppData {
 
         return true;
     }
-    
+
     async unshuffle() {
         const hash = this.getMap()[this.imageSet.current];
         this.imageSet.shuffleMap = null;
@@ -284,10 +284,11 @@ class AppData {
         if (!this.currentImage) {
             throw new Error('No image found to delete');
         }
-        await Utils.remove(`/api/images/${this.currentImage.hash}`);
-        this.imageSet.map.splice(this.imageSet.map.indexOf(this.currentImage.hash), 1);
+        const hash = this.currentImage.hash;
+        await Utils.remove(`/api/images/${hash}`);
+        this.imageSet.map.splice(this.imageSet.map.indexOf(hash), 1);
         if (this.imageSet.shuffleMap) {
-            const index = this.imageSet.shuffleMap.indexOf(this.currentImage.hash);
+            const index = this.imageSet.shuffleMap.indexOf(hash);
             if (index >= 0) {
                 this.imageSet.shuffleMap.splice(index, 1);
             }

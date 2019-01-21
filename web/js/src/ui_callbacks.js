@@ -261,15 +261,6 @@ export async function applyMetadata(type, multi) {
     }, "Error saving metadata");
 }
 
-export async function rebuildSearchIndex() {
-    $('#adminModal').modal('hide');
-    Utils.showMessage('Rebuilding search index...');
-    await Utils.err(async function() {
-        await AppData.rebuildIndex();
-        Utils.showMessage('Search index rebuilt');
-    }, "Error rebuilding search index");
-}
-
 export function next() {
     AppData.next();
 }

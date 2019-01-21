@@ -23,12 +23,12 @@ class UI {
     setType(image) {
         let type = image.type;
         this.imagePanel.src = '#';
-    
+
         if (this.type != type) {
             this.videoPanel.style.display = 'none';
             this.imagePanel.style.display = 'none';
         }
-    
+
         if (type == 'video') {
             $(this.videoPanel).attr("poster", "");
             const autoplay = !Utils.isMobile() && AppData.isAutoplayEnabled();
@@ -158,7 +158,7 @@ class Gallery {
                         AppData.goto(hash);
                         $('#galleryModal').modal('hide');
                     }
-    
+
                     const media = await Utils.request(`/api/images/${hash}`);
                     url.title = Utils.getImageTitle(media);
                     switch (media.type) {
@@ -190,7 +190,7 @@ class Gallery {
     const gallery = new Gallery();
 
     document.onresize = ui.resize;
-    
+
     window.addEventListener("keydown", function(e) {
         if (document.activeElement.tagName.toLowerCase() == 'textarea') {
             return;
@@ -205,27 +205,27 @@ class Gallery {
         } else if (e.key == "ArrowLeft") {
             ui.previous();
         } else if (e.key == "Delete") {
-            AppData.deleteCurrent();
+            UICallbacks.deleteCurrent();
         }
     }, false);
 
     document.body.addEventListener('touchstart', ui.touchBegin, false);
     document.body.addEventListener('touchend', ui.touchFinish, false);
-    
+
     AppData.on('message', function (data) {
         console.log(data);
         Utils.showMessage(data);
     });
-    
+
     AppData.on('scanStatus', function() {
         const statusArea = document.getElementById("adminStatusArea");
         statusArea.value = Utils.formatAdminStatus(AppData.scanStatus);
     });
-    
+
     AppData.on('title', function() {
         ui.updateTitle();
     });
-    
+
     AppData.on('change', function() {
         if (AppData.currentImage) {
             ui.updateImage();
@@ -234,7 +234,7 @@ class Gallery {
             Utils.showModal('#adminModal');
         }
     });
-    
+
     AppData.on('tags', function(redraw) {
         if (redraw) {
             Utils.setTags(AppData.tags, async function(tag, state) {
@@ -254,7 +254,7 @@ class Gallery {
             Utils.setChecked(AppData.tags, AppData.currentImage.tags);
         }
     });
-    
+
     AppData.on('actors', function(redraw) {
         if (redraw) {
             const actors = [];
@@ -264,7 +264,7 @@ class Gallery {
                     text: AppData.actors[i]
                 });
             }
-        
+
             $('#actorsList').select2({
                 width: 'resolve',
                 data: actors,
@@ -281,7 +281,7 @@ class Gallery {
             $('.actorsMetadata').val(AppData.currentImage.actors).trigger('change');
         }
     });
-    
+
     AppData.on('gallery', function() {
         gallery.update();
     });
@@ -289,7 +289,7 @@ class Gallery {
     AppData.on('state', function(stateUrl) {
         $('#stateUrlField').val(stateUrl);
     });
-    
+
     // Fetch config, tags etc from the server.
     try {
         await AppData.fetchAll();

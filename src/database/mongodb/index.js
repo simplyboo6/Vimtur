@@ -31,7 +31,7 @@ class MongoConnector {
         this.db = this.server.db(this.config.database);
         await Util.promisify(this.db.createCollection.bind(this.db))('media');
         await Util.promisify(this.db.createCollection.bind(this.db))('meta');
-        
+
         const mediaCollection = this.db.collection('media');
         await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))({
             'path': 'text',
@@ -65,28 +65,31 @@ class MongoConnector {
         if (!row) {
             return [];
         }
-        return row.data;
+        return row.data.sort();
     }
 
     async addTag(tag) {
-        const tags = await this.getTags();
-        if (!tags.includes(tag)) {
-            tags.push(tag);
-            tags.sort();
-            const meta = this.db.collection('meta');
-            await Util.promisify(meta.updateOne.bind(meta))({_id: 'tags'}, {data: tags});
-        }
-        return tags;
+        const meta = this.db.collection('meta');
+        await Util.promisify(meta.updateOne.bind(meta))(
+            {_id: 'tags'},
+            { $addToSet: { data: tag } },
+            { upsert: true }
+        );
     }
 
     async removeTag(tag) {
-        const tags = await this.getTags();
-        if (tags.includes(tag)) {
-            tags.splice(tags.indexOf(tag), 1);
-            const meta = this.db.collection('meta');
-            await Util.promisify(meta.updateOne.bind(meta))({_id: 'tags'}, {data: tags});
-        }
-        return tags;
+        const media = this.db.collection('media');
+        await Util.promisify(media.updateMany.bind(media))(
+            {},
+            { $pull: { tags: tag } },
+            { multi: true }
+        );
+
+        const meta = this.db.collection('meta');
+        await Util.promisify(meta.updateOne.bind(meta))(
+            {_id: 'tags'},
+            { $pull: { data: tag } }
+        );
     }
 
     async getActors() {
@@ -95,33 +98,36 @@ class MongoConnector {
         if (!row) {
             return [];
         }
-        return row.data;
+        return row.data.sort();
     }
 
     async addActor(actor) {
-        const actors = await this.getActors();
-        if (!actors.includes(actor)) {
-            actors.push(actor);
-            actors.sort();
-            const meta = this.db.collection('meta');
-            await Util.promisify(meta.updateOne.bind(meta))({_id: 'actors'}, {data: actors});
-        }
-        return actors;
+        const meta = this.db.collection('meta');
+        await Util.promisify(meta.updateOne.bind(meta))(
+            { _id: 'actors' },
+            { $addToSet: { data: actor } },
+            { upsert: true }
+        );
     }
 
     async removeActor(actor) {
-        const actors = await this.getActors();
-        if (actors.includes(actor)) {
-            actors.splice(actors.indexOf(actor), 1);
-            const meta = this.db.collection('meta');
-            await Util.promisify(meta.updateOne.bind(meta))({_id: 'actors'}, {data: actors});
-        }
-        return actors;
+        const media = this.db.collection('media');
+        await Util.promisify(media.updateMany.bind(media))(
+            {},
+            { $pull: { actors: actor } },
+            { multi: true }
+        );
+
+        const meta = this.db.collection('meta');
+        await Util.promisify(meta.updateOne.bind(meta))(
+            {_id: 'actors'},
+            { $pull: { data: actor } }
+        );
     }
 
     async getMedia(hash) {
         const media = this.db.collection('media');
-        return await Util.promisify(media.findOne.bind(media))({ hash: hash });
+        return await Util.promisify(media.findOne.bind(media))({ hash });
     }
 
     async saveMedia(hash, media) {
@@ -136,8 +142,14 @@ class MongoConnector {
         return existing || media;
     }
 
+    async removeMedia(hash) {
+        const media = this.db.collection('media');
+        await Util.promisify(media.deleteOne.bind(media))({ hash });
+    }
+
     async subset(constraints) {
         const mediaCollection = this.db.collection('media');
+        constraints = constraints || {};
 
         const query = {};
 
@@ -182,10 +194,22 @@ class MongoConnector {
             };
         }
 
+        if (constraints.dir !== undefined) {
+            query['dir'] = constraints.dir;
+        };
+
         if (constraints.keywordSearch) {
             query['$text'] = {
                 $search: constraints.keywordSearch
             };
+        }
+
+        if (constraints.corrupted !== undefined) {
+            query['corrupted'] = constraints.corrupted;
+        }
+
+        if (constraints.cached !== undefined) {
+            query['cached'] = constraints.cached;
         }
 
         let queryResult = mediaCollection.find(query).project({
@@ -205,7 +229,7 @@ class MongoConnector {
                 rating: -1
             });
         }
-        
+
         const result = await Util.promisify(queryResult.toArray.bind(queryResult))();
 
         const keys = [];

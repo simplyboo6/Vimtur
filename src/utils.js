@@ -91,10 +91,10 @@ exports.setup = async function() {
     } catch (err) {
         console.log(`Unable to load an existing config from ${exports.configPath}`);
     }
-    
+
     // Load these environment variables after loading the configuration
     // so that the environment variables can over-write the config.
-    
+
     // General config
     mapEnv("PORT", exports, ["config", "port"]);
     mapEnv("DATA_PATH", exports, ["config", "libraryPath"]);
@@ -218,18 +218,6 @@ if (exports.config.username != undefined && exports.config.password != undefined
     exports.authConnector = basicAuth;
 }
 
-exports.getAllInSameDir = function (image) {
-    const output = [];
-    const keys = global.db.getDefaultMap();
-    for (let i = 0; i < keys.length; i++) {
-        const dbImage = global.db.getMedia(keys[i]);
-        if (dbImage.dir == image.dir) {
-            output.push(dbImage.hash);
-        }
-    }
-    return output;
-};
-
 exports.findImageNumberInSet = function (keys, image) {
     for (let i = 0; i < keys.length; i++) {
         if (keys[i] == image.hash) {
@@ -279,10 +267,10 @@ function getExtension(filename) {
     return ext[ext.length - 1].toLowerCase();
 }
 
-function buildPathList(keys) {
+async function buildPathList(keys) {
     const list = [];
     for (let i = 0; i < keys.length; i++) {
-        const image = global.db.getMedia(keys[i]);
+        const image = await global.db.getMedia(keys[i]);
         list[image.absolutePath] = image;
     }
     return list;
@@ -299,11 +287,14 @@ exports.generateMediaFromFile = async function (mediaFile) {
                 hash: hash,
                 path: path.relative(exports.config.libraryPath, mediaFile.absolutePath),
                 absolutePath: mediaFile.absolutePath,
-                dir: path.dirname(mediaFile.absolutePath),
+                dir: path.dirname(path.relative(exports.config.libraryPath, mediaFile.absolutePath)),
                 rotation: 0,
                 type: mediaFile.type,
                 tags: [],
-                hashDate: Math.floor(Date.now() / 1000)
+                actors: [],
+                hashDate: Math.floor(Date.now() / 1000),
+                cached: false,
+                corrupted: false,
             };
             resolve(image);
         });
@@ -324,7 +315,7 @@ exports.generateMediaFromFiles = async function (fileList, status) {
 };
 
 exports.scan = async function() {
-    const map = global.db.getDefaultMap();
+    const map = await global.db.subset();
     console.log("Creating files list for library: " + exports.config.libraryPath);
     const returns = {
         newFiles: [],
@@ -332,7 +323,7 @@ exports.scan = async function() {
         missing: []
     };
     const filesForMissing = [];
-    const pathList = buildPathList(map);
+    const pathList = await buildPathList(map);
     const options = {
         followLinks: false
     };
@@ -380,9 +371,9 @@ exports.scan = async function() {
     });
 
     return new Promise(function(resolve, reject) {
-        walker.on("end", function () {
+        walker.on("end", async function () {
             for (let i = 0; i < map.length; i++) {
-                const image = global.db.getMedia(map[i]);
+                const image = await global.db.getMedia(map[i]);
                 if (filesForMissing[image.absolutePath] == undefined) {
                     returns.missing.push(image);
                 }
@@ -397,11 +388,11 @@ exports.deleteMedia = (media) => {
     FS.unlink(media.absolutePath, () => {
         console.log(`${media.absolutePath} removed`);
     });
-    FS.unlink(`${utils.config.cachePath}/thumbnails/${hash}.png`, () => {
-        console.log(`${utils.config.cachePath}/thumbnails/${hash}.png removed`);
+    FS.unlink(`${exports.config.cachePath}/thumbnails/${hash}.png`, () => {
+        console.log(`${exports.config.cachePath}/thumbnails/${hash}.png removed`);
     });
-    RimRaf(`${utils.config.cachePath}/${hash}/`, () => {
-        console.log(`${utils.config.cachePath}/${hash}/ removed`);
+    RimRaf(`${exports.config.cachePath}/${hash}/`, () => {
+        console.log(`${exports.config.cachePath}/${hash}/ removed`);
     });
 };
 

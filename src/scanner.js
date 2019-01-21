@@ -1,4 +1,6 @@
 const Utils = require('./utils');
+const FS = require('fs');
+const Cache = require('./cachelib');
 
 class Scanner {
     constructor(callback) {
@@ -38,23 +40,23 @@ class Scanner {
 
         await Utils.generateMediaFromFiles(this.scanStatus.newFiles,
             async (iterator, media) => {
-                if (global.db.getMedia(media.hash)) {
+                const mediaRecord = await global.db.getMedia(media.hash);
+                if (mediaRecord) {
                     if (deleteClones) {
-                        fs.unlink(media.absolutePath, function() {
-                            console.log("Deleted: " + media.absolutePath);
+                        FS.unlink(mediaRecord.absolutePath, function() {
+                            console.log("Deleted: " + mediaRecord.absolutePath);
                         });
                     } else {
-                        console.log("Updating path for " + global.db.getMedia(media.hash).absolutePath + " to " + media.absolutePath);
-                        const newMedia = global.db.getMedia(media.hash);
-                        newMedia.absolutePath = media.absolutePath;
-                        newMedia.dir = media.dir;
-                        newMedia.path = media.path;
-                        newMedia.hashDate = Math.floor(Date.now() / 1000);
-                        await global.db.updateMedia(newMedia.hash, newMedia);
+                        console.log("Updating path for " + mediaRecord.absolutePath + " to " + media.absolutePath);
+                        mediaRecord.absolutePath = media.absolutePath;
+                        mediaRecord.dir = media.dir;
+                        mediaRecord.path = media.path;
+                        mediaRecord.hashDate = Math.floor(Date.now() / 1000);
+                        await global.db.saveMedia(mediaRecord.hash, mediaRecord);
                     }
                 } else {
                     console.log("Adding " + media.absolutePath + " to database.");
-                    await global.db.updateMedia(media.hash, media);
+                    await global.db.saveMedia(media.hash, media);
                 }
                 this.importStatus.current = iterator;
                 this.updateStatus();
@@ -79,19 +81,14 @@ class Scanner {
     }
 
     async getCacheStatus() {
-        const videos = await global.db.subset({type: ['video']});
-        const max = videos.length;
-        let corrupted = 0;
-        for (let i = 0; i < videos.length; i++) {
-            if (global.db.getMedia(videos[i]).corrupted) {
-                corrupted++;
-            }
-        }
-        const cached = global.db.cropImageMap(videos).length;
+        const corruptedVideos = await global.db.subset({type: ['video'], corrupted: true});
+        const validVideos = await global.db.subset({type: ['video'], corrupted: false});
+        const cachedVideos = await global.db.subset({type: ['video'], cached: true, corrupted: false});
+
         return {
-            cached: cached,
-            max: max,
-            corrupted: corrupted,
+            cached: cachedVideos.length,
+            max: corruptedVideos.length + validVideos.length,
+            corrupted: corruptedVideos.length,
             converter: Cache.cacheStatus
         };
     }
@@ -99,7 +96,7 @@ class Scanner {
     getStatus(verbose) {
         const status = {
             state: this.state,
-            libraryPath: utils.config.libraryPath,
+            libraryPath: Utils.config.libraryPath,
             importStatus: this.importStatus,
             cacheStatus: this.cacheStatus,
             scanStatus: null
@@ -135,7 +132,7 @@ class Scanner {
     }
 
     async deleteCorrupted() {
-        const map = global.db.getDefaultMap();
+        const map = await global.db.subset();
         for (let i = 0; i < map.length; i++) {
             const media = global.db.getMedia(map[i]);
             if (media.corrupted) {
