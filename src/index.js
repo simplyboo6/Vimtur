@@ -32,7 +32,7 @@ if (Utils.config.username && Utils.config.password) {
     App.use(Auth.connect(basicAuth));
 }
 
-App.use('/api/scanner', configCheckConnector, ScannerRouter);
+App.use('/api/scanner', configCheckConnector, ScannerRouter.router);
 
 App.get('/api/tags', configCheckConnector, Utils.wrap(async(req, res) => {
     res.json(await global.db.getTags());
@@ -255,6 +255,7 @@ async function setup() {
     // Only setup the http server once the database is loaded.
     console.log(`Setting up HTTP server on ${Utils.config.port}`);
     await setupApp(Utils.config.port);
+    await ScannerRouter.scanner.scan();
 }
 
 exports.config = Utils.config;

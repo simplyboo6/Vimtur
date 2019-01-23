@@ -277,13 +277,15 @@ export function unshuffle() {
     AppData.unshuffle();
 }
 
-export async function addTagColumn() {
+export async function addTagColumn(save) {
     const count = Utils.getNumColumns('listColumn');
     // Don't include child nodes in the clone.
     const col = document.getElementById('listColumn0').cloneNode(false);
     col.id = `listColumn${count}`;
     document.getElementById('tagColumnRow').appendChild(col);
-    await AppData.saveConfig({ user: { tagColumnCount: Utils.getNumColumns('listColumn') }});
+    if (save) {
+        await AppData.saveConfig({ user: { tagColumnCount: Utils.getNumColumns('listColumn') }});
+    }
     await AppData.fire('tags', true);
 }
 

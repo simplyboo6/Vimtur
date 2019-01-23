@@ -5,6 +5,7 @@ const md5File = require('md5-file');
 const FS = require('fs');
 const RimRaf = require('rimraf');
 const PathIsInside = require("path-is-inside");
+const Util = require('util');
 
 exports.usage = function () {
     const prog = process.argv[0] + ' ' + process.argv[1];
@@ -267,44 +268,58 @@ function getExtension(filename) {
     return ext[ext.length - 1].toLowerCase();
 }
 
-async function buildPathList(keys) {
+function getType(extension) {
+    switch (extension) {
+        case "png":
+        case "jpg":
+        case "jpeg":
+        case "bmp":
+            return 'still';
+        case "gif":
+            return 'gif';
+        case "avi":
+        case "mp4":
+        case "flv":
+        case "wmv":
+        case "mov":
+        case "webm":
+        case "mpeg":
+        case "mpg":
+            return 'video';
+        default:
+            return null;
+    }
+}
+
+async function buildPathList(inputs) {
     const list = [];
-    for (let i = 0; i < keys.length; i++) {
-        const image = await global.db.getMedia(keys[i]);
-        list[image.absolutePath] = image;
+    for (const input of inputs) {
+        list[input.path] = input;
     }
     return list;
 }
 
-exports.generateMediaFromFile = async function (mediaFile) {
-    return new Promise(function(resolve, reject) {
-        md5File(mediaFile.absolutePath, function (err, hash) {
-            if (err) {
-                reject(err);
-                return;
-            }
-            const image = {
-                hash: hash,
-                path: path.relative(exports.config.libraryPath, mediaFile.absolutePath),
-                absolutePath: mediaFile.absolutePath,
-                dir: path.dirname(path.relative(exports.config.libraryPath, mediaFile.absolutePath)),
-                rotation: 0,
-                type: mediaFile.type,
-                tags: [],
-                actors: [],
-                hashDate: Math.floor(Date.now() / 1000),
-                cached: false,
-                corrupted: false,
-            };
-            resolve(image);
-        });
-    });
+exports.generateMediaFromFile = async function (relativePath) {
+    const absolutePath = path.resolve(exports.config.libraryPath, relativePath);
+
+    return {
+        hash: await Util.promisify(md5File)(absolutePath),
+        path: relativePath,
+        dir: path.dirname(relativePath),
+        absolutePath,
+        rotation: 0,
+        type: getType(getExtension(relativePath)),
+        tags: [],
+        actors: [],
+        hashDate: Math.floor(Date.now() / 1000),
+        corrupted: false
+    };
 };
 
 exports.generateMediaFromFiles = async function (fileList, status) {
     const mediaList = [];
     for (let i = 0; i < fileList.length; i++) {
-        console.log("Generating data for: " + fileList[i].absolutePath);
+        console.log("Generating data for: " + fileList[i]);
         const media = await exports.generateMediaFromFile(fileList[i]);
         mediaList.push(media);
         if (status) {
@@ -315,15 +330,16 @@ exports.generateMediaFromFiles = async function (fileList, status) {
 };
 
 exports.scan = async function() {
-    const map = await global.db.subset();
+    const map = await global.db.subset({}, {path: 1});
     console.log("Creating files list for library: " + exports.config.libraryPath);
     const returns = {
         newFiles: [],
         verifiedFiles: [],
         missing: []
     };
-    const filesForMissing = [];
-    const pathList = await buildPathList(map);
+    const foundFileMap = [];
+
+    const knownPathList = await buildPathList(map);
     const options = {
         followLinks: false
     };
@@ -355,29 +371,29 @@ exports.scan = async function() {
                 break;
         }
 
-        if (fileStats.type != null) {
-            fileStats.absolutePath = path.resolve(root, fileStats.name);
-            fileStats.root = path.dirname(fileStats.absolutePath);
-            const existingImage = pathList[fileStats.absolutePath];
-            if (existingImage == undefined || existingImage == null) {
-                returns.newFiles.push(fileStats);
+        if (getType(getExtension(fileStats.name))) {
+            const relativePath = path.relative(exports.config.libraryPath, path.resolve(root, fileStats.name));
+            const existingImage = knownPathList[relativePath];
+            if (existingImage) {
+                returns.verifiedFiles.push(relativePath);
             } else {
-                fileStats.image = existingImage;
-                returns.verifiedFiles.push(fileStats);
+                returns.newFiles.push(relativePath);
             }
-            filesForMissing[fileStats.absolutePath] = fileStats;
+            foundFileMap[relativePath] = true;
         }
         next();
     });
 
     return new Promise(function(resolve, reject) {
         walker.on("end", async function () {
-            for (let i = 0; i < map.length; i++) {
-                const image = await global.db.getMedia(map[i]);
-                if (filesForMissing[image.absolutePath] == undefined) {
-                    returns.missing.push(image);
+            for (const media of map) {
+                if (!foundFileMap[media.path]) {
+                    returns.missing.push(media.hash);
                 }
             }
+
+            console.log(`Scan complete: missing(${returns.missing.length}), verified(${returns.verifiedFiles.length}), new(${returns.newFiles.length}).`);
+
             resolve(returns);
         });
     });

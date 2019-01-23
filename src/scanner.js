@@ -62,7 +62,7 @@ class Scanner {
                 this.updateStatus();
             });
         this.state = "IDLE";
-        this.updateStatus();
+        await this.updateStatus();
         await this.scan();
     }
 
@@ -111,7 +111,8 @@ class Scanner {
         return status;
     }
 
-    updateStatus() {
+    async updateStatus() {
+        this.cacheStatus = await this.getCacheStatus();
         if (this.callback) {
             this.callback(this.getStatus());
         }

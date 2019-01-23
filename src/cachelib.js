@@ -4,6 +4,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const rimraf = require('rimraf');
 const gm = require('gm');
 const utils = require("./utils.js");
+const Util = require('util');
 
 async function getMetadata(path) {
     return new Promise((resolve, reject) => {
@@ -58,11 +59,7 @@ async function getExifData(path) {
 
 async function deleteFolder(path) {
     console.log(`Removing ${path}`);
-    return new Promise((resolve, reject) => {
-        rimraf(path, function () {
-            resolve();
-        });
-    });
+    return await Util.promisify(rimraf)(path);
 }
 
 async function exists(path) {
@@ -74,12 +71,14 @@ async function exists(path) {
 }
 
 async function mkdir(path) {
-    console.log(`Making directory ${path}`);
-    return new Promise((resolve, reject) => {
-        fs.mkdir(path, function() {
-            resolve();
+    if (!(await exists(path))) {
+        console.log(`Making directory ${path}`);
+        return await new Promise((resolve, reject) => {
+            fs.mkdir(path, function() {
+                resolve();
+            });
         });
-    });
+    }
 }
 
 async function doTranscode(input, output, args) {
@@ -117,9 +116,7 @@ async function transcode(hash) {
     await generateThumb(media);
     console.log(`Saving metadata for ${media.absolutePath}`);
     await global.db.saveMedia(media.hash, {
-        metadata: media.metadata,
-        transcode: false,
-        cached: true
+        metadata: media.metadata
     });
     console.log('-------------------------------------');
 }
@@ -162,38 +159,25 @@ async function runCache(callback) {
     await mkdir(path.resolve(utils.config.cachePath, 'thumbnails'));
     module.exports.cacheStatus = { state: 'Caching image metadata and thumbnails', corrupted: [] };
     // Image metadata extraction first.
-    const images = await global.db.subset({type: ['still', 'gif']});
-    const imagesNotCached = [];
-    for (let i = 0; i < images.length; i++) {
-        const media = global.db.getMedia(images[i]);
-        if (!media.metadata) {
-            imagesNotCached.push(images[i]);
-        }
-    }
+    const imagesNotCached = await global.db.subset({type: ['still', 'gif'], cached: false});
+
     await mkdir(`${utils.config.cachePath}/thumbnails`);
     module.exports.cacheStatus.progress = 0;
     module.exports.cacheStatus.max = imagesNotCached.length;
     if (callback) {
         callback(module.exports.cacheStatus);
     }
-    const corruptedImages = [];
+
     console.log(`${imagesNotCached.length} images not cached.`)
     for (let i = 0; i < imagesNotCached.length; i++) {
         const media = await global.db.getMedia(imagesNotCached[i]);
         try {
-            if (media.corrupted) {
-                console.log(`Skipping corrupted file ${media.absolutePath}`);
-                corruptedImages.push(imagesNotCached[i]);
-            } else {
-                console.log(`Getting metadata for ${media.absolutePath}`);
-                const metadata = await getExifData(media.absolutePath);
-                await generateThumb(media);
-                await global.db.saveMedia(media.hash, { metadata: metadata, cached: true });
-            }
+            console.log(`Getting metadata for ${media.absolutePath}`);
+            const metadata = await getExifData(media.absolutePath);
+            await generateThumb(media);
+            await global.db.saveMedia(media.hash, { metadata });
         } catch (err) {
-            console.log(err);
-            console.log(`Marking ${media.absolutePath} as corrupted.`);
-            corruptedImages.push(imagesNotCached[i]);
+            console.log(`Marking ${media.absolutePath} as corrupted.`, err);
             await global.db.saveMedia(media.hash, { corrupted: true });
         }
         module.exports.cacheStatus.progress = i;
@@ -201,57 +185,24 @@ async function runCache(callback) {
             callback(module.exports.cacheStatus);
         }
     }
-    console.log(`${corruptedImages.length} corrupted images.`);
 
-    const videos = await global.db.subset({type: ['video']});
-    console.log(`Videos length: ${videos.length}`);
-    const notTranscoded = [];
-    const priorityTranscode = [];
-    for (let i = 0; i < videos.length; i++) {
-        const media = await global.db.getMedia(videos[i]);
-        if (media.transcode) {
-            priorityTranscode.push(videos[i]);
-        } else if (!media.metadata) {
-            notTranscoded.push(videos[i]);
-        }
-    }
-    console.log(`Videos to transocde: ${notTranscoded.length + priorityTranscode.length}`);
+    const videos = await global.db.subset({type: ['video'], cached: false});
+    console.log(`Videos to transocde: ${videos.length}`);
 
-    console.log(`Transcoding ${priorityTranscode.length} priority transcode videos.`);
-    module.exports.cacheStatus.state = 'Caching priority videos';
-    module.exports.cacheStatus.progress = 0;
-    module.exports.cacheStatus.max = priorityTranscode.length;
-    if (callback) {
-        callback(module.exports.cacheStatus);
-    }
-    await transcodeSet(priorityTranscode, function(num) {
-        module.exports.cacheStatus.progress = num;
-        if (callback) {
-            callback(module.exports.cacheStatus);
-        }
-    });
-
-    console.log(`Transcoding ${notTranscoded.length} other videos.`);
     module.exports.cacheStatus.state = 'Caching videos';
     module.exports.cacheStatus.progress = 0;
-    module.exports.cacheStatus.max = notTranscoded.length;
+    module.exports.cacheStatus.max = videos.length;
     if (callback) {
         callback(module.exports.cacheStatus);
     }
-    await transcodeSet(notTranscoded, function(num) {
+    await transcodeSet(videos, function(num) {
         module.exports.cacheStatus.progress = num;
         if (callback) {
             callback(module.exports.cacheStatus);
         }
     });
 
-    const allMedia = await global.db.subset();
-    for (let i = 0; i < allMedia.length; i++) {
-        const media = await global.db.getMedia(allMedia[i]);
-        if (media.corrupted) {
-            module.exports.cacheStatus.corrupted.push(media.absolutePath);
-        }
-    }
+    module.exports.cacheStatus.corrupted = await global.db.subset({corrupted: true}, {path: 1});
 
     module.exports.cacheStatus.state = 'Caching complete';
     module.exports.cacheStatus.progress = 100;

@@ -2,6 +2,7 @@ const Mongo = require('mongodb');
 const Utils = require('../../utils');
 const Util = require('util');
 const DeepMerge = require('../../deep-merge');
+const Path = require('path');
 
 const DEFAULT_PORT = 27017;
 
@@ -14,13 +15,14 @@ async function each(query, callback) {
 class MongoConnector {
     constructor(config) {
         this.config = config;
-        this.config.port = (this.config.port == undefined) ? DEFAULT_PORT : this.config.port;
+        this.config.database.port = (this.config.database.port == undefined) ? DEFAULT_PORT : this.config.database.port;
     }
 
     async connect() {
         await this.close();
 
-        const url = `mongodb://${this.config.username}:${this.config.password}@${this.config.host}:${this.config.port}/`;
+        const config = this.config.database;
+        const url = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/`;
         console.log(url);
 
         const MongoClient = Mongo.MongoClient;
@@ -28,7 +30,7 @@ class MongoConnector {
         this.server = await Util.promisify(MongoClient.connect)(url, {
             useNewUrlParser: true
         });
-        this.db = this.server.db(this.config.database);
+        this.db = this.server.db(config.database);
         await Util.promisify(this.db.createCollection.bind(this.db))('media');
         await Util.promisify(this.db.createCollection.bind(this.db))('meta');
 
@@ -127,19 +129,24 @@ class MongoConnector {
 
     async getMedia(hash) {
         const media = this.db.collection('media');
-        return await Util.promisify(media.findOne.bind(media))({ hash });
+        const result = await Util.promisify(media.findOne.bind(media))({ hash });
+        if (result) {
+            result.absolutePath = Path.resolve(this.config.libraryPath, result.path);
+        }
+        return result;
     }
 
     async saveMedia(hash, media) {
-        const existing = await this.getMedia(hash);
+        if (media && media.absolutePath) {
+            delete media.absolutePath;
+        }
         const collection = this.db.collection('media');
-        if (existing) {
-            DeepMerge.merge(existing, media);
-            await Util.promisify(collection.replaceOne.bind(collection))({hash}, existing);
+        if (await this.getMedia(hash)) {
+            await Util.promisify(collection.updateOne.bind(collection))({hash}, { $set: media });
         } else {
             await Util.promisify(collection.insertOne.bind(collection))(media);
         }
-        return existing || media;
+        return media;
     }
 
     async removeMedia(hash) {
@@ -147,7 +154,7 @@ class MongoConnector {
         await Util.promisify(media.deleteOne.bind(media))({ hash });
     }
 
-    async subset(constraints) {
+    async subset(constraints, fields) {
         const mediaCollection = this.db.collection('media');
         constraints = constraints || {};
 
@@ -209,16 +216,16 @@ class MongoConnector {
         }
 
         if (constraints.cached !== undefined) {
-            query['cached'] = constraints.cached;
+            query['metadata'] = { $exists: constraints.cached };
         }
 
-        let queryResult = mediaCollection.find(query).project({
+        let queryResult = mediaCollection.find(query).project(Object.assign({
             score: {
                 $meta: 'textScore'
             },
             hash: 1,
             _id: 0
-        });
+        }, fields));
 
         if (constraints.keywordSearch) {
             queryResult = queryResult.sort({
@@ -231,6 +238,11 @@ class MongoConnector {
         }
 
         const result = await Util.promisify(queryResult.toArray.bind(queryResult))();
+
+        // If additional fields are specified then return the extras.
+        if (fields) {
+            return result;
+        }
 
         const keys = [];
         for (const media of result) {
@@ -250,7 +262,7 @@ class MongoConnector {
 }
 
 async function setup(config) {
-    const db = new MongoConnector(config.database);
+    const db = new MongoConnector(config);
     await db.connect();
     return db;
 }
