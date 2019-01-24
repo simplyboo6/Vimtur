@@ -1,21 +1,21 @@
 const Database = require('../src/database');
-const utils = require('../src/utils.js');
-const fs = require('fs');
+const Utils = require('../src/utils.js');
+const FS = require('fs');
 
 (async function() {
     console.log("Setting up config");
-    await utils.setup();
+    await Utils.setup();
     try {
         console.log('Validating config');
-        await utils.validateConfig();
+        await Utils.validateConfig();
     } catch (err) {
         return console.log(`Config is invalid: ${err.message}`, err);
     }
 
-    global.db = await Database.setup(utils.config);
+    global.db = await Database.setup(Utils.config);
     console.log('Loading data to import from input.json');
-    const imported = JSON.parse(fs.readFileSync('input.json'));
-    console.log(`Loaded ${imported.tags.length} tags and ${imported.media.length} media from file`);
+    const imported = JSON.parse(FS.readFileSync('input.json'));
+    console.log(`Loaded ${imported.tags.length} tags, ${imported.actors.length} actors and ${imported.media.length} media from file`);
 
     console.log('Adding all to database. This can take some time.');
     const start = new Date();
@@ -36,13 +36,8 @@ const fs = require('fs');
             console.log(`Skipping corrupted file ${media.path}`);
             continue;
         }
-        await global.db.updateMedia(media.hash, media);
-        for (let j = 0; j < media.tags.length; j++) {
-            await global.db.addTag(media.tags[j], media.hash);
-        }
-        for (let j = 0; j < media.actors.length; j++) {
-            await global.db.addActor(media.actors[j], media.hash);
-        }
+        await global.db.saveMedia(media.hash, media);
+
         const newProgress = Math.floor((i / imported.media.length) * 100);
         if (progress !== newProgress) {
             const diff = Date.now() - start.getTime();

@@ -137,8 +137,18 @@ class MongoConnector {
     }
 
     async saveMedia(hash, media) {
-        if (media && media.absolutePath) {
-            delete media.absolutePath;
+        // Filter out various old fields we no longer require.
+        if (media) {
+            // This one is generated on get media and may be accidentally passed back.
+            if (media.absolutePath !== undefined) {
+                delete media.absolutePath;
+            }
+            if (media.transcode !== undefined) {
+                delete media.transcode;
+            }
+            if (media.cached !== undefined) {
+                delete media.cached;
+            }
         }
         const collection = this.db.collection('media');
         if (await this.getMedia(hash)) {

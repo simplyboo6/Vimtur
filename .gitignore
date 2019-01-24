@@ -4,9 +4,7 @@ testdb/*
 .idea/*
 config.json
 log/*
-**/*.ckd2*
 **/nohup.out
 pid/*
 **/*.log
-web/js/babel/*
-dist/*
+utils/*.json
