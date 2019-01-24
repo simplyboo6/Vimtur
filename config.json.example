@@ -5,8 +5,12 @@
   "password": "pass", // Optional password. Delete this field to disable auth.
   "libraryPath": "/path/to/media/library",
   "cachePath": "/path/to/media/cache", // Important! This cannot be inside the library! It also gets quite big.
-  "mysql_host": "localhost",
-  "mysql_username": "user",
-  "mysql_password": "pass",
-  "mysql_database": "database"
+  "database": {
+    "provider": "mongodb",
+    "host": "localhost",
+    "username": "mongo",
+    "password": "mongo",
+    "database": "vimtur",
+    "port": 27017
+  },
 }

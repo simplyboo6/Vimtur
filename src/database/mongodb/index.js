@@ -22,7 +22,8 @@ class MongoConnector {
         await this.close();
 
         const config = this.config.database;
-        const url = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/`;
+        const auth = `${config.username || ''}${(config.username && config.password) ? ':' : ''}${config.password || ''}`
+        const url = `mongodb://${auth}${auth ? '@' : ''}${config.host}${config.port ? ':' : ''}${config.port || ''}`;
         console.log(url);
 
         const MongoClient = Mongo.MongoClient;
@@ -273,7 +274,15 @@ class MongoConnector {
 
 async function setup(config) {
     const db = new MongoConnector(config);
-    await db.connect();
+    while (true) {
+        try {
+            await db.connect();
+            break;
+        } catch (err) {
+            console.log(err.message);
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+    }
     return db;
 }
 

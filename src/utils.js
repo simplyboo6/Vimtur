@@ -178,12 +178,6 @@ exports.validateConfig = async function(config) {
             if (!config.database.database) {
                 throw new Error('Database not defined');
             }
-            if (!config.database.username) {
-                throw new Error('Database username not defined');
-            }
-            if (!config.database.password) {
-                throw new Error('Database password not defined');
-            }
             break;
         default:
             throw new Error(`Unknown database provider: ${config.database.provider}`);

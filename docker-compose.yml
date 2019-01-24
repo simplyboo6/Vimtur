@@ -20,3 +20,5 @@ services:
       - ${CACHE_DIR}:/cache/
     ports:
       - "${PORT}:3523"
+  mongo:
+    image: mongo
