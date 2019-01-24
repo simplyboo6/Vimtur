@@ -33,6 +33,11 @@
 * The included compose file comes with a mongodb instance.
 * The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
 
+## Conversion from V3 to V4.
+From V3 to V4 there's been a move from storing the entire database in memory and synced to a backend to to movign search capabilities to the database.
+The path of least resistance for this turned out to be MongoDB. The frameworks are still in place to add other database types back later, before merging this to master.
+For now, to use this version use utils/export_json.js to export your database from the SQL version and then in the new MongoDB version use utils/import_json.js.
+
 ## Docker
 The server can be run as a Docker instance. It accepts the following environment variables:
 * (required) DATA_DIR - The path to the media library.
