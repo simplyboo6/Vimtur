@@ -1,0 +1,43 @@
+{
+    "definitions": {
+        "metadata": {
+            "type": "object",
+            "properties": {
+                "width": { "type": "number" },
+                "height": { "type": "number" },
+                "length": { "type": "number" },
+                "artist": { "type": [ "string", "null" ] },
+                "album": { "type": [ "string", "null" ] },
+                "title": { "type": [ "string", "null" ] }
+            },
+            "required": ["width", "height"],
+            "additionalProperties": false
+        }
+    },
+
+    "type": "object",
+    "properties": {
+        "_id": {},
+        "hash": { "type": "string" },
+        "path": { "type": "string" },
+        "rotation": { "type": "number" },
+        "type": {
+            "type": "string",
+            "enum": [ "still", "gif", "video" ]
+        },
+        "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+        },
+        "actors": {
+            "type": "array",
+            "items": { "type": "string" }
+        },
+        "hashDate": { "type": "number" },
+        "metadata": { "$ref": "#/definitions/metadata" },
+        "corrupted": { "type": "boolean" },
+        "rating": { "type": "number" }
+    },
+    "required": [ "hash", "path", "type", "tags", "actors", "hashDate" ],
+    "additionalProperties": false
+}

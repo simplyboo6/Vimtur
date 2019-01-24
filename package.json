@@ -28,5 +28,8 @@
     "start": "node src/index.js"
   },
   "author": "SimplyBoo",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "jsonschema": "^1.2.4"
+  }
 }
