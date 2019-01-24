@@ -295,7 +295,6 @@ class Gallery {
         await AppData.fetchAll();
     } catch (err) {
         console.log(`Invalid config (${err.message}), redirecting to setup...`, err);
-        return window.location.replace('/web/config.html');
     }
 
     // Already one existing column.
@@ -336,14 +335,15 @@ class Gallery {
         if (!actor) {
             return;
         }
-        console.log(`Adding actor ${actor} from ${AppData.currentImage.hash}`);
+        const hash = AppData.currentImage.hash;
+        console.log(`Adding actor ${actor} to ${hash}`);
         if (!AppData.actors.includes(actor)) {
             const result = await Utils.BootBox.confirm(`Are you sure you want to create ${actor}?`);
             if (!result) {
                 return;
             }
         }
-        await AppData.addActor(actor, AppData.currentImage.hash);
+        await AppData.addActor(actor, hash);
     });
 
     $('.actorsMetadata').on('select2:unselect', async function (e) {

@@ -157,7 +157,7 @@ class MongoConnector {
         } else {
             await Util.promisify(collection.insertOne.bind(collection))(media);
         }
-        return media;
+        return await this.getMedia(hash);
     }
 
     async removeMedia(hash) {

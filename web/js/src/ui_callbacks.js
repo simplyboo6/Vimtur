@@ -33,6 +33,8 @@ export async function simpleSearch() {
     await Utils.err(async() => {
         if (!(await AppData.getSubset(constraints))) {
             Utils.showMessage("No media matching search criteria");
+        } else {
+            Utils.showMessage("Search complete");
         }
     }, "Error running search");
     return false;
@@ -40,7 +42,7 @@ export async function simpleSearch() {
 
 export async function viewFolder() {
     await Utils.err(async function() {
-        await AppData.getSubset({ folder: AppData.getMap()[AppData.imageSet.current] }, { preserve: true });
+        await AppData.getSubset({ dir: AppData.currentImage.dir }, { preserve: true });
     }, "Error seaching for files in folder");
 }
 
@@ -148,6 +150,8 @@ export async function search() {
     await Utils.err(async function() {
         if (!(await AppData.getSubset(constraints, { preserve: true }))) {
             Utils.showMessage('No search results found');
+        } else {
+            Utils.showMessage('Search complete');
         }
     }, "Error running search");
 }
@@ -250,7 +254,8 @@ export async function applyMetadata(type, multi) {
             if (result) {
                 Utils.showMessage(`Applying '${value}' to ${type} for ${AppData.getMap().length} images`);
                 $('#metadataModal').modal('hide');
-                await AppData.updateSet(AppData.getMap(), {metadata})
+                const map = AppData.getMap();
+                await AppData.updateSet(map, {metadata})
                 Utils.showMessage(`Metdata applied to ${map.length} images`);
             }
         } else {

@@ -111,14 +111,7 @@ App.delete('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res)
 }));
 
 App.post('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) => {
-    const hash = req.params.hash;
-    const media = await global.db.getMedia(hash);
-    if (media) {
-        res.json(await global.db.saveMedia(hash, req.body));
-    } else {
-        res.status(404);
-        res.json({message: `Hash does not exist: ${hash}`});
-    }
+    res.json(await global.db.saveMedia(req.params.hash, req.body));
 }));
 
 App.get('/api/images/:hash/file', configCheckConnector, Utils.wrap(async(req, res) => {
