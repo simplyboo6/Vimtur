@@ -67,6 +67,24 @@ class MongoConnector {
         );
     }
 
+    async getUserConfig() {
+        const meta = this.db.collection('meta');
+        const row = await Util.promisify(meta.findOne.bind(meta))({ _id: 'userconfig' });
+        if (!row) {
+            return {};
+        }
+        return row;
+    }
+
+    async saveUserConfig(config) {
+        const meta = this.db.collection('meta');
+        await Util.promisify(meta.updateOne.bind(meta))(
+            {_id: 'userconfig'},
+            { $set: config },
+            { upsert: true }
+        );
+    }
+
     async getTags() {
         const meta = this.db.collection('meta');
         const row = await Util.promisify(meta.findOne.bind(meta))({ _id: 'tags' });

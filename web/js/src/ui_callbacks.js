@@ -309,7 +309,7 @@ export async function addTagColumn(save) {
     col.id = `listColumn${count}`;
     document.getElementById('tagColumnRow').appendChild(col);
     if (save) {
-        await AppData.saveConfig({ user: { tagColumnCount: Utils.getNumColumns('listColumn') }});
+        await AppData.saveConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
     }
     await AppData.fire('tags', true);
 }
@@ -321,21 +321,21 @@ export async function removeTagColumn() {
     const list = document.getElementById('tagColumnRow');
     const col = document.getElementById(`listColumn${Utils.getNumColumns('listColumn') - 1}`);
     list.removeChild(col);
-    await AppData.saveConfig({ user: { tagColumnCount: Utils.getNumColumns('listColumn') }});
+    await AppData.saveConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
     await AppData.fire('tags', true);
 }
 
 export async function autoplayCheckboxClick() {
     const checked = $('#autoplayCheckbox').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ user: { autoplayEnabled: checked }});
+        await AppData.saveConfig({ autoplayEnabled: checked });
     }, 'Unable to save autoplay settings');
 }
 
 export async function stateCheckboxClick() {
     const checked = $('#stateCheckbox').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ user: { stateEnabled: checked }});
+        await AppData.saveConfig({ stateEnabled: checked });
         await AppData.updateState();
     }, 'Unable to save autoplay settings');
 }

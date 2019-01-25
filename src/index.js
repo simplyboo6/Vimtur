@@ -147,47 +147,13 @@ App.get('/cache/:file(*)', configCheckConnector, Utils.wrap(async(req, res) => {
     }
 }));
 
-App.get('/api/config', Utils.wrap(async(req, res) => {
-    return res.json({
-        configPath: Utils.configPath,
-        config: Utils.config
-    });
+App.get('/api/config', configCheckConnector, Utils.wrap(async(req, res) => {
+    res.json(await global.db.getUserConfig());
 }));
 
-App.post('/api/config', Utils.wrap(async(req, res) => {
-    try {
-        // There's two sorts of config updates. User settings and server settings.
-        // Currently the server settings are updated from a separate page than the
-        // user settings. So if the user object is set then only save the new user setting.
-        const config = req.body;
-        const originalPort = Utils.config.port;
-
-        if (!config.user) {
-            if (global.db) {
-                await global.db.close();
-                global.db = null;
-            }
-            try {
-                global.db = await Database.setup(config);
-            } catch (err) {
-                console.log('Updating config failed setting up databse', err);
-                throw new Error('Failed to setup database');
-            }
-        }
-        await Utils.saveConfig(config);
-        res.json({
-            message: 'Config saved',
-            configPath: Utils.configPath,
-            config: Utils.config
-        });
-        if (Utils.config.port !== originalPort) {
-            console.log('Port change: Restarting HTTP server.');
-            await setupApp(Utils.config.port);
-        }
-    } catch (err) {
-        console.log('Error saving config', err);
-        return res.status(400).json({ message: err.message, type: 'config' });
-    }
+App.post('/api/config', configCheckConnector, Utils.wrap(async(req, res) => {
+    await global.db.saveUserConfig(req.body);
+    res.json(await global.db.getUserConfig());
 }));
 
 App.get('/', Utils.wrap(async(req, res) => {

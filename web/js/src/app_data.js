@@ -85,7 +85,7 @@ class AppData {
     async fetchAll() {
         this.actors = await Utils.request('/api/actors');
         this.tags = await Utils.request('/api/tags');
-        this.config = (await Utils.request('/api/config')).config;
+        this.config = await Utils.request('/api/config');
 
         try {
             if (window.location.hash) {
@@ -115,9 +115,9 @@ class AppData {
 
     getColumnCount() {
         let colCount = this.DEFAULT_COLUMN_COUNT;
-        if (this.config.user && this.config.user.tagColumnCount) {
-            console.log(`Config column count: ${this.config.user.tagColumnCount}`);
-            colCount = this.config.user.tagColumnCount;
+        if (this.config && this.config.tagColumnCount) {
+            console.log(`Config column count: ${this.config.tagColumnCount}`);
+            colCount = this.config.tagColumnCount;
         }
         if (colCount > this.MAX_COLUMNS) {
             console.log('Warning, too many columns. Setting to max');
@@ -130,16 +130,14 @@ class AppData {
         // By default if autoplay is not defined then return that to make
         // if be disabled by default.
         return this.config &&
-            this.config.user &&
-            this.config.user.autoplayEnabled;
+            this.config.autoplayEnabled;
     }
 
     isStateEnabled() {
         // By default if autoplay is not defined then return that to make
         // if be disabled by default.
         return this.config &&
-            this.config.user &&
-            this.config.user.stateEnabled;
+            this.config.stateEnabled;
     }
 
     getMap() {
@@ -423,8 +421,7 @@ class AppData {
     }
 
     async saveConfig(config) {
-        const result = await Utils.post('/api/config', config);
-        this.config = result.config;
+        this.config = await Utils.post('/api/config', config);
     }
 }
 
