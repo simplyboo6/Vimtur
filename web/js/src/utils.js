@@ -241,7 +241,7 @@ export function formatScannerStatus(data) {
         scanStatus += data.numNew + ' new files found.\n';
         scanStatus += data.missing.length + ' files detected as missing.\n';
         for (let i = 0; i < data.missing.length; i++) {
-            scanStatus += data.missing[i].absolutePath + '\n';
+            scanStatus += data.missing[i].path + '\n';
         }
     }
     return scanStatus;
