@@ -225,6 +225,11 @@ async function setupApp(port) {
     }
     global.server = Server.createServer(App);
     global.io = IO.listen(global.server);
+
+    global.io.on('connection', (socket) => {
+        socket.emit('scanStatus', ScannerRouter.scanner.getStatus());
+    });
+
     await listen(port);
 }
 
