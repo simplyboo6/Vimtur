@@ -3,11 +3,9 @@ const Express = require('express');
 const App = Express();
 const Server = require('http');
 const IO = require('socket.io');
-const FS = require('fs');
-const Utils = require("./utils.js");
+const Utils = require('./utils.js');
 const Database = require('./database');
 const Auth = require('http-auth');
-const Cache = require('./cachelib.js');
 const Compression = require('compression');
 const PathIsInside = require('path-is-inside');
 const BodyParser = require('body-parser');
@@ -50,7 +48,7 @@ App.delete('/api/tags/:tag', configCheckConnector, Utils.wrap(async(req, res) =>
     if (!req.params.tag) {
         return res.status(422).type('txt').send('No tag specified');
     }
-    await global.db.removeTag(req.params.tag)
+    await global.db.removeTag(req.params.tag);
     res.json(await global.db.getTags());
 }));
 
@@ -234,7 +232,7 @@ async function setupApp(port) {
 }
 
 async function setup() {
-    console.log("Setting up config");
+    console.log('Setting up config');
     await Utils.setup();
     try {
         console.log('Validating config');

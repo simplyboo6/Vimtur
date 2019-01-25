@@ -25,11 +25,15 @@
     "wrappy": "^1.0.2"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "lint": "eslint -c ./eslintrc.json src/**/*.js src/*.js",
+    "lint-web": "eslint -c ./web/eslintrc.json web/js/src/*.js",
+    "lint:fix": "eslint -c ./eslintrc.json src/**/*.js src/*.js --fix",
+    "lint-web:fix": "eslint -c ./web/eslintrc.json web/js/src/*.js --fix"
   },
   "author": "SimplyBoo",
   "license": "MIT",
   "devDependencies": {
-    "jsonschema": "^1.2.4"
+    "eslint": "5.12.1"
   }
 }

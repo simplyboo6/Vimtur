@@ -4,16 +4,16 @@ const path = require('path');
 const md5File = require('md5-file');
 const FS = require('fs');
 const RimRaf = require('rimraf');
-const PathIsInside = require("path-is-inside");
+const PathIsInside = require('path-is-inside');
 const Util = require('util');
 
 exports.usage = function () {
     const prog = process.argv[0] + ' ' + process.argv[1];
-    console.log("Usage: " + prog + " </path/to/config.json>");
+    console.log('Usage: ' + prog + ' </path/to/config.json>');
 };
 
 exports.config = {
-    "port": 3523
+    'port': 3523
 };
 
 async function saveFile(file, data) {
@@ -45,7 +45,7 @@ async function loadConfig(file) {
     try {
         return JSON.parse(data);
     } catch (err) {
-        console.log("Error parsing config JSON", err, data);
+        console.log('Error parsing config JSON', err, data);
         throw err;
     }
 }
@@ -72,17 +72,17 @@ exports.setup = async function() {
     // First, find if there's a config path.
     // First load in CONFIG_PATH, if the command-line argument is set,
     // then use that instead. Lastly if CACHE_PATH is set then derive a config path.
-    mapEnv("CONFIG_PATH", exports, ["configPath"]);
-    exports.configPath = process.env["CONFIG_PATH"];
+    mapEnv('CONFIG_PATH', exports, ['configPath']);
+    exports.configPath = process.env['CONFIG_PATH'];
     if (process.argv.length > 2) {
         exports.configPath = process.argv[process.argv.length - 1];
     }
-    if (!exports.configPath && !process.env["CACHE_PATH"]) {
-        console.log("Please specify either CONFIG_PATH, CACHE_PATH or a config on the command line")
+    if (!exports.configPath && !process.env['CACHE_PATH']) {
+        console.log('Please specify either CONFIG_PATH, CACHE_PATH or a config on the command line');
         process.exit(0);
     }
     if (!exports.configPath) {
-        exports.configPath = `${process.env["CACHE_PATH"]}/config.json`;
+        exports.configPath = `${process.env['CACHE_PATH']}/config.json`;
     }
     exports.configPath = path.resolve(exports.configPath);
     console.log(`Using '${exports.configPath}' as config`);
@@ -97,19 +97,19 @@ exports.setup = async function() {
     // so that the environment variables can over-write the config.
 
     // General config
-    mapEnv("PORT", exports, ["config", "port"]);
-    mapEnv("DATA_PATH", exports, ["config", "libraryPath"]);
-    mapEnv("CACHE_PATH", exports, ["config", "cachePath"]);
-    mapEnv("USERNAME", exports, ["config", "username"]);
-    mapEnv("PASSWORD", exports, ["config", "password"]);
+    mapEnv('PORT', exports, ['config', 'port']);
+    mapEnv('DATA_PATH', exports, ['config', 'libraryPath']);
+    mapEnv('CACHE_PATH', exports, ['config', 'cachePath']);
+    mapEnv('USERNAME', exports, ['config', 'username']);
+    mapEnv('PASSWORD', exports, ['config', 'password']);
     // Database mapping
-    mapEnv("DATABASE", exports, ["config", "database", "provider"]);
+    mapEnv('DATABASE', exports, ['config', 'database', 'provider']);
     // MongoDB
-    mapEnv("MONGO_HOST", exports, ["config", "database", "host"]);
-    mapEnv("MONGO_DATABASE", exports, ["config", "database", "database"]);
-    mapEnv("MONGO_USERNAME", exports, ["config", "database", "username"]);
-    mapEnv("MONGO_PASSWORD", exports, ["config", "database", "password"]);
-    mapEnv("MONGO_PORT", exports, ["config", "database", "port"]);
+    mapEnv('MONGO_HOST', exports, ['config', 'database', 'host']);
+    mapEnv('MONGO_DATABASE', exports, ['config', 'database', 'database']);
+    mapEnv('MONGO_USERNAME', exports, ['config', 'database', 'username']);
+    mapEnv('MONGO_PASSWORD', exports, ['config', 'database', 'password']);
+    mapEnv('MONGO_PORT', exports, ['config', 'database', 'port']);
 
     await exports.validateConfig();
 };
@@ -120,7 +120,7 @@ exports.isSetup = async function() {
     }
     await exports.validateConfig();
     return true;
-}
+};
 
 exports.saveConfig = async function(config) {
     // There's two sorts of config updates. User settings and server settings.
@@ -142,7 +142,7 @@ exports.saveConfig = async function(config) {
 };
 
 async function exists(file) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve) {
         FS.access(file, FS.constants.F_OK, (err) => {
             resolve(err ? false : true);
         });
@@ -171,16 +171,16 @@ exports.validateConfig = async function(config) {
         throw new Error('No database provider defined');
     }
     switch (config.database.provider) {
-        case 'mongodb':
-            if (!config.database.host) {
-                throw new Error('Database host not defined');
-            }
-            if (!config.database.database) {
-                throw new Error('Database not defined');
-            }
-            break;
-        default:
-            throw new Error(`Unknown database provider: ${config.database.provider}`);
+    case 'mongodb':
+        if (!config.database.host) {
+            throw new Error('Database host not defined');
+        }
+        if (!config.database.database) {
+            throw new Error('Database not defined');
+        }
+        break;
+    default:
+        throw new Error(`Unknown database provider: ${config.database.provider}`);
     }
     if (!config.database.provider) {
         throw new Error('Database provider not set');
@@ -188,18 +188,18 @@ exports.validateConfig = async function(config) {
     if (updateConfigValidity) {
         exports.configValid = true;
     }
-}
+};
 
 if (exports.config.libraryPath) {
-    console.log("Using library: " + exports.config.libraryPath);
+    console.log('Using library: ' + exports.config.libraryPath);
 } else {
-    console.log("No library directory set");
+    console.log('No library directory set');
 }
 
 if (exports.config.cachePath) {
-    console.log("Using cache: " + exports.config.cachePath);
+    console.log('Using cache: ' + exports.config.cachePath);
 } else {
-    console.log("No cache directory set");
+    console.log('No cache directory set');
 }
 
 exports.authConnector = function (req, res, next) {
@@ -207,8 +207,8 @@ exports.authConnector = function (req, res, next) {
 };
 
 if (exports.config.username != undefined && exports.config.password != undefined) {
-    const basicAuth = auth.basic({ realm: "Vimtur Media Manager" }, function (username, password, callback) {
-            callback(username === exports.config.username && password === exports.config.password);
+    const basicAuth = auth.basic({ realm: 'Vimtur Media Manager' }, function (username, password, callback) {
+        callback(username === exports.config.username && password === exports.config.password);
     });
     exports.authConnector = basicAuth;
 }
@@ -264,24 +264,24 @@ function getExtension(filename) {
 
 function getType(extension) {
     switch (extension) {
-        case "png":
-        case "jpg":
-        case "jpeg":
-        case "bmp":
-            return 'still';
-        case "gif":
-            return 'gif';
-        case "avi":
-        case "mp4":
-        case "flv":
-        case "wmv":
-        case "mov":
-        case "webm":
-        case "mpeg":
-        case "mpg":
-            return 'video';
-        default:
-            return null;
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'bmp':
+        return 'still';
+    case 'gif':
+        return 'gif';
+    case 'avi':
+    case 'mp4':
+    case 'flv':
+    case 'wmv':
+    case 'mov':
+    case 'webm':
+    case 'mpeg':
+    case 'mpg':
+        return 'video';
+    default:
+        return null;
     }
 }
 
@@ -313,7 +313,7 @@ exports.generateMediaFromFile = async function (relativePath) {
 exports.generateMediaFromFiles = async function (fileList, status) {
     const mediaList = [];
     for (let i = 0; i < fileList.length; i++) {
-        console.log("Generating data for: " + fileList[i]);
+        console.log('Generating data for: ' + fileList[i]);
         const media = await exports.generateMediaFromFile(fileList[i]);
         mediaList.push(media);
         if (status) {
@@ -325,7 +325,7 @@ exports.generateMediaFromFiles = async function (fileList, status) {
 
 exports.scan = async function() {
     const map = await global.db.subset({}, {path: 1});
-    console.log("Creating files list for library: " + exports.config.libraryPath);
+    console.log('Creating files list for library: ' + exports.config.libraryPath);
     const returns = {
         newFiles: [],
         verifiedFiles: [],
@@ -339,30 +339,30 @@ exports.scan = async function() {
     };
     const walker = walk.walk(exports.config.libraryPath, options);
 
-    walker.on("file", function (root, fileStats, next) {
+    walker.on('file', function (root, fileStats, next) {
         switch (getExtension(fileStats.name)) {
-            case "png":
-            case "jpg":
-            case "jpeg":
-            case "bmp":
-                fileStats.type = "still";
-                break;
-            case "gif":
-                fileStats.type = "gif";
-                break;
-            case "avi":
-            case "mp4":
-            case "flv":
-            case "wmv":
-            case "mov":
-            case "webm":
-            case "mpeg":
-            case "mpg":
-                fileStats.type = "video";
-                break;
-            default:
-                fileStats.type = null;
-                break;
+        case 'png':
+        case 'jpg':
+        case 'jpeg':
+        case 'bmp':
+            fileStats.type = 'still';
+            break;
+        case 'gif':
+            fileStats.type = 'gif';
+            break;
+        case 'avi':
+        case 'mp4':
+        case 'flv':
+        case 'wmv':
+        case 'mov':
+        case 'webm':
+        case 'mpeg':
+        case 'mpg':
+            fileStats.type = 'video';
+            break;
+        default:
+            fileStats.type = null;
+            break;
         }
 
         if (getType(getExtension(fileStats.name))) {
@@ -378,8 +378,8 @@ exports.scan = async function() {
         next();
     });
 
-    return new Promise(function(resolve, reject) {
-        walker.on("end", async function () {
+    return new Promise((resolve) => {
+        walker.on('end', () => {
             for (const media of map) {
                 if (!foundFileMap[media.path]) {
                     returns.missing.push(media.hash);
