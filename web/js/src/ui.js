@@ -5,10 +5,10 @@ import * as Utils from './utils.js';
 class UI {
     constructor() {
         Object.assign(this, {
-            imagePanel: document.getElementById("imagePanel"),
-            videoPanel: document.getElementById("videoPanel"),
+            imagePanel: document.getElementById('imagePanel'),
+            videoPanel: document.getElementById('videoPanel'),
             hls: new Hls(),
-            type: "still",
+            type: 'still',
             touchStart: 0,
             touchEnd: 0
         });
@@ -30,7 +30,7 @@ class UI {
         }
 
         if (type == 'video') {
-            $(this.videoPanel).attr("poster", "");
+            $(this.videoPanel).attr('poster', '');
             const autoplay = !Utils.isMobile() && AppData.isAutoplayEnabled();
             this.hls.detachMedia();
             this.hls = new Hls({ autoStartLoad: false });
@@ -46,7 +46,7 @@ class UI {
             // Only show the poster if not autoplay. If it's enabled then it'll only flash
             // for a moment and that looks weird. (Assuming a reasonable connection)
             if (!autoplay) {
-                $(this.videoPanel).attr("poster", `/cache/thumbnails/${AppData.currentImage.hash}.png`);
+                $(this.videoPanel).attr('poster', `/cache/thumbnails/${AppData.currentImage.hash}.png`);
             }
             this.hls.loadSource(`/cache/${AppData.currentImage.hash}/index.m3u8`);
             if (autoplay) {
@@ -76,7 +76,7 @@ class UI {
             $this.videoPanel.pause();
             $this.setType(AppData.currentImage);
             Utils.setDisplayedRating(AppData.currentImage.rating);
-        }, "Error getting new media");
+        }, 'Error getting new media');
     }
 
     next() {
@@ -113,8 +113,8 @@ class UI {
     }
 
     resize() {
-        const navBar = document.getElementById("navBar");
-        const content = document.getElementById("mainContainer");
+        const navBar = document.getElementById('navBar');
+        const content = document.getElementById('mainContainer');
         content.style['padding-top'] = `${navBar.offsetHeight}px`;
         if (Utils.isTagsVisible() && window.innerWidth < Utils.MIN_WIDTH_TAG_PANEL) {
             Utils.toggleTags();
@@ -137,14 +137,14 @@ class Gallery {
     }
 
     update() {
-        const pageNum = document.getElementById("galleryPageNumber");
+        const pageNum = document.getElementById('galleryPageNumber');
         pageNum.innerHTML = `${Math.floor(AppData.imageSet.galleryOffset / Utils.GALLERY_COUNT) + 1} of ${Math.ceil(AppData.getMap().length / Utils.GALLERY_COUNT)}`;
         for (let i = 0; i < Utils.GALLERY_COUNT; i++) {
             Utils.err(async function() {
                 const thumbnail = document.getElementById(`thumb${i}`);
                 const caption = document.getElementById(`thumbCaption${i}`);
                 const url = thumbnail.parentNode;
-                url.title = "";
+                url.title = '';
                 let index = AppData.imageSet.galleryOffset + i;
                 if (index >= AppData.getMap().length) {
                     url.onclick = function() {};
@@ -157,23 +157,23 @@ class Gallery {
                     url.onclick = function() {
                         AppData.goto(hash);
                         $('#galleryModal').modal('hide');
-                    }
+                    };
 
                     const media = await Utils.request(`/api/images/${hash}`);
                     url.title = Utils.getImageTitle(media);
                     switch (media.type) {
-                        case 'video':
-                            caption.innerHTML = 'Video';
-                            break;
-                        case 'gif':
-                            caption.innerHTML = 'Gif';
-                            break;
-                        case 'still':
-                            caption.innerHTML = 'Still';
-                            break;
-                        default:
-                            caption.innerHTML = "";
-                            break;
+                    case 'video':
+                        caption.innerHTML = 'Video';
+                        break;
+                    case 'gif':
+                        caption.innerHTML = 'Gif';
+                        break;
+                    case 'still':
+                        caption.innerHTML = 'Still';
+                        break;
+                    default:
+                        caption.innerHTML = '';
+                        break;
                     }
                 }
             });
@@ -191,7 +191,7 @@ class Gallery {
 
     document.onresize = ui.resize;
 
-    window.addEventListener("keydown", function(e) {
+    window.addEventListener('keydown', function(e) {
         if (document.activeElement.tagName.toLowerCase() == 'textarea') {
             return;
         }
@@ -200,11 +200,11 @@ class Gallery {
                 return;
             }
         }
-        if (e.key == "ArrowRight") {
+        if (e.key == 'ArrowRight') {
             ui.next();
-        } else if (e.key == "ArrowLeft") {
+        } else if (e.key == 'ArrowLeft') {
             ui.previous();
-        } else if (e.key == "Delete") {
+        } else if (e.key == 'Delete') {
             UICallbacks.deleteCurrent();
         }
     }, false);
@@ -218,7 +218,7 @@ class Gallery {
     });
 
     AppData.on('scanStatus', function() {
-        const statusArea = document.getElementById("adminStatusArea");
+        const statusArea = document.getElementById('adminStatusArea');
         statusArea.value = Utils.formatAdminStatus(AppData.scanStatus);
     });
 
@@ -244,7 +244,7 @@ class Gallery {
                     } else {
                         await AppData.removeTag(tag, AppData.currentImage.hash);
                     }
-                }, "Error saving tag state");
+                }, 'Error saving tag state');
             });
             // Fire actors redraw so the width is correctly shown
             AppData.fire('actors', true);
@@ -357,7 +357,7 @@ class Gallery {
 
     for (let i = 1; i <= 5; i++) {
         $(`.rating-${i}`).hover(function() {
-            Utils.setDisplayedRating(i, true)
+            Utils.setDisplayedRating(i, true);
             $(`.rating-${i}`).addClass('rating-hover');
         }, function() {
             Utils.setDisplayedRating(0, true);
@@ -366,18 +366,18 @@ class Gallery {
             Utils.setDisplayedRating(i);
             Utils.err(async function() {
                 await AppData.update(AppData.currentImage.hash, { rating: i });
-            }, "Failed to update rating");
+            }, 'Failed to update rating');
         });
     }
 
-    $("#autoplayCheckbox").prop("checked", AppData.isAutoplayEnabled());
-    $("#stateCheckbox").prop("checked", AppData.isStateEnabled());
+    $('#autoplayCheckbox').prop('checked', AppData.isAutoplayEnabled());
+    $('#stateCheckbox').prop('checked', AppData.isStateEnabled());
 
     ui.resize();
     Utils.hideLoadingModal();
 
     if (AppData.imageSet.map.length == 0) {
-        Utils.showMessage("No media found. Click 'Import' in the admin panel");
-        Utils.showModal("#adminModal");
+        Utils.showMessage('No media found. Click \'Import\' in the admin panel');
+        Utils.showModal('#adminModal');
     }
 })();

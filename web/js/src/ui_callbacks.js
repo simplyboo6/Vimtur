@@ -2,7 +2,7 @@ import AppData from './app_data.js';
 import * as Utils from './utils.js';
 
 export async function deleteTag() {
-    let result = await Utils.BootBox.prompt("Please enter the name of the tag to remove");
+    let result = await Utils.BootBox.prompt('Please enter the name of the tag to remove');
     if (result == null) {
         return;
     }
@@ -21,33 +21,53 @@ export async function deleteTag() {
 }
 
 export async function simpleSearch() {
-    const text = document.getElementById("simpleSearchText").value;
+    const text = document.getElementById('simpleSearchText').value;
     if (!text) {
-        console.log("Search box empty");
+        console.log('Search box empty');
         return false;
     }
     const constraints = {
         keywordSearch: text
     };
-    Utils.showMessage("Running search...");
+    Utils.showMessage('Running search...');
     await Utils.err(async() => {
         if (!(await AppData.getSubset(constraints))) {
-            Utils.showMessage("No media matching search criteria");
+            Utils.showMessage('No media matching search criteria');
         } else {
-            Utils.showMessage("Search complete");
+            Utils.showMessage('Search complete');
         }
-    }, "Error running search");
+    }, 'Error running search');
     return false;
+}
+
+export function resetSearch() {
+    for (let i = 0; i < AppData.tags.length; i++) {
+        const tag = AppData.tags[i];
+        document.getElementsByClassName(`allTag-${tag}`)[0].checked = false;
+        document.getElementsByClassName(`anyTag-${tag}`)[0].checked = false;
+        document.getElementsByClassName(`noneTag-${tag}`)[0].checked = false;
+    }
+    document.getElementById('typeFilterVideo').checked = false;
+    document.getElementById('typeFilterGif').checked = false;
+    document.getElementById('typeFilterStill').checked = false;
+    document.getElementById('resolutionSearch').selectedIndex = 0;
+    document.getElementById('artistLex').value = '';
+    document.getElementById('albumLex').value = '';
+    document.getElementById('titleLex').value = '';
+    document.getElementById('tagsLex').value = '';
+    document.getElementById('pathLex').value = '';
+    document.getElementById('generalLex').value = '';
+    document.getElementById('keywordSearch').value = '';
 }
 
 export async function viewFolder() {
     await Utils.err(async function() {
         await AppData.getSubset({ dir: AppData.currentImage.dir }, { preserve: true });
-    }, "Error seaching for files in folder");
+    }, 'Error seaching for files in folder');
 }
 
 export async function goto() {
-    let result = await Utils.BootBox.prompt("Please enter a hash or number");
+    let result = await Utils.BootBox.prompt('Please enter a hash or number');
     if (result != null) {
         AppData.goto(result);
     }
@@ -79,45 +99,45 @@ export async function search() {
             constraints.none.push(tag);
         }
     }
-    if (document.getElementById("typeFilterVideo").checked) {
-        constraints.type.push("video");
+    if (document.getElementById('typeFilterVideo').checked) {
+        constraints.type.push('video');
     }
-    if (document.getElementById("typeFilterGif").checked) {
-        constraints.type.push("gif");
+    if (document.getElementById('typeFilterGif').checked) {
+        constraints.type.push('gif');
     }
-    if (document.getElementById("typeFilterStill").checked) {
-        constraints.type.push("still");
+    if (document.getElementById('typeFilterStill').checked) {
+        constraints.type.push('still');
     }
-    const resolution = document.getElementById("resolutionSearch");
+    const resolution = document.getElementById('resolutionSearch');
     switch (resolution.options[resolution.selectedIndex].text) {
-        case "480p":
-            constraints.width = 640;
-            constraints.height = 480;
-            break;
-        case "720p":
-            constraints.width = 1280;
-            constraints.height = 720;
-            break;
-        case "1080p":
-            constraints.width = 1920;
-            constraints.height = 1080;
-            break;
-        default: break;
+    case '480p':
+        constraints.width = 640;
+        constraints.height = 480;
+        break;
+    case '720p':
+        constraints.width = 1280;
+        constraints.height = 720;
+        break;
+    case '1080p':
+        constraints.width = 1920;
+        constraints.height = 1080;
+        break;
+    default: break;
     }
 
-    const minimumRatingElement = document.getElementById("ratingMinimum");
+    const minimumRatingElement = document.getElementById('ratingMinimum');
     const minimumRating = minimumRatingElement.options[minimumRatingElement.selectedIndex].text;
-    if (minimumRating !== "None") {
+    if (minimumRating !== 'None') {
         constraints.rating = {
             min: parseInt(minimumRating)
         };
     }
 
-    const maximumRatingElement = document.getElementById("ratingMaximum");
+    const maximumRatingElement = document.getElementById('ratingMaximum');
     const maximumRating = maximumRatingElement.options[maximumRatingElement.selectedIndex].text;
-    if (maximumRating !== "None") {
+    if (maximumRating !== 'None') {
         constraints.rating = constraints.rating || {};
-        if (maximumRating === "Unrated") {
+        if (maximumRating === 'Unrated') {
             Object.assign(constraints.rating, {
                 max: 0
             });
@@ -141,7 +161,7 @@ export async function search() {
     //setMap("tagsLex", "tagLexer");
     //setMap("pathLex", "path");
     //setMap("generalLex", "generalLexer");
-    setMap("keywordSearch", "keywordSearch");
+    setMap('keywordSearch', 'keywordSearch');
     //setMap("actorLex", "actorLexer");
 
     $('#searchModal').modal('hide');
@@ -153,7 +173,7 @@ export async function search() {
         } else {
             Utils.showMessage('Search complete');
         }
-    }, "Error running search");
+    }, 'Error running search');
 }
 
 export async function deleteCurrent() {
@@ -161,7 +181,7 @@ export async function deleteCurrent() {
     if (del === true) {
         await Utils.err(async function() {
             await AppData.deleteCurrent();
-        }, "Error deleting current media");
+        }, 'Error deleting current media');
     }
 }
 
@@ -178,7 +198,7 @@ export function openGallery() {
 }
 
 export async function addNewTag() {
-    let result = await Utils.BootBox.prompt("Please enter the new tags name");
+    let result = await Utils.BootBox.prompt('Please enter the new tags name');
     if (result == null) {
         return;
     }
@@ -199,53 +219,53 @@ export async function addNewTag() {
 export async function runScan() {
     await Utils.err(async function() {
         await AppData.scan();
-    }, "Error starting scan");
+    }, 'Error starting scan');
 }
 
 export async function importNew() {
-    const deleteClonesElement = document.getElementById("importDeleteClones");
+    const deleteClonesElement = document.getElementById('importDeleteClones');
     await Utils.err(async function() {
         await AppData.importNew(deleteClonesElement.checked);
-    }, "Error starting import");
+    }, 'Error starting import');
 }
 
 export async function fullImport() {
-    const deleteClonesElement = document.getElementById("fullImportDeleteClones");
+    const deleteClonesElement = document.getElementById('fullImportDeleteClones');
     await Utils.err(async function() {
         await AppData.importAll(deleteClonesElement.checked);
-    }, "Error starting import");
+    }, 'Error starting import');
 }
 
 export async function deleteMissing() {
     await Utils.err(async function() {
         await AppData.deleteMissing();
-    }, "Error deleting missing files");
+    }, 'Error deleting missing files');
 }
 
 export async function runCache() {
     await Utils.err(async function() {
         await AppData.runCache();
-    }, "Error starting caching");
+    }, 'Error starting caching');
 }
 
 export async function applyMetadata(type, multi) {
     const metadata = {};
-    let value = "";
+    let value = '';
     switch (type) {
-        case 'artist':
-            metadata.artist = document.getElementById("artistMetadata").value;
-            value = metadata.artist;
-            break;
-        case 'album':
-            metadata.album = document.getElementById("albumMetadata").value;
-            value = metadata.album;
-            break;
-        case 'title':
-            metadata.title = document.getElementById("titleMetadata").value;
-            value = metadata.title;
-            break;
-        default:
-            return Utils.showMessage(`Error: Unknown metadata type ${type}`);
+    case 'artist':
+        metadata.artist = document.getElementById('artistMetadata').value;
+        value = metadata.artist;
+        break;
+    case 'album':
+        metadata.album = document.getElementById('albumMetadata').value;
+        value = metadata.album;
+        break;
+    case 'title':
+        metadata.title = document.getElementById('titleMetadata').value;
+        value = metadata.title;
+        break;
+    default:
+        return Utils.showMessage(`Error: Unknown metadata type ${type}`);
 
     }
     await Utils.err(async function() {
@@ -255,15 +275,15 @@ export async function applyMetadata(type, multi) {
                 Utils.showMessage(`Applying '${value}' to ${type} for ${AppData.getMap().length} images`);
                 $('#metadataModal').modal('hide');
                 const map = AppData.getMap();
-                await AppData.updateSet(map, {metadata})
+                await AppData.updateSet(map, {metadata});
                 Utils.showMessage(`Metdata applied to ${map.length} images`);
             }
         } else {
             await AppData.update(AppData.currentImage.hash, {metadata});
             $('#metadataModal').modal('hide');
-            Utils.showMessage("Metadata saved");
+            Utils.showMessage('Metadata saved');
         }
-    }, "Error saving metadata");
+    }, 'Error saving metadata');
 }
 
 export function next() {
@@ -306,18 +326,18 @@ export async function removeTagColumn() {
 }
 
 export async function autoplayCheckboxClick() {
-    const checked = $("#autoplayCheckbox").is(':checked');
+    const checked = $('#autoplayCheckbox').is(':checked');
     await Utils.err(async function() {
         await AppData.saveConfig({ user: { autoplayEnabled: checked }});
-    }, "Unable to save autoplay settings");
+    }, 'Unable to save autoplay settings');
 }
 
 export async function stateCheckboxClick() {
-    const checked = $("#stateCheckbox").is(':checked');
+    const checked = $('#stateCheckbox').is(':checked');
     await Utils.err(async function() {
         await AppData.saveConfig({ user: { stateEnabled: checked }});
         await AppData.updateState();
-    }, "Unable to save autoplay settings");
+    }, 'Unable to save autoplay settings');
 }
 
 export function toggleTags(state) {
@@ -328,15 +348,15 @@ export function toggleTags(state) {
     }
 
     if (Utils.isTagsVisible()) {
-        $('#tagColumnsContainer').css("cssText", "display: none !important");
-        Utils.hideModal("#tagModal");
+        $('#tagColumnsContainer').css('cssText', 'display: none !important');
+        Utils.hideModal('#tagModal');
     } else {
         if (window.innerWidth > Utils.MIN_WIDTH_TAG_PANEL && !Utils.isMobile()) {
-            $('#tagColumnsContainer').css("cssText", "");
+            $('#tagColumnsContainer').css('cssText', '');
             // Fire tags redraw event to re-calculate the width when it's opened.
             AppData.fire('tags', true);
         } else {
-            Utils.showModal("#tagModal");
+            Utils.showModal('#tagModal');
         }
     }
 }

@@ -155,7 +155,7 @@ class AppData {
             options = {};
         }
         const hash = this.currentImage ? this.currentImage.hash : null;
-        const result = await Utils.post(`/api/images/subset`, constraints);
+        const result = await Utils.post('/api/images/subset', constraints);
         if (result.length <= 0) {
             return false;
         }

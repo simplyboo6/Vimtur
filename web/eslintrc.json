@@ -1,7 +1,13 @@
 {
+    "globals": {
+        "$": true,
+        "bootbox": true,
+        "io": true,
+        "Hls": true
+    },
     "env": {
         "es6": true,
-        "node": true
+        "browser": true
     },
     "extends": "eslint:recommended",
     "parserOptions": {
@@ -25,6 +31,8 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "no-inner-declarations": "off",
+        "no-constant-condition": "off"
     }
 }
