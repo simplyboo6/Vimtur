@@ -216,7 +216,7 @@ async function setupApp(port) {
         global.io = null;
     }
     if (global.server) {
-        global.server.close(function() {
+        global.server.close(() => {
             console.log('Old HTTP server disabled');
             global.server = null;
         });
@@ -256,13 +256,13 @@ async function setup() {
 
 exports.config = Utils.config;
 exports.setup = setup;
-exports.shutdown = async function() {
+exports.shutdown = async() => {
     if (global.io) {
         global.io.close();
         global.io = null;
     }
     if (global.server) {
-        global.server.close(function() {
+        global.server.close(() => {
             console.log('Old HTTP server disabled');
             global.server = null;
         });

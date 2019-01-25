@@ -17,8 +17,8 @@ exports.config = {
 };
 
 async function saveFile(file, data) {
-    return new Promise(function(resolve, reject) {
-        FS.writeFile(file, data, function(err) {
+    return new Promise((resolve, reject) => {
+        FS.writeFile(file, data, (err) => {
             if (err) {
                 reject(err);
             } else {
@@ -29,15 +29,15 @@ async function saveFile(file, data) {
 }
 
 async function readFile(file) {
-    return new Promise(function(resolve, reject) {
-        FS.readFile(file, function(err, data) {
+    return new Promise(((resolve, reject) => {
+        FS.readFile(file, (err, data) => {
             if (err) {
                 reject(err);
             } else {
                 resolve(data);
             }
         });
-    });
+    }));
 }
 
 async function loadConfig(file) {
@@ -142,11 +142,11 @@ exports.saveConfig = async function(config) {
 };
 
 async function exists(file) {
-    return new Promise(function(resolve) {
+    return new Promise(((resolve) => {
         FS.access(file, FS.constants.F_OK, (err) => {
             resolve(err ? false : true);
         });
-    });
+    }));
 }
 
 exports.validateConfig = async function(config) {
@@ -207,7 +207,7 @@ exports.authConnector = function (req, res, next) {
 };
 
 if (exports.config.username != undefined && exports.config.password != undefined) {
-    const basicAuth = auth.basic({ realm: 'Vimtur Media Manager' }, function (username, password, callback) {
+    const basicAuth = auth.basic({ realm: 'Vimtur Media Manager' }, (username, password, callback) => {
         callback(username === exports.config.username && password === exports.config.password);
     });
     exports.authConnector = basicAuth;
@@ -339,7 +339,7 @@ exports.scan = async function() {
     };
     const walker = walk.walk(exports.config.libraryPath, options);
 
-    walker.on('file', function (root, fileStats, next) {
+    walker.on('file', (root, fileStats, next) => {
         switch (getExtension(fileStats.name)) {
         case 'png':
         case 'jpg':

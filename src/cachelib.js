@@ -8,7 +8,7 @@ const Util = require('util');
 
 async function getMetadata(path) {
     return new Promise((resolve, reject) => {
-        ffmpeg.ffprobe(path, function (err, data) {
+        ffmpeg.ffprobe(path, (err, data) => {
             if (err) {
                 console.log('Error probing file');
                 console.log(err);
@@ -38,7 +38,7 @@ async function getMetadata(path) {
 async function getExifData(path) {
     return new Promise((resolve, reject) => {
         try {
-            gm(path).size(function(err, value) {
+            gm(path).size((err, value) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -64,7 +64,7 @@ async function deleteFolder(path) {
 
 async function exists(path) {
     return new Promise((resolve) => {
-        fs.access(path, fs.constants.R_OK, function(err) {
+        fs.access(path, fs.constants.R_OK, (err) => {
             resolve(!err);
         });
     });
@@ -74,7 +74,7 @@ async function mkdir(path) {
     if (!(await exists(path))) {
         console.log(`Making directory ${path}`);
         return await new Promise((resolve) => {
-            fs.mkdir(path, function() {
+            fs.mkdir(path, () => {
                 resolve();
             });
         });
@@ -84,15 +84,13 @@ async function mkdir(path) {
 async function doTranscode(input, output, args) {
     return new Promise((resolve, reject) => {
         const ffm = ffmpeg(input).outputOptions(args).output(output);
-        ffm.on('error', function (err, stdout, stderr) {
+        ffm.on('error', (err, stdout, stderr) => {
             console.log(err.message); //this will likely return "code=1" not really useful
             console.log('stdout:\n' + stdout);
             console.log('stderr:\n' + stderr); //this will contain more detailed debugging info
             reject(err.message);
         });
-        ffm.on('end', function () {
-            resolve();
-        });
+        ffm.on('end', resolve);
         ffm.run();
     });
 }
@@ -195,7 +193,7 @@ async function runCache(callback) {
     if (callback) {
         callback(module.exports.cacheStatus);
     }
-    await transcodeSet(videos, function(num) {
+    await transcodeSet(videos, (num) => {
         module.exports.cacheStatus.progress = num;
         if (callback) {
             callback(module.exports.cacheStatus);

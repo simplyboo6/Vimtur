@@ -3,17 +3,17 @@ const Scanner = require('../scanner');
 const Utils = require('../utils');
 
 const router = Express.Router();
-const scanner = new Scanner(function(status) {
+const scanner = new Scanner((status) => {
     if (global.io) {
         global.io.sockets.emit('scanStatus', status);
     }
 });
 
-router.get('/status', function (req, res) {
+router.get('/status', (req, res) => {
     res.json(scanner.getStatus(req.query.verbose));
 });
 
-router.get('/index', function (req, res) {
+router.get('/index', (req, res) => {
     let deleteClones = false;
     if (req.query.deleteClones && req.query.deleteClones == 'true') {
         deleteClones = true;
@@ -22,17 +22,17 @@ router.get('/index', function (req, res) {
     res.json(scanner.getStatus());
 });
 
-router.get('/scan', function (req, res) {
+router.get('/scan', (req, res) => {
     scanner.scan();
     res.json(scanner.getStatus());
 });
 
-router.get('/cache', function (req, res) {
+router.get('/cache', (req, res) => {
     scanner.cache();
     res.json(scanner.getStatus());
 });
 
-router.get('/import', function (req, res) {
+router.get('/import', (req, res) => {
     let deleteClones = false;
     if (req.query.deleteClones && req.query.deleteClones == 'true') {
         deleteClones = true;
@@ -45,13 +45,13 @@ router.get('/import', function (req, res) {
     res.json(scanner.getStatus());
 });
 
-router.get('/deleteMissing', Utils.wrap(async function (req, res) {
+router.get('/deleteMissing', Utils.wrap(async(req, res) => {
     await scanner.deleteMissing();
     await scanner.scan();
     res.json(scanner.getStatus());
 }));
 
-router.get('/deleteCorrupted', Utils.wrap(async function (req, res) {
+router.get('/deleteCorrupted', Utils.wrap(async(req, res) => {
     await scanner.deleteCorrupted();
     res.json(scanner.getStatus());
 }));
