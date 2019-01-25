@@ -29,7 +29,7 @@ async function saveFile(file, data) {
 }
 
 async function readFile(file) {
-    return new Promise(((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         FS.readFile(file, (err, data) => {
             if (err) {
                 reject(err);
@@ -37,7 +37,7 @@ async function readFile(file) {
                 resolve(data);
             }
         });
-    }));
+    });
 }
 
 async function loadConfig(file) {
@@ -142,11 +142,11 @@ exports.saveConfig = async function(config) {
 };
 
 async function exists(file) {
-    return new Promise(((resolve) => {
+    return new Promise((resolve) => {
         FS.access(file, FS.constants.F_OK, (err) => {
             resolve(err ? false : true);
         });
-    }));
+    });
 }
 
 exports.validateConfig = async function(config) {

@@ -4,17 +4,17 @@ export const MIN_WIDTH_TAG_PANEL = 1700;
 
 export class BootBox {
     static async alert(msg) {
-        return new Promise(function(resolve) {
+        return new Promise((resolve) => {
             bootbox.alert(msg, resolve);
         });
     }
     static async prompt(msg) {
-        return new Promise(function(resolve) {
+        return new Promise((resolve) => {
             bootbox.prompt(msg, resolve);
         });
     }
     static async confirm(msg) {
-        return new Promise(function(resolve) {
+        return new Promise((resolve) => {
             bootbox.confirm(msg, resolve);
         });
     }
@@ -57,7 +57,7 @@ export function makeCheckbox(id, className, name, callback) {
     div.appendChild(label);
 
     if (callback) {
-        box.addEventListener('click', function() {
+        box.addEventListener('click', () => {
             callback(name, box.checked);
         });
     }
@@ -72,7 +72,7 @@ export function buildSearch(tags) {
     any.innerHTML = 'Any';
     const none = document.getElementById('searchNone');
     none.innerHTML = 'None';
-    all.appendChild(makeCheckbox('allTag-selectAll', 'allTag-selectAll', 'Select All', function(name, state) {
+    all.appendChild(makeCheckbox('allTag-selectAll', 'allTag-selectAll', 'Select All', (name, state) => {
         for (let i = 0; i < tags.length; i++) {
             const boxes = document.getElementsByClassName(`allTag-${tags[i]}`);
             for (let j = 0; j < boxes.length; j++) {
@@ -81,7 +81,7 @@ export function buildSearch(tags) {
             }
         }
     }));
-    any.appendChild(makeCheckbox('anyTag-selectAll', 'anyTag-selectAll', 'Select All', function(name, state) {
+    any.appendChild(makeCheckbox('anyTag-selectAll', 'anyTag-selectAll', 'Select All', (name, state) => {
         for (let i = 0; i < tags.length; i++) {
             const boxes = document.getElementsByClassName(`anyTag-${tags[i]}`);
             for (let j = 0; j < boxes.length; j++) {
@@ -89,7 +89,7 @@ export function buildSearch(tags) {
             }
         }
     }));
-    none.appendChild(makeCheckbox('noneTag-selectAll', 'noneTag-selectAll', 'Select All', function(name, state) {
+    none.appendChild(makeCheckbox('noneTag-selectAll', 'noneTag-selectAll', 'Select All', (name, state) => {
         for (let i = 0; i < tags.length; i++) {
             const boxes = document.getElementsByClassName(`noneTag-${tags[i]}`);
             for (let j = 0; j < boxes.length; j++) {
@@ -178,7 +178,7 @@ export function showMessage(message) {
     }
     const al = makeAlert(message);
     document.body.insertBefore(al, document.body.firstChild);
-    al.timeout = setTimeout(function() {
+    al.timeout = setTimeout(() => {
         al.timeout = null;
         document.body.removeChild(al);
     }, 3000);
@@ -298,7 +298,7 @@ export function fullscreen() {
 }
 
 export async function request(url) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function() {
             let response = xhttp.responseText;
@@ -326,7 +326,7 @@ export async function request(url) {
 }
 
 export async function post(url, data) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function() {
             let response = xhttp.responseText;
@@ -355,7 +355,7 @@ export async function post(url, data) {
 }
 
 export async function remove(url) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function() {
             let response = xhttp.responseText;

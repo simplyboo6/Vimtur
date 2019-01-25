@@ -34,10 +34,9 @@ class UI {
             const autoplay = !Utils.isMobile() && AppData.isAutoplayEnabled();
             this.hls.detachMedia();
             this.hls = new Hls({ autoStartLoad: false });
-            const $this = this;
-            this.hls.on(Hls.Events.MANIFEST_PARSED, function() {
+            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 if (autoplay) {
-                    $this.videoPanel.play();
+                    this.videoPanel.play();
                 }
                 Utils.hideLoadingModal();
             });
@@ -50,11 +49,11 @@ class UI {
             }
             this.hls.loadSource(`/cache/${AppData.currentImage.hash}/index.m3u8`);
             if (autoplay) {
-                $this.hls.startLoad();
+                this.hls.startLoad();
             } else {
                 function loadListener() {
-                    $this.hls.startLoad();
-                    $this.videoPanel.removeEventListener('play', loadListener);
+                    this.hls.startLoad();
+                    this.videoPanel.removeEventListener('play', loadListener);
                 }
                 this.videoPanel.addEventListener('play', loadListener);
             }
@@ -71,10 +70,9 @@ class UI {
     }
 
     updateImage() {
-        const $this = this;
-        Utils.err(async function() {
-            $this.videoPanel.pause();
-            $this.setType(AppData.currentImage);
+        Utils.err(async () => {
+            this.videoPanel.pause();
+            this.setType(AppData.currentImage);
             Utils.setDisplayedRating(AppData.currentImage.rating);
         }, 'Error getting new media');
     }
@@ -140,7 +138,7 @@ class Gallery {
         const pageNum = document.getElementById('galleryPageNumber');
         pageNum.innerHTML = `${Math.floor(AppData.imageSet.galleryOffset / Utils.GALLERY_COUNT) + 1} of ${Math.ceil(AppData.getMap().length / Utils.GALLERY_COUNT)}`;
         for (let i = 0; i < Utils.GALLERY_COUNT; i++) {
-            Utils.err(async function() {
+            Utils.err(async () => {
                 const thumbnail = document.getElementById(`thumb${i}`);
                 const caption = document.getElementById(`thumbCaption${i}`);
                 const url = thumbnail.parentNode;
@@ -191,7 +189,7 @@ class Gallery {
 
     document.onresize = ui.resize;
 
-    window.addEventListener('keydown', function(e) {
+    window.addEventListener('keydown', (e) => {
         if (document.activeElement.tagName.toLowerCase() == 'textarea') {
             return;
         }
@@ -212,21 +210,21 @@ class Gallery {
     document.body.addEventListener('touchstart', ui.touchBegin, false);
     document.body.addEventListener('touchend', ui.touchFinish, false);
 
-    AppData.on('message', function (data) {
+    AppData.on('message', (data) => {
         console.log(data);
         Utils.showMessage(data);
     });
 
-    AppData.on('scanStatus', function() {
+    AppData.on('scanStatus', () => {
         const statusArea = document.getElementById('adminStatusArea');
         statusArea.value = Utils.formatAdminStatus(AppData.scanStatus);
     });
 
-    AppData.on('title', function() {
+    AppData.on('title', () => {
         ui.updateTitle();
     });
 
-    AppData.on('change', function() {
+    AppData.on('change', () => {
         if (AppData.currentImage) {
             ui.updateImage();
         } else {
@@ -235,10 +233,10 @@ class Gallery {
         }
     });
 
-    AppData.on('tags', function(redraw) {
+    AppData.on('tags', (redraw) => {
         if (redraw) {
-            Utils.setTags(AppData.tags, async function(tag, state) {
-                await Utils.err(async function() {
+            Utils.setTags(AppData.tags, async (tag, state) => {
+                await Utils.err(async () => {
                     if (state) {
                         await AppData.addTag(tag, AppData.currentImage.hash);
                     } else {
@@ -255,7 +253,7 @@ class Gallery {
         }
     });
 
-    AppData.on('actors', function(redraw) {
+    AppData.on('actors', (redraw) => {
         if (redraw) {
             const actors = [];
             for (let i = 0; i < AppData.actors.length; i++) {
@@ -282,11 +280,11 @@ class Gallery {
         }
     });
 
-    AppData.on('gallery', function() {
+    AppData.on('gallery', () => {
         gallery.update();
     });
 
-    AppData.on('state', function(stateUrl) {
+    AppData.on('state', (stateUrl) => {
         $('#stateUrlField').val(stateUrl);
     });
 
@@ -304,7 +302,7 @@ class Gallery {
     }
     AppData.fire('tags', true);
 
-    $('#actorsList').on('select2:select', async function (e) {
+    $('#actorsList').on('select2:select', async (e) => {
         const actor = e.params.data.text.trim();
         if (!actor) {
             return;
@@ -317,7 +315,7 @@ class Gallery {
         await AppData.addActor(actor);
     });
 
-    $('#actorsList').on('select2:unselect', async function (e) {
+    $('#actorsList').on('select2:unselect', async (e) => {
         const actor = e.params.data.text.trim();
         if (!actor) {
             return;
@@ -330,7 +328,7 @@ class Gallery {
         await AppData.removeActor(actor);
     });
 
-    $('.actorsMetadata').on('select2:select', async function (e) {
+    $('.actorsMetadata').on('select2:select', async (e) => {
         const actor = e.params.data.text.trim();
         if (!actor) {
             return;
@@ -346,7 +344,7 @@ class Gallery {
         await AppData.addActor(actor, hash);
     });
 
-    $('.actorsMetadata').on('select2:unselect', async function (e) {
+    $('.actorsMetadata').on('select2:unselect', async (e) => {
         const actor = e.params.data.text.trim();
         if (!actor) {
             return;
@@ -356,15 +354,15 @@ class Gallery {
     });
 
     for (let i = 1; i <= 5; i++) {
-        $(`.rating-${i}`).hover(function() {
+        $(`.rating-${i}`).hover(() => {
             Utils.setDisplayedRating(i, true);
             $(`.rating-${i}`).addClass('rating-hover');
-        }, function() {
+        }, () => {
             Utils.setDisplayedRating(0, true);
         });
-        $(`.rating-${i}`).click(function() {
+        $(`.rating-${i}`).click(() => {
             Utils.setDisplayedRating(i);
-            Utils.err(async function() {
+            Utils.err(async () => {
                 await AppData.update(AppData.currentImage.hash, { rating: i });
             }, 'Failed to update rating');
         });

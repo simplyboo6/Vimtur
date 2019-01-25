@@ -33,6 +33,8 @@
             "always"
         ],
         "no-inner-declarations": "off",
-        "no-constant-condition": "off"
+        "no-constant-condition": "off",
+        "only-arrow-functions": [ true, "allow-declarations" ],
+        "prefer-arrow-callback": 2
     }
 }

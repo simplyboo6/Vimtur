@@ -61,7 +61,7 @@ export function resetSearch() {
 }
 
 export async function viewFolder() {
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.getSubset({ dir: AppData.currentImage.dir }, { preserve: true });
     }, 'Error seaching for files in folder');
 }
@@ -167,7 +167,7 @@ export async function search() {
     $('#searchModal').modal('hide');
 
     Utils.showMessage('Running search...');
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         if (!(await AppData.getSubset(constraints, { preserve: true }))) {
             Utils.showMessage('No search results found');
         } else {
@@ -179,7 +179,7 @@ export async function search() {
 export async function deleteCurrent() {
     const del = await Utils.BootBox.confirm(`Delete ${AppData.currentImage.path}?`);
     if (del === true) {
-        await Utils.err(async function() {
+        await Utils.err(async () => {
             await AppData.deleteCurrent();
         }, 'Error deleting current media');
     }
@@ -217,33 +217,33 @@ export async function addNewTag() {
 }
 
 export async function runScan() {
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.scan();
     }, 'Error starting scan');
 }
 
 export async function importNew() {
     const deleteClonesElement = document.getElementById('importDeleteClones');
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.importNew(deleteClonesElement.checked);
     }, 'Error starting import');
 }
 
 export async function fullImport() {
     const deleteClonesElement = document.getElementById('fullImportDeleteClones');
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.importAll(deleteClonesElement.checked);
     }, 'Error starting import');
 }
 
 export async function deleteMissing() {
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.deleteMissing();
     }, 'Error deleting missing files');
 }
 
 export async function runCache() {
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.runCache();
     }, 'Error starting caching');
 }
@@ -268,7 +268,7 @@ export async function applyMetadata(type, multi) {
         return Utils.showMessage(`Error: Unknown metadata type ${type}`);
 
     }
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         if (multi) {
             const result = await Utils.BootBox.confirm(`Are you sure you want to apply '${value}' to ${type} on all ${AppData.getMap().length} images?`);
             if (result) {
@@ -327,14 +327,14 @@ export async function removeTagColumn() {
 
 export async function autoplayCheckboxClick() {
     const checked = $('#autoplayCheckbox').is(':checked');
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.saveConfig({ user: { autoplayEnabled: checked }});
     }, 'Unable to save autoplay settings');
 }
 
 export async function stateCheckboxClick() {
     const checked = $('#stateCheckbox').is(':checked');
-    await Utils.err(async function() {
+    await Utils.err(async () => {
         await AppData.saveConfig({ user: { stateEnabled: checked }});
         await AppData.updateState();
     }, 'Unable to save autoplay settings');

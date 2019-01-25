@@ -25,6 +25,7 @@
             "error",
             "always"
         ],
-        "only-arrow-functions": [ true, "allow-named-functions" ]
+        "only-arrow-functions": [ true, "allow-declarations" ],
+        "prefer-arrow-callback": 2
     }
 }

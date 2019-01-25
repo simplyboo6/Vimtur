@@ -53,14 +53,13 @@ class AppData {
             callbacks: {}
         });
 
-        const $this = this;
-        this.socket.on('scanStatus', function(data) {
-            $this.scanStatus = data;
-            $this.fire('scanStatus');
+        this.socket.on('scanStatus', (data) => {
+            this.scanStatus = data;
+            this.fire('scanStatus');
         });
 
-        this.socket.on('message', function(data) {
-            $this.fire('message', data);
+        this.socket.on('message', (data) => {
+            this.fire('message', data);
         });
     }
 
