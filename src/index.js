@@ -11,6 +11,9 @@ const PathIsInside = require('path-is-inside');
 const BodyParser = require('body-parser');
 
 const ScannerRouter = require('./routes/scanner');
+const ImageRouter = require('./routes/images');
+const TagRouter = require('./routes/tags');
+const ActorRouter = require('./routes/actors');
 
 const basicAuth = Utils.authConnector;
 
@@ -31,96 +34,9 @@ if (Utils.config.username && Utils.config.password) {
 }
 
 App.use('/api/scanner', configCheckConnector, ScannerRouter.router);
-
-App.get('/api/tags', configCheckConnector, Utils.wrap(async(req, res) => {
-    res.json(await global.db.getTags());
-}));
-
-App.post('/api/tags', configCheckConnector, Utils.wrap(async(req, res) => {
-    if (!req.body.tag) {
-        return res.status(422).type('txt').send('No tag specified');
-    }
-    await global.db.addTag(req.body.tag);
-    res.json(await global.db.getTags());
-}));
-
-App.delete('/api/tags/:tag', configCheckConnector, Utils.wrap(async(req, res) => {
-    if (!req.params.tag) {
-        return res.status(422).type('txt').send('No tag specified');
-    }
-    await global.db.removeTag(req.params.tag);
-    res.json(await global.db.getTags());
-}));
-
-App.get('/api/actors', configCheckConnector, Utils.wrap(async(req, res) => {
-    res.json(await global.db.getActors());
-}));
-
-App.post('/api/actors', configCheckConnector, Utils.wrap(async(req, res) => {
-    if (!req.body.actor) {
-        return res.status(422).type('txt').send('No actor specified');
-    }
-    await global.db.addActor(req.body.actor);
-    res.json(await global.db.getActors());
-}));
-
-App.delete('/api/actors/:actor', configCheckConnector, Utils.wrap(async(req, res) => {
-    if (!req.params.actor) {
-        return res.status(422).type('txt').send('No actor specified');
-    }
-    await global.db.removeActor(req.params.actor);
-    res.json(await global.db.getActors());
-}));
-
-App.post('/api/images/subset', configCheckConnector, Utils.wrap(async(req, res) => {
-    try {
-        const constraints = req.body;
-        console.log('Search request.', constraints);
-        constraints.corrupted = false;
-        constraints.cached = true;
-        const subset = await global.db.subset(constraints);
-        console.log('Sending search result.');
-        res.json(subset);
-    } catch (err) {
-        console.log(err);
-        res.status(503).send(err);
-    }
-}));
-
-App.get('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) => {
-    const img = await global.db.getMedia(req.params.hash);
-    if (img != undefined) {
-        res.send(img);
-    } else {
-        res.status(404);
-        res.type('txt').send('Not found');
-    }
-}));
-
-App.delete('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) => {
-    const media = await global.db.getMedia(req.params.hash);
-    if (media) {
-        await global.db.removeMedia(req.params.hash);
-        await Utils.deleteMedia(media);
-        res.sendStatus(200);
-    } else {
-        res.status(404).json({ message: 'Media not found.' });
-    }
-}));
-
-App.post('/api/images/:hash', configCheckConnector, Utils.wrap(async(req, res) => {
-    res.json(await global.db.saveMedia(req.params.hash, req.body));
-}));
-
-App.get('/api/images/:hash/file', configCheckConnector, Utils.wrap(async(req, res) => {
-    const img = await global.db.getMedia(req.params.hash);
-    if (img != undefined) {
-        res.sendFile(Path.resolve(Utils.config.libraryPath, img.path));
-    } else {
-        res.status(404);
-        res.type('txt').send('Not found');
-    }
-}));
+App.use('/api/images', configCheckConnector, ImageRouter.router);
+App.use('/api/tags', configCheckConnector, TagRouter.router);
+App.use('/api/actors', configCheckConnector, ActorRouter.router);
 
 App.get('/web/:file(*)', Utils.wrap(async(req, res) => {
     try {
@@ -176,27 +92,6 @@ async function listen(port) {
     });
 }
 
-async function setupApp(port) {
-    if (global.io) {
-        global.io.close();
-        global.io = null;
-    }
-    if (global.server) {
-        global.server.close(() => {
-            console.log('Old HTTP server disabled');
-            global.server = null;
-        });
-    }
-    global.server = Server.createServer(App);
-    global.io = IO.listen(global.server);
-
-    global.io.on('connection', (socket) => {
-        socket.emit('scanStatus', ScannerRouter.scanner.getStatus());
-    });
-
-    await listen(port);
-}
-
 async function setup() {
     console.log('Setting up config');
     await Utils.setup();
@@ -216,28 +111,20 @@ async function setup() {
     }
     // Only setup the http server once the database is loaded.
     console.log(`Setting up HTTP server on ${Utils.config.port}`);
-    await setupApp(Utils.config.port);
+    global.server = Server.createServer(App);
+    global.io = IO.listen(global.server);
+
+    global.io.on('connection', (socket) => {
+        socket.emit('scanStatus', ScannerRouter.scanner.getStatus());
+    });
+
+    await listen(Utils.config.port);
+
     await ScannerRouter.scanner.scan();
 }
 
 exports.config = Utils.config;
 exports.setup = setup;
-exports.shutdown = async() => {
-    if (global.io) {
-        global.io.close();
-        global.io = null;
-    }
-    if (global.server) {
-        global.server.close(() => {
-            console.log('Old HTTP server disabled');
-            global.server = null;
-        });
-    }
-    if (global.db) {
-        await global.db.close();
-        global.db = null;
-    }
-};
 
 if (require.main === module) {
     setup();
