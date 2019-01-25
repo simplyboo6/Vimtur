@@ -1,4 +1,4 @@
-const auth = require('http-auth');
+const Auth = require('http-auth');
 const path = require('path');
 const FS = require('fs');
 const RimRaf = require('rimraf');
@@ -158,15 +158,14 @@ if (exports.config.cachePath) {
 }
 
 exports.authConnector = function (req, res, next) {
+    if (exports.config.username && exports.config.password) {
+        const basicAuth = Auth.basic({ realm: 'Vimtur Media Manager' }, (username, password, callback) => {
+            callback(username === exports.config.username && password === exports.config.password);
+        });
+        return Auth.connect(basicAuth)(req, res, next);
+    }
     next();
 };
-
-if (exports.config.username != undefined && exports.config.password != undefined) {
-    const basicAuth = auth.basic({ realm: 'Vimtur Media Manager' }, (username, password, callback) => {
-        callback(username === exports.config.username && password === exports.config.password);
-    });
-    exports.authConnector = basicAuth;
-}
 
 exports.deleteMedia = (media) => {
     const hash = media.hash;
