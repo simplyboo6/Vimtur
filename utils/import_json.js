@@ -32,11 +32,17 @@ const FS = require('fs');
             console.log(`Skipping media with missing hash ${media.path}`);
             continue;
         }
-        if (media.corrupted) {
-            console.log(`Skipping corrupted file ${media.path}`);
-            continue;
+
+        // For some reason rotation is sometimes null...
+        if (!media.rotation) {
+            media.rotation = 0;
         }
-        await global.db.saveMedia(media.hash, media);
+
+        try {
+            await global.db.saveMedia(media.hash, media);
+        } catch (err) {
+            console.log(err, media);
+        }
 
         const newProgress = Math.floor((i / imported.media.length) * 100);
         if (progress !== newProgress) {
