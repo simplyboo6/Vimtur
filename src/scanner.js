@@ -65,7 +65,10 @@ class Scanner {
                 const mediaRecord = await global.db.getMedia(media.hash);
                 if (mediaRecord) {
                     if (deleteClones) {
-                        FS.unlink(mediaRecord.absolutePath, () => {
+                        FS.unlink(mediaRecord.absolutePath, (err) => {
+                            if (err) {
+                                return console.log('Failed to delete: ' + mediaRecord.absolutePath, err);
+                            }
                             console.log('Deleted: ' + mediaRecord.absolutePath);
                         });
                     } else {

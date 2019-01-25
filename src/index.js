@@ -5,7 +5,6 @@ const Server = require('http');
 const IO = require('socket.io');
 const Utils = require('./utils.js');
 const Database = require('./database');
-const Auth = require('http-auth');
 const Compression = require('compression');
 const PathIsInside = require('path-is-inside');
 const BodyParser = require('body-parser');
@@ -15,28 +14,14 @@ const ImageRouter = require('./routes/images');
 const TagRouter = require('./routes/tags');
 const ActorRouter = require('./routes/actors');
 
-const basicAuth = Utils.authConnector;
-
-const configCheckConnector = async(req, res, next) => {
-    try {
-        await Utils.isSetup();
-    } catch (err) {
-        return res.status(400).json({ message: err.message, type: 'config' });
-    }
-    next();
-};
-
 App.use(Compression({level: 9}));
 App.use(BodyParser.json());
+App.use(Utils.authConnector);
 
-if (Utils.config.username && Utils.config.password) {
-    App.use(Auth.connect(basicAuth));
-}
-
-App.use('/api/scanner', configCheckConnector, ScannerRouter.router);
-App.use('/api/images', configCheckConnector, ImageRouter.router);
-App.use('/api/tags', configCheckConnector, TagRouter.router);
-App.use('/api/actors', configCheckConnector, ActorRouter.router);
+App.use('/api/scanner', ScannerRouter.router);
+App.use('/api/images', ImageRouter.router);
+App.use('/api/tags', TagRouter.router);
+App.use('/api/actors', ActorRouter.router);
 
 App.get('/web/:file(*)', Utils.wrap(async(req, res) => {
     try {
@@ -51,7 +36,7 @@ App.get('/web/:file(*)', Utils.wrap(async(req, res) => {
     }
 }));
 
-App.get('/cache/:file(*)', configCheckConnector, Utils.wrap(async(req, res) => {
+App.get('/cache/:file(*)', Utils.wrap(async(req, res) => {
     try {
         const absPath = Path.resolve(Utils.config.cachePath, req.params.file);
         if (!PathIsInside(absPath, Path.resolve(Utils.config.cachePath))) {
@@ -63,22 +48,17 @@ App.get('/cache/:file(*)', configCheckConnector, Utils.wrap(async(req, res) => {
     }
 }));
 
-App.get('/api/config', configCheckConnector, Utils.wrap(async(req, res) => {
+App.get('/api/config', Utils.wrap(async(req, res) => {
     res.json(await global.db.getUserConfig());
 }));
 
-App.post('/api/config', configCheckConnector, Utils.wrap(async(req, res) => {
+App.post('/api/config', Utils.wrap(async(req, res) => {
     await global.db.saveUserConfig(req.body);
     res.json(await global.db.getUserConfig());
 }));
 
 App.get('/', Utils.wrap(async(req, res) => {
-    try {
-        await Utils.validateConfig();
-        res.redirect('/web/index.html');
-    } catch (err) {
-        res.redirect('/web/config.html');
-    }
+    res.redirect('/web/index.html');
 }));
 
 async function listen(port) {

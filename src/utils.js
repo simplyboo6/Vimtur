@@ -3,6 +3,7 @@ const path = require('path');
 const FS = require('fs');
 const RimRaf = require('rimraf');
 const PathIsInside = require('path-is-inside');
+const Util = require('util');
 
 exports.usage = function () {
     const prog = process.argv[0] + ' ' + process.argv[1];
@@ -13,32 +14,8 @@ exports.config = {
     'port': 3523
 };
 
-async function saveFile(file, data) {
-    return new Promise((resolve, reject) => {
-        FS.writeFile(file, data, (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
-}
-
-async function readFile(file) {
-    return new Promise((resolve, reject) => {
-        FS.readFile(file, (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    });
-}
-
 async function loadConfig(file) {
-    const data = await readFile(file);
+    const data = await Util.promisify(FS.readFile)(file);
     try {
         return JSON.parse(data);
     } catch (err) {

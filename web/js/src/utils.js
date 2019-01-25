@@ -278,7 +278,7 @@ export function formatAdminStatus(appData) {
             if (appData.cacheStatus.converter.corrupted) {
                 result += 'Corrupted files:\n';
                 for (let i = 0; i < appData.cacheStatus.converter.corrupted.length; i++) {
-                    result += `${appData.cacheStatus.converter.corrupted[i]}\n`;
+                    result += `${appData.cacheStatus.converter.corrupted[i].path}\n`;
                 }
             }
         }
