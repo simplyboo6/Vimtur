@@ -3,6 +3,7 @@ const Utils = require('../../utils');
 const Util = require('util');
 const DeepMerge = require('../../deep-merge');
 const Path = require('path');
+const FS = require('fs');
 
 const DEFAULT_PORT = 27017;
 
@@ -32,7 +33,11 @@ class MongoConnector {
             useNewUrlParser: true
         });
         this.db = this.server.db(config.database);
-        await Util.promisify(this.db.createCollection.bind(this.db))('media');
+
+        const mediaSchema = JSON.parse(await Util.promisify(FS.readFile)(__dirname + '/media.schema.json'));
+        await Util.promisify(this.db.createCollection.bind(this.db))('media', {
+            validator: { $jsonSchema: mediaSchema }
+        });
         await Util.promisify(this.db.createCollection.bind(this.db))('meta');
 
         const mediaCollection = this.db.collection('media');
