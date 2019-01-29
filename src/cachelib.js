@@ -218,5 +218,6 @@ async function runCache(callback) {
 module.exports = {
     runCache,
     generateThumb,
+    getMetadata,
     cacheStatus: {}
 };
