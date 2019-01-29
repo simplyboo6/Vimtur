@@ -24,9 +24,9 @@ async function getMetadata(path) {
                     }
                 }
                 if (data.format.tags) {
-                    metadata.artist = data.format.tags.artist;
-                    metadata.album = data.format.tags.album;
-                    metadata.title = data.format.tags.title;
+                    metadata.artist = data.format.tags.artist || null;
+                    metadata.album = data.format.tags.album || null;
+                    metadata.title = data.format.tags.title || null;
                 }
                 metadata.length = Math.ceil(data.format.duration);
                 resolve(metadata);
@@ -113,9 +113,14 @@ async function transcode(hash) {
     await doTranscode(media.absolutePath, `${utils.config.cachePath}/${media.hash}/index.m3u8`, args);
     await generateThumb(media);
     console.log(`Saving metadata for ${media.absolutePath}`);
-    await global.db.saveMedia(media.hash, {
-        metadata: media.metadata
-    });
+    // This try block is to avoid it being marked as corrupted if it fails schema validation.
+    try {
+        await global.db.saveMedia(media.hash, {
+            metadata: media.metadata
+        });
+    } catch (err) {
+        console.log('Failed to save media metadata.', err, media);
+    }
     console.log('-------------------------------------');
 }
 
