@@ -173,6 +173,14 @@ class MongoConnector {
             if (media.cached !== undefined) {
                 delete media.cached;
             }
+
+            // Map all metadata keys to avoid over-writes.
+            if (media.metadata) {
+                for (const key of Object.keys(media.metadata)) {
+                    media[`metadata.${key}`] = media.metadata[key];
+                }
+                delete media.metadata;
+            }
         }
         const collection = this.db.collection('media');
         if (await this.getMedia(hash)) {
