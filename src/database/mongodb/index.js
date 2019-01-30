@@ -254,7 +254,11 @@ class MongoConnector {
         }
 
         if (constraints.corrupted !== undefined) {
-            query['corrupted'] = constraints.corrupted;
+            if (constraints.corrupted) {
+                query['corrupted'] = true;
+            } else {
+                query['corrupted'] = { $in: [ null, false ] };
+            }
         }
 
         if (constraints.cached !== undefined) {
@@ -278,7 +282,6 @@ class MongoConnector {
                 rating: -1
             });
         }
-
         const result = await Util.promisify(queryResult.toArray.bind(queryResult))();
 
         // If additional fields are specified then return the extras.
