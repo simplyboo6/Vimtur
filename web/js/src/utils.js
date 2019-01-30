@@ -67,36 +67,12 @@ export function makeCheckbox(id, className, name, callback) {
 
 export function buildSearch(tags) {
     const all = document.getElementById('searchAll');
-    all.innerHTML = 'All';
+    all.innerHTML = '';
     const any = document.getElementById('searchAny');
-    any.innerHTML = 'Any';
+    any.innerHTML = '';
     const none = document.getElementById('searchNone');
-    none.innerHTML = 'None';
-    all.appendChild(makeCheckbox('allTag-selectAll', 'allTag-selectAll', 'Select All', (name, state) => {
-        for (let i = 0; i < tags.length; i++) {
-            const boxes = document.getElementsByClassName(`allTag-${tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                console.log(boxes[j]);
-                boxes[j].checked = state;
-            }
-        }
-    }));
-    any.appendChild(makeCheckbox('anyTag-selectAll', 'anyTag-selectAll', 'Select All', (name, state) => {
-        for (let i = 0; i < tags.length; i++) {
-            const boxes = document.getElementsByClassName(`anyTag-${tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                boxes[j].checked = state;
-            }
-        }
-    }));
-    none.appendChild(makeCheckbox('noneTag-selectAll', 'noneTag-selectAll', 'Select All', (name, state) => {
-        for (let i = 0; i < tags.length; i++) {
-            const boxes = document.getElementsByClassName(`noneTag-${tags[i]}`);
-            for (let j = 0; j < boxes.length; j++) {
-                boxes[j].checked = state;
-            }
-        }
-    }));
+    none.innerHTML = '';
+
     for (let i = 0; i < tags.length; i++) {
         const tag = tags[i];
         all.appendChild(makeCheckbox(`allTag-${tag}`, `allTag-${tag}`, `${tag}`));

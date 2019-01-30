@@ -99,6 +99,14 @@ export async function search() {
             constraints.none.push(tag);
         }
     }
+
+    if (document.getElementById('searchAnySelectAll').checked) {
+        constraints.any = '*';
+    }
+    if (document.getElementById('searchNoneSelectAll').checked) {
+        constraints.none = '*';
+    }
+
     if (document.getElementById('typeFilterVideo').checked) {
         constraints.type.push('video');
     }
@@ -155,14 +163,7 @@ export async function search() {
             constraints[varName] = element.value;
         }
     }
-    //setMap("artistLex", "artist");
-    //setMap("albumLex", "album");
-    //setMap("titleLex", "title");
-    //setMap("tagsLex", "tagLexer");
-    //setMap("pathLex", "path");
-    //setMap("generalLex", "generalLexer");
     setMap('keywordSearch', 'keywordSearch');
-    //setMap("actorLex", "actorLexer");
 
     $('#searchModal').modal('hide');
 

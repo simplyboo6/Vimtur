@@ -225,52 +225,42 @@
                                 <div class="form-group">
                                     <label>Type</label>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="typeFilterVideo">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterVideo" />
                                         <label class="form-check-label" for="typeFilterVideo">Video</label>
                                     </div>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="typeFilterGif">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterGif" />
                                         <label class="form-check-label" for="typeFilterGif">Gif</label>
                                     </div>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="typeFilterStill">
+                                        <input type="checkbox" class="form-check-input" id="typeFilterStill" />
                                         <label class="form-check-label" for="typeFilterStill">Still</label>
                                     </div>
                                 </div>
-                                <!-- For now comment these out. If I need them they'll come back.
                                 <div class="form-group">
-                                    <label>Artist (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="artistLex"></input>
+                                    <label>Tag Status</label>
+                                    <div class="form-check" title="Selecting this will select any media that has been tagged.">
+                                        <input type="checkbox" class="form-check-input" id="searchAnySelectAll" />
+                                        <label class="form-check-label" for="searchAnySelectAll">Tagged media</label>
+                                    </div>
+                                    <div class="form-check" title="Selected this will will display only untagged media.">
+                                        <input type="checkbox" class="form-check-input" id="searchNoneSelectAll" />
+                                        <label class="form-check-label" for="searchNoneSelectAll">Untagged media</label>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Album (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="albumLex"></input>
-                                </div>
-                                <div class="form-group">
-                                    <label>Title (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="titleLex"></input>
-                                </div>
-                                <div class="form-group">
-                                    <label>Tags (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="tagsLex"></input>
-                                </div>
-                                <div class="form-group">
-                                    <label>People (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="actorLex"></input>
-                                </div>
-                                <div class="form-group">
-                                    <label>Path (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="pathLex"></input>
-                                </div>
-                                <div class="form-group">
-                                    <label>General (Lex: [!|()&amp;])</label>
-                                    <input type="text" class="form-control" id="generalLex"></input>
-                                </div>
-                                -->
                             </div>
-                            <div class="col-md-3" id="searchAll">All</div>
-                            <div class="col-md-3" id="searchAny">Any</div>
-                            <div class="col-md-3" id="searchNone">None</div>
+                            <div class="col-md-3">
+                                <h3>All</h3>
+                                <div id="searchAll"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <h3>Any</h3>
+                                <div id="searchAny"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <h3>None</h3>
+                                <div id="searchNone"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -321,13 +311,13 @@
                                 <button type="button" class="btn btn-primary btn-block" onclick="removeTagColumn()">Remove Tag Column</button>
                             </div>
                         </div>
-                        <div class="form-check">
+                        <div class="form-check" title="If autoplay is enabled then videos will start automatically.">
                             <input class="form-check-input" type="checkbox" value="" id="autoplayCheckbox" onclick="autoplayCheckboxClick()">
                             <label class="form-check-label" for="autoplayCheckbox">
                                 Enable autoplay?
                             </label>
                         </div>
-                        <div class="form-check">
+                        <div class="form-check" title="Enabling this will make the URL update each time the media changes. You can then go directly to the same set.">
                             <input class="form-check-input" type="checkbox" value="" id="stateCheckbox" onclick="stateCheckboxClick()">
                             <label class="form-check-label" for="stateCheckbox">
                                 Update state to URL?

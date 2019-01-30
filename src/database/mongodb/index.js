@@ -202,15 +202,21 @@ class MongoConnector {
 
         const query = {};
 
-        if (constraints.any && constraints.any.length) {
+        if (constraints.any === '*') {
+            query['tags.0'] = { $exists: true };
+        } else if (Array.isArray(constraints.any) && constraints.any.length) {
             query.tags = query.tags || {};
             query.tags['$in'] = constraints.any;
         }
-        if (constraints.all && constraints.all.length) {
+
+        if (Array.isArray(constraints.all) && constraints.all.length) {
             query.tags = query.tags || {};
             query.tags['$all'] = constraints.all;
         }
-        if (constraints.none && constraints.none.length) {
+
+        if (constraints.none === '*') {
+            query['tags.0'] = { $exists: false };
+        } else if (Array.isArray(constraints.none) && constraints.none.length) {
             query.tags = query.tags || {};
             query.tags['$nin'] = constraints.none;
         }
