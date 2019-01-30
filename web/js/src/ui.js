@@ -4,15 +4,15 @@ import * as Utils from './utils.js';
 
 class UI {
     constructor() {
-        Object.assign(this, {
-            imagePanel: document.getElementById('imagePanel'),
-            videoPanel: document.getElementById('videoPanel'),
-            hls: new Hls(),
-            type: 'still',
-            touchStart: 0,
-            touchEnd: 0
-        });
+        this.imagePanel = document.getElementById('imagePanel');
+        this.videoPanel = document.getElementById('videoPanel');
+        this.type = 'still';
+        this.touchStart = 0;
+        this.touchEnd = 0;
+
+        this.hls = new Hls();
         this.hls.attachMedia(this.videoPanel);
+
         this.imagePanel.onload = Utils.hideLoadingModal;
 
         this.touchBegin = this.touchBegin.bind(this);
@@ -51,9 +51,11 @@ class UI {
             if (autoplay) {
                 this.hls.startLoad();
             } else {
+                const hls = this.hls;
+                const videoPanel = this.videoPanel;
                 function loadListener() {
-                    this.hls.startLoad();
-                    this.videoPanel.removeEventListener('play', loadListener);
+                    hls.startLoad();
+                    videoPanel.removeEventListener('play', loadListener);
                 }
                 this.videoPanel.addEventListener('play', loadListener);
             }
