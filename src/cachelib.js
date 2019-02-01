@@ -312,7 +312,7 @@ function getQualityFromHeight(height) {
             return `${quality}p`;
         }
     }
-    return `${height}p`;
+    return '1080p';
 }
 
 module.exports = {

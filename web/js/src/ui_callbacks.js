@@ -118,16 +118,19 @@ export async function search() {
     }
     const resolution = document.getElementById('resolutionSearch');
     switch (resolution.options[resolution.selectedIndex].text) {
+    case '240p':
+        constraints.height = 240;
+        break;
+    case '360p':
+        constraints.height = 360;
+        break;
     case '480p':
-        constraints.width = 640;
         constraints.height = 480;
         break;
     case '720p':
-        constraints.width = 1280;
         constraints.height = 720;
         break;
     case '1080p':
-        constraints.width = 1920;
         constraints.height = 1080;
         break;
     default: break;

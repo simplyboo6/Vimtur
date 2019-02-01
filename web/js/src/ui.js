@@ -11,6 +11,7 @@ class UI {
         this.player = videojs('videoPanel', {
             responsive: true,
             html5: {
+                nativeControlsForTouch: true,
                 hls: {
                     enableLowInitialPlaylist: true
                 }
