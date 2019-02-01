@@ -24,7 +24,7 @@ async function getMetadata(path) {
                     }
                 }
                 if (data.format.tags) {
-                    metadata.artist = data.format.tags.artist || null;
+                    metadata.artist = data.format.tags.artist || data.format.tags.album_artist || null;
                     metadata.album = data.format.tags.album || null;
                     metadata.title = data.format.tags.title || null;
                 }
@@ -95,23 +95,46 @@ async function doTranscode(input, output, args) {
     });
 }
 
-async function transcode(hash) {
+async function transcode(hash, quality) {
     const media = await global.db.getMedia(hash);
-    console.log(`Setting up to transcode ${media.absolutePath}`);
-    media.metadata = await getMetadata(media.absolutePath);
-    // If any transcoded artefacts exist, remove them.
-    await deleteFolder(`${utils.config.cachePath}/${media.hash}`);
-    await mkdir(`${utils.config.cachePath}/${media.hash}`);
-    console.log(`Transcoding ${media.absolutePath}`);
-
-    let args = ['-start_number', '0', '-hls_time', '10', '-hls_list_size', '0', '-f', 'hls'];
-    if (media.metadata.codec == 'h264') {
-        console.log('Input format is h264, copying video.');
-        args = ['-start_number', '0', '-hls_time', '10', '-hls_list_size', '0', '-vcodec', 'copy', '-f', 'hls'];
+    console.log(`Setting up to transcode ${media.absolutePath} to ${quality}`);
+    if (!media.metadata) {
+        media.metadata = await getMetadata(media.absolutePath);
     }
 
-    await doTranscode(media.absolutePath, `${utils.config.cachePath}/${media.hash}/index.m3u8`, args);
+    let qualityName = quality;
+    if (quality === 'MAX') {
+        qualityName = getQualityFromHeight(media.metadata.height);
+    }
+    const qualityInfo = getBandwidthResolution(qualityName);
+
+    if (media.metadata.qualityCache && media.metadata.qualityCache.includes(qualityName)) {
+        return console.log(`${media.absolutePath} already cached at ${qualityName}`);
+    }
+
+    if (qualityInfo.scale > media.metadata.height) {
+        return console.log(`Skipping upscaling to ${qualityName} on ${media.absolutePath}`);
+    }
+
+    if (!media.metadata.qualityCache) {
+        media.metadata.qualityCache = [];
+    }
+    media.metadata.qualityCache.push(qualityName);
+
+    // If any transcoded artefacts exist, remove them.
+    await deleteFolder(`${utils.config.cachePath}/${media.hash}/${qualityName}`);
+    await mkdir(`${utils.config.cachePath}/${media.hash}`);
+    await mkdir(`${utils.config.cachePath}/${media.hash}/${qualityName}`);
+    console.log(`Transcoding ${media.absolutePath}`);
+
+    const codec = (quality === 'MAX' && media.metadata.codec === 'h264') ? [ 'copy' ] : [ 'libx264', '-crf', '23', '-tune', 'film', '-vbsf', 'h264_mp4toannexb' ];
+    const scale = quality === 'MAX' ? [] : [ '-vf', `scale=-2:${qualityInfo.scale}` ];
+    const audio = [ '-acodec', 'aac', '-ac', '1', '-strict', '-2' ];
+    const args = [...audio, ...scale, '-vcodec', ...codec, '-f', 'hls', '-hls_time', '10', '-hls_list_size', '0', '-start_number', '0'];
+
+    await doTranscode(media.absolutePath, `${utils.config.cachePath}/${media.hash}/${qualityName}/index.m3u8`, args);
     await generateThumb(media);
+    await Util.promisify(fs.writeFile)(`${utils.config.cachePath}/${media.hash}/index.m3u8`, generatePlaylist(media.metadata.qualityCache));
     console.log(`Saving metadata for ${media.absolutePath}`);
     // This try block is to avoid it being marked as corrupted if it fails schema validation.
     try {
@@ -131,7 +154,9 @@ async function transcodeSet(set, callback) {
             if (media.corrupted) {
                 console.log(`Skipping corrupted file ${media.absolutePath}`);
             } else {
-                await transcode(set[i]);
+                for (const quality of utils.config.videoQualities) {
+                    await transcode(set[i], quality);
+                }
             }
         } catch(err) {
             console.log(`Failed to transcode ${media.absolutePath}`);
@@ -189,7 +214,43 @@ async function runCache(callback) {
         }
     }
 
-    const videos = await global.db.subset({type: ['video'], cached: false});
+    // Video re-encoding section.
+    // Start by checking for already transcoded but without a proper index.
+    {
+        console.log('Fixing videos without a quality setting...');
+        const videos = await global.db.subset({type: ['video']});
+        module.exports.cacheStatus.state = 'Fixing videos without a quality setting';
+        module.exports.cacheStatus.progress = 0;
+        module.exports.cacheStatus.max = videos.length;
+        if (callback) {
+            callback(module.exports.cacheStatus);
+        }
+        for (let i = 0; i < videos.length; i++) {
+            const video = await global.db.getMedia(videos[i]);
+            if (!video.corrupted && video.metadata && !video.metadata.qualityCache) {
+                console.log('Fixing up transcoding index for: ' + video.hash);
+                const files = await Util.promisify(fs.readdir)(`${utils.config.cachePath}/${video.hash}`);
+                await mkdir(`${utils.config.cachePath}/${video.hash}/${getQualityFromHeight(video.metadata.height)}/`);
+                for (const file of files) {
+                    await Util.promisify(fs.rename)(
+                        `${utils.config.cachePath}/${video.hash}/${file}`,
+                        `${utils.config.cachePath}/${video.hash}/${getQualityFromHeight(video.metadata.height)}/${file}`
+                    );
+                }
+                await Util.promisify(fs.writeFile)(`${utils.config.cachePath}/${video.hash}/index.m3u8`, generatePlaylist([getQualityFromHeight(video.metadata.height)]));
+                await global.db.saveMedia(video.hash, {
+                    metadata: { qualityCache: [ getQualityFromHeight(video.metadata.height) ] }
+                });
+            }
+
+            module.exports.cacheStatus.progress = 0;
+            if (callback) {
+                callback(module.exports.cacheStatus);
+            }
+        }
+    }
+
+    const videos = await global.db.subset({type: ['video']});
     console.log(`Videos to transocde: ${videos.length}`);
 
     module.exports.cacheStatus.state = 'Caching videos';
@@ -213,6 +274,45 @@ async function runCache(callback) {
     if (callback) {
         callback(module.exports.cacheStatus);
     }
+    console.log('Caching complete.');
+}
+
+function getBandwidthResolution(quality) {
+    switch (quality) {
+        case '144p':
+            return { resolution: '256x144', bandwidth: 400000, scale: 144 };
+        case '240p':
+            return { resolution: '426x240', bandwidth: 700000, scale: 240 };
+        case '360p':
+            return { resolution: '640x360', bandwidth: 1200000, scale: 360 };
+        case '480p':
+            return { resolution: '854x480', bandwidth: 1800000, scale: 480 };
+        case '720p':
+            return { resolution: '1280x720', bandwidth: 3000000, scale: 720 };
+        case '1080p':
+            return { resolution: '1920x1080', bandwidth: 7000000, scale: 1080 };
+    }
+    throw new Error(`Unknown quality ${quality}`);
+}
+
+function generatePlaylist(qualities) {
+    let data = '#EXTM3U';
+    for (const quality of qualities.sort()) {
+        const res = getBandwidthResolution(quality);
+        data = data + `\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${res.bandwidth},RESOLUTION=${res.resolution}`
+        data = data + `\n${quality}/index.m3u8`;
+    }
+    return data;
+}
+
+function getQualityFromHeight(height) {
+    const map = [ 144, 240, 360, 480, 720, 1080 ];
+    for (const quality of map) {
+        if (quality >= height) {
+            return `${quality}p`;
+        }
+    }
+    return `${height}p`;
 }
 
 module.exports = {

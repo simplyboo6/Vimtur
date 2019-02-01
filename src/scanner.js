@@ -97,10 +97,15 @@ class Scanner {
         }
         this.state = 'CACHING';
         this.updateStatus();
-        await Cache.runCache(async() => {
-            this.cacheStatus = await this.getCacheStatus();
-            this.updateStatus();
-        });
+        try {
+            await Cache.runCache(async() => {
+                this.cacheStatus = await this.getCacheStatus();
+                this.updateStatus();
+            });
+        } catch (err) {
+            console.log('Error running cache', err);
+            throw err;
+        }
         this.state = 'IDLE';
         this.updateStatus();
     }

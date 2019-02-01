@@ -173,17 +173,16 @@ class MongoConnector {
             if (media.cached !== undefined) {
                 delete media.cached;
             }
-
-            // Map all metadata keys to avoid over-writes.
+        }
+        const collection = this.db.collection('media');
+        if (await this.getMedia(hash)) {
+            // Map all metadata keys to avoid over-writes, if the media already exists.
             if (media.metadata) {
                 for (const key of Object.keys(media.metadata)) {
                     media[`metadata.${key}`] = media.metadata[key];
                 }
                 delete media.metadata;
             }
-        }
-        const collection = this.db.collection('media');
-        if (await this.getMedia(hash)) {
             await Util.promisify(collection.updateOne.bind(collection))({hash}, { $set: media });
         } else {
             await Util.promisify(collection.insertOne.bind(collection))(media);

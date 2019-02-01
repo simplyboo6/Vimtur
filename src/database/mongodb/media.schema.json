@@ -28,7 +28,14 @@
                 "artist": { "type": [ "string", "null" ] },
                 "album": { "type": [ "string", "null" ] },
                 "title": { "type": [ "string", "null" ] },
-                "codec": { "type": [ "string", "null" ] }
+                "codec": { "type": [ "string", "null" ] },
+                "qualityCache": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [ "144p", "240p", "360p", "480p", "720p", "1080p" ]
+                    }
+                }
             },
             "required": [ "width", "height" ],
             "additionalProperties": false

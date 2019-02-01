@@ -143,6 +143,10 @@ exports.validateConfig = async function(config) {
     if (updateConfigValidity) {
         exports.configValid = true;
     }
+    if (!config.videoQualities) {
+        // MAX enables copying the source if it's h264. It must come first for this.
+        config.videoQualities = [ 'MAX', '240p' ];
+    }
 };
 
 if (exports.config.libraryPath) {

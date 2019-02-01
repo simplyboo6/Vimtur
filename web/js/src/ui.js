@@ -4,65 +4,68 @@ import * as Utils from './utils.js';
 
 class UI {
     constructor() {
-        this.imagePanel = document.getElementById('imagePanel');
-        this.videoPanel = document.getElementById('videoPanel');
         this.type = 'still';
         this.touchStart = 0;
         this.touchEnd = 0;
 
-        this.hls = new Hls();
-        this.hls.attachMedia(this.videoPanel);
+        this.player = videojs('videoPanel', {
+            responsive: true,
+            html5: {
+                hls: {
+                    enableLowInitialPlaylist: true
+                }
+            }
+        });
+        this.player.qualityLevels();
+        document.getElementById('videoPanel').style.display = 'none';
 
-        this.imagePanel.onload = Utils.hideLoadingModal;
+        document.getElementById('imagePanel').onload = Utils.hideLoadingModal;
 
         this.touchBegin = this.touchBegin.bind(this);
         this.touchFinish = this.touchFinish.bind(this);
         this.resize = this.resize.bind(this);
     }
 
+    setVideo(url) {
+        this.player.src({
+            src: url,
+            type: 'application/x-mpegURL',
+            withAuthentication: true
+        });
+        if (typeof(this.player.hlsQualitySelector) === 'function') {
+            this.player.hlsQualitySelector();
+        }
+    }
+
     setType(image) {
+        const imagePanel = document.getElementById('imagePanel');
+        const videoPanel = document.getElementById('videoPanel');
         let type = image.type;
-        this.imagePanel.src = '#';
+
+        imagePanel.src = '#';
+        this.player.pause();
+        this.player.poster('#');
 
         if (this.type != type) {
-            this.videoPanel.style.display = 'none';
-            this.imagePanel.style.display = 'none';
+            videoPanel.style.display = 'none';
+            imagePanel.style.display = 'none';
         }
 
         if (type == 'video') {
-            $(this.videoPanel).attr('poster', '');
             const autoplay = !Utils.isMobile() && AppData.isAutoplayEnabled();
-            this.hls.detachMedia();
-            this.hls = new Hls({ autoStartLoad: false });
-            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                if (autoplay) {
-                    this.videoPanel.play();
-                }
-                Utils.hideLoadingModal();
-            });
-            this.hls.attachMedia(this.videoPanel);
-            this.videoPanel.style.display = 'block';
+            this.player.autoplay(autoplay);
+
+            videoPanel.style.display = 'block';
             // Only show the poster if not autoplay. If it's enabled then it'll only flash
             // for a moment and that looks weird. (Assuming a reasonable connection)
             if (!autoplay) {
-                $(this.videoPanel).attr('poster', `/cache/thumbnails/${AppData.currentImage.hash}.png`);
+                this.player.poster(`/cache/thumbnails/${AppData.currentImage.hash}.png`);
             }
-            this.hls.loadSource(`/cache/${AppData.currentImage.hash}/index.m3u8`);
-            if (autoplay) {
-                this.hls.startLoad();
-            } else {
-                const hls = this.hls;
-                const videoPanel = this.videoPanel;
-                function loadListener() {
-                    hls.startLoad();
-                    videoPanel.removeEventListener('play', loadListener);
-                }
-                this.videoPanel.addEventListener('play', loadListener);
-            }
+            this.setVideo(`/cache/${AppData.currentImage.hash}/index.m3u8`);
         } else if (type == 'gif' || type == 'still') {
             Utils.showLoadingModal();
-            this.imagePanel.style.display = 'block';
-            this.imagePanel.src = `/api/images/${AppData.currentImage.hash}/file`;
+            imagePanel.style.display = 'block';
+            imagePanel.src = `/api/images/${AppData.currentImage.hash}/file`;
         }
         this.type = type;
     }
@@ -73,7 +76,6 @@ class UI {
 
     updateImage() {
         Utils.err(async () => {
-            this.videoPanel.pause();
             this.setType(AppData.currentImage);
             Utils.setDisplayedRating(AppData.currentImage.rating);
         }, 'Error getting new media');
