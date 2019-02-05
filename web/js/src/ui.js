@@ -13,7 +13,8 @@ class UI {
             html5: {
                 nativeControlsForTouch: true,
                 hls: {
-                    enableLowInitialPlaylist: true
+                    enableLowInitialPlaylist: true,
+                    seekDeadline: 0.5,
                 }
             }
         });
