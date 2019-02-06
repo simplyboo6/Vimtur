@@ -95,10 +95,10 @@ async function doTranscode(input, output, args) {
     });
 }
 
-async function transcode(hash, quality) {
-    const media = await global.db.getMedia(hash);
+async function transcode(media, quality) {
     console.log(`Setting up to transcode ${media.absolutePath} to ${quality}`);
     if (!media.metadata) {
+        console.log(`Fetching metadata for ${media.absolutePath}...`);
         media.metadata = await getMetadata(media.absolutePath);
     }
 
@@ -155,7 +155,9 @@ async function transcodeSet(set, callback) {
                 console.log(`Skipping corrupted file ${media.absolutePath}`);
             } else {
                 for (const quality of utils.config.videoQualities) {
-                    await transcode(set[i], quality);
+                    console.time(`transcode: ${media.hash} ${quality}`);
+                    await transcode(media, quality);
+                    console.timeEnd(`transcode: ${media.hash} ${quality}`);
                 }
             }
         } catch(err) {
@@ -218,7 +220,7 @@ async function runCache(callback) {
     // Start by checking for already transcoded but without a proper index.
     {
         console.log('Fixing videos without a quality setting...');
-        const videos = await global.db.subset({type: ['video']});
+        const videos = await global.db.subset({type: ['video'], cached: true, corrupted: false, quality: { none: '*' }});
         module.exports.cacheStatus.state = 'Fixing videos without a quality setting';
         module.exports.cacheStatus.progress = 0;
         module.exports.cacheStatus.max = videos.length;
@@ -226,8 +228,9 @@ async function runCache(callback) {
             callback(module.exports.cacheStatus);
         }
         for (let i = 0; i < videos.length; i++) {
+            console.log(`Checking ${videos[i]}...`);
             const video = await global.db.getMedia(videos[i]);
-            if (!video.corrupted && video.metadata && !video.metadata.qualityCache) {
+            if (!video.metadata.qualityCache) {
                 console.log('Fixing up transcoding index for: ' + video.hash);
                 const files = await Util.promisify(fs.readdir)(`${utils.config.cachePath}/${video.hash}`);
                 await mkdir(`${utils.config.cachePath}/${video.hash}/${getQualityFromHeight(video.metadata.height)}/`);
@@ -243,7 +246,7 @@ async function runCache(callback) {
                 });
             }
 
-            module.exports.cacheStatus.progress = 0;
+            module.exports.cacheStatus.progress = i;
             if (callback) {
                 callback(module.exports.cacheStatus);
             }
@@ -279,18 +282,18 @@ async function runCache(callback) {
 
 function getBandwidthResolution(quality) {
     switch (quality) {
-        case '144p':
-            return { resolution: '256x144', bandwidth: 400000, scale: 144 };
-        case '240p':
-            return { resolution: '426x240', bandwidth: 700000, scale: 240 };
-        case '360p':
-            return { resolution: '640x360', bandwidth: 1200000, scale: 360 };
-        case '480p':
-            return { resolution: '854x480', bandwidth: 1800000, scale: 480 };
-        case '720p':
-            return { resolution: '1280x720', bandwidth: 3000000, scale: 720 };
-        case '1080p':
-            return { resolution: '1920x1080', bandwidth: 7000000, scale: 1080 };
+    case '144p':
+        return { resolution: '256x144', bandwidth: 400000, scale: 144 };
+    case '240p':
+        return { resolution: '426x240', bandwidth: 700000, scale: 240 };
+    case '360p':
+        return { resolution: '640x360', bandwidth: 1200000, scale: 360 };
+    case '480p':
+        return { resolution: '854x480', bandwidth: 1800000, scale: 480 };
+    case '720p':
+        return { resolution: '1280x720', bandwidth: 3000000, scale: 720 };
+    case '1080p':
+        return { resolution: '1920x1080', bandwidth: 7000000, scale: 1080 };
     }
     throw new Error(`Unknown quality ${quality}`);
 }
@@ -299,7 +302,7 @@ function generatePlaylist(qualities) {
     let data = '#EXTM3U';
     for (const quality of qualities.sort()) {
         const res = getBandwidthResolution(quality);
-        data = data + `\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${res.bandwidth},RESOLUTION=${res.resolution}`
+        data = data + `\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${res.bandwidth},RESOLUTION=${res.resolution}`;
         data = data + `\n${quality}/index.m3u8`;
     }
     return data;

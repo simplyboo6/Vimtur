@@ -152,11 +152,13 @@ class MongoConnector {
     }
 
     async getMedia(hash) {
+        console.time(`getMedia: ${hash}`);
         const media = this.db.collection('media');
         const result = await Util.promisify(media.findOne.bind(media))({ hash });
         if (result) {
             result.absolutePath = Path.resolve(this.config.libraryPath, result.path);
         }
+        console.timeEnd(`getMedia: ${hash}`);
         return result;
     }
 
@@ -196,6 +198,7 @@ class MongoConnector {
     }
 
     async subset(constraints, fields) {
+        console.log('subset', constraints);
         const mediaCollection = this.db.collection('media');
         constraints = constraints || {};
 
@@ -218,6 +221,22 @@ class MongoConnector {
         } else if (Array.isArray(constraints.none) && constraints.none.length) {
             query.tags = query.tags || {};
             query.tags['$nin'] = constraints.none;
+        }
+
+        if (typeof(constraints.quality) === 'object') {
+            if (Array.isArray(constraints.quality.all)) {
+                query['metadata.qualityCache'] = { $all: constraints.quality.all };
+            }
+            if (constraints.quality.any === '*') {
+                query['metadata.qualityCache.0'] = { $exists: true };
+            } else if (Array.isArray(constraints.quality.any)) {
+                query['metadata.qualityCache'] = { $in: constraints.quality.all };
+            }
+            if (constraints.quality.none === '*') {
+                query['metadata.qualityCache.0'] = { $exists: false };
+            } else if (Array.isArray(constraints.quality.none)) {
+                query['metadata.qualityCache'] = { $nin: constraints.quality.all };
+            }
         }
 
         if (constraints.type && constraints.type.length) {

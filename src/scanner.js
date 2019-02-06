@@ -35,7 +35,7 @@ class Scanner {
             return false;
         }
         this.state = 'SCANNING';
-        this.updateStatus();
+        this.updateStatus(true);
 
         console.log('Initiating file scan.');
         const returns = await LibraryScanner.scan();
@@ -46,7 +46,7 @@ class Scanner {
         returns.time = Date.now();
         this.scanStatus = returns;
         this.state = 'IDLE';
-        this.updateStatus();
+        this.updateStatus(true);
     }
 
     async index(deleteClones) {
@@ -58,7 +58,7 @@ class Scanner {
             current: 0,
             max: this.scanStatus.newFiles.length
         };
-        this.updateStatus();
+        this.updateStatus(true);
 
         await Scanner.generateMediaFromFiles(this.scanStatus.newFiles,
             async (iterator, media) => {
@@ -87,7 +87,7 @@ class Scanner {
                 this.updateStatus();
             });
         this.state = 'IDLE';
-        await this.updateStatus();
+        await this.updateStatus(true);
         await this.scan();
     }
 
@@ -96,10 +96,10 @@ class Scanner {
             return false;
         }
         this.state = 'CACHING';
-        this.updateStatus();
+        this.updateStatus(true);
         try {
-            await Cache.runCache(async() => {
-                this.cacheStatus = await this.getCacheStatus();
+            await Cache.runCache(async(data) => {
+                this.cacheStatus.converter = data;
                 this.updateStatus();
             });
         } catch (err) {
@@ -107,7 +107,7 @@ class Scanner {
             throw err;
         }
         this.state = 'IDLE';
-        this.updateStatus();
+        this.updateStatus(true);
     }
 
     async getCacheStatus() {
@@ -141,8 +141,10 @@ class Scanner {
         return status;
     }
 
-    async updateStatus() {
-        this.cacheStatus = await this.getCacheStatus();
+    async updateStatus(update) {
+        if (update) {
+            this.cacheStatus = await this.getCacheStatus();
+        }
         if (this.callback) {
             this.callback(this.getStatus());
         }
