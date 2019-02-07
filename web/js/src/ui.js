@@ -14,11 +14,18 @@ class UI {
                 nativeControlsForTouch: true,
                 hls: {
                     enableLowInitialPlaylist: true,
-                    seekDeadline: 0.5,
+                    // Android doesn't handle quality selection well.
+                    overrideNative: true,
                 }
             }
         });
-        this.player.qualityLevels();
+        const qualityLevels = this.player.qualityLevels();
+        qualityLevels.on('addqualitylevel', (event) => {
+            const qualityLevel = event.qualityLevel;
+            // Disable everything above 480p on mobile.
+            qualityLevel.enabled = !Utils.isMobile() || qualityLevel.height <= 480;
+        });
+
         document.getElementById('videoPanel').style.display = 'none';
 
         document.getElementById('imagePanel').onload = Utils.hideLoadingModal;

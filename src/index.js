@@ -16,14 +16,14 @@ const ActorRouter = require('./routes/actors');
 
 App.use(Compression({level: 9}));
 App.use(BodyParser.json());
-App.use(Utils.authConnector);
+//App.use(Utils.authConnector);
 
 App.use('/api/scanner', ScannerRouter.router);
 App.use('/api/images', ImageRouter.router);
 App.use('/api/tags', TagRouter.router);
 App.use('/api/actors', ActorRouter.router);
 
-App.get('/web/:file(*)', Utils.wrap(async(req, res) => {
+App.get('/web/:file(*)', Utils.authConnector, Utils.wrap(async(req, res) => {
     try {
         const absPath = Path.resolve(Path.dirname(require.main.filename), '..', 'web', req.params.file);
         const webPath = Path.resolve(Path.dirname(require.main.filename), '..', 'web');
