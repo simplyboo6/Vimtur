@@ -7,27 +7,20 @@ class UI {
         this.type = 'still';
         this.touchStart = 0;
         this.touchEnd = 0;
+        this.hls = new Hls();
 
-        this.player = videojs('videoPanel', {
-            responsive: true,
-            html5: {
-                nativeControlsForTouch: true,
-                hls: {
-                    enableLowInitialPlaylist: true,
-                    // Android doesn't handle quality selection well.
-                    overrideNative: true,
-                }
-            }
+        const player = document.getElementById('videoPanel');
+
+        // Force a quality drop when seeking to a new part of the video for quicker seeks.
+        player.addEventListener('seeking', (target, type, bubbles) => {
+            console.log('Seeking - Forcing to level 0');
+            // Only has in effect if the segment isn't already loaded.
+            this.hls.nextLoadLevel = 0;
         });
-        const qualityLevels = this.player.qualityLevels();
-        qualityLevels.on('addqualitylevel', (event) => {
-            const qualityLevel = event.qualityLevel;
-            // Disable everything above 480p on mobile.
-            qualityLevel.enabled = !Utils.isMobile() || qualityLevel.height <= 480;
-        });
+
+        this.hls.attachMedia(player);
 
         document.getElementById('videoPanel').style.display = 'none';
-
         document.getElementById('imagePanel').onload = Utils.hideLoadingModal;
 
         this.touchBegin = this.touchBegin.bind(this);
@@ -35,14 +28,47 @@ class UI {
         this.resize = this.resize.bind(this);
     }
 
-    setVideo(url) {
-        this.player.src({
-            src: url,
-            type: 'application/x-mpegURL',
-            withAuthentication: true
+    setVideo(hash) {
+        const autoPlay = !Utils.isMobile() && AppData.isAutoplayEnabled();
+        const url = `/cache/${hash}/index.m3u8`;
+        const player = document.getElementById('videoPanel');
+        player.poster = autoPlay ? '#' : `/cache/thumbnails/${hash}.png`;
+
+        this.hls.detachMedia();
+        this.hls = new Hls({
+            autoStartLoad: false,
+            capLevelToPlayerSize: true,
+            startLevel: 0
         });
-        if (typeof(this.player.hlsQualitySelector) === 'function') {
-            this.player.hlsQualitySelector();
+        this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (autoPlay) {
+                player.play();
+            }
+            Utils.hideLoadingModal();
+
+            const levels = this.hls.levels.map((el) => {
+                return `${el.height}p`;
+            });
+
+            console.log('Manifest parsed - Quality Levels', levels);
+        });
+
+        this.hls.on(Hls.Events.LEVEL_SWITCHING, (event, data) => {
+            console.log(`Quality level switching to: ${data.height}p`);
+        });
+
+        this.hls.attachMedia(player);
+
+        this.hls.loadSource(url);
+        if (autoPlay) {
+            this.hls.startLoad();
+        } else {
+            const hls = this.hls;
+            function loadListener() {
+                hls.startLoad();
+                player.removeEventListener('play', loadListener);
+            }
+            player.addEventListener('play', loadListener);
         }
     }
 
@@ -52,8 +78,10 @@ class UI {
         let type = image.type;
 
         imagePanel.src = '#';
-        this.player.pause();
-        this.player.poster('#');
+        videoPanel.poster = '#';
+        if (!videoPanel.paused) {
+            videoPanel.pause();
+        }
 
         if (this.type != type) {
             videoPanel.style.display = 'none';
@@ -61,20 +89,20 @@ class UI {
         }
 
         if (type == 'video') {
-            const autoplay = !Utils.isMobile() && AppData.isAutoplayEnabled();
-            this.player.autoplay(autoplay);
-
             videoPanel.style.display = 'block';
-            // Only show the poster if not autoplay. If it's enabled then it'll only flash
-            // for a moment and that looks weird. (Assuming a reasonable connection)
-            if (!autoplay) {
-                this.player.poster(`/cache/thumbnails/${AppData.currentImage.hash}.png`);
-            }
-            this.setVideo(`/cache/${AppData.currentImage.hash}/index.m3u8`);
+            this.setVideo(AppData.currentImage.hash);
         } else if (type == 'gif' || type == 'still') {
+            // A bug in Firefox seems to be preventing the rendering when
+            // loading is complete only when src is updated. This can be worked
+            // around by replacing the node.
+            const clone = imagePanel.cloneNode(true);
+            const parent = imagePanel.parentNode;
+            parent.removeChild(imagePanel);
+            parent.appendChild(clone);
+
             Utils.showLoadingModal();
-            imagePanel.style.display = 'block';
-            imagePanel.src = `/api/images/${AppData.currentImage.hash}/file`;
+            clone.style.display = 'block';
+            clone.src = `/api/images/${AppData.currentImage.hash}/file`;
         }
         this.type = type;
     }

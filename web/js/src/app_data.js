@@ -100,7 +100,7 @@ class AppData {
                 throw new Error('Hash not defined');
             }
         } catch (err) {
-            await this.getSubset({ type: ['still'] }, { preserve: false, noUpdate: true });
+            await this.getSubset({ type: ['video'] }, { preserve: false, noUpdate: true });
             if (this.imageSet.map.length == 0) {
                 await this.getSubset({}, { preserve: false, noUpdate: true });
             }
