@@ -12,7 +12,7 @@ class UI {
         const player = document.getElementById('videoPanel');
 
         // Force a quality drop when seeking to a new part of the video for quicker seeks.
-        player.addEventListener('seeking', (target, type, bubbles) => {
+        player.addEventListener('seeking', () => {
             console.log('Seeking - Forcing to level 0');
             // Only has in effect if the segment isn't already loaded.
             this.hls.nextLoadLevel = 0;
