@@ -107,6 +107,10 @@ export async function search() {
         constraints.none = '*';
     }
 
+    if (document.getElementById('sortByHashDate').checked) {
+        constraints.sortBy = 'hashDate';
+    }
+
     if (document.getElementById('typeFilterVideo').checked) {
         constraints.type.push('video');
     }
@@ -342,6 +346,22 @@ export async function stateCheckboxClick() {
         await AppData.saveConfig({ stateEnabled: checked });
         await AppData.updateState();
     }, 'Unable to save autoplay settings');
+}
+
+export async function enableLowQualityOnLoadClick() {
+    const checked = $('#enableLowQualityOnLoad').is(':checked');
+    await Utils.err(async () => {
+        await AppData.saveConfig({ lowQualityOnLoadEnabled: checked });
+        await AppData.updateState();
+    }, 'Unable to save quality on seek settings');
+}
+
+export async function enableLowQualityOnLoadForMobileClick() {
+    const checked = $('#enableLowQualityOnLoadForMobile').is(':checked');
+    await Utils.err(async () => {
+        await AppData.saveConfig({ lowQualityOnLoadEnabledForMobile: checked });
+        await AppData.updateState();
+    }, 'Unable to save quality on seek settings');
 }
 
 export function toggleTags(state) {

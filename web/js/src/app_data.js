@@ -140,6 +140,16 @@ class AppData {
             this.config.stateEnabled;
     }
 
+    isLowQualityOnLoadEnabled() {
+        const configSetting = this.config && this.config.lowQualityOnLoadEnabled;
+        return configSetting !== undefined ? configSetting : false;
+    }
+
+    isLowQualityOnLoadEnabledForMobile() {
+        const configSetting = this.config && this.config.lowQualityOnLoadEnabledForMobile;
+        return configSetting !== undefined ? configSetting : true;
+    }
+
     getMap() {
         if (this.imageSet.shuffleMap) {
             return this.imageSet.shuffleMap;

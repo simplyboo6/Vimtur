@@ -10,14 +10,6 @@ class UI {
         this.hls = new Hls();
 
         const player = document.getElementById('videoPanel');
-
-        // Force a quality drop when seeking to a new part of the video for quicker seeks.
-        player.addEventListener('seeking', () => {
-            console.log('Seeking - Forcing to level 0');
-            // Only has in effect if the segment isn't already loaded.
-            this.hls.nextLoadLevel = 0;
-        });
-
         this.hls.attachMedia(player);
 
         document.getElementById('videoPanel').style.display = 'none';
@@ -28,6 +20,19 @@ class UI {
         this.resize = this.resize.bind(this);
     }
 
+    setupVideoQuality() {
+        const player = document.getElementById('videoPanel');
+        // Force a quality drop when seeking to a new part of the video for quicker seeks.
+        const lowQualityOnSeek = Utils.isMobile() ? AppData.isLowQualityOnLoadEnabledForMobile() : AppData.isLowQualityOnLoadEnabled();
+        if (lowQualityOnSeek) {
+            player.addEventListener('seeking', () => {
+                console.log('Seeking - Forcing to level 0');
+                // Only has in effect if the segment isn't already loaded.
+                this.hls.nextLoadLevel = 0;
+            });
+        }
+    }
+
     setVideo(hash) {
         const autoPlay = !Utils.isMobile() && AppData.isAutoplayEnabled();
         const url = `/cache/${hash}/index.m3u8`;
@@ -35,11 +40,15 @@ class UI {
         player.poster = autoPlay ? '#' : `/cache/thumbnails/${hash}.png`;
 
         this.hls.detachMedia();
-        this.hls = new Hls({
+        const lowQualityOnSeek = Utils.isMobile() ? AppData.isLowQualityOnLoadEnabledForMobile() : AppData.isLowQualityOnLoadEnabled();
+        const options = {
             autoStartLoad: false,
-            capLevelToPlayerSize: true,
-            startLevel: 0
-        });
+            capLevelToPlayerSize: true
+        };
+        if (lowQualityOnSeek) {
+            options.startLevel = 0;
+        }
+        this.hls = new Hls(options);
         this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
             if (autoPlay) {
                 player.play();
@@ -411,8 +420,11 @@ class Gallery {
 
     $('#autoplayCheckbox').prop('checked', AppData.isAutoplayEnabled());
     $('#stateCheckbox').prop('checked', AppData.isStateEnabled());
+    $('#enableLowQualityOnLoad').prop('checked', AppData.isLowQualityOnLoadEnabled());
+    $('#enableLowQualityOnLoadForMobile').prop('checked', AppData.isLowQualityOnLoadEnabledForMobile());
 
     ui.resize();
+    ui.setupVideoQuality();
     Utils.hideLoadingModal();
 
     if (AppData.imageSet.map.length == 0) {

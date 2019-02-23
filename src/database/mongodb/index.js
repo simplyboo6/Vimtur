@@ -65,6 +65,10 @@ class MongoConnector {
         await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))(
             { hash: 1 }, { unique: true }
         );
+
+        await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))(
+            { hashDate: 1 }, { unique: false }
+        );
     }
 
     async getUserConfig() {
@@ -305,6 +309,16 @@ class MongoConnector {
                 // After sorting by score put the highest rated after.
                 rating: -1
             });
+        } else if (constraints.sortBy) {
+            switch (constraints.sortBy) {
+                case 'hashDate':
+                    queryResult = queryResult.sort({
+                        hashDate: 1
+                    });
+                    break;
+                default:
+                    throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
+            }
         }
         const result = await Util.promisify(queryResult.toArray.bind(queryResult))();
 

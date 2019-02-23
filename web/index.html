@@ -249,6 +249,13 @@
                                         <label class="form-check-label" for="searchNoneSelectAll">Untagged media</label>
                                     </div>
                                 </div>
+                                <div class="form-group">
+                                    <label>Sort By</label>
+                                    <div class="form-check" title="Selecting this will select any media that has been tagged.">
+                                        <input type="checkbox" class="form-check-input" id="sortByHashDate" />
+                                        <label class="form-check-label" for="sortByHashDate">Date Added</label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <h3>All</h3>
@@ -322,6 +329,18 @@
                             <input class="form-check-input" type="checkbox" value="" id="stateCheckbox" onclick="stateCheckboxClick()">
                             <label class="form-check-label" for="stateCheckbox">
                                 Update state to URL?
+                            </label>
+                        </div>
+                        <div class="form-check" title="Enabling this will cause videos to initally start on low quality and switch to low quality on seek for desktop browsers.">
+                            <input class="form-check-input" type="checkbox" value="" id="enableLowQualityOnLoad" onclick="enableLowQualityOnLoadClick()">
+                            <label class="form-check-label" for="enableLowQualityOnLoad">
+                                Enable lowering quality on seek and initial load for desktop browsers?
+                            </label>
+                        </div>
+                        <div class="form-check" title="Enabling this will cause videos to initally start on low quality and switch to low quality on seek for mobile browsers.">
+                            <input class="form-check-input" type="checkbox" value="" id="enableLowQualityOnLoadForMobile" onclick="enableLowQualityOnLoadForMobileClick()">
+                            <label class="form-check-label" for="enableLowQualityOnLoadForMobile">
+                                Enable lowering quality on seek and initial load for mobile browsers?
                             </label>
                         </div>
                     </div>
