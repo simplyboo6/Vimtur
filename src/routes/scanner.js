@@ -1,59 +1,98 @@
 const Express = require('express');
-const Scanner = require('../scanner');
-const Utils = require('../utils');
+const Cache = require('../cache');
 
-const router = Express.Router();
-const scanner = new Scanner((status) => {
-    if (global.io) {
-        global.io.sockets.emit('scanStatus', status);
+async function setup(database, config, io) {
+    function stripStatus(status) {
+        if (!status.scanResults) {
+            return status;
+        }
+        const clone = Object.assign({}, status);
+        clone.scanResults = Object.assign({}, clone.scanResults);
+        clone.scanResults.newPaths = clone.scanResults.newPaths.length;
+
+        return clone;
     }
-});
 
-router.get('/status', (req, res) => {
-    res.json(scanner.getStatus(req.query.verbose));
-});
+    const cache = new Cache(database, config, (status) => {
+        io.sockets.emit('scanStatus', stripStatus(status));
+    });
 
-router.get('/index', (req, res) => {
-    let deleteClones = false;
-    if (req.query.deleteClones && req.query.deleteClones == 'true') {
-        deleteClones = true;
+    function getStatus() {
+        return stripStatus(cache.getStatus());
     }
-    scanner.index(deleteClones);
-    res.json(scanner.getStatus());
-});
 
-router.get('/scan', (req, res) => {
-    scanner.scan();
-    res.json(scanner.getStatus());
-});
+    io.on('connection', (socket) => {
+        socket.emit('scanStatus', getStatus());
+    });
 
-router.get('/cache', (req, res) => {
-    scanner.cache();
-    res.json(scanner.getStatus());
-});
+    const router = Express.Router();
 
-router.get('/import', (req, res) => {
-    let deleteClones = false;
-    if (req.query.deleteClones && req.query.deleteClones == 'true') {
-        deleteClones = true;
-    }
-    (async function() {
-        await scanner.scan();
-        await scanner.index(deleteClones);
-        await scanner.cache();
-    })();
-    res.json(scanner.getStatus());
-});
+    router.get('/status', (req, res) => {
+        res.json(getStatus());
+    });
 
-router.get('/deleteMissing', Utils.wrap(async(req, res) => {
-    await scanner.deleteMissing();
-    await scanner.scan();
-    res.json(scanner.getStatus());
-}));
+    router.post('/scan', (req, res) => {
+        (async () => {
+            try {
+                await cache.scan();
+            } catch (err) {
+                console.error('Error during scan.', err);
+            }
+        })();
+        res.json(getStatus());
+    });
 
-router.get('/deleteCorrupted', Utils.wrap(async(req, res) => {
-    await scanner.deleteCorrupted();
-    res.json(scanner.getStatus());
-}));
+    router.post('/index', (req, res) => {
+        (async () => {
+            try {
+                await cache.index();
+            } catch (err) {
+                console.error('Error during index.', err);
+            }
+        })();
+        // TODO Log list of clones.
+        res.json(getStatus());
+    });
 
-module.exports = { router, scanner };
+    // TODO Add endpoint for deleting clones.
+
+    router.post('/cache', (req, res) => {
+        (async () => {
+            try {
+                await cache.cache();
+            } catch (err) {
+                console.error('Error during cache.', err);
+            }
+        })();
+        res.json(getStatus());
+    });
+
+    router.post('/thumbnails', (req, res) => {
+        (async () => {
+            try {
+                await cache.thumbnails();
+            } catch (err) {
+                console.error('Error during thumbnail generation.', err);
+            }
+        })();
+        res.json(getStatus());
+    });
+
+    router.post('/import', (req, res) => {
+        (async () => {
+            try {
+                await cache.scan();
+                await cache.index();
+                await cache.thumbnails();
+                await cache.cache();
+            } catch (err) {
+                console.error('Error during full import.', err);
+            }
+        })();
+        res.json(getStatus());
+    });
+
+    return { router, cache };
+}
+
+module.exports = { setup };

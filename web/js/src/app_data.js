@@ -406,28 +406,28 @@ class AppData {
     }
 
     async importNew(deleteClones) {
-        await Utils.request(`/api/scanner/index${deleteClones ? '?deleteClones=true' : ''}`);
+        await Utils.post('/api/scanner/index');
     }
 
     async scan() {
-        await Utils.request('/api/scanner/scan');
+        await Utils.post('/api/scanner/scan');
     }
 
     async importAll(deleteClones) {
-        await Utils.request(`/api/scanner/import${deleteClones ? '?deleteClones=true' : ''}`);
+        await Utils.post(`/api/scanner/import${deleteClones ? '?deleteClones=true' : ''}`);
     }
 
     async deleteMissing() {
-        await Utils.request('/api/scanner/deleteMissing');
+        await Utils.post('/api/scanner/deleteMissing');
         await this.scan();
     }
 
     async runCache() {
-        await Utils.request('/api/scanner/cache');
+        await Utils.post('/api/scanner/cache');
     }
 
-    async rebuildIndex() {
-        await Utils.request('/api/search/rebuildIndex');
+    async generateThumbnails() {
+        await Utils.post('/api/scanner/thumbnails');
     }
 
     async saveConfig(config) {

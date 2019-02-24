@@ -18,7 +18,6 @@ App.use(Compression({level: 9}));
 App.use(BodyParser.json());
 //App.use(Utils.authConnector);
 
-App.use('/api/scanner', ScannerRouter.router);
 App.use('/api/images', ImageRouter.router);
 App.use('/api/tags', TagRouter.router);
 App.use('/api/actors', ActorRouter.router);
@@ -94,13 +93,11 @@ async function setup() {
     global.server = Server.createServer(App);
     global.io = IO.listen(global.server);
 
-    global.io.on('connection', (socket) => {
-        socket.emit('scanStatus', ScannerRouter.scanner.getStatus());
-    });
-
     await listen(Utils.config.port);
 
-    await ScannerRouter.scanner.scan();
+    const scannerRouter = await ScannerRouter.setup(global.db, Utils.config, global.io);
+    App.use('/api/scanner', scannerRouter.router);
+    scannerRouter.cache.scan();
 }
 
 exports.config = Utils.config;

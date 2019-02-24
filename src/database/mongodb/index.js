@@ -51,6 +51,7 @@ class MongoConnector {
             'metadata.title': 'text'
         },
         {
+            'name': 'keyword_index',
             'weights': {
                 'path': 1,
                 'type': 4,
@@ -156,13 +157,11 @@ class MongoConnector {
     }
 
     async getMedia(hash) {
-        console.time(`getMedia: ${hash}`);
         const media = this.db.collection('media');
         const result = await Util.promisify(media.findOne.bind(media))({ hash });
         if (result) {
             result.absolutePath = Path.resolve(this.config.libraryPath, result.path);
         }
-        console.timeEnd(`getMedia: ${hash}`);
         return result;
     }
 
@@ -231,14 +230,10 @@ class MongoConnector {
             if (Array.isArray(constraints.quality.all)) {
                 query['metadata.qualityCache'] = { $all: constraints.quality.all };
             }
-            if (constraints.quality.any === '*') {
-                query['metadata.qualityCache.0'] = { $exists: true };
-            } else if (Array.isArray(constraints.quality.any)) {
+            if (Array.isArray(constraints.quality.any)) {
                 query['metadata.qualityCache'] = { $in: constraints.quality.all };
             }
-            if (constraints.quality.none === '*') {
-                query['metadata.qualityCache.0'] = { $exists: false };
-            } else if (Array.isArray(constraints.quality.none)) {
+            if (Array.isArray(constraints.quality.none)) {
                 query['metadata.qualityCache'] = { $nin: constraints.quality.all };
             }
         }
@@ -289,8 +284,16 @@ class MongoConnector {
             }
         }
 
+        if (constraints.thumbnail !== undefined) {
+            if (constraints.thumbnail) {
+                query['thumbnail'] = true;
+            } else {
+                query['thumbnail'] = { $in: [ null, false ] };
+            }
+        }
+
         if (constraints.cached !== undefined) {
-            query['metadata'] = { $exists: constraints.cached };
+            query['metadata.qualityCache.0'] = { $exists: constraints.cached };
         }
 
         let queryResult = mediaCollection.find(query).project(Object.assign({

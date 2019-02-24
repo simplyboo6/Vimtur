@@ -208,6 +208,7 @@ export function isMobile() {
 }
 
 export function formatScannerStatus(data) {
+    console.log('formatScannerStatus', data);
     let scanStatus = '';
     if (data.time != undefined) {
         const date = new Date();
@@ -224,42 +225,20 @@ export function formatScannerStatus(data) {
 }
 
 export function formatAdminStatus(appData) {
-    let result = `Library Path: ${appData.libraryPath}\nState: ${appData.state}\n\n`;
+    let result = `State: ${appData.state}\n`;
+    result += `Progress: ${appData.progress.current}/${appData.progress.max}\n\n`;
 
-    if (appData.scanStatus != undefined) {
-        result += formatScannerStatus(appData.scanStatus) + '\n\n';
-    }
-
-    result += 'Indexing Status: ';
-    if (appData.state == 'INDEXING' && appData.importStatus) {
-        result += 'Running.\n';
-        if (appData.importStatus.current != undefined) {
-            result += 'Processing ' + appData.importStatus.current + '/' + appData.importStatus.max + '.\n';
-        }
-    } else {
-        result += 'Not running.\n';
-    }
-    result += '\n';
-
-    if (appData.cacheStatus) {
-        result += `Videos cached: ${appData.cacheStatus.cached}/${appData.cacheStatus.max}\n`;
-        result += `Videos marked as corrupted: ${appData.cacheStatus.corrupted}\n`;
-        if (appData.cacheStatus.converter) {
-            if (appData.cacheStatus.converter.state) {
-                result += `Cache state: ${appData.cacheStatus.converter.state}\n`;
-            }
-            if (appData.cacheStatus.converter.max) {
-                result += `Progress: ${appData.cacheStatus.converter.progress} / ${appData.cacheStatus.converter.max}\n`;
-            }
-            if (appData.cacheStatus.converter.corrupted) {
-                result += 'Corrupted files:\n';
-                for (let i = 0; i < appData.cacheStatus.converter.corrupted.length; i++) {
-                    result += `${appData.cacheStatus.converter.corrupted[i].path}\n`;
-                }
+    if (appData.scanResults) {
+        result += `New files: ${appData.scanResults.newPaths}\n`;
+        if (appData.scanResults.missingPaths.length) {
+            for (const path of appData.scanResults.missingPaths) {
+                result += `${path}\n`;
             }
         }
     }
-    result += '\n';
+
+    // TODO Perhaps display corrupted files.
+
     return result;
 }
 
@@ -302,6 +281,7 @@ export async function request(url) {
 }
 
 export async function post(url, data) {
+    data = data || {};
     return new Promise((resolve, reject) => {
         const xhttp = new XMLHttpRequest();
         xhttp.onload = function() {

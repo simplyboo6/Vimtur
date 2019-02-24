@@ -231,9 +231,8 @@ export async function runScan() {
 }
 
 export async function importNew() {
-    const deleteClonesElement = document.getElementById('importDeleteClones');
     await Utils.err(async () => {
-        await AppData.importNew(deleteClonesElement.checked);
+        await AppData.importNew();
     }, 'Error starting import');
 }
 
@@ -254,6 +253,12 @@ export async function runCache() {
     await Utils.err(async () => {
         await AppData.runCache();
     }, 'Error starting caching');
+}
+
+export async function generateThumbnails() {
+    await Utils.err(async () => {
+        await AppData.generateThumbnails();
+    }, 'Error starting thumbnail generation');
 }
 
 export async function applyMetadata(type, multi) {
