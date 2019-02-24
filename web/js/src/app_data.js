@@ -405,7 +405,7 @@ class AppData {
         }
     }
 
-    async importNew(deleteClones) {
+    async importNew() {
         await Utils.post('/api/scanner/index');
     }
 
@@ -413,8 +413,8 @@ class AppData {
         await Utils.post('/api/scanner/scan');
     }
 
-    async importAll(deleteClones) {
-        await Utils.post(`/api/scanner/import${deleteClones ? '?deleteClones=true' : ''}`);
+    async importAll() {
+        await Utils.post('/api/scanner/import');
     }
 
     async deleteMissing() {
