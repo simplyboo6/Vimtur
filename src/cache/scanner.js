@@ -24,18 +24,32 @@ class Scanner {
         });
     }
 
+    static arrayAsMap(arr) {
+        const result = {};
+        for (const el of arr) {
+            result[el] = el;
+        }
+        return result;
+    }
+
     static filterNewAndMissing(databasePaths, fileList) {
         const results = {
             newPaths: [],
             missingPaths: []
         };
+
+        // These need to be maps because otherwise the duplication check
+        // takes a bloody long time.
+        const databasePathsMap = Scanner.arrayAsMap(databasePaths);
+        const fileListMap = Scanner.arrayAsMap(fileList);
+
         for (const file of fileList) {
-            if (!databasePaths.includes(file)) {
+            if (!databasePathsMap[file]) {
                 results.newPaths.push(file);
             }
         }
         for (const file of databasePaths) {
-            if (!fileList.includes(file)) {
+            if (!fileListMap[file]) {
                 results.missingPaths.include(file);
             }
         }

@@ -97,6 +97,8 @@ async function setup() {
 
     const scannerRouter = await ScannerRouter.setup(global.db, Utils.config, global.io);
     App.use('/api/scanner', scannerRouter.router);
+    const redundantCacheMap = await scannerRouter.cache.findRedundantCaches();
+    console.log(`${Object.keys(redundantCacheMap).length} media found with redundant caches.`);
     scannerRouter.cache.scan();
 }
 

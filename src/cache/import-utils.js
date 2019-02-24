@@ -75,10 +75,10 @@ class ImportUtils {
 
         const output = [];
         for (const quality of intermediate) {
-            if (output.indexOf(quality) < 0) {
+            if (!output.find((el) => el.quality === quality)) {
                 output.push({
                     quality: quality,
-                    copy: quality == sourceHeight && maxCopy
+                    copy: quality === sourceHeight && maxCopy
                 });
             }
         }
@@ -144,6 +144,19 @@ class ImportUtils {
             data = data + `\n${quality}p/index.m3u8`;
         }
         return data;
+    }
+
+    static getRedundanctCaches(desiredCachesInput, actualCaches) {
+        const desiredCaches = desiredCachesInput.map((el) => {
+            return el.quality;
+        });
+        const redundant = [];
+        for (const quality of actualCaches) {
+            if (!desiredCaches.includes(quality) && !redundant.includes(quality)) {
+                redundant.push(quality);
+            }
+        }
+        return redundant;
     }
 }
 

@@ -1,6 +1,7 @@
 const Scanner = require('./scanner');
 const Indexer = require('./indexer');
 const Transcoder = require('./transcoder');
+const ImportUtils = require('./import-utils');
 
 class Importer {
     constructor(database, config, callback) {
@@ -153,6 +154,24 @@ class Importer {
             console.timeEnd('Cache Time');
             this.setState('IDLE');
         }
+    }
+
+    async findRedundantCaches() {
+        const redundantMap = {};
+        for (const hash of await this.database.subset({type: ['video'], corrupted: false})) {
+            const media = await this.database.getMedia(hash);
+            if (!media.metadata.qualityCache) {
+                continue;
+            }
+            const desiredCaches = ImportUtils.getMediaDesiredQualities(this.config.transcoder, media);
+            const actualCaches = media.metadata.qualityCache;
+
+            const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
+            if (redundant.length) {
+                redundantMap[hash] = redundant;
+            }
+        }
+        return redundantMap;
     }
 }
 

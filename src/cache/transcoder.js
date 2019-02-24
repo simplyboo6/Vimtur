@@ -1,6 +1,7 @@
 const ImportUtils = require('./import-utils');
 const FS = require('fs');
 const Util = require('util');
+const Rimraf = require('rimraf');
 
 class Transcoder {
     constructor(libraryPath, cachePath, database, transcodeConfig) {
@@ -71,9 +72,37 @@ class Transcoder {
     }
 
     async transcodeMedia(media) {
-        await ImportUtils.mkdir(`${this.cachePath}/${media.hash}`);
-        for (const quality of ImportUtils.getMediaDesiredQualities(this.config, media)) {
-            await this.transcodeMediaToQuality(media, quality);
+        const desiredCaches = ImportUtils.getMediaDesiredQualities(this.config, media);
+        const actualCaches = media.metadata.qualityCache;
+        const missingQualities = [];
+        for (const quality of desiredCaches) {
+            if (!actualCaches.find((el) => quality.quality === el)) {
+                missingQualities.push(quality);
+            }
+        }
+
+        if (missingQualities.length) {
+            console.log(`${media.hash}: ${missingQualities.length} missing quality caches detected.`);
+            await ImportUtils.mkdir(`${this.cachePath}/${media.hash}`);
+            for (const quality of missingQualities) {
+                await this.transcodeMediaToQuality(media, quality);
+            }
+        }
+        // Find redundant caches.
+        const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
+        if (redundant.length) {
+            console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
+            for (const quality of redundant) {
+                console.log(`${media.hash}: Removing quality ${quality}p...`);
+                await Util.promisify(Rimraf)(`${this.cachePath}/${media.hash}/${quality}p`);
+                media.metadata.qualityCache.splice(media.metadata.qualityCache.indexOf(quality), 1);
+            }
+            console.log(`${media.hash}: Writing index.m3u8...`);
+            await Util.promisify(FS.writeFile)(`${this.cachePath}/${media.hash}/index.m3u8`, ImportUtils.generatePlaylist(media));
+            console.log(`${media.hash}: Saving quality list...`);
+            await this.database.saveMedia(media.hash, {
+                'metadata.qualityCache': media.metadata.qualityCache
+            });
         }
     }
 
