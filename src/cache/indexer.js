@@ -20,8 +20,8 @@ class Indexer {
         };
         for (let i = 0; i < data.streams.length; i++) {
             if (data.streams[i].codec_type == 'video') {
-                metadata.width = data.streams[i].coded_width;
-                metadata.height = data.streams[i].coded_height;
+                metadata.width = data.streams[i].width || data.streams[i].coded_width;
+                metadata.height = data.streams[i].height || data.streams[i].coded_height;
                 metadata.codec = data.streams[i].codec_name;
                 break;
             }
