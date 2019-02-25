@@ -116,10 +116,11 @@ class Config {
         // Load the constant layers, all of these together should validate.
         // They may be overwritten at runtime though.
         const defaults = JSON.parse(FS.readFileSync(`${__dirname}/config.defaults.json`));
-        const environment = Config.getEnvironmentLayer();
         const userConfig = Config.getUserLayer();
+        const environment = Config.getEnvironmentLayer();
         const config = new Config(schema);
-        config.setLayers([defaults, environment, userConfig]);
+        // Order matters, userConfig over-writes default and environment over-writes userConfig.
+        config.setLayers([defaults, userConfig, environment]);
 
         return config;
     }
