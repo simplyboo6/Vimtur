@@ -9,20 +9,22 @@ const Path = require('path');
 Args.option('config', 'The config file to to overlay');
 
 function mapEnv(env, obj, dest) {
+    const path = dest.split('.');
     if (process.env[env]) {
         console.log(`Using ${process.env[env]} from ${env}`);
         let node = obj;
-        for (let i = 0; i < dest.length - 1; i++) {
-            obj[dest] = process.env[env];
-            if (!node[dest[i]]) {
-                node[dest[i]] = {};
+        for (let i = 0; i < path.length - 1; i++) {
+            if (!node[path[i]]) {
+                node[path[i]] = {};
             }
-            node = node[dest[i]];
+            node = node[path[i]];
         }
-        node[dest[dest.length - 1]] = process.env[env];
-        if (!isNaN(node[dest[dest.length - 1]])) {
-            node[dest[dest.length - 1]] = parseInt(node[dest[dest.length - 1]]);
+
+        let value = process.env[env];
+        if (!isNaN(value)) {
+            value = Number(value);
         }
+        node[path[path.length - 1]] = value;
     }
 }
 
@@ -84,19 +86,19 @@ class Config {
     static getEnvironmentLayer() {
         const config = {};
         // General config
-        mapEnv('PORT', config, ['port']);
-        mapEnv('DATA_PATH', config, ['libraryPath']);
-        mapEnv('CACHE_PATH', config, ['cachePath']);
-        mapEnv('USERNAME', config, ['username']);
-        mapEnv('PASSWORD', config, ['password']);
+        mapEnv('PORT', config, 'port');
+        mapEnv('DATA_PATH', config, 'libraryPath');
+        mapEnv('CACHE_PATH', config, 'cachePath');
+        mapEnv('USERNAME', config, 'username');
+        mapEnv('PASSWORD', config, 'password');
         // Database mapping
-        mapEnv('DATABASE', config, ['database', 'provider']);
+        mapEnv('DATABASE', config, 'database.provider');
         // Common database configuration options.
-        mapEnv('DATABASE_HOST', config, ['database', 'host']);
-        mapEnv('DATABASE_DATABASE', config, ['database', 'database']);
-        mapEnv('DATABASE_USERNAME', config, ['database', 'username']);
-        mapEnv('DATABASE_PASSWORD', config, ['database', 'password']);
-        mapEnv('DATABASE_PORT', config, ['database', 'port']);
+        mapEnv('DATABASE_HOST', config, 'database.host');
+        mapEnv('DATABASE_DATABASE', config, 'database.database');
+        mapEnv('DATABASE_USERNAME', config, 'database.username');
+        mapEnv('DATABASE_PASSWORD', config, 'database.password');
+        mapEnv('DATABASE_PORT', config, 'database.port');
 
         return config;
     }
