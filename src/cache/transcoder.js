@@ -16,16 +16,13 @@ class Transcoder {
         await ImportUtils.mkdir(`${this.cachePath}/thumbnails`);
 
         const path = `${this.cachePath}/thumbnails/${media.hash}.png`;
-        const exists = await ImportUtils.exists(path);
-        if (!exists) {
-            const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
-            if (media.type === 'video') {
-                args.push('-ss');
-                const offset = Math.ceil(media.metadata.length / 4);
-                args.push(`00:00:${(offset >= 60) ? 59 : offset.toFixed(2)}`);
-            }
-            await ImportUtils.transcode(media.absolutePath, path, args);
+        const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
+        if (media.type === 'video') {
+            args.push('-ss');
+            const offset = Math.ceil(media.metadata.length / 4);
+            args.push(`00:00:${(offset >= 60) ? 59 : offset.toFixed(2)}`);
         }
+        await ImportUtils.transcode(media.absolutePath, path, args);
     }
 
     async transcodeMediaToQuality(media, requestedQuality) {
