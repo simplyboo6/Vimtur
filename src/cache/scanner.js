@@ -43,16 +43,25 @@ class Scanner {
         const databasePathsMap = Scanner.arrayAsMap(databasePaths);
         const fileListMap = Scanner.arrayAsMap(fileList);
 
+        // Throw some waits throughout here because this is quite intensive and blocking.
+        await ImportUtils.wait()
+
         for (const file of fileList) {
             if (!databasePathsMap[file]) {
                 results.newPaths.push(file);
             }
         }
+
+        await ImportUtils.wait()
+
         for (const file of databasePaths) {
             if (!fileListMap[file]) {
                 results.missingPaths.include(file);
             }
         }
+
+        await ImportUtils.wait()
+
         return results;
     }
 }

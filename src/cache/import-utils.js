@@ -158,6 +158,10 @@ class ImportUtils {
         }
         return redundant;
     }
+
+    static async wait() {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
 }
 
 module.exports = ImportUtils;
