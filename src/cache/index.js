@@ -63,7 +63,7 @@ class Importer {
             for (const media of mediaList) {
                 normalisedPaths.push(media.path);
             }
-            this.status.scanResults = Scanner.filterNewAndMissing(normalisedPaths, files);
+            this.status.scanResults = await Scanner.filterNewAndMissing(normalisedPaths, files);
         } catch (err) {
             console.error('Error scanning library.', err);
             throw err;

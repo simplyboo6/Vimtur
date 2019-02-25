@@ -32,7 +32,7 @@ class Scanner {
         return result;
     }
 
-    static filterNewAndMissing(databasePaths, fileList) {
+    static async filterNewAndMissing(databasePaths, fileList) {
         const results = {
             newPaths: [],
             missingPaths: []
@@ -44,7 +44,7 @@ class Scanner {
         const fileListMap = Scanner.arrayAsMap(fileList);
 
         // Throw some waits throughout here because this is quite intensive and blocking.
-        await ImportUtils.wait()
+        await ImportUtils.wait();
 
         for (const file of fileList) {
             if (!databasePathsMap[file]) {
@@ -52,7 +52,7 @@ class Scanner {
             }
         }
 
-        await ImportUtils.wait()
+        await ImportUtils.wait();
 
         for (const file of databasePaths) {
             if (!fileListMap[file]) {
@@ -60,7 +60,7 @@ class Scanner {
             }
         }
 
-        await ImportUtils.wait()
+        await ImportUtils.wait();
 
         return results;
     }
