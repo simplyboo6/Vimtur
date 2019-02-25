@@ -78,6 +78,9 @@ class MongoConnector {
         if (!row) {
             return {};
         }
+        // The project doesn't seem to remove _id so do it manually.
+
+        delete row['_id'];
         return row;
     }
 

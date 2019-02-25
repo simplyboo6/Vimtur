@@ -58,7 +58,7 @@ App.get('/api/config', (req, res) => {
 });
 
 App.post('/api/config', Utils.wrap(async(req, res) => {
-    console.log('Saving user config', req.body);
+    console.log('Saving user config');
     // Because the new config overrides the existing one when saved
     // they must be merged first to preserve properties.
     const merged = DeepMerge.all([await global.db.getUserConfig(), req.body]);

@@ -1,6 +1,7 @@
 const Express = require('express');
 const Path = require('path');
-const Utils = require('../utils.js');
+const Config = require('../config');
+const Utils = require('../utils');
 
 const router = Express.Router();
 
@@ -47,7 +48,7 @@ router.post('/:hash', Utils.wrap(async(req, res) => {
 router.get('/:hash/file', Utils.wrap(async(req, res) => {
     const img = await global.db.getMedia(req.params.hash);
     if (img != undefined) {
-        res.sendFile(Path.resolve(Utils.config.libraryPath, img.path));
+        res.sendFile(Path.resolve(Config.get('libraryPath'), img.path));
     } else {
         res.status(404);
         res.type('txt').send('Not found');

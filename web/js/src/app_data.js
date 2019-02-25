@@ -423,7 +423,7 @@ class AppData {
     }
 
     async saveUserConfig(config) {
-        await saveConfig({
+        await this.saveConfig({
             user: config
         });
     }
