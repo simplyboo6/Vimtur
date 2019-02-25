@@ -10,11 +10,11 @@ services:
       - USERNAME
       - PASSWORD
       - DATABASE
-      - MONGO_HOST
-      - MONGO_DATABASE
-      - MONGO_USERNAME
-      - MONGO_PASSWORD
-      - MONGO_PORT
+      - DATABASE_HOST
+      - DATABASE_DATABASE
+      - DATABASE_USERNAME
+      - DATABASE_PASSWORD
+      - DATABASE_PORT
     volumes:
       - ${DATA_DIR}:/data/
       - ${CACHE_DIR}:/cache/
