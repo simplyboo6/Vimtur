@@ -1,6 +1,8 @@
-async function setup(config) {
-    const db = require(`./${config.database.provider}`);
-    return await db.setup(config);
+const Config = require('../config');
+
+async function setup() {
+    const db = require(`./${Config.get('database.provider')}`);
+    return await db.setup(Config.get());
 }
 
 module.exports = {

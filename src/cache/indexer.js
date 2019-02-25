@@ -2,14 +2,14 @@ const MD5File = require('md5-file');
 const Util = require('util');
 const FFMpeg = require('fluent-ffmpeg');
 const GM = require('gm');
-const ImportUtils = require('./import-utils');
 const Path = require('path');
+// Local
+const ImportUtils = require('./import-utils');
+const Config = require('../config');
 
 class Indexer {
-    constructor(database, libraryPath, cachePath) {
+    constructor(database) {
         this.database = database;
-        this.libraryPath = libraryPath;
-        this.cachePath = cachePath;
     }
 
     static async getVideoMetadata(absolutePath) {
@@ -47,7 +47,7 @@ class Indexer {
     }
 
     async generateMediaFromFile(file) {
-        const absolutePath = Path.resolve(this.libraryPath, file);
+        const absolutePath = Path.resolve(Config.get('libraryPath'), file);
         const type = ImportUtils.getType(file);
 
         const media = {

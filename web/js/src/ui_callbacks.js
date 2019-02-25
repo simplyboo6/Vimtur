@@ -322,7 +322,7 @@ export async function addTagColumn(save) {
     col.id = `listColumn${count}`;
     document.getElementById('tagColumnRow').appendChild(col);
     if (save) {
-        await AppData.saveConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
+        await AppData.saveUserConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
     }
     await AppData.fire('tags', true);
 }
@@ -334,21 +334,21 @@ export async function removeTagColumn() {
     const list = document.getElementById('tagColumnRow');
     const col = document.getElementById(`listColumn${Utils.getNumColumns('listColumn') - 1}`);
     list.removeChild(col);
-    await AppData.saveConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
+    await AppData.saveUserConfig({ tagColumnCount: Utils.getNumColumns('listColumn') });
     await AppData.fire('tags', true);
 }
 
 export async function autoplayCheckboxClick() {
     const checked = $('#autoplayCheckbox').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ autoplayEnabled: checked });
+        await AppData.saveUserConfig({ autoplayEnabled: checked });
     }, 'Unable to save autoplay settings');
 }
 
 export async function stateCheckboxClick() {
     const checked = $('#stateCheckbox').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ stateEnabled: checked });
+        await AppData.saveUserConfig({ stateEnabled: checked });
         await AppData.updateState();
     }, 'Unable to save autoplay settings');
 }
@@ -356,7 +356,7 @@ export async function stateCheckboxClick() {
 export async function enableLowQualityOnLoadClick() {
     const checked = $('#enableLowQualityOnLoad').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ lowQualityOnLoadEnabled: checked });
+        await AppData.saveUserConfig({ lowQualityOnLoadEnabled: checked });
         await AppData.updateState();
     }, 'Unable to save quality on seek settings');
 }
@@ -364,7 +364,7 @@ export async function enableLowQualityOnLoadClick() {
 export async function enableLowQualityOnLoadForMobileClick() {
     const checked = $('#enableLowQualityOnLoadForMobile').is(':checked');
     await Utils.err(async () => {
-        await AppData.saveConfig({ lowQualityOnLoadEnabledForMobile: checked });
+        await AppData.saveUserConfig({ lowQualityOnLoadEnabledForMobile: checked });
         await AppData.updateState();
     }, 'Unable to save quality on seek settings');
 }

@@ -1,7 +1,7 @@
 const Express = require('express');
 const Cache = require('../cache');
 
-async function setup(database, config, io) {
+async function setup(database, io) {
     function stripStatus(status) {
         if (!status.scanResults) {
             return status;
@@ -13,7 +13,7 @@ async function setup(database, config, io) {
         return clone;
     }
 
-    const cache = new Cache(database, config, (status) => {
+    const cache = new Cache(database, (status) => {
         io.sockets.emit('scanStatus', stripStatus(status));
     });
 

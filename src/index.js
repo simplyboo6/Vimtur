@@ -1,14 +1,20 @@
+// Modules
 const Path = require('path');
 const Express = require('express');
 const App = Express();
 const Server = require('http');
 const IO = require('socket.io');
-const Utils = require('./utils.js');
-const Database = require('./database');
 const Compression = require('compression');
 const PathIsInside = require('path-is-inside');
 const BodyParser = require('body-parser');
+const DeepMerge = require('deepmerge');
 
+// Local
+const Utils = require('./utils');
+const Config = require('./config');
+const Database = require('./database');
+
+// Routes
 const ScannerRouter = require('./routes/scanner');
 const ImageRouter = require('./routes/images');
 const TagRouter = require('./routes/tags');
@@ -37,8 +43,8 @@ App.get('/web/:file(*)', Utils.authConnector, Utils.wrap(async(req, res) => {
 
 App.get('/cache/:file(*)', Utils.wrap(async(req, res) => {
     try {
-        const absPath = Path.resolve(Utils.config.cachePath, req.params.file);
-        if (!PathIsInside(absPath, Path.resolve(Utils.config.cachePath))) {
+        const absPath = Path.resolve(Config.get('cachePath'), req.params.file);
+        if (!PathIsInside(absPath, Path.resolve(Config.get('cachePath')))) {
             throw new Error('File is not inside cache directory');
         }
         return res.sendFile(absPath);
@@ -47,13 +53,18 @@ App.get('/cache/:file(*)', Utils.wrap(async(req, res) => {
     }
 }));
 
-App.get('/api/config', Utils.wrap(async(req, res) => {
-    res.json(await global.db.getUserConfig());
-}));
+App.get('/api/config', (req, res) => {
+    res.json(Config.get());
+});
 
 App.post('/api/config', Utils.wrap(async(req, res) => {
-    await global.db.saveUserConfig(req.body);
-    res.json(await global.db.getUserConfig());
+    console.log('Saving user config', req.body);
+    // Because the new config overrides the existing one when saved
+    // they must be merged first to preserve properties.
+    const merged = DeepMerge.all([await global.db.getUserConfig(), req.body]);
+    Config.setLayers([merged]);
+    await global.db.saveUserConfig(merged);
+    res.json(Config.get());
 }));
 
 App.get('/', Utils.wrap(async(req, res) => {
@@ -72,41 +83,38 @@ async function listen(port) {
 }
 
 async function setup() {
-    console.log('Setting up config');
-    await Utils.setup();
-    try {
-        console.log('Validating config');
-        await Utils.validateConfig();
-    } catch (err) {
-        return console.log(`Config is invalid: ${err.message}`, err);
-    }
+    console.log('Setting up database');
+    global.db = await Database.setup();
 
-    try {
-        console.log('Setting up database');
-        global.db = await Database.setup(Utils.config);
-    } catch (err) {
-        console.log(err);
-        return process.exit(1);
-    }
+    console.log('Applying config overlay from database.');
+    const userConfigOverlay = await global.db.getUserConfig();
+    Config.setLayers([userConfigOverlay]);
+
     // Only setup the http server once the database is loaded.
-    console.log(`Setting up HTTP server on ${Utils.config.port}`);
+    console.log(`Setting up HTTP server on ${Config.get('port')}`);
     global.server = Server.createServer(App);
     global.io = IO.listen(global.server);
 
-    await listen(Utils.config.port);
+    await listen(Config.get('port'));
 
-    const scannerRouter = await ScannerRouter.setup(global.db, Utils.config, global.io);
+    const scannerRouter = await ScannerRouter.setup(global.db, global.io);
     App.use('/api/scanner', scannerRouter.router);
     const redundantCacheMap = await scannerRouter.cache.findRedundantCaches();
     console.log(`${Object.keys(redundantCacheMap).length} media found with redundant caches.`);
     scannerRouter.cache.scan();
 }
 
-exports.config = Utils.config;
 exports.setup = setup;
 
 if (require.main === module) {
-    setup();
+    (async() => {
+        try {
+            setup();
+        } catch (err) {
+            console.error(err);
+            process.exit(1);
+        }
+    })();
 }
 
 process.on('unhandledRejection', error => {

@@ -4,6 +4,9 @@ const FS = require('fs');
 const Rimraf = require('rimraf');
 const Path = require('path');
 
+// Local
+const Config = require('../config');
+
 class ImportUtils {
     static getType(filename) {
         const ext = Path.extname(filename || '').split('.');
@@ -29,35 +32,22 @@ class ImportUtils {
         }
     }
 
-    static isMaxCopyEnabled(config) {
-        if (config) {
-            return !!config.maxCopyEnabled;
-        }
-        // If the requested quality = the source quality and the source codec is h264 then
-        // copy the source video.
-        return true;
+    static isMaxCopyEnabled() {
+        return Config.get('transcoder.maxCopyEnabled');
     }
 
-    static getMinQualityForTranscode(config) {
-        if (config && !isNaN(config.minQuality)) {
-            return config.minQuality;
-        }
-        // If it's 480p or below then don't bother transcoding it.
-        return 480;
+    static getMinQualityForTranscode() {
+        return Config.get('transcoder.minQuality');
     }
 
-    static getTranscodeQualities(config) {
-        if (config && config.qualities) {
-            return config.qualities;
-        }
-        // A low quality version for small devices and a higher quality variant.
-        return [240, 1080];
+    static getTranscodeQualities() {
+        return Config.get('transcoder.qualities');
     }
 
-    static getMediaDesiredQualities(config, media) {
-        const qualities = ImportUtils.getTranscodeQualities(config);
-        const maxCopy = ImportUtils.isMaxCopyEnabled(config);
-        const minQualityForTranscode = ImportUtils.getMinQualityForTranscode(config);
+    static getMediaDesiredQualities(media) {
+        const qualities = ImportUtils.getTranscodeQualities();
+        const maxCopy = ImportUtils.isMaxCopyEnabled();
+        const minQualityForTranscode = ImportUtils.getMinQualityForTranscode();
         const sourceHeight = media.metadata.height;
 
         const intermediate = [];

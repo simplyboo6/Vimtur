@@ -1,0 +1,56 @@
+{
+    "type": "object",
+    "properties": {
+        "port": { "type": "number" },
+        "libraryPath": { "type": "string" },
+        "cachePath": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "database": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "provider": { "type": "string", "enum": ["mongodb"] },
+                        "host": { "type": "string" },
+                        "port": { "type": "number" },
+                        "username": { "type": "string" },
+                        "password": { "type": "string" },
+                        "database": { "type": "string" }
+                    },
+                    "required": [ "provider", "host", "database" ],
+                    "additionalProperties": false
+                }
+            ]
+        },
+        "transcoder": {
+            "type": "object",
+            "properties": {
+                "maxCopyEnabled": { "type": "boolean" },
+                "minQuality": { "type": "number" },
+                "qualities": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "required": [ "maxCopyEnabled", "minQuality", "qualities" ]
+        },
+        "user": {
+            "type": "object",
+            "properties": {
+                "autoplayEnabled": { "type": "boolean" },
+                "tagColumnCount": { "type": "number" },
+                "stateEnabled": { "type": "boolean" },
+                "lowQualityOnLoadEnabled": { "type": "boolean" },
+                "lowQualityOnLoadEnabledForMobile": { "type": "boolean" }
+            },
+            "additionalProperties": false,
+            "required": [ "tagColumnCount", "stateEnabled", "lowQualityOnLoadEnabled", "lowQualityOnLoadEnabledForMobile" ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [ "port", "libraryPath", "cachePath", "database", "transcoder", "user" ]
+}

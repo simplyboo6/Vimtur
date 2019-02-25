@@ -1,0 +1,15 @@
+{
+    "port": 3523,
+    "transcoder": {
+        "maxCopyEnabled": true,
+        "minQuality": 480,
+        "qualities": [240, 1080]
+    },
+    "user": {
+        "autoplayEnabled": true,
+        "tagColumnCount": 1,
+        "stateEnabled": false,
+        "lowQualityOnLoadEnabled": false,
+        "lowQualityOnLoadEnabledForMobile": true
+    }
+}

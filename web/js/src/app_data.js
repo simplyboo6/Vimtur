@@ -114,11 +114,7 @@ class AppData {
     }
 
     getColumnCount() {
-        let colCount = this.DEFAULT_COLUMN_COUNT;
-        if (this.config && this.config.tagColumnCount) {
-            console.log(`Config column count: ${this.config.tagColumnCount}`);
-            colCount = this.config.tagColumnCount;
-        }
+        let colCount = this.config.user.tagColumnCount;
         if (colCount > this.MAX_COLUMNS) {
             console.log('Warning, too many columns. Setting to max');
             colCount = this.MAX_COLUMNS;
@@ -127,27 +123,19 @@ class AppData {
     }
 
     isAutoplayEnabled() {
-        // By default if autoplay is not defined then return that to make
-        // if be disabled by default.
-        return this.config &&
-            this.config.autoplayEnabled;
+        return this.config.user.autoplayEnabled;
     }
 
     isStateEnabled() {
-        // By default if autoplay is not defined then return that to make
-        // if be disabled by default.
-        return this.config &&
-            this.config.stateEnabled;
+        return this.config.user.stateEnabled;
     }
 
     isLowQualityOnLoadEnabled() {
-        const configSetting = this.config && this.config.lowQualityOnLoadEnabled;
-        return configSetting !== undefined ? configSetting : false;
+        return this.config.user.lowQualityOnLoadEnabled;
     }
 
     isLowQualityOnLoadEnabledForMobile() {
-        const configSetting = this.config && this.config.lowQualityOnLoadEnabledForMobile;
-        return configSetting !== undefined ? configSetting : true;
+        return this.config.user.lowQualityOnLoadEnabledForMobile;
     }
 
     getMap() {
@@ -432,6 +420,12 @@ class AppData {
 
     async saveConfig(config) {
         this.config = await Utils.post('/api/config', config);
+    }
+
+    async saveUserConfig(config) {
+        await saveConfig({
+            user: config
+        });
     }
 }
 

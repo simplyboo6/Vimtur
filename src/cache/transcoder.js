@@ -1,21 +1,21 @@
-const ImportUtils = require('./import-utils');
 const FS = require('fs');
 const Util = require('util');
 const Rimraf = require('rimraf');
 
+// Local
+const ImportUtils = require('./import-utils');
+const Config = require('../config');
+
 class Transcoder {
-    constructor(libraryPath, cachePath, database, transcodeConfig) {
-        this.libraryPath = libraryPath;
-        this.cachePath = cachePath;
+    constructor(database) {
         this.database = database;
-        this.config = transcodeConfig;
     }
 
     async createThumbnail(media) {
-        await ImportUtils.mkdir(`${this.cachePath}`);
-        await ImportUtils.mkdir(`${this.cachePath}/thumbnails`);
+        await ImportUtils.mkdir(`${Config.get('cachePath')}`);
+        await ImportUtils.mkdir(`${Config.get('cachePath')}/thumbnails`);
 
-        const path = `${this.cachePath}/thumbnails/${media.hash}.png`;
+        const path = `${Config.get('cachePath')}/thumbnails/${media.hash}.png`;
         const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
         if (media.type === 'video') {
             args.push('-ss');
@@ -53,9 +53,9 @@ class Transcoder {
 
         const args = [...audioCodec, ...scale, '-vcodec', ...videoCodec, '-f', 'hls', '-hls_time', '10', '-hls_list_size', '0', '-start_number', '0'];
 
-        await ImportUtils.mkdir(`${this.cachePath}/${media.hash}/${targetHeight}p`);
-        await ImportUtils.transcode(media.absolutePath, `${this.cachePath}/${media.hash}/${targetHeight}p/index.m3u8`, args);
-        await Util.promisify(FS.writeFile)(`${this.cachePath}/${media.hash}/index.m3u8`, ImportUtils.generatePlaylist(media));
+        await ImportUtils.mkdir(`${Config.get('cachePath')}/${media.hash}/${targetHeight}p`);
+        await ImportUtils.transcode(media.absolutePath, `${Config.get('cachePath')}/${media.hash}/${targetHeight}p/index.m3u8`, args);
+        await Util.promisify(FS.writeFile)(`${Config.get('cachePath')}/${media.hash}/index.m3u8`, ImportUtils.generatePlaylist(media));
 
         console.log(`Saving metadata for ${media.absolutePath}`);
         // This try block is to avoid it being marked as corrupted if it fails schema validation.
@@ -69,7 +69,7 @@ class Transcoder {
     }
 
     async transcodeMedia(media) {
-        const desiredCaches = ImportUtils.getMediaDesiredQualities(this.config, media);
+        const desiredCaches = ImportUtils.getMediaDesiredQualities(media);
         const actualCaches = media.metadata.qualityCache;
         const missingQualities = [];
         for (const quality of desiredCaches) {
@@ -80,7 +80,7 @@ class Transcoder {
 
         if (missingQualities.length) {
             console.log(`${media.hash}: ${missingQualities.length} missing quality caches detected.`);
-            await ImportUtils.mkdir(`${this.cachePath}/${media.hash}`);
+            await ImportUtils.mkdir(`${Config.get('cachePath')}/${media.hash}`);
             for (const quality of missingQualities) {
                 await this.transcodeMediaToQuality(media, quality);
             }
@@ -91,11 +91,11 @@ class Transcoder {
             console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
             for (const quality of redundant) {
                 console.log(`${media.hash}: Removing quality ${quality}p...`);
-                await Util.promisify(Rimraf)(`${this.cachePath}/${media.hash}/${quality}p`);
+                await Util.promisify(Rimraf)(`${Config.get('cachePath')}/${media.hash}/${quality}p`);
                 media.metadata.qualityCache.splice(media.metadata.qualityCache.indexOf(quality), 1);
             }
             console.log(`${media.hash}: Writing index.m3u8...`);
-            await Util.promisify(FS.writeFile)(`${this.cachePath}/${media.hash}/index.m3u8`, ImportUtils.generatePlaylist(media));
+            await Util.promisify(FS.writeFile)(`${Config.get('cachePath')}/${media.hash}/index.m3u8`, ImportUtils.generatePlaylist(media));
             console.log(`${media.hash}: Saving quality list...`);
             await this.database.saveMedia(media.hash, {
                 'metadata.qualityCache': media.metadata.qualityCache
@@ -104,7 +104,7 @@ class Transcoder {
     }
 
     async transcodeSet(hashList, statusCallback) {
-        await ImportUtils.mkdir(`${this.cachePath}`);
+        await ImportUtils.mkdir(`${Config.get('cachePath')}`);
         for (let i = 0; i < hashList.length; i++) {
             const media = await this.database.getMedia(hashList[i]);
             try {

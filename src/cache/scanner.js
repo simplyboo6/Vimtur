@@ -1,9 +1,13 @@
 const Walk = require('walk');
 const Path = require('path');
+
+// Local
 const ImportUtils = require('./import-utils');
+const Config = require('../config');
 
 class Scanner {
-    static async getFileList(dir) {
+    static async getFileList() {
+        const dir = Config.get('libraryPath');
         const options = {
             followLinks: false
         };

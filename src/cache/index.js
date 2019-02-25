@@ -4,12 +4,11 @@ const Transcoder = require('./transcoder');
 const ImportUtils = require('./import-utils');
 
 class Importer {
-    constructor(database, config, callback) {
+    constructor(database, callback) {
         this.database = database;
         this.callback = callback;
-        this.config = config;
-        this.indexer = new Indexer(database, config.libraryPath, config.cachePath);
-        this.transcoder = new Transcoder(config.libraryPath, config.cachePath, database, config.transcoder);
+        this.indexer = new Indexer(database);
+        this.transcoder = new Transcoder(database);
         this.status = {
             state: 'IDLE',
             progress: {
@@ -57,7 +56,7 @@ class Importer {
         console.log('Scanning...');
         console.time('Scan Time');
         try {
-            const files = await Scanner.getFileList(this.config.libraryPath);
+            const files = await Scanner.getFileList();
             const mediaList = await this.database.subset({}, {path: 1});
             const normalisedPaths = [];
             for (const media of mediaList) {
@@ -163,7 +162,7 @@ class Importer {
             if (!media.metadata.qualityCache) {
                 continue;
             }
-            const desiredCaches = ImportUtils.getMediaDesiredQualities(this.config.transcoder, media);
+            const desiredCaches = ImportUtils.getMediaDesiredQualities(media);
             const actualCaches = media.metadata.qualityCache;
 
             const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
