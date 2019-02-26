@@ -35,7 +35,7 @@
 * The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
 
 ## Conversion from V3 to V4.
-From V3 to V4 there's been a move from storing the entire database in memory and synced to a backend to moving search capabilities to the database.
+From V3 to V4 there's been a move from storing the entire database in memory to moving search capabilities and storage to the database.
 The path of least resistance for this turned out to be MongoDB. The frameworks are still in place to add other database types back later, before merging this to master.
 For now, to use this version use utils/export_json.js to export your database from the SQL version and then in the new MongoDB version use utils/import_json.js. It is quite likely that when the other database types are re-introduced the structure will be different and this will be necessary for those too.
 
