@@ -5,6 +5,7 @@ const FS = require('fs');
 const Args = require('args');
 const PathIsInside = require('path-is-inside');
 const Path = require('path');
+const StripJsonComments = require('strip-json-comments');
 
 Args.option('config', 'The config file to to overlay');
 
@@ -27,6 +28,10 @@ function mapEnv(env, obj, dest) {
         node[path[path.length - 1]] = value;
     }
 }
+
+function readJsonSync(file) {
+    return JSON.parse(StripJsonComments(FS.readFileSync(file).toString()));
+};
 
 class Config {
     constructor(schema) {
@@ -110,14 +115,14 @@ class Config {
             // The user layer is optional.
             return {};
         }
-        return JSON.parse(FS.readFileSync(path));
+        return readJsonSync(path);
     }
 
     static init() {
-        const schema = JSON.parse(FS.readFileSync(`${__dirname}/config.schema.json`));
+        const schema = readJsonSync(`${__dirname}/config.schema.json`);
         // Load the constant layers, all of these together should validate.
         // They may be overwritten at runtime though.
-        const defaults = JSON.parse(FS.readFileSync(`${__dirname}/config.defaults.json`));
+        const defaults = readJsonSync(`${__dirname}/config.defaults.json`);
         const userConfig = Config.getUserLayer();
         const environment = Config.getEnvironmentLayer();
         const config = new Config(schema);
