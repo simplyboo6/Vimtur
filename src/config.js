@@ -31,7 +31,7 @@ function mapEnv(env, obj, dest) {
 
 function readJsonSync(file) {
     return JSON.parse(StripJsonComments(FS.readFileSync(file).toString()));
-};
+}
 
 class Config {
     constructor(schema) {
