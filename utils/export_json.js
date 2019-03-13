@@ -16,7 +16,8 @@ const fs = require('fs');
     const output = {
         tags: [],
         media: [],
-        actors: []
+        actors: [],
+        version: 3
     };
     console.log('Saving database to output.json');
     // Save tags
