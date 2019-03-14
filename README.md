@@ -23,6 +23,33 @@
 3) ```cd Vimtur```
 2) Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
 
+## Upgrade from V3 to V4.
+Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
+
+1. **Exporting**
+   Before upgrading you need to run the export script. To do this from the Docker variant make sure the server is running and then execute the following commands:
+   ```
+   docker-compose exec node /bin/sh -c 'node /opt/app/utils/export_json.js'
+   docker-compose exec node /bin/sh -c 'cat output.json' > vimtur-backup.json
+   ```
+   If running outside of Docker run:
+   ```
+   node utils/export_json.js <path/to/config.json>
+   ```
+   You need to replace the config path above or otherwise remove it and use the environment variables. The command will generate a file called *output.json*.
+2. **Upgrading**
+   At this point upgrade your source code to the latest version by doing a git pull.
+3. **Importing**
+   For the Docker version, bringup a fresh environment using the quick-start instructions then run:
+   ```
+   ./import.sh vimtur-backup.json
+   ```
+   For the native version run:
+   ```
+   node src/utils/import-json.js [-c /path/to/config.json] -f output.json
+   ```
+   The above command should be configured with the same environment variables or config file as running the program.
+
 ## Notes
 * Requirements
   * ffmpeg for transcoding and thumbnails.
@@ -33,11 +60,6 @@
 * Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
 * The included compose file comes with a mongodb instance.
 * The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
-
-## Conversion from V3 to V4.
-From V3 to V4 there's been a move from storing the entire database in memory to moving search capabilities and storage to the database.
-The path of least resistance for this turned out to be MongoDB. The frameworks are still in place to add other database types back later, before merging this to master.
-For now, to use this version use utils/export_json.js to export your database from the SQL version and then in the new MongoDB version use utils/import_json.js. It is quite likely that when the other database types are re-introduced the structure will be different and this will be necessary for those too.
 
 ## Docker
 The server can be run as a Docker instance. It accepts the following environment variables:
