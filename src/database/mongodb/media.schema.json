@@ -34,7 +34,8 @@
                     "items": {
                         "type": "number"
                     }
-                }
+                },
+                "maxCopy": { "type": "boolean" }
             },
             "required": [ "width", "height" ],
             "additionalProperties": false

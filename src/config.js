@@ -1,13 +1,15 @@
 const DeepMerge = require('deepmerge');
 const Ajv = require('ajv');
 const BetterAjvErrors = require('better-ajv-errors');
+const StripJsonComments = require('strip-json-comments');
 const FS = require('fs');
 const Args = require('args');
 const PathIsInside = require('path-is-inside');
 const Path = require('path');
-const StripJsonComments = require('strip-json-comments');
 
-Args.option('config', 'The config file to to overlay');
+Args.option('config', 'The config file to to overlay')
+    .option('file', 'The json file to import or export to')
+    .option('stdin', 'Use this option to read the JSON file from stdin');
 
 function mapEnv(env, obj, dest) {
     const path = dest.split('.');

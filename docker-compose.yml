@@ -1,6 +1,6 @@
 version: "2"
 services:
-  node:
+  vimtur:
     build:
       context: .
       dockerfile: Dockerfile

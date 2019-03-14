@@ -4,6 +4,9 @@ const Util = require('util');
 const DeepMerge = require('../../deep-merge');
 const Path = require('path');
 const FS = require('fs');
+const Ajv = require('ajv');
+const BetterAjvErrors = require('better-ajv-errors');
+const StripJsonComments = require('strip-json-comments');
 
 const DEFAULT_PORT = 27017;
 
@@ -34,11 +37,13 @@ class MongoConnector {
         });
         this.db = this.server.db(config.database);
 
-        const mediaSchema = JSON.parse(await Util.promisify(FS.readFile)(__dirname + '/media.schema.json'));
+        const rawSchema = await Util.promisify(FS.readFile)(__dirname + '/media.schema.json');
+        this.mediaSchema = JSON.parse(StripJsonComments(rawSchema.toString()));
         await Util.promisify(this.db.createCollection.bind(this.db))('media', {
-            validator: { $jsonSchema: mediaSchema }
+            validator: { $jsonSchema: this.mediaSchema }
         });
         await Util.promisify(this.db.createCollection.bind(this.db))('meta');
+        this.mediaValidator = Ajv().compile(this.mediaSchema);
 
         const mediaCollection = this.db.collection('media');
         await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))({
@@ -193,6 +198,10 @@ class MongoConnector {
             }
             await Util.promisify(collection.updateOne.bind(collection))({hash}, { $set: media });
         } else {
+            // If it's a new one then pre-validate it to show better errors.
+            if (!this.mediaValidator(media)) {
+                throw new Error(`New media failed to validate: ${JSON.stringify(BetterAjvErrors(this.mediaSchema, media, this.mediaValidator.errors), null, 2)}: ${JSON.stringify(this.mediaValidator.errors, null, 2)}`);
+            }
             await Util.promisify(collection.insertOne.bind(collection))(media);
         }
         return await this.getMedia(hash);
@@ -357,8 +366,12 @@ async function setup(config) {
             await db.connect();
             break;
         } catch (err) {
-            console.log(err.message);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            if (err.message.startsWith('failed to connect to server')) {
+                console.log(err.message);
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+            } else {
+                throw err;
+            }
         }
     }
     return db;
