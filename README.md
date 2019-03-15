@@ -18,10 +18,10 @@
 * Configurable video caching levels.
 
 ## Quick-Start
-1) Install Docker CE (https://docs.docker.com/install)
-2) ```git clone https://github.com/simplyboo6/Vimtur```
-3) ```cd Vimtur```
-2) Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
+1. Install Docker CE (https://docs.docker.com/install)
+2. ```git clone https://github.com/simplyboo6/Vimtur```
+3. ```cd Vimtur```
+2. Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
 
 ## Upgrade from V3 to V4.
 Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
