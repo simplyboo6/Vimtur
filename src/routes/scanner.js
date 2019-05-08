@@ -31,6 +31,17 @@ async function setup(database, io) {
         res.json(getStatus());
     });
 
+    router.post('/rehash', (req, res) => {
+        (async () => {
+            try {
+                await cache.rehash();
+            } catch (err) {
+                console.error('Error rehashing', err);
+            }
+        })();
+        res.json(getStatus());
+    });
+
     router.post('/scan', (req, res) => {
         (async () => {
             try {

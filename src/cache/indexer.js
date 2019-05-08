@@ -1,4 +1,3 @@
-const MD5File = require('md5-file');
 const Util = require('util');
 const FFMpeg = require('fluent-ffmpeg');
 const GM = require('gm');
@@ -63,7 +62,7 @@ class Indexer {
         };
 
         try {
-            media.hash = await Util.promisify(MD5File)(absolutePath);
+            media.hash = await ImportUtils.hash(absolutePath);
             media.metadata = (type === 'video') ?
                 (await Indexer.getVideoMetadata(absolutePath)) :
                 (await Indexer.getImageMetadata(absolutePath));

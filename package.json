@@ -19,7 +19,6 @@
     "gm": "^1.23.0",
     "http-auth": "~3.2.3",
     "inflight": "^1.0.6",
-    "md5-file": "~4.0.0",
     "mongodb": "^3.1.10",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",

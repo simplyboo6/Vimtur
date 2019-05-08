@@ -36,6 +36,7 @@ class Importer {
         case 'SCANNING':
         case 'INDEXING':
         case 'CACHING':
+        case 'REHASHING':
         case 'THUMBNAILS':
             this.status.state = state;
             break;
@@ -68,6 +69,31 @@ class Importer {
             throw err;
         } finally {
             console.timeEnd('Scan Time');
+            this.setState('IDLE');
+        }
+    }
+
+    async rehash() {
+        this.setState('REHASHING');
+        console.log('Rehashing...');
+        console.time('Rehash Time');
+        try {
+            const files = await this.database.subset({});
+            for (let i = 0; i < files.length; i++) {
+                const media = await this.database.getMedia(files[i]);
+                const hash = await ImportUtils.hash(media.absolutePath);
+                if (hash !== media.hash) {
+                    console.warn(`Hash changed for ${media.absolutePath}`);
+                }
+                await this.database.saveMedia(media.hash, { hash });
+                this.status.progress = { current: i, max: files.length };
+                this.update();
+            }
+        } catch (err) {
+            console.error('Error rehashing library.', err);
+            throw err;
+        } finally {
+            console.timeEnd('Rehash Time');
             this.setState('IDLE');
         }
     }

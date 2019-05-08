@@ -73,6 +73,10 @@ export async function goto() {
     }
 }
 
+export async function rehash() {
+    await AppData.rehash();
+}
+
 export function resetTagList() {
     AppData.fire('tags');
 }

@@ -414,6 +414,10 @@ class AppData {
         await Utils.post('/api/scanner/cache');
     }
 
+    async rehash() {
+        await Utils.post('/api/scanner/rehash');
+    }
+
     async generateThumbnails() {
         await Utils.post('/api/scanner/thumbnails');
     }
