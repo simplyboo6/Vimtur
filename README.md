@@ -25,12 +25,14 @@
 
 ## Upgrade from V3 to V4.
 Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
+Note that during the upgrade the hashing mechanism will change from doing md5 sum's of the entire file to following SubDB's model of the first and last 64kbs. Another notable change is that
+during upgrade the library needs to be partially re-cached to support multiple quality levels. This is more file shuffling than encoding.
 
 1. **Exporting**
    Before upgrading you need to run the export script. To do this from the Docker variant make sure the server is running and then execute the following commands:
    ```
-   docker-compose exec node /bin/sh -c 'node /opt/app/utils/export_json.js'
-   docker-compose exec node /bin/sh -c 'cat output.json' > vimtur-backup.json
+   docker-compose exec node /bin/sh -c 'DUMP_FILE=/tmp/upgrade.json node /opt/app/utils/export_json.js'
+   docker-compose exec node /bin/sh -c 'cat /tmp/upgrade.json' > vimtur-backup.json
    ```
    If running outside of Docker run:
    ```
