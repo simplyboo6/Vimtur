@@ -2,6 +2,10 @@ const Scanner = require('./scanner');
 const Indexer = require('./indexer');
 const Transcoder = require('./transcoder');
 const ImportUtils = require('./import-utils');
+const FS = require('fs');
+const Path = require('path');
+const Util = require('util');
+const Config = require('../config');
 
 class Importer {
     constructor(database, callback) {
@@ -77,6 +81,7 @@ class Importer {
         this.setState('REHASHING');
         console.log('Rehashing...');
         console.time('Rehash Time');
+        const cachePath = Path.resolve(Config.get('cachePath'));
         try {
             const files = await this.database.subset({});
             for (let i = 0; i < files.length; i++) {
@@ -84,6 +89,23 @@ class Importer {
                 const hash = await ImportUtils.hash(media.absolutePath);
                 if (hash !== media.hash) {
                     console.warn(`Hash changed for ${media.absolutePath}`);
+                    // Rename the video cache folder, if it's a video.
+                    if (media.type === 'video') {
+                        try {
+                            await Util.promisify(FS.rename)(Path.resolve(cachePath, media.hash), Path.resolve(cachePath, hash));
+                        } catch (err) {
+                            console.warn('Failed to rename video', err);
+                            await this.database.saveMedia(media.hash, { 'metadata.qualityCache': [] });
+                        }
+                    }
+                    try {
+                    // Rename the thumbnail.
+                        await Util.promisify(FS.rename)(Path.resolve(cachePath, 'thumbnails', `${media.hash}.png`), Path.resolve(cachePath, 'thumbnails', `${hash}.png`));
+                    } catch (err) {
+                        // If thumbnails can't be moved, because say they're not generated then it's not the end of the world.
+                        console.warn('Failed to rename thumbnail during rehash', err);
+                        await this.database.saveMedia(media.hash, { thumbnail: false });
+                    }
                 }
                 await this.database.saveMedia(media.hash, { hash });
                 this.status.progress = { current: i, max: files.length };

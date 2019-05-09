@@ -49,6 +49,9 @@ async function importMedia(db, version, media) {
     }
 
     if (version === undefined || version === 3) {
+        // In older versions the hashing mechanism was different, rehash the file.
+        const hash = await ImportUtils.hash(Path.resolve(libraryDir, media.path));
+
         media.metadata.qualityCache = [media.metadata.height];
         if (media.type === 'video') {
             // In older versions, maxCopy was the default.
@@ -74,9 +77,30 @@ async function importMedia(db, version, media) {
                 console.log(`Writing index file to ${Path.resolve(mediaCache, 'index.m3u8')}`);
                 await Util.promisify(FS.writeFile)(Path.resolve(mediaCache, 'index.m3u8'), ImportUtils.generatePlaylist(media));
             }
+
+            try {
+                await Util.promisify(FS.rename)(Path.resolve(cacheDir, media.hash), Path.resolve(cacheDir, hash));
+            } catch (err) {
+                console.warn('Failed to rename video', err);
+                if (media.metadata) {
+                    media.metadata.qualityCache = {};
+                }
+            }
         } else if (media.metadata.width === 0) {
             throw new Error(`Invalid image resolution ${media.metadata.width}x{media.metadata.height}`);
         }
+
+        // Update the thumnnail with the new hash path.
+        try {
+            // Rename the thumbnail.
+            await Util.promisify(FS.rename)(Path.resolve(cacheDir, 'thumbnails', `${media.hash}.png`), Path.resolve(cacheDir, 'thumbnails', `${hash}.png`));
+            media.thumnnail = true;
+        } catch (err) {
+            // If thumbnails can't be moved, because say they're not generated then it's not the end of the world.
+            console.warn('Failed to rename thumbnail during rehash', err);
+            media.thumbnail = false;
+        }
+        media.hash = hash;
     }
 
     await db.saveMedia(media.hash, media);
