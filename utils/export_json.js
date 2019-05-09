@@ -2,6 +2,8 @@ const Database = require('../src/database');
 const utils = require('../src/utils.js');
 const fs = require('fs');
 
+const DUMP_FILE = process.env['DUMP_FILE'] || 'output.json';
+
 (async function() {
     console.log("Setting up config");
     await utils.setup();
@@ -19,7 +21,7 @@ const fs = require('fs');
         actors: [],
         version: 3
     };
-    console.log('Saving database to output.json');
+    console.log(`Saving database to ${DUMP_FILE}`);
     // Save tags
     output.tags = global.db.getTags();
     output.actors = global.db.getActors();
@@ -30,7 +32,7 @@ const fs = require('fs');
         output.media.push(media);
     }
 
-    fs.writeFileSync('output.json', JSON.stringify(output, null, 2));
+    fs.writeFileSync(DUMP_FILE, JSON.stringify(output, null, 2));
 
     await global.db.close();
 })();
