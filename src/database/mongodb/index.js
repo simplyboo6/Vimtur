@@ -1,10 +1,10 @@
-const Mongo = require('mongodb');
+const MongoClient = require('mongodb').MongoClient;
 const Utils = require('../../utils');
-const Util = require('util');
 const DeepMerge = require('../../deep-merge');
 const Path = require('path');
 const FS = require('fs');
 const Ajv = require('ajv');
+const Util = require('util');
 const BetterAjvErrors = require('better-ajv-errors');
 const StripJsonComments = require('strip-json-comments');
 
@@ -30,23 +30,21 @@ class MongoConnector {
         const url = `mongodb://${auth}${auth ? '@' : ''}${config.host}${config.port ? ':' : ''}${config.port || ''}`;
         console.log(url);
 
-        const MongoClient = Mongo.MongoClient;
-
-        this.server = await Util.promisify(MongoClient.connect)(url, {
+        this.server = await MongoClient.connect(url, {
             useNewUrlParser: true
         });
         this.db = this.server.db(config.database);
 
         const rawSchema = await Util.promisify(FS.readFile)(__dirname + '/media.schema.json');
         this.mediaSchema = JSON.parse(StripJsonComments(rawSchema.toString()));
-        await Util.promisify(this.db.createCollection.bind(this.db))('media', {
+
+        await this.db.createCollection('media', {
             validator: { $jsonSchema: this.mediaSchema }
         });
-        await Util.promisify(this.db.createCollection.bind(this.db))('meta');
-        this.mediaValidator = Ajv().compile(this.mediaSchema);
 
+        this.mediaValidator = Ajv().compile(this.mediaSchema);
         const mediaCollection = this.db.collection('media');
-        await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))({
+        await mediaCollection.createIndex({
             'path': 'text',
             'type': 'text',
             'tags': 'text',
@@ -68,18 +66,31 @@ class MongoConnector {
             }
         });
 
-        await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))(
+        await mediaCollection.createIndex(
             { hash: 1 }, { unique: true }
         );
-
-        await Util.promisify(mediaCollection.createIndex.bind(mediaCollection))(
+        await mediaCollection.createIndex(
             { hashDate: 1 }, { unique: false }
+        );
+
+        await this.db.createCollection('config');
+
+        await this.db.createCollection('actors');
+        const actorsCollection = this.db.collection('config');
+        await actorsCollection.createIndex(
+            { name: 1 }, { unique: true }
+        );
+
+        await this.db.createCollection('tags');
+        const tagsCollection = this.db.collection('tags');
+        await tagsCollection.createIndex(
+            { name: 1 }, { unique: true }
         );
     }
 
     async getUserConfig() {
-        const meta = this.db.collection('meta');
-        const row = await Util.promisify(meta.findOne.bind(meta))({ _id: 'userconfig' });
+        const meta = this.db.collection('config');
+        const row = await meta.findOne({ _id: 'userconfig' });
         if (!row) {
             return {};
         }
@@ -90,8 +101,8 @@ class MongoConnector {
     }
 
     async saveUserConfig(config) {
-        const meta = this.db.collection('meta');
-        await Util.promisify(meta.updateOne.bind(meta))(
+        const meta = this.db.collection('config');
+        await meta.updateOne(
             {_id: 'userconfig'},
             { $set: config },
             { upsert: true }
@@ -99,21 +110,14 @@ class MongoConnector {
     }
 
     async getTags() {
-        const meta = this.db.collection('meta');
-        const row = await Util.promisify(meta.findOne.bind(meta))({ _id: 'tags' });
-        if (!row) {
-            return [];
-        }
-        return row.data.sort();
+        const tags = this.db.collection('tags');
+        const rows = await tags.find({}, { _id: 0 }).toArray();
+        return rows.map(el => el.name).sort();
     }
 
     async addTag(tag) {
-        const meta = this.db.collection('meta');
-        await Util.promisify(meta.updateOne.bind(meta))(
-            {_id: 'tags'},
-            { $addToSet: { data: tag } },
-            { upsert: true }
-        );
+        const tags = this.db.collection('tags');
+        await tags.insertOne({ name: tag });
     }
 
     async removeTag(tag) {
@@ -124,29 +128,19 @@ class MongoConnector {
             { multi: true }
         );
 
-        const meta = this.db.collection('meta');
-        await Util.promisify(meta.updateOne.bind(meta))(
-            {_id: 'tags'},
-            { $pull: { data: tag } }
-        );
+        const tags = this.db.collection('tags');
+        await tags.deleteOne({ name: tag });
     }
 
     async getActors() {
-        const meta = this.db.collection('meta');
-        const row = await Util.promisify(meta.findOne.bind(meta))({ _id: 'actors' });
-        if (!row) {
-            return [];
-        }
-        return row.data.sort();
+        const actors = this.db.collection('actors');
+        const rows = await actors.find({}, { _id: 0 }).toArray();
+        return rows.map(el => el.name).sort();
     }
 
     async addActor(actor) {
-        const meta = this.db.collection('meta');
-        await Util.promisify(meta.updateOne.bind(meta))(
-            { _id: 'actors' },
-            { $addToSet: { data: actor } },
-            { upsert: true }
-        );
+        const actors = this.db.collection('actors');
+        await actors.insertOne({ name: actor });
     }
 
     async removeActor(actor) {
@@ -157,16 +151,13 @@ class MongoConnector {
             { multi: true }
         );
 
-        const meta = this.db.collection('meta');
-        await Util.promisify(meta.updateOne.bind(meta))(
-            {_id: 'actors'},
-            { $pull: { data: actor } }
-        );
+        const actors = this.db.collection('actors');
+        await actors.deleteOne({ name: actor });
     }
 
     async getMedia(hash) {
         const media = this.db.collection('media');
-        const result = await Util.promisify(media.findOne.bind(media))({ hash });
+        const result = await media.findOne({ hash });
         if (result) {
             result.absolutePath = Path.resolve(this.config.libraryPath, result.path);
         }
@@ -202,14 +193,14 @@ class MongoConnector {
             if (!this.mediaValidator(media)) {
                 throw new Error(`New media failed to validate: ${JSON.stringify(BetterAjvErrors(this.mediaSchema, media, this.mediaValidator.errors), null, 2)}: ${JSON.stringify(this.mediaValidator.errors, null, 2)}`);
             }
-            await Util.promisify(collection.insertOne.bind(collection))(media);
+            await collection.insertOne(media);
         }
         return await this.getMedia(hash);
     }
 
     async removeMedia(hash) {
         const media = this.db.collection('media');
-        await Util.promisify(media.deleteOne.bind(media))({ hash });
+        await media.deleteOne({ hash });
     }
 
     async subset(constraints, fields) {
@@ -335,7 +326,7 @@ class MongoConnector {
                     throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
             }
         }
-        const result = await Util.promisify(queryResult.toArray.bind(queryResult))();
+        const result = await queryResult.toArray();
 
         // If additional fields are specified then return the extras.
         if (fields) {

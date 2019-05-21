@@ -102,7 +102,6 @@ async function importMedia(db, version, media) {
         }
         media.hash = hash;
     }
-
     await db.saveMedia(media.hash, media);
 }
 
@@ -135,21 +134,22 @@ async function importMedia(db, version, media) {
 
     console.log('Connecting to database.');
     const db = await Database.setup();
-    console.log('Applying config overlay from database.');
-    const userConfigOverlay = await db.getUserConfig();
-    Config.setLayers([userConfigOverlay]);
 
     console.log('Adding all to database. This can take some time.');
     const start = new Date();
+    console.log('Adding tags...');
     for (let i = 0; i < imported.tags.length; i++) {
         await db.addTag(imported.tags[i]);
     }
+    console.log('Adding actors...');
     for (let i = 0; i < imported.actors.length; i++) {
         await db.addActor(imported.actors[i]);
     }
-    if (imported.config) {
+    console.log('Adding config...');
+    if (imported.config && Object.keys(imported.config).length) {
         await db.saveUserConfig(imported.config);
     }
+    console.log('Adding media...');
     let progress = 0;
     for (let i = 0; i < imported.media.length; i++) {
         try {
@@ -171,4 +171,7 @@ async function importMedia(db, version, media) {
     console.log('Import complete');
 
     await db.close();
-})();
+})().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
