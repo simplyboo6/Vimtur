@@ -94,10 +94,10 @@ async function importMedia(db, version, media) {
         try {
             // Rename the thumbnail.
             await Util.promisify(FS.rename)(Path.resolve(cacheDir, 'thumbnails', `${media.hash}.png`), Path.resolve(cacheDir, 'thumbnails', `${hash}.png`));
-            media.thumnnail = true;
+            media.thumbnail = true;
         } catch (err) {
             // If thumbnails can't be moved, because say they're not generated then it's not the end of the world.
-            console.warn('Failed to rename thumbnail during rehash', err);
+            console.warn('Could not rename thumbnail during rehash. Marking as missing.', media.path);
             media.thumbnail = false;
         }
         media.hash = hash;

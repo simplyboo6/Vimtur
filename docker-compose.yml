@@ -22,3 +22,5 @@ services:
       - "${PORT}:3523"
   mongo:
     image: mongo
+    volumes:
+      - ${CACHE_DIR}/mongo:/data/db

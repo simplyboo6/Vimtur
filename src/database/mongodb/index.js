@@ -357,12 +357,8 @@ async function setup(config) {
             await db.connect();
             break;
         } catch (err) {
-            if (err.message.startsWith('failed to connect to server')) {
-                console.log(err.message);
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-            } else {
-                throw err;
-            }
+            console.warn('Failed to connect to database, retrying in 10 seconds', err.message);
+            await new Promise((resolve) => setTimeout(resolve, 10000));
         }
     }
     return db;

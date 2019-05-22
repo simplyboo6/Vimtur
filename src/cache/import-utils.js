@@ -13,7 +13,7 @@ const CHUNK_SIZE = 64 * 1024;
 
 class ImportUtils {
     static async hash(path) {
-        const fd = await Util.promisify(FS.open)(path);
+        const fd = await Util.promisify(FS.open)(path, 'r');
         const buffer = Buffer.alloc(CHUNK_SIZE * 2);
         const [startReadResult, statResult] = await Promise.all([
             Util.promisify(FS.read)(fd, buffer, 0, CHUNK_SIZE, 0),
