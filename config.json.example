@@ -1,4 +1,3 @@
-!!!!! REMOVE ALL COMMENTS !!!!!
 {
   "port": 8989, // HTTP listen port
   "username": "user", // Optional username. Delete this field to disable auth.

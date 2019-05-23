@@ -73,6 +73,8 @@ class Config {
         layerArray.push(...layers);
 
         const merged = DeepMerge.all(layerArray);
+        // Remove duplicate items in the qualities array.
+        merged.transcoder.qualities = [...new Set(merged.transcoder.qualities)].sort((a, b) => a - b);
         const schemaValidate = Ajv().compile(this.schema);
         if (!schemaValidate(merged)) {
             console.error(BetterAjvErrors(this.schema, merged, schemaValidate.errors), schemaValidate.errors);

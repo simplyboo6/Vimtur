@@ -8,4 +8,4 @@ RUN yarn
 RUN yarn lint
 RUN yarn lint-web
 
-CMD ["yarn", "start", "/cache/config.json"]
+CMD ["yarn", "start", "-c", "/cache/config.json"]
