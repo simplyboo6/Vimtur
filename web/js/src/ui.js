@@ -186,43 +186,52 @@ class Gallery {
 
     update() {
         const pageNum = document.getElementById('galleryPageNumber');
-        pageNum.innerHTML = `${Math.floor(AppData.imageSet.galleryOffset / Utils.GALLERY_COUNT) + 1} of ${Math.ceil(AppData.getMap().length / Utils.GALLERY_COUNT)}`;
+        // Round offset down to the correct page.
+        const pagedOffset = Math.floor(AppData.imageSet.galleryOffset / Utils.GALLERY_COUNT) * Utils.GALLERY_COUNT;
+        pageNum.innerHTML = `${Math.floor(pagedOffset / Utils.GALLERY_COUNT) + 1} of ${Math.ceil(AppData.getMap().length / Utils.GALLERY_COUNT)}`;
         for (let i = 0; i < Utils.GALLERY_COUNT; i++) {
             Utils.err(async () => {
                 const thumbnail = document.getElementById(`thumb${i}`);
                 const caption = document.getElementById(`thumbCaption${i}`);
                 const url = thumbnail.parentNode;
+
                 url.title = '';
-                let index = AppData.imageSet.galleryOffset + i;
+                thumbnail.src = '#';
+                caption.innerHTML = '';
+                thumbnail.style.display = 'none';
+
+                const index = pagedOffset + i;
+
                 if (index >= AppData.getMap().length) {
                     url.onclick = function() {};
-                    thumbnail.style.display = 'none';
-                    caption.innerHTML = '';
                 } else {
                     const hash = AppData.getMap()[index];
+                    const media = await Utils.request(`/api/images/${hash}`);
+
+                    thumbnail.onload = () => {
+                        thumbnail.style.display = 'block';
+                        url.title = Utils.getImageTitle(media);
+                        switch (media.type) {
+                        case 'video':
+                            caption.innerHTML = 'Video';
+                            break;
+                        case 'gif':
+                            caption.innerHTML = 'Gif';
+                            break;
+                        case 'still':
+                            caption.innerHTML = 'Still';
+                            break;
+                        default:
+                            caption.innerHTML = '';
+                            break;
+                        }
+                    };
+
                     thumbnail.src = `/cache/thumbnails/${hash}.png`;
-                    thumbnail.style.display = 'block';
                     url.onclick = function() {
                         AppData.goto(hash);
                         $('#galleryModal').modal('hide');
                     };
-
-                    const media = await Utils.request(`/api/images/${hash}`);
-                    url.title = Utils.getImageTitle(media);
-                    switch (media.type) {
-                    case 'video':
-                        caption.innerHTML = 'Video';
-                        break;
-                    case 'gif':
-                        caption.innerHTML = 'Gif';
-                        break;
-                    case 'still':
-                        caption.innerHTML = 'Still';
-                        break;
-                    default:
-                        caption.innerHTML = '';
-                        break;
-                    }
                 }
             });
         }
