@@ -248,12 +248,19 @@ class MongoConnector {
         }
 
         if (constraints.rating) {
-            query.rating = {};
-            if (constraints.rating.min !== undefined) {
-                query.rating['$gte'] = constraints.rating.min;
-            }
-            if (constraints.rating.max !== undefined) {
-                query.rating['$lte'] = constraints.rating.max;
+            if (constraints.rating.max === 0) {
+                query['$or'] = [
+                    { rating: { $lte: 0 }},
+                    { rating: { $exists: false }}
+                ];
+            } else {
+                query.rating = {};
+                if (constraints.rating.min !== undefined) {
+                    query.rating['$gte'] = constraints.rating.min;
+                }
+                if (constraints.rating.max !== undefined) {
+                    query.rating['$lte'] = constraints.rating.max;
+                }
             }
         }
 
