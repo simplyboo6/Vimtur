@@ -1,8 +1,8 @@
 interface MetadataBase {
   length?: number;
-  artist?: string;
-  album?: string;
-  title?: string;
+  artist?: string | null;
+  album?: string | null;
+  title?: string | null;
   codec?: string;
   qualityCache?: number[];
   maxCopy?: boolean;
