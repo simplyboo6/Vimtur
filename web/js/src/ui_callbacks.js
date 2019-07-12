@@ -1,8 +1,8 @@
-import AppData from './app_data.js';
 import * as Utils from './utils.js';
+import AppData from './app_data.js';
 
 export async function deleteTag() {
-    let result = await Utils.BootBox.prompt('Please enter the name of the tag to remove');
+    const result = await Utils.BootBox.prompt('Please enter the name of the tag to remove');
     if (result == null) {
         return;
     }
@@ -67,7 +67,7 @@ export async function viewFolder() {
 }
 
 export async function goto() {
-    let result = await Utils.BootBox.prompt('Please enter a hash or number');
+    const result = await Utils.BootBox.prompt('Please enter a hash or number');
     if (result != null) {
         AppData.goto(result);
     }
@@ -82,24 +82,23 @@ export function resetTagList() {
 }
 
 export async function search() {
-    const constraints = {
-        all: [],
-        any: [],
-        none: [],
-        type: []
-    };
+    const constraints = {};
+
     for (let i = 0; i < AppData.tags.length; i++) {
         const tag = AppData.tags[i];
         const all = document.getElementsByClassName(`allTag-${tag}`)[0];
         if (all.checked) {
+            constraints.all = constraints.all || [];
             constraints.all.push(tag);
         }
         const any = document.getElementsByClassName(`anyTag-${tag}`)[0];
         if (any.checked) {
+            constraints.any = constraints.any || [];
             constraints.any.push(tag);
         }
         const none = document.getElementsByClassName(`noneTag-${tag}`)[0];
         if (none.checked) {
+            constraints.none = constraints.none || [];
             constraints.none.push(tag);
         }
     }
@@ -116,14 +115,18 @@ export async function search() {
     }
 
     if (document.getElementById('typeFilterVideo').checked) {
+        constraints.type = constraints.type || [];
         constraints.type.push('video');
     }
     if (document.getElementById('typeFilterGif').checked) {
+        constraints.type = constraints.type || [];
         constraints.type.push('gif');
     }
     if (document.getElementById('typeFilterStill').checked) {
+        constraints.type = constraints.type || [];
         constraints.type.push('still');
     }
+
     const resolution = document.getElementById('resolutionSearch');
     switch (resolution.options[resolution.selectedIndex].text) {
     case '240p':
@@ -148,7 +151,7 @@ export async function search() {
     const minimumRating = minimumRatingElement.options[minimumRatingElement.selectedIndex].text;
     if (minimumRating !== 'None') {
         constraints.rating = {
-            min: parseInt(minimumRating)
+            min: Number(minimumRating)
         };
     }
 
@@ -162,7 +165,7 @@ export async function search() {
             });
         } else {
             Object.assign(constraints.rating, {
-                max: parseInt(maximumRating)
+                max: Number(maximumRating)
             });
         }
     }
@@ -209,8 +212,29 @@ export function openGallery() {
     AppData.galleryGoto(AppData.imageSet.current);
 }
 
+export function toggleTags(state) {
+    if (state !== undefined) {
+        if (state == Utils.isTagsVisible()) {
+            return;
+        }
+    }
+
+    if (Utils.isTagsVisible()) {
+        $('#tagColumnsContainer').css('cssText', 'display: none !important');
+        Utils.hideModal('#tagModal');
+    } else {
+        if (window.innerWidth > Utils.MIN_WIDTH_TAG_PANEL && !Utils.isMobile()) {
+            $('#tagColumnsContainer').css('cssText', '');
+            // Fire tags redraw event to re-calculate the width when it's opened.
+            AppData.fire('tags', true);
+        } else {
+            Utils.showModal('#tagModal');
+        }
+    }
+}
+
 export async function addNewTag() {
-    let result = await Utils.BootBox.prompt('Please enter the new tags name');
+    const result = await Utils.BootBox.prompt('Please enter the new tags name');
     if (result == null) {
         return;
     }
@@ -371,25 +395,4 @@ export async function enableLowQualityOnLoadForMobileClick() {
         await AppData.saveUserConfig({ lowQualityOnLoadEnabledForMobile: checked });
         await AppData.updateState();
     }, 'Unable to save quality on seek settings');
-}
-
-export function toggleTags(state) {
-    if (state !== undefined) {
-        if (state == Utils.isTagsVisible()) {
-            return;
-        }
-    }
-
-    if (Utils.isTagsVisible()) {
-        $('#tagColumnsContainer').css('cssText', 'display: none !important');
-        Utils.hideModal('#tagModal');
-    } else {
-        if (window.innerWidth > Utils.MIN_WIDTH_TAG_PANEL && !Utils.isMobile()) {
-            $('#tagColumnsContainer').css('cssText', '');
-            // Fire tags redraw event to re-calculate the width when it's opened.
-            AppData.fire('tags', true);
-        } else {
-            Utils.showModal('#tagModal');
-        }
-    }
 }

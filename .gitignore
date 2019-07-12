@@ -8,3 +8,5 @@ log/*
 pid/*
 **/*.log
 utils/*.json
+dist/*
+tsconfig.tsbuildinfo

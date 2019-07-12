@@ -1,4 +1,5 @@
 {
+    "extends": "../.eslintrc.json",
     "globals": {
         "$": true,
         "bootbox": true,
@@ -34,7 +35,10 @@
         ],
         "no-inner-declarations": "off",
         "no-constant-condition": "off",
-        "only-arrow-functions": [ true, "allow-declarations" ],
-        "prefer-arrow-callback": 2
+        "prefer-arrow-callback": 2,
+        "max-classes-per-file": ["warn", 1],
+        "@typescript-eslint/no-floating-promises": ["warn"],
+        "@typescript-eslint/prefer-for-of": ["warn"],
+        "require-atomic-updates": "warn"
     }
 }

@@ -6,4 +6,4 @@ if [ -z ${1} ]; then
 fi
 
 echo "Importing ${1}..."
-cat ${1} | docker exec -i $(docker-compose ps -q vimtur) /bin/sh -c 'node /opt/app/src/utils/import-json.js --stdin'
+cat ${1} | docker exec -i $(docker-compose ps -q vimtur) /bin/sh -c 'node /src/dist/utils/import-json.js --stdin'

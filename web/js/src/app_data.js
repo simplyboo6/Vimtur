@@ -177,7 +177,7 @@ class AppData {
                 await this.fire('change');
             }
         } else {
-            let num = parseInt(id);
+            let num = Number(id);
             if (num > 0 && num <= this.getMap().length) {
                 num = num - 1;
             }
@@ -294,44 +294,57 @@ class AppData {
         await this.fire('change');
     }
 
-    async addTag(tag, hash) {
-        if (hash) {
-            this.currentImage.tags.push(tag);
-            this.currentImage.tags.sort();
-            const result = await Utils.post(`/api/images/${hash}`, {
-                tags: this.currentImage.tags
-            });
-            if (this.currentImage && this.currentImage.hash == hash) {
-                this.currentImage = result;
-                await this.fire('tags', false);
-            }
-        } else {
-            this.tags = await Utils.post('/api/tags', {tag});
-            await this.fire('tags', true);
+    async addMediaTag(tag, hash) {
+        if (!hash || !tag ) {
+            throw new Error('hash and tag must be defined');
+        }
+        this.currentImage.tags.push(tag);
+        this.currentImage.tags.sort();
+        const result = await Utils.post(`/api/images/${hash}`, {
+            tags: this.currentImage.tags
+        });
+        if (this.currentImage && this.currentImage.hash == hash) {
+            this.currentImage = result;
+            await this.fire('tags', false);
         }
     }
 
-    async removeTag(tag, hash) {
-        if (hash) {
-            const tagIndex = this.currentImage.tags.indexOf(tag);
-            if (tagIndex < 0) {
-                return;
-            }
-            this.currentImage.tags.splice(tagIndex, 1);
-            const result = await Utils.post(`/api/images/${hash}`, {
-                tags: this.currentImage.tags
-            });
-            if (this.currentImage && this.currentImage.hash == hash) {
-                this.currentImage = result;
-                await this.fire('tags', false);
-            }
-        } else {
-            this.tags = await Utils.remove(`/api/tags/${tag}`);
-            if (this.currentImage && this.currentImage.tags.includes(tag)) {
-                this.currentImage.tags.splice(this.currentImage.tags.indexOf(tag), 1);
-            }
-            await this.fire('tags', true);
+    async removeMediaTag(tag, hash) {
+        if (!hash || !tag ) {
+            throw new Error('hash and tag must be defined');
         }
+        const tagIndex = this.currentImage.tags.indexOf(tag);
+        if (tagIndex < 0) {
+            return;
+        }
+        this.currentImage.tags.splice(tagIndex, 1);
+        const result = await Utils.post(`/api/images/${hash}`, {
+            tags: this.currentImage.tags
+        });
+        if (this.currentImage && this.currentImage.hash == hash) {
+            this.currentImage = result;
+            await this.fire('tags', false);
+        }
+    }
+
+    async addTag(tag) {
+        if (!tag) {
+            throw new Error('tag must be defined');
+        }
+        this.tags = await Utils.post('/api/tags', {tag});
+        await this.fire('tags', true);
+    }
+
+    async removeTag(tag) {
+        if (!tag) {
+            throw new Error('tag must be defined');
+        }
+
+        this.tags = await Utils.remove(`/api/tags/${tag}`);
+        if (this.currentImage && this.currentImage.tags.includes(tag)) {
+            this.currentImage.tags.splice(this.currentImage.tags.indexOf(tag), 1);
+        }
+        await this.fire('tags', true);
     }
 
     async addActor(actor, hash) {

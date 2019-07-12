@@ -1,6 +1,6 @@
-import AppData from './app_data.js';
 import * as UICallbacks from './ui_callbacks.js';
 import * as Utils from './utils.js';
+import AppData from './app_data.js';
 
 class UI {
     constructor() {
@@ -84,7 +84,7 @@ class UI {
     setType(image) {
         const imagePanel = document.getElementById('imagePanel');
         const videoPanel = document.getElementById('videoPanel');
-        let type = image.type;
+        const type = image.type;
 
         imagePanel.src = '#';
         videoPanel.poster = '#';
@@ -145,12 +145,12 @@ class UI {
 
     touchBegin(e) {
         const touchobj = e.changedTouches[0]; // reference first touch point (ie: first finger)
-        this.touchX = parseInt(touchobj.clientX); // get x position of touch point relative to left edge of browser
+        this.touchX = Number(touchobj.clientX); // get x position of touch point relative to left edge of browser
     }
 
     touchFinish(e) {
         const touchobj = e.changedTouches[0]; // reference first touch point for this event
-        this.touchDistance = parseInt(touchobj.clientX) - this.touchX;
+        this.touchDistance = Number(touchobj.clientX) - this.touchX;
         if (this.touchDistance < -100) {
             AppData.next();
             e.preventDefault();
@@ -297,9 +297,9 @@ class Gallery {
             Utils.setTags(AppData.tags, async (tag, state) => {
                 await Utils.err(async () => {
                     if (state) {
-                        await AppData.addTag(tag, AppData.currentImage.hash);
+                        await AppData.addMediaTag(tag, AppData.currentImage.hash);
                     } else {
-                        await AppData.removeTag(tag, AppData.currentImage.hash);
+                        await AppData.removeMediaTag(tag, AppData.currentImage.hash);
                     }
                 }, 'Error saving tag state');
             });

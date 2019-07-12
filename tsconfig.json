@@ -1,0 +1,11 @@
+{
+  "extends": "@luvies/config/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "rootDir": "src",
+    "outDir": "dist",
+    "target": "es2018",
+    "importHelpers": false
+  },
+  "include": ["src/**/*.ts", "types/*.ts"]
+}

@@ -6,3 +6,5 @@ log/*
 pid/*
 **/*.log
 dist/*
+screenshots/*
+README.md

@@ -1,11 +1,28 @@
-FROM node:10-alpine
-RUN apk update
-RUN apk add graphicsmagick g++ make ffmpeg
+FROM node:10-alpine as build
 
-ADD . /opt/app/
-WORKDIR /opt/app
+WORKDIR /src
+
+COPY ./package.json /src
 RUN yarn
+
+COPY . /src
 RUN yarn lint
 RUN yarn lint-web
+RUN yarn build
 
-CMD ["yarn", "start"]
+# This strips out the dev dependencies.
+RUN yarn install --production
+
+FROM node:10-alpine
+
+RUN apk add --no-cache tini graphicsmagick g++ make ffmpeg
+
+WORKDIR /src
+COPY --from=build /src/node_modules node_modules
+COPY --from=build /src/dist dist
+COPY --from=build /src/web web
+COPY --from=build /src/package.json .
+COPY --from=build /src/export.sh .
+COPY --from=build /src/import.sh .
+
+ENTRYPOINT [ "/sbin/tini", "--", "node", "dist/index.js" ]

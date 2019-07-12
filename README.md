@@ -1,29 +1,31 @@
-
 # Media viewer and organiser
 
 ![Preview Image](screenshots/view.png)
 
 ## Features
-* Web-based interface
-* Video, gif and image support
-* Tagging media
-* Various forms of searching (weighted keyword, tag selection, etc)
-* Metadata support for Artist/Album/Title/[People/Actors]
-* Auto-scraped metadata from files where possible
-* Internal image gallery for faster browser
-* Thumbnail generation for all media
-* Auto-transcode videos for web-browser compatibility
-* Import and export database to JSON format
-* Rating system
-* Configurable video caching levels.
+
+- Web-based interface
+- Video, gif and image support
+- Tagging media
+- Various forms of searching (weighted keyword, tag selection, etc)
+- Metadata support for Artist/Album/Title/[People/Actors]
+- Auto-scraped metadata from files where possible
+- Internal image gallery for faster browser
+- Thumbnail generation for all media
+- Auto-transcode videos for web-browser compatibility
+- Import and export database to JSON format
+- Rating system
+- Configurable video caching levels.
 
 ## Quick-Start
+
 1. Install Docker CE (https://docs.docker.com/install)
-2. ```git clone https://github.com/simplyboo6/Vimtur```
-3. ```cd Vimtur```
-2. Run ```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up``` (change `DATA_DIR` and `CACHE_DIR`).
+2. `git clone https://github.com/simplyboo6/Vimtur`
+3. `cd Vimtur`
+4. Run `DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up` (change `DATA_DIR` and `CACHE_DIR`).
 
 ## Upgrade from V3 to V4.
+
 Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
 Note that during the upgrade the hashing mechanism will change from doing md5 sum's of the entire file to following SubDB's model of the first and last 64kbs. Another notable change is that
 during upgrade the library needs to be partially re-cached to support multiple quality levels. This is more file shuffling than encoding.
@@ -38,7 +40,7 @@ during upgrade the library needs to be partially re-cached to support multiple q
    ```
    node utils/export_json.js <path/to/config.json>
    ```
-   You need to replace the config path above or otherwise remove it and use the environment variables. The command will generate a file called *output.json*.
+   You need to replace the config path above or otherwise remove it and use the environment variables. The command will generate a file called _output.json_.
 2. **Upgrading**
    At this point upgrade your source code to the latest version by doing a git pull.
 3. **Importing**
@@ -53,38 +55,46 @@ during upgrade the library needs to be partially re-cached to support multiple q
    The above command should be configured with the same environment variables or config file as running the program.
 
 ## Notes
-* Requirements
-  * ffmpeg for transcoding and thumbnails.
-  * graphicsmagick for extracting EXIF data.
-* Caching data takes a lot of space. All videos are re-transcoded to be h264 and HLS compatible.
-* Because of pre-caching it's possible to quickly skip through videos and loading times are minimal.
-* Videos by default are transcoded to 240p and 1080p. If the source is h264 and no scalings been applied it copies the video data. This is quicker, and higher quality, but takes up more space. These are configurable options. It could be configured to only transcode to a low-quality for browsing.
-* Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
-* The included compose file comes with a mongodb instance.
-* The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
+
+- Requirements
+  - ffmpeg for transcoding and thumbnails.
+  - graphicsmagick for extracting EXIF data.
+- Caching data takes a lot of space. All videos are re-transcoded to be h264 and HLS compatible.
+- Because of pre-caching it's possible to quickly skip through videos and loading times are minimal.
+- Videos by default are transcoded to 240p and 1080p. If the source is h264 and no scalings been applied it copies the video data. This is quicker, and higher quality, but takes up more space. These are configurable options. It could be configured to only transcode to a low-quality for browsing.
+- Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
+- The included compose file comes with a mongodb instance.
+- The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
 
 ## Docker
+
 The server can be run as a Docker instance. It accepts the following environment variables:
-* (required) DATA_DIR - The path to the media library.
-* (required) CACHE_DIR - The directory to cache thumbnails, videos, and store the config and database. Cannot be inside the DATA_DIR.
-* (optional) CONFIG_PATH - The location of config.json, by default this will be in `${CACHE_PATH}/config.json`.
-* (optional) USERNAME - A username to login with. PASSWORD also required.
-* (optional) PASSWORD - A password to login with. USERNAME required too.
-* (optional) PORT - A port for the Docker instance to expose. Default 3523.
-* (optional) DATABASE - Must be set to `mongodb` (default).
-  * If using `mongodb` then you must also set `DATABASE_HOST` and `DATABASE_DATABASE`. If they're set in your config.json file then the DATABASE config can be omitted. Optional: `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `DATABASE_PORT`.
+
+- (required) DATA_DIR - The path to the media library.
+- (required) CACHE_DIR - The directory to cache thumbnails, videos, and store the config and database. Cannot be inside the DATA_DIR.
+- (optional) CONFIG_PATH - The location of config.json, by default this will be in `${CACHE_PATH}/config.json`.
+- (optional) USERNAME - A username to login with. PASSWORD also required.
+- (optional) PASSWORD - A password to login with. USERNAME required too.
+- (optional) PORT - A port for the Docker instance to expose. Default 3523.
+- (optional) DATABASE - Must be set to `mongodb` (default).
+  - If using `mongodb` then you must also set `DATABASE_URI` to a MongoDB connection string (eg `mongodb://localhost/vimtur`) and `DATABASE_DB` to the database name.
 
 Note: Any of these variables can be used when starting the NodeJS app natively.
 
-
 ## Example
+
 ### Basic
-```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up --build```
-### External MongoDB (make sure to modify docker-compose.yml.
-```DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache DATABASE=mongodb DATABASE_HOST=localhost DATABASE_DATABASE=photos DATABASE_USERNAME=username DATABASE_PASSWORD=password docker-compose up --build```
+
+`DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up --build`
+
+### External MongoDB (make sure to modify docker-compose.yml).
+
+`DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache DATABASE=mongodb DATABASE_URI=mongodb://username:password@localhost/photos docker-compose up --build`
 
 ## Running Natively
+
 ### Setup
+
 On Ubuntu/Debian run:
 `sudo apt-get install graphicsmagick ffmpeg`
 
@@ -93,9 +103,11 @@ For Windows install graphicsmagick, ffmpeg and ffprobe. Make sure they're in you
 `yarn install && yarn start`
 
 ### Running
+
 A config file can be specified using the `-c` flag when launching with nodejs or with the `CONFIG_PATH` variable when launching with yarn.
 
 ## Configuration JSON File
+
 ```
 {
   "port": 3523, // The external port to listen on.
@@ -120,21 +132,27 @@ A config file can be specified using the `-c` flag when launching with nodejs or
   "cachePath": "/home/user/cache", // Where to store the cache.
   "database": { // Database configuration as above.
     "provider": "mongodb",
-    "host": "localhost",
-    "username": "vimtur_photos",
-    "password": "vimtur_photos",
-    "database": "vimtur_photos"
+    "uri": "mongodb://username:password@localhost",
+    "db": "datbaseName"
   }
 }
 
 ```
 
 ## Screenshots
+
 ### Admin
+
 ![Preview Image](screenshots/admin.png)
+
 ### Metadata
+
 ![Preview Image](screenshots/metadata.png)
+
 ### Search
+
 ![Preview Image](screenshots/search.png)
+
 ### Configuration
+
 ![Preview Image](screenshots/configuration_video.png)

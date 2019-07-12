@@ -1,4 +1,4 @@
-version: "2"
+version: '3'
 services:
   vimtur:
     build:
@@ -10,16 +10,13 @@ services:
       - USERNAME
       - PASSWORD
       - DATABASE
-      - DATABASE_HOST
-      - DATABASE_DATABASE
-      - DATABASE_USERNAME
-      - DATABASE_PASSWORD
-      - DATABASE_PORT
+      - DATABASE_URI
+      - DATABASE_DB
     volumes:
       - ${DATA_DIR}:/data/
       - ${CACHE_DIR}:/cache/
     ports:
-      - "${PORT}:3523"
+      - '${PORT}:3523'
   mongo:
     image: mongo
     volumes:
