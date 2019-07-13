@@ -77,7 +77,7 @@ The server can be run as a Docker instance. It accepts the following environment
 - (optional) PASSWORD - A password to login with. USERNAME required too.
 - (optional) PORT - A port for the Docker instance to expose. Default 3523.
 - (optional) DATABASE - Must be set to `mongodb` (default).
-  - If using `mongodb` then you must also set `DATABASE_URI` to a MongoDB connection string (eg `mongodb://localhost/vimtur`) and `DATABASE_DB` to the database name.
+  - If using `mongodb` then you must also set `DATABASE_URI` to a MongoDB connection string (eg `mongodb://localhost`) and `DATABASE_DB` to the database name.
 
 Note: Any of these variables can be used when starting the NodeJS app natively.
 
