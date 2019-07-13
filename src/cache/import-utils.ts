@@ -53,6 +53,7 @@ export class ImportUtils {
       case 'jpg':
       case 'jpeg':
       case 'bmp':
+      case 'webp':
         return 'still';
       case 'gif':
         return 'gif';
