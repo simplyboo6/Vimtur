@@ -138,6 +138,10 @@ class AppData {
         return this.config.user.lowQualityOnLoadEnabledForMobile;
     }
 
+    isTranscoderSettingTrue(name) {
+        return !!(this.config && this.config.transcoder[name]);
+    }
+
     getMap() {
         if (this.imageSet.shuffleMap) {
             return this.imageSet.shuffleMap;
@@ -442,6 +446,12 @@ class AppData {
     async saveUserConfig(config) {
         await this.saveConfig({
             user: config
+        });
+    }
+
+    async saveTranscoderConfig(config) {
+        await this.saveConfig({
+            transcoder: config
         });
     }
 }

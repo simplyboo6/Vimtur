@@ -433,6 +433,9 @@ class Gallery {
     $('#stateCheckbox').prop('checked', AppData.isStateEnabled());
     $('#enableLowQualityOnLoad').prop('checked', AppData.isLowQualityOnLoadEnabled());
     $('#enableLowQualityOnLoadForMobile').prop('checked', AppData.isLowQualityOnLoadEnabledForMobile());
+    $('#enableCachingKeyframes').prop('checked', AppData.isTranscoderSettingTrue('enableCachingKeyframes'));
+    $('#enablePrecachingKeyframes').prop('checked', AppData.isTranscoderSettingTrue('enablePrecachingKeyframes'));
+    $('#enableVideoCaching').prop('checked', AppData.isTranscoderSettingTrue('enableVideoCaching'));
 
     ui.resize();
     ui.setupVideoQuality();

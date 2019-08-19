@@ -343,6 +343,24 @@
                                 Enable lowering quality on seek and initial load for mobile browsers?
                             </label>
                         </div>
+                        <div class="form-check" title="Enabling this caches the data needed to generate a playlist for streaming. Takes up DB space but makes second loads faster.">
+                            <input class="form-check-input" type="checkbox" value="" id="enableCachingKeyframes" onclick="enableCachingKeyframesClick()">
+                            <label class="form-check-label" for="enableCachingKeyframes">
+                                Enable caching for keyframe information on generation?
+                            </label>
+                        </div>
+                        <div class="form-check" title="Enabling this pre-generates information needed to create a playlist for streaming. Imports take longer but initial load of videos will be faster.">
+                            <input class="form-check-input" type="checkbox" value="" id="enablePrecachingKeyframes" onclick="enablePrecachingKeyframesClick()">
+                            <label class="form-check-label" for="enablePrecachingKeyframes">
+                                Enable caching keyframe information during import?
+                            </label>
+                        </div>
+                        <div class="form-check" title="Enabling this causes videos to be cached during import. Uses large amounts of disk space but seeking and loading times are very fast.">
+                            <input class="form-check-input" type="checkbox" value="" id="enableVideoCaching" onclick="enableVideoCachingClick()">
+                            <label class="form-check-label" for="enableVideoCaching">
+                                Enable caching for all videos?
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>

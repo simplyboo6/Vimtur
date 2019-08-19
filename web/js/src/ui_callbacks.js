@@ -396,3 +396,27 @@ export async function enableLowQualityOnLoadForMobileClick() {
         await AppData.updateState();
     }, 'Unable to save quality on seek settings');
 }
+
+export async function enableCachingKeyframesClick() {
+    const checked = $('#enableCachingKeyframes').is(':checked');
+    await Utils.err(async () => {
+        await AppData.saveTranscoderConfig({ enableCachingKeyframes: checked });
+        await AppData.updateState();
+    }, 'Unable to save settings');
+}
+
+export async function enablePrecachingKeyframesClick() {
+    const checked = $('#enablePrecachingKeyframes').is(':checked');
+    await Utils.err(async () => {
+        await AppData.saveTranscoderConfig({ enablePrecachingKeyframes: checked });
+        await AppData.updateState();
+    }, 'Unable to save settings');
+}
+
+export async function enableVideoCachingClick() {
+    const checked = $('#enableVideoCaching').is(':checked');
+    await Utils.err(async () => {
+        await AppData.saveTranscoderConfig({ enableVideoCaching: checked });
+        await AppData.updateState();
+    }, 'Unable to save settings');
+}
