@@ -12,10 +12,10 @@
 - Auto-scraped metadata from files where possible
 - Internal image gallery for faster browser
 - Thumbnail generation for all media
-- Auto-transcode videos for web-browser compatibility
+- Auto-transcode videos for web-browser compatibility (both streaming and caching)
 - Import and export database to JSON format
 - Rating system
-- Configurable video caching levels.
+- Configurable video caching levels
 
 ## Quick-Start
 
@@ -59,8 +59,8 @@ during upgrade the library needs to be partially re-cached to support multiple q
 - Requirements
   - ffmpeg for transcoding and thumbnails.
   - graphicsmagick for extracting EXIF data.
-- Caching data takes a lot of space. All videos are re-transcoded to be h264 and HLS compatible.
-- Because of pre-caching it's possible to quickly skip through videos and loading times are minimal.
+- Caching data is optional (disabled by default) and takes a lot of space. All videos are transcoded to be h264 and HLS compatible. Enabling caching will allow faster load times.
+- When pre-caching it's possible to quickly skip through videos and loading times are minimal. Otherwise expect about 5s on initial load (or slightly more on the first time) and 5s every time you seek to an unbufferred segment.
 - Videos by default are transcoded to 240p and 1080p. If the source is h264 and no scalings been applied it copies the video data. This is quicker, and higher quality, but takes up more space. These are configurable options. It could be configured to only transcode to a low-quality for browsing.
 - Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
 - The included compose file comes with a mongodb instance.
@@ -112,12 +112,18 @@ A config file can be specified using the `-c` flag when launching with nodejs or
 {
   "port": 3523, // The external port to listen on.
   "transcoder": { // Settings for transcoding video.
-    "maxCopyEnabled": true, // Whether to directly copy the source video if possible. This is quicker but takes more space.
+    "maxCopyEnabled": true, // Whether to directly copy the source video if possible. This is quicker but takes more space, useful for streaming though.
     "minQuality": 480, // The minimum quality to bother transcoding. Eg if qualities contains 240p but the source is 480p or below then just transcode to 480p.
-    "qualities": [ // Qualities to transcode to in pixel heights. (Eg 240 = 240p).
+    "qualities": [ // Qualities to transcode to in pixel heights. (Eg 240 = 240p). For streaming and/or caching.
       240,
       1080
-    ]
+    ],
+    // True to cache keyframes the first time they're requested.
+    "enableCachingKeyframes": true,
+    // True to cache keyframes as part of the importing process.
+    "enablePrecachingKeyframes": false,
+    // True to enable video caching for all videos as part of the import process.
+    "enableVideoCaching": false
   },
   "user": { // User settings are all configurable from 'Config' in the UI and explained there. These are defaults.
     "autoplayEnabled": false, // Autoplay videos (muted) if possible.
