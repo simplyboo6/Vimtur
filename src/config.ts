@@ -47,6 +47,7 @@ const DEFAULTS: any = {
     // Transcode to a small mobile quality and up to 1080p.
     // If the source is 720p it will transcode to 240p and 1080p
     qualities: [240, 1080],
+    // Enables caching keyframes when they're initially accessed.
     enableCachingKeyframes: true,
     // Makes the first load of each video slower but initial import much faster.
     enablePrecachingKeyframes: false,

@@ -1,3 +1,13 @@
+export interface Segment {
+  start: number;
+  end: number;
+}
+
+export interface SegmentMetadata {
+  standard: Segment[];
+  copy: Segment[];
+}
+
 interface MetadataBase {
   length?: number;
   artist?: string | null;
@@ -6,7 +16,7 @@ interface MetadataBase {
   codec?: string;
   qualityCache?: number[];
   maxCopy?: boolean;
-  keyframeIndexes?: number[];
+  segments?: SegmentMetadata;
 }
 
 export interface Metadata extends MetadataBase {

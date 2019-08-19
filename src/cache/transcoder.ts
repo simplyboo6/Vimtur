@@ -1,4 +1,5 @@
 import FS from 'fs';
+import Path from 'path';
 import Rimraf from 'rimraf';
 import Stream from 'stream';
 import Util from 'util';
@@ -117,6 +118,32 @@ export class Transcoder {
     await ImportUtils.transcode(media.absolutePath, stream, args, inputOptions);
   }
 
+  public async getStreamPlaylist(media: Media, quality: number): Promise<string> {
+    if (!media.metadata) {
+      throw new Error('Cannot get playlist for media without metadata');
+    }
+
+    // If it's cached then return the cached index.
+    if (media.metadata.qualityCache && media.metadata.qualityCache.includes(quality)) {
+      const cached = await Util.promisify(FS.readFile)(
+        Path.resolve(Config.get().cachePath, media.hash, `${quality}p`, 'index.m3u8'),
+      );
+      return cached.toString();
+    }
+
+    const segments = media.metadata.segments || (await ImportUtils.generateSegments(media));
+
+    if (Config.get().transcoder.enableCachingKeyframes && !media.metadata.segments) {
+      await this.database.saveMedia(media.hash, {
+        metadata: {
+          segments,
+        },
+      });
+    }
+
+    return ImportUtils.generateStreamPlaylist(media, segments, quality);
+  }
+
   private async transcodeMediaToQuality(media: Media, requestedQuality: Quality): Promise<void> {
     if (!media.metadata) {
       throw new Error(`Can't transcode media without metadata`);
@@ -171,10 +198,6 @@ export class Transcoder {
       `${Config.get().cachePath}/${media.hash}/${targetHeight}p/index.m3u8`,
       args,
     );
-    await Util.promisify(FS.writeFile)(
-      `${Config.get().cachePath}/${media.hash}/index.m3u8`,
-      ImportUtils.generatePlaylist(media),
-    );
 
     console.log(`Saving metadata for ${media.absolutePath}`);
     // This try block is to avoid it being marked as corrupted if it fails schema validation.
@@ -217,11 +240,7 @@ export class Transcoder {
         await Util.promisify(Rimraf)(`${Config.get().cachePath}/${media.hash}/${quality}p`);
         media.metadata.qualityCache!.splice(media.metadata.qualityCache!.indexOf(quality), 1);
       }
-      console.log(`${media.hash}: Writing index.m3u8...`);
-      await Util.promisify(FS.writeFile)(
-        `${Config.get().cachePath}/${media.hash}/index.m3u8`,
-        ImportUtils.generatePlaylist(media),
-      );
+
       console.log(`${media.hash}: Saving quality list...`);
       await this.database.saveMedia(media.hash, {
         metadata: {

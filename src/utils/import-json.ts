@@ -79,15 +79,6 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
           );
         }
       }
-      const indexExists = await ImportUtils.exists(Path.resolve(mediaCache, 'index.m3u8'));
-      console.log('indexMissing', indexExists);
-      if (!indexExists) {
-        console.log(`Writing index file to ${Path.resolve(mediaCache, 'index.m3u8')}`);
-        await Util.promisify(FS.writeFile)(
-          Path.resolve(mediaCache, 'index.m3u8'),
-          ImportUtils.generatePlaylist(media),
-        );
-      }
 
       try {
         await Util.promisify(FS.rename)(

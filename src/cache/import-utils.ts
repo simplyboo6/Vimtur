@@ -6,7 +6,7 @@ import Rimraf from 'rimraf';
 import Stream from 'stream';
 import Util from 'util';
 
-import { BaseMedia, Media, MediaType } from '../types';
+import { BaseMedia, Media, MediaType, SegmentMetadata } from '../types';
 import Config from '../config';
 
 // Bytes to read from start and end of file.
@@ -204,31 +204,11 @@ export class ImportUtils {
     return Math.ceil(710.7068 * Math.pow(quality, 1.2665));
   }
 
-  public static generatePlaylist(media: BaseMedia): string {
-    if (!media.metadata) {
-      throw new Error('Cannot generate playlist for media without metadatata');
-    }
-    if (!media.metadata.qualityCache) {
-      throw new Error('Cannot generate playlist for media with no cached qualities');
-    }
+  public static generateStreamMasterPlaylist(media: BaseMedia): string {
+    const qualities = ImportUtils.getMediaDesiredQualities(media).map(el => el.quality);
 
-    const qualities = media.metadata.qualityCache;
     let data = '#EXTM3U';
-    // TODO Refactor this to use actual height and maybe actual bandwidth.
-    for (const quality of qualities.sort()) {
-      const bandwidth = ImportUtils.estimateBandwidthFromQuality(quality);
-      // Get width, assume 16:10 for super max HD.
-      const width = Math.ceil((quality / 10) * 16);
-      const resolution = `${width}x${quality}`;
-      data = `${data}\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${bandwidth},RESOLUTION=${resolution}`;
-      data = `${data}\n${quality}p/index.m3u8`;
-    }
-    return data;
-  }
-
-  public static generateStreamMasterPlaylist(): string {
-    const qualities = Config.get().transcoder.qualities;
-    let data = '#EXTM3U';
+    // TODO Filter out the resolutions greater than the source resolution.
     // TODO Refactor this to use actual height and maybe actual bandwidth.
     for (const quality of qualities.sort()) {
       const bandwidth = ImportUtils.estimateBandwidthFromQuality(quality);
@@ -241,7 +221,7 @@ export class ImportUtils {
     return data;
   }
 
-  public static async generateStreamPlaylist(media: Media, quality: number): Promise<string> {
+  public static async generateSegments(media: Media): Promise<SegmentMetadata> {
     if (!media.metadata) {
       throw new Error('Cannot generate playlist for media without metadatata');
     }
@@ -251,36 +231,63 @@ export class ImportUtils {
     if (!media.metadata.length) {
       throw new Error(`Can't stream 0 length video`);
     }
-    // TODO Cache keyframes
+
     // The reason we have to fetch the keyframes is to we can manually split the stream on keyframes.
     // This allows videos where the codec is copied rather than only supporting re-encoded videos.
     const keyframes = await ImportUtils.getKeyframes(media);
+    const segments: SegmentMetadata = {
+      standard: [],
+      copy: [],
+    };
+
+    if (keyframes.length === 1 || media.metadata.length < 10) {
+      segments.standard.push({ start: 0, end: media.metadata.length });
+      segments.copy.push({ start: 0, end: media.metadata.length });
+    } else {
+      let lastTimeIndex = 0;
+      for (let i = 0; i < keyframes.length; i++) {
+        if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
+          segments.standard.push({ start: keyframes[lastTimeIndex], end: keyframes[i] });
+          // When copying video timestamps it needs to end a keyframe earlier for some reason.
+          segments.copy.push({ start: keyframes[lastTimeIndex], end: keyframes[i - 1] });
+
+          lastTimeIndex = i;
+        } else if (i === keyframes.length - 1) {
+          segments.standard.push({ start: keyframes[lastTimeIndex], end: media.metadata.length });
+          segments.copy.push({ start: keyframes[lastTimeIndex], end: media.metadata.length });
+        }
+      }
+    }
+
+    return segments;
+  }
+
+  public static async generateStreamPlaylist(
+    media: Media,
+    segments: SegmentMetadata,
+    quality: number,
+  ): Promise<string> {
+    if (!media.metadata) {
+      throw new Error('Cannot generate playlist for media without metadatata');
+    }
+    if (media.type !== 'video') {
+      throw new Error('Cannot stream non-video type');
+    }
+    if (!media.metadata.length) {
+      throw new Error(`Can't stream 0 length video`);
+    }
 
     const copy = media.metadata.codec === 'h264' && quality === media.metadata.height;
 
     let data = '';
     let longest = 0;
 
-    if (keyframes.length === 1 || media.metadata.length < 10) {
-      longest = Math.ceil(media.metadata.length);
-      data += `#EXTINF:${media.metadata.length.toFixed(6)},\ndata.ts?start=0&end=${
-        media.metadata.length
-      }\n`;
-    } else {
-      let lastTimeIndex = 0;
-      for (let i = 0; i < keyframes.length; i++) {
-        if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
-          const length = keyframes[i] - keyframes[lastTimeIndex];
-          if (length > longest) {
-            longest = length;
-          }
-          // When copying video timestamps it needs to end a keyframe earlier for some reason.
-          data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${keyframes[lastTimeIndex]}&end=${
-            keyframes[i - (copy ? 1 : 0)]
-          }\n`;
-          lastTimeIndex = i;
-        }
+    for (const segment of copy ? segments.copy : segments.standard) {
+      const length = segment.end - segment.start;
+      if (length > longest) {
+        longest = length;
       }
+      data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${segment.start}&end=${segment.end}\n`;
     }
 
     const header = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${Math.ceil(
@@ -306,7 +313,11 @@ export class ImportUtils {
     return redundant;
   }
 
-  public static async getKeyframes(media: Media): Promise<number[]> {
+  public static async wait(): Promise<void> {
+    return new Promise<void>(resolve => setTimeout(resolve, 0));
+  }
+
+  private static async getKeyframes(media: Media): Promise<number[]> {
     if (media.type !== 'video') {
       throw new Error('Cannot stream non-video type');
     }
@@ -317,9 +328,5 @@ export class ImportUtils {
       .split('\n')
       .filter(line => Boolean(line))
       .map(line => Number(line));
-  }
-
-  public static async wait(): Promise<void> {
-    return new Promise<void>(resolve => setTimeout(resolve, 0));
   }
 }
