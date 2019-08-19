@@ -68,7 +68,7 @@ export class Importer {
     console.log('Precaching keyframes...');
     console.time('Keyframe Precache Time');
     try {
-      const mediaList = await this.database.subset({});
+      const mediaList = await this.database.subset({ type: ['video'], indexed: true });
       for (let i = 0; i < mediaList.length; i++) {
         this.status.progress = { current: i, max: mediaList.length };
         this.update();
@@ -101,12 +101,16 @@ export class Importer {
         }
 
         if (generateSegments) {
-          const segments = await ImportUtils.generateSegments(media);
-          await this.database.saveMedia(media.hash, {
-            metadata: {
-              segments,
-            },
-          });
+          try {
+            const segments = await ImportUtils.generateSegments(media);
+            await this.database.saveMedia(media.hash, {
+              metadata: {
+                segments,
+              },
+            });
+          } catch (err) {
+            console.warn('Failed to cache segments', media.hash, err);
+          }
         }
       }
     } catch (err) {
@@ -330,6 +334,7 @@ export class Importer {
       case 'CACHING':
       case 'REHASHING':
       case 'THUMBNAILS':
+      case 'KEYFRAME_CACHING':
         this.status.state = state;
         break;
       default:
