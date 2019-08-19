@@ -100,10 +100,13 @@ export class Transcoder {
           '23',
           '-tune',
           'film',
-          '-deadline',
+          '-quality',
           'realtime',
           '-preset',
           'superfast',
+          // To deal with strange overflows in corner cases.
+          '-max_muxing_queue_size',
+          '9999',
         ],
       );
     }
