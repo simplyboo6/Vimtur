@@ -2,14 +2,20 @@ export namespace Configuration {
   // Settings to use during video transcoding.
   export interface Transcoder {
     // If source quality = target quality (no scaling) and the source codec is h264, set to true to copy the video directly.
-    // Currently that is the default behaviour. This is faster but uses more space.
+    // Currently that is the default behaviour. This is faster but uses more space (and bandwidth).
     maxCopyEnabled: boolean;
     // Minimum source qualtiy to bother transcoding down from. Eg if minQuality is 480p and 240p is requested and the source is 480p
     // then just do 480p instead. However if the source is 720p, then transcode it to the targetted quality (240p).
     // Set to 0 to disable.
     minQuality: number;
-    // An array of qualities to transcode to in heights.
+    // An array of qualities to transcode to in heights for caching and streaming.
     qualities: number[];
+    // True to cache keyframes the first time they're requested.
+    enableCachingKeyframes: boolean;
+    // True to cache keyframes as part of the importing process.
+    enablePrecachingKeyframes: boolean;
+    // True to enable video caching for all videos as part of the import process.
+    enableVideoCaching: boolean;
   }
 
   // Settings to persist across UI sessions.

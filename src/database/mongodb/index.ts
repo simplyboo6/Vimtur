@@ -14,6 +14,7 @@ import {
   SubsetFields,
   UpdateMedia,
 } from '../../types';
+import { Updater } from './updater';
 import { Validator } from '../../utils/validator';
 import Config from '../../config';
 
@@ -48,60 +49,7 @@ export class MongoConnector extends Database {
 
     const connector = new MongoConnector(server, await Validator.load(mediaSchemaPath));
 
-    await connector.db.createCollection('media', {
-      validator: { $jsonSchema: mediaSchema },
-    });
-
-    const mediaCollection = connector.db.collection('media');
-    // Bloody thing doesn't return a promise.
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      {
-        'path': 'text',
-        'type': 'text',
-        'tags': 'text',
-        'actors': 'text',
-        'metadata.artist': 'text',
-        'metadata.album': 'text',
-        'metadata.title': 'text',
-      },
-      {
-        name: 'keyword_index',
-        weights: {
-          'path': 1,
-          'type': 4,
-          'tags': 2,
-          'actors': 3,
-          'metadata.artist': 2,
-          'metadata.album': 3,
-          'metadata.title': 3,
-        },
-      },
-    ); // Bug with weights not being recognised.
-
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { hash: 1 },
-      { unique: true },
-    );
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { hashDate: 1 },
-      { unique: false },
-    );
-
-    await connector.db.createCollection('config');
-
-    await connector.db.createCollection('actors');
-    const actorsCollection = connector.db.collection('config');
-    await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))(
-      { name: 1 },
-      { unique: true },
-    );
-
-    await connector.db.createCollection('tags');
-    const tagsCollection = connector.db.collection('tags');
-    await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))(
-      { name: 1 },
-      { unique: true },
-    );
+    await Updater.apply(connector.db, mediaSchema);
 
     return connector;
   }

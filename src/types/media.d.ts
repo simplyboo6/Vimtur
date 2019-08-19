@@ -6,6 +6,7 @@ interface MetadataBase {
   codec?: string;
   qualityCache?: number[];
   maxCopy?: boolean;
+  keyframeIndexes?: number[];
 }
 
 export interface Metadata extends MetadataBase {
