@@ -28,7 +28,7 @@ export async function create(db: Database): Promise<Router> {
 
       const constraints: SubsetConstraints = req.body;
       constraints.corrupted = false;
-      constraints.cached = true;
+      constraints.indexed = true;
 
       console.log('Search request.', constraints);
       return {

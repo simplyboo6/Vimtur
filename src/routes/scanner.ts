@@ -47,6 +47,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Scanner
     await cache.scan();
     await cache.index();
     await cache.thumbnails();
+    await cache.cacheKeyframes();
     await cache.cache();
   }
 

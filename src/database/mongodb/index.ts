@@ -292,6 +292,10 @@ export class MongoConnector extends Database {
       query['metadata.qualityCache.0'] = { $exists: constraints.cached };
     }
 
+    if (constraints.indexed !== undefined) {
+      query['metadata'] = { $exists: constraints.indexed };
+    }
+
     let queryResult = mediaCollection.find(query).project({
       ...fields,
       score: {

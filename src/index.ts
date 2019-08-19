@@ -42,10 +42,6 @@ async function createServer(db: Database): Promise<Server> {
   const scannerRouter = await ScannerRouter.create(db, io);
   app.use('/api/scanner', scannerRouter.router);
 
-  const redundantCacheMap = await scannerRouter.cache.findRedundantCaches();
-  console.log(`${Object.keys(redundantCacheMap).length} media found with redundant caches.`);
-  scannerRouter.cache.scan().catch(err => console.error(err));
-
   app.get('/web/:file(*)', (req: Request, res: Response) => {
     try {
       if (!require.main) {

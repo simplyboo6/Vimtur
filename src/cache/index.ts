@@ -9,7 +9,14 @@ import { Indexer } from './indexer';
 import { Transcoder } from './transcoder';
 import Config from '../config';
 
-export type State = 'IDLE' | 'SCANNING' | 'INDEXING' | 'CACHING' | 'REHASHING' | 'THUMBNAILS';
+export type State =
+  | 'IDLE'
+  | 'SCANNING'
+  | 'INDEXING'
+  | 'CACHING'
+  | 'REHASHING'
+  | 'THUMBNAILS'
+  | 'KEYFRAME_CACHING';
 
 export interface Progress {
   current: number;
@@ -23,6 +30,8 @@ export interface Status {
 }
 
 export type StatusCallback = (status: Status) => void;
+
+const THUMBNAIL_BATCH_SIZE = 8;
 
 export class Importer {
   private status: Status;
@@ -47,6 +56,66 @@ export class Importer {
 
   public getStatus(): Status {
     return this.status;
+  }
+
+  public async cacheKeyframes(): Promise<void> {
+    if (!Config.get().transcoder.enablePrecachingKeyframes) {
+      console.debug('Skipping keyframe precaching.');
+      return;
+    }
+
+    this.setState('KEYFRAME_CACHING');
+    console.log('Precaching keyframes...');
+    console.time('Keyframe Precache Time');
+    try {
+      const mediaList = await this.database.subset({});
+      for (let i = 0; i < mediaList.length; i++) {
+        this.status.progress = { current: i, max: mediaList.length };
+        this.update();
+
+        const media = await this.database.getMedia(mediaList[i]);
+        if (!media) {
+          console.log('Unexpectedly couldnt find media', mediaList[i]);
+          continue;
+        }
+        if (!media.metadata) {
+          console.log('Skipping precache for non-indexed media', mediaList[i]);
+          continue;
+        }
+
+        let generateSegments = !media.metadata.segments;
+        if (generateSegments && media.metadata.qualityCache) {
+          const desired = ImportUtils.getMediaDesiredQualities(media);
+          let hasAll = true;
+          // Check if it's cached at every desired quality, if it is then don't
+          // bother precaching.
+          for (const quality of desired) {
+            if (!media.metadata.qualityCache.includes(quality.quality)) {
+              hasAll = false;
+              break;
+            }
+          }
+          if (hasAll) {
+            generateSegments = false;
+          }
+        }
+
+        if (generateSegments) {
+          const segments = await ImportUtils.generateSegments(media);
+          await this.database.saveMedia(media.hash, {
+            metadata: {
+              segments,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error precaching keyframes', err);
+      throw err;
+    } finally {
+      console.timeEnd('Keyframe Precache Time');
+      this.setState('IDLE');
+    }
   }
 
   public async scan(): Promise<void> {
@@ -161,29 +230,33 @@ export class Importer {
         max: withoutThumbnails.length,
       };
       console.log(`${withoutThumbnails.length} media without thumbnails.`);
-      for (let i = 0; i < withoutThumbnails.length; i++) {
-        try {
-          const media = await this.database.getMedia(withoutThumbnails[i]);
-          if (!media) {
-            console.warn(`Couldn't find media to generate thumbnail: ${withoutThumbnails[i]}`);
-            continue;
-          }
-          const path = media.absolutePath;
-          console.log(`Generating thumbnail for ${path}...`);
-          await this.transcoder.createThumbnail(media);
+      while (withoutThumbnails.length > 0) {
+        // Do them in batches of like 8, makes it a bit faster.
+        await Promise.all(
+          withoutThumbnails.splice(0, THUMBNAIL_BATCH_SIZE).map(async hash => {
+            try {
+              const media = await this.database.getMedia(hash);
+              if (!media) {
+                console.warn(`Couldn't find media to generate thumbnail: ${hash}`);
+                return;
+              }
+              const path = media.absolutePath;
+              console.log(`Generating thumbnail for ${path}...`);
+              await this.transcoder.createThumbnail(media);
 
-          try {
-            await this.database.saveMedia(media.hash, { thumbnail: true });
-          } catch (err) {
-            console.log('Failed to save media thumbnail state.', err, media);
-          }
-        } catch (err) {
-          console.log(`Error generating thumbnail for ${withoutThumbnails[i]}.`, err);
-          await this.database.saveMedia(withoutThumbnails[i], { corrupted: true });
-        }
-
-        this.status.progress.current = i;
-        this.update();
+              try {
+                await this.database.saveMedia(media.hash, { thumbnail: true });
+              } catch (err) {
+                console.log('Failed to save media thumbnail state.', err, media);
+              }
+            } catch (err) {
+              console.log(`Error generating thumbnail for ${hash}.`, err);
+              await this.database.saveMedia(hash, { corrupted: true });
+            }
+            this.status.progress.current++;
+            this.update();
+          }),
+        );
       }
     } catch (err) {
       console.error('Error generating thumbnails.', err);
@@ -194,6 +267,10 @@ export class Importer {
   }
 
   public async cache(): Promise<void> {
+    if (!Config.get().transcoder.enableVideoCaching) {
+      console.debug('Skipping cache generation: Caching disabled.');
+      return;
+    }
     this.setState('CACHING');
     console.log('Caching...');
     console.time('Cache Time');

@@ -24,6 +24,7 @@ export interface SubsetConstraints {
   dir?: string;
   keywordSearch?: string;
   corrupted?: boolean;
+  indexed?: boolean;
   thumbnail?: boolean;
   cached?: boolean;
   sortBy?: 'hashDate';
