@@ -15,7 +15,7 @@
     "compression": "^1.7.1",
     "deepmerge": "^4.0.0",
     "express": "^4.17.1",
-    "fluent-ffmpeg": "~2.1.0",
+    "fluent-ffmpeg": "^2.1.2",
     "gm": "^1.23.0",
     "http-auth": "~3.2.3",
     "inflight": "^1.0.6",

@@ -1,5 +1,6 @@
 import FS from 'fs';
 import Rimraf from 'rimraf';
+import Stream from 'stream';
 import Util from 'util';
 
 import { Database, Media } from '../types';
@@ -57,6 +58,63 @@ export class Transcoder {
         statusCallback(i, hashList.length);
       }
     }
+  }
+
+  public async streamMedia(
+    media: Media,
+    start: number,
+    end: number,
+    stream: Stream.Writable,
+    targetHeight?: number,
+  ): Promise<void> {
+    if (!media.metadata || !media.metadata.length) {
+      throw new Error(`Can't transcode media without metadata`);
+    }
+
+    if (end > media.metadata.length) {
+      throw new Error('Requested end after end of video');
+    }
+
+    const inputOptions = ['-copyts'];
+    if (start) {
+      inputOptions.push(...['-ss', String(start)]);
+    }
+    inputOptions.push(...['-to', String(end)]);
+
+    const audioCodec = ['-acodec', 'aac', '-ac', '1', '-strict', '-2'];
+
+    const videoCodec = ['-vcodec'];
+    if (
+      media.metadata.codec === 'h264' &&
+      (!targetHeight || targetHeight === media.metadata.height)
+    ) {
+      videoCodec.push('copy');
+    } else {
+      videoCodec.push(
+        ...[
+          'libx264',
+          '-bsf:v',
+          'h264_mp4toannexb',
+          '-crf',
+          '23',
+          '-tune',
+          'film',
+          '-deadline',
+          'realtime',
+          '-preset',
+          'superfast',
+        ],
+      );
+    }
+
+    const scale =
+      targetHeight && targetHeight !== media.metadata.height
+        ? ['-vf', `scale=-2:${targetHeight}`]
+        : [];
+
+    const args = [...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
+
+    await ImportUtils.transcode(media.absolutePath, stream, args, inputOptions);
   }
 
   private async transcodeMediaToQuality(media: Media, requestedQuality: Quality): Promise<void> {

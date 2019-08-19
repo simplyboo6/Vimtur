@@ -34,10 +34,12 @@ class UI {
     }
 
     setVideo(hash) {
+        const stream = true;
+
         const autoPlay = !Utils.isMobile() && AppData.isAutoplayEnabled();
-        const url = `/cache/${hash}/index.m3u8`;
+        const url = stream ? `/api/images/${hash}/stream/index.m3u8` : `/cache/${hash}/index.m3u8`;
         const player = document.getElementById('videoPanel');
-        player.poster = autoPlay ? '#' : `/cache/thumbnails/${hash}.png`;
+        player.poster = (autoPlay && !stream) ? '#' : `/cache/thumbnails/${hash}.png`;
 
         this.hls.detachMedia();
         const lowQualityOnSeek = Utils.isMobile() ? AppData.isLowQualityOnLoadEnabledForMobile() : AppData.isLowQualityOnLoadEnabled();

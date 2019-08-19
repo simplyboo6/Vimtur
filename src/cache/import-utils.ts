@@ -1,11 +1,12 @@
+import ChildProcess from 'child_process';
 import Crypto from 'crypto';
-import FFMpeg from 'fluent-ffmpeg';
 import FS from 'fs';
 import Path from 'path';
 import Rimraf from 'rimraf';
+import Stream from 'stream';
 import Util from 'util';
 
-import { BaseMedia, MediaType } from '../types';
+import { BaseMedia, Media, MediaType } from '../types';
 import Config from '../config';
 
 // Bytes to read from start and end of file.
@@ -122,19 +123,57 @@ export class ImportUtils {
     return output;
   }
 
-  public static async transcode(input: string, output: string, args: string[]): Promise<void> {
+  // You would think we'd just use fluent-ffmpeg's streaming functionality.
+  // However, there appears to be a bug in streaming I can't track down
+  // that corrupts that output stream even if piped to a file.
+  public static async transcode(
+    input: string,
+    output: string | Stream.Writable,
+    outputOptions: string[],
+    inputOptions?: string[],
+  ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const ffm = FFMpeg(input)
-        .outputOptions(args)
-        .output(output);
-      ffm.on('error', (err, stdout, stderr) => {
-        console.log(err.message);
-        console.log(`stdout:\n${stdout}`);
-        console.log(`stderr:\n${stderr}`);
-        reject(err.message);
+      const args = [];
+      if (inputOptions) {
+        args.push(...inputOptions);
+      }
+      args.push(...['-i', input]);
+      args.push(...outputOptions);
+
+      if (typeof output === 'string') {
+        args.push(output);
+      } else {
+        args.push('pipe:1');
+      }
+
+      const proc = ChildProcess.spawn('ffmpeg', args);
+      if (typeof output !== 'string') {
+        proc.stdout.pipe(
+          output,
+          { end: true },
+        );
+
+        output.on('close', () => {
+          // Wait slightly to avoid race condition under load.
+          setTimeout(() => {
+            proc.kill();
+          }, 20);
+        });
+      }
+
+      let err = '';
+      proc.stderr.on('data', data => {
+        err += data;
       });
-      ffm.on('end', resolve);
-      ffm.run();
+
+      proc.on('close', code => {
+        if (code === 0 || code === 255) {
+          resolve();
+        } else {
+          console.error(`FFMPEG error: code (${code})`, err);
+          reject(new Error(err));
+        }
+      });
     });
   }
 
@@ -187,6 +226,70 @@ export class ImportUtils {
     return data;
   }
 
+  public static generateStreamMasterPlaylist(): string {
+    const qualities = Config.get().transcoder.qualities;
+    let data = '#EXTM3U';
+    // TODO Refactor this to use actual height and maybe actual bandwidth.
+    for (const quality of qualities.sort()) {
+      const bandwidth = ImportUtils.estimateBandwidthFromQuality(quality);
+      // Get width, assume 16:10 for super max HD.
+      const width = Math.ceil((quality / 10) * 16);
+      const resolution = `${width}x${quality}`;
+      data = `${data}\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${bandwidth},RESOLUTION=${resolution}`;
+      data = `${data}\n${quality}/index.m3u8`;
+    }
+    return data;
+  }
+
+  public static async generateStreamPlaylist(media: Media, quality: number): Promise<string> {
+    if (!media.metadata) {
+      throw new Error('Cannot generate playlist for media without metadatata');
+    }
+    if (media.type !== 'video') {
+      throw new Error('Cannot stream non-video type');
+    }
+    if (!media.metadata.length) {
+      throw new Error(`Can't stream 0 length video`);
+    }
+    // TODO Cache keyframes
+    // The reason we have to fetch the keyframes is to we can manually split the stream on keyframes.
+    // This allows videos where the codec is copied rather than only supporting re-encoded videos.
+    const keyframes = await ImportUtils.getKeyframes(media);
+
+    const copy = media.metadata.codec === 'h264' && quality === media.metadata.height;
+
+    let data = '';
+    let longest = 0;
+
+    if (keyframes.length === 1 || media.metadata.length < 10) {
+      longest = Math.ceil(media.metadata.length);
+      data += `#EXTINF:${media.metadata.length.toFixed(6)},\ndata.ts?start=0&end=${
+        media.metadata.length
+      }\n`;
+    } else {
+      let lastTimeIndex = 0;
+      for (let i = 0; i < keyframes.length; i++) {
+        if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
+          const length = keyframes[i] - keyframes[lastTimeIndex];
+          if (length > longest) {
+            longest = length;
+          }
+          // When copying video timestamps it needs to end a keyframe earlier for some reason.
+          data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${keyframes[lastTimeIndex]}&end=${
+            keyframes[i - (copy ? 1 : 0)]
+          }\n`;
+          lastTimeIndex = i;
+        }
+      }
+    }
+
+    const header = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${Math.ceil(
+      longest,
+    )}\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n`;
+
+    return `${header + data}#EXT-X-ENDLIST\n`;
+  }
+
   public static getRedundanctCaches(
     desiredCachesInput: Quality[],
     actualCaches: number[],
@@ -201,6 +304,19 @@ export class ImportUtils {
       }
     }
     return redundant;
+  }
+
+  public static async getKeyframes(media: Media): Promise<number[]> {
+    if (media.type !== 'video') {
+      throw new Error('Cannot stream non-video type');
+    }
+    const results = await Util.promisify(ChildProcess.exec)(
+      `ffprobe -loglevel error -skip_frame nokey -select_streams v:0 -show_entries frame=pkt_pts_time -of csv=print_section=0 "${media.absolutePath}"`,
+    );
+    return results.stdout
+      .split('\n')
+      .filter(line => Boolean(line))
+      .map(line => Number(line));
   }
 
   public static async wait(): Promise<void> {
