@@ -94,7 +94,6 @@ export async function create(db: Database): Promise<Router> {
   });
 
   router.get('/:hash/stream/index.m3u8', (req: Request, res: Response) => {
-    console.log(`Sending master playlist for ${req.params.hash}`);
     db.getMedia(req.params.hash)
       .then(media => {
         if (media) {
