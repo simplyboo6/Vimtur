@@ -3,15 +3,15 @@ FROM node:10-alpine as build
 WORKDIR /src
 
 COPY ./package.json /src
-RUN yarn
+RUN yarn --frozen-lockfile
 
 COPY . /src
 RUN yarn lint
-RUN yarn lint-web
+#RUN yarn lint-web
 RUN yarn build
 
 # This strips out the dev dependencies.
-RUN yarn install --production
+RUN yarn install --production --frozen-lockfile
 
 FROM node:10-alpine
 
