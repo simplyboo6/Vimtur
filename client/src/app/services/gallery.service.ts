@@ -90,8 +90,8 @@ export class GalleryService {
     if (this.collection) {
       this.pageNumber += offset;
       if (this.pageNumber < 0) {
-        this.pageNumber = this.collection.length - 1;
-      } else if (this.pageNumber >= this.collection.length) {
+        this.pageNumber = this.pageCount - 1;
+      } else if (this.pageNumber >= this.pageCount) {
         this.pageNumber = 0;
       }
     } else {
