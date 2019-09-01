@@ -53,19 +53,21 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
 
     this.subscriptions.push(
       this.mediaService.getMedia().subscribe(media => {
-        this.media = media;
-
-        if (this.hls) {
-          if (this.videoElement) {
-            this.videoElement.nativeElement.pause();
+        if (!this.media || this.media.hash !== media.hash) {
+          if (this.hls) {
+            if (this.videoElement) {
+              this.videoElement.nativeElement.pause();
+            }
+            this.hls.detachMedia();
+            this.hls = undefined;
           }
-          this.hls.detachMedia();
-          this.hls = undefined;
+
+          if (media && media.type === 'video') {
+            this.playVideo(media);
+          }
         }
 
-        if (this.media && this.media.type === 'video') {
-          this.playVideo(this.media);
-        }
+        this.media = media;
       }),
     );
 
@@ -132,7 +134,7 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
 
       this.hls.attachMedia(this.videoElement.nativeElement);
 
-      this.hls.loadSource(`/api/images/${this.media.hash}/stream/index.m3u8`);
+      this.hls.loadSource(`/api/images/${media.hash}/stream/index.m3u8`);
       if (autoPlay) {
         this.hls.startLoad();
       }

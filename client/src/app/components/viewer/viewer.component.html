@@ -18,8 +18,8 @@
       <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
       <ng-container *ngIf="media.type !== 'video'">
         <img
-          *ngFor="let m of [media]"
-          [src]="'/api/images/' + m.hash + '/file'"
+          *ngFor="let hash of [media.hash]"
+          [src]="'/api/images/' + hash + '/file'"
           class="image-viewer"
         />
       </ng-container>
