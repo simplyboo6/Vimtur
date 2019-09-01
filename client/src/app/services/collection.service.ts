@@ -121,7 +121,7 @@ export class CollectionService {
         if (result) {
           const hash = this.collection[this.index];
           console.debug(`Deleting ${hash}`);
-          this.httpClient.delete(`/api/images/${hash}`).subscribe(
+          this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
             () => {
               this.collection.splice(this.index, 1);
               if (this.index >= this.collection.length) {
