@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewChecked, ViewChild } from '@angular/core';
 import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
@@ -11,13 +11,14 @@ import { Media, UpdateMedia } from '@vimtur/common';
   templateUrl: './metadata.component.html',
   styleUrls: ['./metadata.component.scss'],
 })
-export class MetadataComponent implements OnInit, OnDestroy {
+export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;
   public mediaModel?: UpdateMedia;
   public tags?: string[];
   public actors?: string[];
   public mediaService: MediaService;
 
+  @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private tagService: TagService;
   private actorService: ActorService;
   private alertService: AlertService;
@@ -66,5 +67,13 @@ export class MetadataComponent implements OnInit, OnDestroy {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+  }
+
+  public ngAfterViewChecked() {
+    if (this.ratingElement) {
+      // This is a ridiculous hack because there's no configurable way
+      // to stop ng-bootstraps rating component stealing focus and keypresses.
+      this.ratingElement.handleKeyDown = () => {};
+    }
   }
 }

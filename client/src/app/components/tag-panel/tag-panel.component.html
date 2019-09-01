@@ -35,6 +35,8 @@
         (rateChange)="mediaService.setRating(ratingModel)"
         [readonly]="!media"
         max="5"
+        [tabindex]="-1"
+        #ratingElement
       ></ngb-rating>
     </div>
     <ng-template #loading>

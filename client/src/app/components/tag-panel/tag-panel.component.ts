@@ -1,4 +1,12 @@
-import { Component, Input, SimpleChanges, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  Input,
+  SimpleChanges,
+  OnInit,
+  OnDestroy,
+  ViewChild,
+  AfterViewChecked,
+} from '@angular/core';
 import { Media } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
@@ -13,7 +21,7 @@ const DEFAULT_COLUMN_COUNT = 1;
   templateUrl: './tag-panel.component.html',
   styleUrls: ['./tag-panel.component.scss'],
 })
-export class TagPanelComponent implements OnInit, OnDestroy {
+export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public columnCount = DEFAULT_COLUMN_COUNT;
   public tagsModel: Record<string, boolean> = {};
   public ratingModel?: number;
@@ -25,6 +33,7 @@ export class TagPanelComponent implements OnInit, OnDestroy {
   public visible = false;
   public mediaService: MediaService;
 
+  @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
   private tagService: TagService;
   private actorService: ActorService;
@@ -89,6 +98,14 @@ export class TagPanelComponent implements OnInit, OnDestroy {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+  }
+
+  public ngAfterViewChecked() {
+    if (this.ratingElement) {
+      // This is a ridiculous hack because there's no configurable way
+      // to stop ng-bootstraps rating component stealing focus and keypresses.
+      this.ratingElement.handleKeyDown = () => {};
+    }
   }
 
   public filterActors(event: any) {
