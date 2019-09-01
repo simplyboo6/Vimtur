@@ -1,0 +1,30 @@
+@import '../../../helpers.scss';
+
+.main-body {
+  display: flex;
+  flex-direction: row;
+}
+
+.left-panel {
+  flex: 0;
+}
+
+.right-panel {
+  flex: 1;
+  display: flex;
+}
+
+.hidden {
+  display: none;
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+}
+
+.image-viewer {
+  object-fit: contain;
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,16 @@
+<div class="modal-header">
+  <h4 class="modal-title">{{ title }}</h4>
+</div>
+<div class="modal-body">
+  <input type="text" [(ngModel)]="text" class="form-control" />
+</div>
+<div class="modal-footer row footer-padding">
+  <div class="md-6">
+    <button type="button" class="btn btn-danger" (click)="modal.close(undefined)">Cancel</button>
+  </div>
+  <div class="md-6">
+    <button type="button" class="btn btn-primary" [disabled]="!text" (click)="modal.close(text)">
+      Confirm
+    </button>
+  </div>
+</div>

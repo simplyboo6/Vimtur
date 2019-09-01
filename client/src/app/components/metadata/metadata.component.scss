@@ -1,0 +1,49 @@
+h4 {
+  margin-top: 2rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+}
+
+.media-path {
+  padding-left: 1rem;
+}
+
+.thumbnail {
+  max-height: 100px;
+}
+
+.form-card {
+  padding: 0 2rem 1rem 2rem;
+  margin: 1rem 0;
+}
+
+.form-padded-input {
+  margin-top: 1rem;
+}
+
+.input-component {
+  margin-top: 1rem;
+}
+
+.star {
+  position: relative;
+  display: inline-block;
+  font-size: 2rem;
+  color: #0062cc;
+  width: 100%;
+  line-height: 2rem;
+}
+
+.half {
+  position: absolute;
+  display: inline-block;
+  overflow: hidden;
+  color: #0062cc;
+}
+
+.pad-bottom {
+  padding-bottom: 2rem;
+}

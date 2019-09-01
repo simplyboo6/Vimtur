@@ -1,0 +1,19 @@
+@function v($var) {
+  @return var(--vimtur-#{$var});
+}
+
+@function color($name) {
+  @return v(color-#{$name});
+}
+
+@function full-height() {
+  @return calc(100vh - #{v(navbar-height)});
+}
+
+@mixin v($var, $val...) {
+  --vimtur-#{$var}: #{$val};
+}
+
+@mixin color($name, $val...) {
+  @include v(color-#{$name}, $val);
+}

@@ -1,0 +1,176 @@
+<div class="container-fluid padded">
+  <div class="row">
+    <div class="col-md-3">
+      <div class="form-group">
+        <button type="button" class="btn btn-primary" (click)="search()">Search</button>
+        <button type="button" class="btn btn-danger reset-button" (click)="reset()">Reset</button>
+      </div>
+
+      <div class="form-group">
+        <label>Keyword Search</label>
+        <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>Minimum Resolution</label>
+        <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
+          <option selected="selected" [value]="0">None</option>
+          <option [value]="240">240p</option>
+          <option [value]="360">360p</option>
+          <option [value]="480">480p</option>
+          <option [value]="720">720p</option>
+          <option [value]="1080">1080p</option>
+        </select>
+      </div>
+      <div class="container">
+        <div class="row">
+          <label>Rating</label>
+        </div>
+        <div class="row">
+          <div class="form-group col">
+            <label>Minimum</label>
+            <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
+              <option selected="selected" [value]="undefined">None</option>
+              <option [value]="1">1</option>
+              <option [value]="2">2</option>
+              <option [value]="3">3</option>
+              <option [value]="4">4</option>
+              <option [value]="5">5</option>
+            </select>
+          </div>
+          <div class="form-group col">
+            <label>Maximum</label>
+            <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
+              <option selected="selected" [value]="undefined">None</option>
+              <option [value]="0">Unrated</option>
+              <option [value]="1">1</option>
+              <option [value]="2">2</option>
+              <option [value]="3">3</option>
+              <option [value]="4">4</option>
+              <option [value]="5">5</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <div class="custom-control custom-checkbox input-component">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-type-video"
+            [(ngModel)]="searchModel.typeVideo"
+          />
+          <label class="custom-control-label" for="search-filter-type-video">Video</label>
+        </div>
+        <div class="custom-control custom-checkbox input-component">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-type-gif"
+            [(ngModel)]="searchModel.typeGif"
+          />
+          <label class="custom-control-label" for="search-filter-type-gif">Gif</label>
+        </div>
+        <div class="custom-control custom-checkbox input-component">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-type-still"
+            [(ngModel)]="searchModel.typeStill"
+          />
+          <label class="custom-control-label" for="search-filter-type-still">Still</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tag Status</label>
+        <div
+          class="custom-control custom-checkbox input-component"
+          title="Selecting this will select any media that has been tagged."
+        >
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-tagged"
+            [(ngModel)]="searchModel.tagged"
+          />
+          <label class="custom-control-label" for="search-filter-tagged">Tagged media</label>
+        </div>
+        <div
+          class="custom-control custom-checkbox input-component"
+          title="Selected this will will display only untagged media."
+        >
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-untagged"
+            [(ngModel)]="searchModel.untagged"
+          />
+          <label class="custom-control-label" for="search-filter-untagged">Untagged media</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Sort By</label>
+        <div
+          class="custom-control custom-checkbox input-component"
+          title="Selecting this sort by date added, newest last."
+        >
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-sort-by-added"
+            [(ngModel)]="searchModel.sortByDate"
+          />
+          <label class="custom-control-label" for="search-sort-by-added">Date Added</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <h3>All</h3>
+      <div>
+        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            [id]="'tag-input-all-' + tag"
+            [(ngModel)]="searchModel.allTags[tag]"
+          />
+          <label class="tag-label custom-control-label" [for]="'tag-input-all-' + tag">
+            {{ tag }}
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <h3>Any</h3>
+      <div>
+        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            [id]="'tag-input-any-' + tag"
+            [(ngModel)]="searchModel.anyTags[tag]"
+          />
+          <label class="tag-label custom-control-label" [for]="'tag-input-any-' + tag">
+            {{ tag }}
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <h3>None</h3>
+      <div>
+        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            [id]="'tag-input-none-' + tag"
+            [(ngModel)]="searchModel.noneTags[tag]"
+          />
+          <label class="tag-label custom-control-label" [for]="'tag-input-none-' + tag">
+            {{ tag }}
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

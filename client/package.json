@@ -1,0 +1,50 @@
+{
+  "name": "client",
+  "version": "4.3.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build --output-path dist",
+    "build:watch": "ng build --watch --output-path dist",
+    "build:prod": "ng build --prod --output-path dist",
+    "watch": "ng build --watch --output-path dist",
+    "lint": "ng lint && prettier --check '**/*.{ts,js,json,md,tsx,html,scss,css,yaml,yml}'",
+    "fix": "ng lint --fix && prettier --check --write '**/*.{ts,js,json,md,tsx,html,scss,css,yaml,yml}'"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "~8.2.0",
+    "@angular/common": "~8.2.0",
+    "@angular/compiler": "~8.2.0",
+    "@angular/core": "~8.2.0",
+    "@angular/forms": "~8.2.0",
+    "@angular/platform-browser": "~8.2.0",
+    "@angular/platform-browser-dynamic": "~8.2.0",
+    "@angular/router": "~8.2.0",
+    "@ng-bootstrap/ng-bootstrap": "^5.1.0",
+    "bootstrap-css-only": "^4.3.1",
+    "hls.js": "^0.12.4",
+    "is-mobile": "^2.1.0",
+    "ngx-chips": "^2.0.2",
+    "rxjs": "~6.4.0",
+    "semantic-ui-css": "^2.4.1",
+    "socket.io-client": "^2.2.0",
+    "tslib": "^1.10.0",
+    "zone.js": "^0.10.2"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "~0.802.2",
+    "@angular/cli": "~8.2.2",
+    "@angular/compiler-cli": "~8.2.0",
+    "@angular/language-service": "~8.2.0",
+    "@types/is-mobile": "^0.3.0",
+    "@types/node": "~8.9.4",
+    "@types/socket.io-client": "^1.4.32",
+    "@vimtur/common": "../common",
+    "codelyzer": "^5.1.0",
+    "prettier": "^1.18.2",
+    "ts-node": "~7.0.0",
+    "tslint": "~5.15.0",
+    "typescript": "~3.5.3"
+  }
+}

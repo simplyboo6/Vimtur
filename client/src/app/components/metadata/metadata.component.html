@@ -1,0 +1,118 @@
+<div class="container pad-bottom" *ngIf="media; else loading">
+  <h4>Metadata</h4>
+  <div class="header">
+    <img
+      class="img-fluid img-thumbnail thumbnail"
+      [src]="'/cache/thumbnails/' + media.hash + '.png'"
+    />
+    <div class="media-path">
+      <div>Path: {{ media.path }}</div>
+      <div>Hash: {{ media.hash }}</div>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <h5 class="form-padded-input">Artist</h5>
+    <div class="row">
+      <input
+        [(ngModel)]="mediaModel.metadata.artist"
+        class="form-control"
+        type="text"
+        [placeholder]="media.metadata.artist || ''"
+      />
+    </div>
+
+    <h5 class="form-padded-input">Album</h5>
+    <div class="row">
+      <input
+        [(ngModel)]="mediaModel.metadata.album"
+        class="form-control"
+        type="text"
+        [placeholder]="media.metadata.album || ''"
+      />
+    </div>
+
+    <h5 class="form-padded-input">Title</h5>
+    <div class="row">
+      <input
+        [(ngModel)]="mediaModel.metadata.title"
+        class="form-control"
+        type="text"
+        [placeholder]="media.metadata.title || ''"
+      />
+    </div>
+
+    <div class="row">
+      <button
+        class="btn btn-primary btn-block form-padded-input"
+        (click)="mediaService.saveMetadata(mediaModel.metadata)"
+      >
+        Save
+      </button>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <h5 class="form-padded-input">Rating</h5>
+    <div class="row">
+      <ngb-rating
+        [starTemplate]="ratingStar"
+        [(rate)]="mediaModel.rating"
+        (rateChange)="mediaService.setRating(mediaModel.rating)"
+        max="5"
+      ></ngb-rating>
+    </div>
+
+    <h5 class="form-padded-input">Tags</h5>
+    <div class="row">
+      <tag-input
+        placeholder="+ Tag"
+        secondaryPlaceholder="Enter tag name..."
+        [ngModel]="mediaModel.tags"
+        [disable]="!tags"
+        (onAdd)="mediaService.addTag($event)"
+        (onRemove)="mediaService.removeTag($event)"
+      >
+        <tag-input-dropdown
+          [showDropdownIfEmpty]="true"
+          [keepOpen]="false"
+          [minimumTextLength]="0"
+          [dynamicUpdate]="false"
+          offset="-390 0"
+          [autocompleteItems]="tags"
+        ></tag-input-dropdown>
+      </tag-input>
+    </div>
+
+    <h5 class="form-padded-input">Actors</h5>
+    <div class="row">
+      <tag-input
+        placeholder="+ Actor"
+        secondaryPlaceholder="Enter actor name..."
+        [ngModel]="mediaModel.actors"
+        [disable]="!actors"
+        (onAdd)="mediaService.addActor($event)"
+        (onRemove)="mediaService.removeActor($event)"
+      >
+        <tag-input-dropdown
+          [showDropdownIfEmpty]="true"
+          [keepOpen]="false"
+          [minimumTextLength]="0"
+          [dynamicUpdate]="false"
+          offset="-390 0"
+          [autocompleteItems]="actors"
+        ></tag-input-dropdown>
+      </tag-input>
+    </div>
+  </div>
+</div>
+
+<ng-template #loading>
+  <h4>Loading...</h4>
+</ng-template>
+
+<ng-template #ratingStar let-fill="fill">
+  <span class="star">
+    <span class="half" [style.width.%]="fill">&#9733;</span>{{ fill ? '&#9733;' : '&#9734;' }}
+  </span>
+</ng-template>

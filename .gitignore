@@ -1,4 +1,4 @@
-node_modules/*
+**/node_modules/*
 **.ckd2
 testdb/*
 .idea/*
@@ -8,5 +8,5 @@ log/*
 pid/*
 **/*.log
 utils/*.json
-dist/*
-tsconfig.tsbuildinfo
+**/dist/*
+**/tsconfig.tsbuildinfo

@@ -1,0 +1,23 @@
+{
+  "name": "@vimtur/common",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p .",
+    "lint": "./node_modules/@luvies/config/scripts/lint.sh",
+    "fix": "./node_modules/@luvies/config/scripts/lint.sh fix"
+  },
+  "devDependencies": {
+    "@luvies/config": "^1.6.3",
+    "@typescript-eslint/eslint-plugin": "^2.0.0",
+    "@typescript-eslint/parser": "^2.0.0",
+    "eslint": "^6.2.0",
+    "eslint-config-prettier": "^6.1.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-sort-imports-es6-autofix": "^0.4.0",
+    "prettier": "^1.18.2",
+    "tslib": "^1.10.0",
+    "typescript": "^3.5.3"
+  }
+}

@@ -1,0 +1,73 @@
+<div class="main-panel">
+  <div class="card tag-panel margin-bottom">
+    <div class="card-header card-small tag-header">Tags</div>
+    <div *ngIf="tagsModel && media; else loading" class="card-body card-small tag-list">
+      <div class="tag-list-column" *ngFor="let i of getColumnIndexes()">
+        <div
+          class="tag custom-control custom-checkbox input-component"
+          *ngFor="let tag of getColumnTags(i)"
+        >
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            [disabled]="!media"
+            [(ngModel)]="tagsModel[tag]"
+            (ngModelChange)="updateTag(tag)"
+            [id]="'tag-input-' + tag"
+          />
+          <label class="tag-label custom-control-label" [for]="'tag-input-' + tag">
+            {{ tag }}
+          </label>
+        </div>
+      </div>
+    </div>
+    <ng-template #loading>
+      Loading...
+    </ng-template>
+  </div>
+
+  <div class="card margin-bottom">
+    <div class="card-header card-small">Rating</div>
+    <div class="card-body card-small">
+      <ngb-rating
+        [starTemplate]="ratingStar"
+        [(rate)]="ratingModel"
+        (rateChange)="mediaService.setRating(ratingModel)"
+        [readonly]="!media"
+        max="5"
+      ></ngb-rating>
+    </div>
+    <ng-template #loading>
+      Loading...
+    </ng-template>
+  </div>
+
+  <div class="card">
+    <div class="card-header card-small">People</div>
+    <div class="card-body card-small ui-fluid">
+      <tag-input
+        placeholder="+ Actor"
+        secondaryPlaceholder="Enter new actor name..."
+        [ngModel]="actorsModel"
+        [disable]="!actorsModel || !actors"
+        (onAdd)="mediaService.addActor($event)"
+        (onRemove)="mediaService.removeActor($event)"
+      >
+        <tag-input-dropdown
+          [showDropdownIfEmpty]="true"
+          [keepOpen]="false"
+          [minimumTextLength]="0"
+          [dynamicUpdate]="false"
+          offset="-400 0"
+          [autocompleteItems]="actors"
+        ></tag-input-dropdown>
+      </tag-input>
+    </div>
+  </div>
+</div>
+
+<ng-template #ratingStar let-fill="fill">
+  <span class="star">
+    <span class="half" [style.width.%]="fill">&#9733;</span>{{ fill ? '&#9733;' : '&#9734;' }}
+  </span>
+</ng-template>

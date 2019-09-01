@@ -1,0 +1,16 @@
+.overlay {
+  height: 100%;
+  width: 100%;
+  position: fixed; /* Stay in place */
+  z-index: 101; /* Sit on top */
+  left: 0;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0);
+  padding: 1rem;
+  overflow-x: hidden; /* Disable horizontal scroll */
+  pointer-events: none;
+}
+
+.capture {
+  pointer-events: auto;
+}

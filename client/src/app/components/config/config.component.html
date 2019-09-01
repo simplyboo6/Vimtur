@@ -1,0 +1,258 @@
+<div class="container pad-bottom" *ngIf="config; else loading">
+  <h4>Import</h4>
+  <div *ngIf="scannerStatus; else loading">
+    State: {{ scannerStatus.state }}, Progress: {{ getProgress() }}
+    <div *ngIf="scannerStatus.scanResults">
+      New files: {{ scannerStatus.scanResults.newPaths }}, Missing files:
+      {{ scannerStatus.scanResults.missingPaths.length }}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12 form-padded-input">
+      <button
+        class="btn btn-primary btn-block"
+        [disabled]="scannerStatus && scannerStatus.state !== 'IDLE'"
+        (click)="cacheService.startImport()"
+      >
+        Start Auto-Import
+      </button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-8 form-padded-input">
+      <select [(ngModel)]="advancedActionModel" class="custom-select d-block w-100">
+        <option *ngFor="let action of cacheService.getActions()" [ngValue]="action">{{
+          action.name
+        }}</option>
+      </select>
+    </div>
+    <div class="col-md-4 form-padded-input">
+      <button
+        class="btn btn-primary btn-block"
+        [disabled]="(scannerStatus && scannerStatus.state !== 'IDLE') || !advancedActionModel"
+        (click)="startAction()"
+      >
+        Start
+      </button>
+    </div>
+  </div>
+
+  <h4>Tags</h4>
+  <div class="row">
+    <div class="col-md-8 form-padded-input">
+      <input
+        [(ngModel)]="addTagModel"
+        class="form-control"
+        type="text"
+        placeholder="Enter new tag name..."
+      />
+    </div>
+    <div class="col-md-4 form-padded-input">
+      <button class="btn btn-primary btn-block" [disabled]="!addTagModel" (click)="addTag()">
+        Add
+      </button>
+    </div>
+  </div>
+  <div class="row" *ngIf="tags">
+    <div class="col-md-8 form-padded-input">
+      <select
+        [(ngModel)]="deleteTagModel"
+        *ngIf="tags"
+        id="config-tags"
+        class="custom-select d-block w-100"
+      >
+        <option *ngFor="let tag of tags">{{ tag }}</option>
+      </select>
+    </div>
+    <div class="col-md-4 form-padded-input">
+      <button class="btn btn-danger btn-block" [disabled]="!deleteTagModel" (click)="deleteTag()">
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <h4>Actors</h4>
+  <div class="row">
+    <div class="col-md-8 form-padded-input">
+      <input
+        [(ngModel)]="addActorModel"
+        class="form-control"
+        type="text"
+        placeholder="Enter new actor name..."
+      />
+    </div>
+    <div class="col-md-4 form-padded-input">
+      <button class="btn btn-primary btn-block" [disabled]="!addActorModel" (click)="addActor()">
+        Add
+      </button>
+    </div>
+  </div>
+  <div class="row" *ngIf="actors">
+    <div class="col-md-8 form-padded-input">
+      <select
+        [(ngModel)]="deleteActorModel"
+        *ngIf="actors"
+        id="config-actors"
+        class="custom-select d-block w-100"
+      >
+        <option *ngFor="let actor of actors">{{ actor }}</option>
+      </select>
+    </div>
+    <div class="col-md-4 form-padded-input">
+      <button
+        class="btn btn-danger btn-block"
+        [disabled]="!deleteActorModel"
+        (click)="deleteActor()"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <h4>UI Configuration</h4>
+  <!-- user.autoplayEnabled -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-autoplay"
+      [(ngModel)]="config.user.autoplayEnabled"
+      (ngModelChange)="updateConfig('user.autoplayEnabled', $event)"
+    />
+    <label class="custom-control-label" for="config-autoplay">Enable autoplay?</label>
+    <div><span class="text-muted">Videos will autoplay muted.</span></div>
+  </div>
+  <!-- user.lowQualityOnLoadEnabled -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-low-quality-on-load-desktop"
+      [(ngModel)]="config.user.lowQualityOnLoadEnabled"
+      (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabled', $event)"
+    />
+    <label class="custom-control-label" for="config-low-quality-on-load-desktop"
+      >Lower quality on load for desktop?</label
+    >
+    <div>
+      <span class="text-muted"
+        >On desktop browsers during initial load and seeking a lower quality will be selected for
+        speed.</span
+      >
+    </div>
+  </div>
+  <!-- user.lowQualityOnLoadEnabledForMobile -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-low-quality-on-load-mobile"
+      [(ngModel)]="config.user.lowQualityOnLoadEnabledForMobile"
+      (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabledForMobile', $event)"
+    />
+    <label class="custom-control-label" for="config-low-quality-on-load-mobile"
+      >Lower quality on load for mobile?</label
+    >
+    <div>
+      <span class="text-muted"
+        >On mobile browsers during initial load and seeking a lower quality will be selected for
+        speed.</span
+      >
+    </div>
+  </div>
+  <!-- user.tagColumnCount -->
+  <div class="custom-control input-component">
+    <label for="config-tag-column-count">Tag panel column count</label>
+    <input
+      type="number"
+      class="form-control"
+      id="config-tag-column-count"
+      [(ngModel)]="config.user.tagColumnCount"
+      (ngModelChange)="updateConfig('user.tagColumnCount', $event)"
+      required
+    />
+    <div>
+      <span class="text-muted">The numer of columns in the quick tag panel of the viewer.</span>
+    </div>
+  </div>
+  <!-- user.initialLoadLimit -->
+  <div class="custom-control input-component">
+    <label for="config-initial-load-limit">Initial search load limit</label>
+    <input
+      type="number"
+      class="form-control"
+      id="config-initial-load-limit"
+      [(ngModel)]="config.user.initialLoadLimit"
+      (ngModelChange)="updateConfig('user.initialLoadLimit', $event)"
+      required
+    />
+    <div>
+      <span class="text-muted"
+        >When the UI initially loads this will limit the maximum number of items it fetches. This
+        will speed up load in large collections. Set to 0 to disable.</span
+      >
+    </div>
+  </div>
+
+  <h4>Transcoder Configuration</h4>
+  <!-- transcoder.enableCachingKeyframes -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-caching-keyframes"
+      [(ngModel)]="config.transcoder.enableCachingKeyframes"
+      (ngModelChange)="updateConfig('transcoder.enableCachingKeyframes', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-caching-keyframes"
+      >Enable caching for keyframe information on generation?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Enabling this caches the data needed to generate a playlist for streaming. Takes up DB
+        space but makes second loads faster.</span
+      >
+    </div>
+  </div>
+  <!-- transcoder.enablePrecachingKeyframes -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-precaching-keyframes"
+      [(ngModel)]="config.transcoder.enablePrecachingKeyframes"
+      (ngModelChange)="updateConfig('transcoder.enablePrecachingKeyframes', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-precaching-keyframes"
+      >Enable caching keyframe information during import?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Enabling this pre-generates information needed to create a playlist for streaming. Imports
+        take longer but initial load of videos will be faster.</span
+      >
+    </div>
+  </div>
+  <!-- transcoder.enableVideoCaching -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-video-caching"
+      [(ngModel)]="config.transcoder.enableVideoCaching"
+      (ngModelChange)="updateConfig('transcoder.enableVideoCaching', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-video-cachings"
+      >Enable caching for all videos?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Enabling this causes videos to be cached during import. Uses large amounts of disk space
+        but seeking and loading times are very fast.</span
+      >
+    </div>
+  </div>
+</div>
+<ng-template #loading>
+  <h4>Loading...</h4>
+</ng-template>

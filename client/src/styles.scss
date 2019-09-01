@@ -1,0 +1,12 @@
+@import './helpers.scss';
+
+:root {
+  @include v(navbar-height, 56px);
+
+  @include color(background-dark, #343a40);
+}
+
+.full-height {
+  height: full-height();
+  max-height: full-height();
+}

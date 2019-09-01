@@ -1,0 +1,5 @@
+<div class="overlay">
+  <p class="capture" *ngFor="let alert of alerts" (click)="close(alert)">
+    <ngb-alert [type]="alert.type" (close)="close(alert)">{{ alert.message }}</ngb-alert>
+  </p>
+</div>

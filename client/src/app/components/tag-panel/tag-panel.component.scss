@@ -1,0 +1,67 @@
+@import '../../../helpers.scss';
+
+.main-panel {
+  height: calc(100% - 0.5rem);
+  display: flex;
+  flex-direction: column;
+  margin: 0.25rem;
+}
+
+.tag-header {
+  height: 2rem;
+  min-width: 10rem;
+}
+
+.tag-label {
+  margin-bottom: 0rem;
+  padding-left: 0.25rem;
+}
+
+.card-small {
+  padding: 0.2rem;
+}
+
+.tag-list {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  padding-left: 0.5rem;
+}
+
+.tag-panel {
+  height: 100%;
+}
+
+.margin-bottom {
+  margin: 0 0 0.25rem 0 !important;
+}
+
+.tag-list-column {
+  display: flex;
+  flex-flow: column;
+  padding-right: 0.5rem;
+}
+
+.tag {
+  white-space: nowrap;
+}
+
+.ui-autocomplete-token {
+  margin: auto !important;
+}
+
+.star {
+  position: relative;
+  display: inline-block;
+  font-size: 2rem;
+  color: #0062cc;
+  width: 100%;
+  line-height: 2rem;
+}
+
+.half {
+  position: absolute;
+  display: inline-block;
+  overflow: hidden;
+  color: #0062cc;
+}

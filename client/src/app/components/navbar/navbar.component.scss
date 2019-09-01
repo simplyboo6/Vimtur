@@ -1,0 +1,27 @@
+@import '../../../helpers.scss';
+
+.nav-button-group {
+  margin-right: 1rem;
+}
+
+.navbar-override {
+  z-index: 20;
+  // Craziness because it weirdly offsets the heights of the buttons on mobile otherwise.
+  //flex-wrap: nowrap;
+}
+
+.height-override {
+  height: v(navbar-height);
+}
+
+.icon {
+  height: 1.5rem;
+}
+
+.paginator {
+  cursor: auto;
+  &:hover {
+    color: #28a745 !important;
+    background-color: transparent !important;
+  }
+}

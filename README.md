@@ -1,58 +1,51 @@
 # Media viewer and organiser
 
-![Preview Image](screenshots/view.png)
+![Preview Image](screenshots/gallery.png)
 
 ## Features
 
-- Web-based interface
+- Web-based mobile-friendly interface
 - Video, gif and image support
 - Tagging media
 - Various forms of searching (weighted keyword, tag selection, etc)
 - Metadata support for Artist/Album/Title/[People/Actors]
 - Auto-scraped metadata from files where possible
-- Internal image gallery for faster browser
+- Internal image gallery for faster browsing
 - Thumbnail generation for all media
-- Auto-transcode videos for web-browser compatibility (both streaming and caching)
+- Auto-transcode videos for web-browser compatibility (both streaming and optional caching)
 - Import and export database to JSON format
 - Rating system
 - Configurable video caching levels
 
 ## Quick-Start
 
-1. Install Docker CE (https://docs.docker.com/install)
-2. `git clone https://github.com/simplyboo6/Vimtur`
-3. `cd Vimtur`
+1. Paste the following into a `docker-compose.yml` file.
+```
+version: '3'
+services:
+  primary:
+    image: simplyboo6/vimtur:latest
+    ports:
+      - "3523:3523"
+    environment:
+      - DATA_PATH=/data/media
+      - CACHE_PATH=/data/cache
+      - DATABASE=mongodb
+      - DATABASE_URI=mongodb://mongo
+      - DATABASE_DB=vimtur
+      - PORT=3523
+    volumes:
+      - "${DATA_DIR}:/data/media"
+      - "${CACHE_DIR}:/data/cache"
+
+  mongo:
+    image: mongo
+    volumes:
+      - ${CACHE_DIR}/mongo:/data/db
+```
+
+2. Install Docker CE (https://docs.docker.com/install) & docker-compose
 4. Run `DATA_DIR=/home/user/Pictures CACHE_DIR=/home/user/cache docker-compose up` (change `DATA_DIR` and `CACHE_DIR`).
-
-## Upgrade from V3 to V4.
-
-Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
-Note that during the upgrade the hashing mechanism will change from doing md5 sum's of the entire file to following SubDB's model of the first and last 64kbs. Another notable change is that
-during upgrade the library needs to be partially re-cached to support multiple quality levels. This is more file shuffling than encoding.
-
-1. **Exporting**
-   Before upgrading you need to run the export script. To do this from the Docker variant make sure the server is running and then execute the following commands:
-   ```
-   docker-compose exec node /bin/sh -c 'DUMP_FILE=/tmp/upgrade.json node /opt/app/utils/export_json.js'
-   docker-compose exec node /bin/sh -c 'cat /tmp/upgrade.json' > vimtur-backup.json
-   ```
-   If running outside of Docker run:
-   ```
-   node utils/export_json.js <path/to/config.json>
-   ```
-   You need to replace the config path above or otherwise remove it and use the environment variables. The command will generate a file called _output.json_.
-2. **Upgrading**
-   At this point upgrade your source code to the latest version by doing a git pull.
-3. **Importing**
-   For the Docker version, bringup a fresh environment using the quick-start instructions then run:
-   ```
-   ./import.sh vimtur-backup.json
-   ```
-   For the native version run:
-   ```
-   node src/utils/import-json.js [-c /path/to/config.json] -f output.json
-   ```
-   The above command should be configured with the same environment variables or config file as running the program.
 
 ## Notes
 
@@ -65,6 +58,8 @@ during upgrade the library needs to be partially re-cached to support multiple q
 - Tested on Ubuntu 16.04 & 18.04 64-bit and Windows 10 64-bit.
 - The included compose file comes with a mongodb instance.
 - The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
+- When doing the keyword search there's a limit of 1200 results.
+- All code is TypeScript and the UI framework is Angular.
 
 ## Docker
 
@@ -100,7 +95,8 @@ On Ubuntu/Debian run:
 
 For Windows install graphicsmagick, ffmpeg and ffprobe. Make sure they're in your `PATH` variable.
 
-`yarn install && yarn start`
+1. `(cd client && yarn && yarn build:prod)`
+2. `(cd server && yarn && yarn start)`
 
 ### Running
 
@@ -147,18 +143,59 @@ A config file can be specified using the `-c` flag when launching with nodejs or
 
 ## Screenshots
 
-### Admin
+### Gallery
 
-![Preview Image](screenshots/admin.png)
+![Preview Image](screenshots/gallery.png)
 
-### Metadata
+### Viewer
 
-![Preview Image](screenshots/metadata.png)
+![Preview Image](screenshots/viewer.png)
 
 ### Search
 
 ![Preview Image](screenshots/search.png)
 
+### Search
+
+![Preview Image](screenshots/metadata.png)
+
 ### Configuration
 
-![Preview Image](screenshots/configuration_video.png)
+![Preview Image](screenshots/config.png)
+
+## Upgrade from V3 to V4.
+
+Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
+Note that during the upgrade the hashing mechanism will change from doing md5 sum's of the entire file to following SubDB's model of the first and last 64kbs. Another notable change is that
+during upgrade the library needs to be partially re-cached to support multiple quality levels. This is more file shuffling than encoding.
+
+1. **Exporting**
+   Before upgrading you need to run the export script. To do this from the Docker variant make sure the server is running and then execute the following commands:
+   ```
+   docker-compose exec node /bin/sh -c 'DUMP_FILE=/tmp/upgrade.json node /opt/app/utils/export_json.js'
+   docker-compose exec node /bin/sh -c 'cat /tmp/upgrade.json' > vimtur-backup.json
+   ```
+   If running outside of Docker run:
+   ```
+   node utils/export_json.js <path/to/config.json>
+   ```
+   You need to replace the config path above or otherwise remove it and use the environment variables. The command will generate a file called _output.json_.
+2. **Upgrading**
+   At this point upgrade your source code to the latest version by doing a git pull.
+3. **Importing**
+   For the Docker version, bringup a fresh environment using the quick-start instructions then run:
+   ```
+   ./import.sh vimtur-backup.json
+   ```
+   For the native version run:
+   ```
+   node src/utils/import-json.js [-c /path/to/config.json] -f output.json
+   ```
+   The above command should be configured with the same environment variables or config file as running the program.
+
+
+## Licenses
+
+### Font Awesome
+
+Note that this project uses icons from the free Font Awesome library. The license can be found [here](https://fontawesome.com/license).

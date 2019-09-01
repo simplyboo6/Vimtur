@@ -1,0 +1,28 @@
+<div class="main-body">
+  <div class="left-panel full-height" *ngIf="tagsOpen">
+    <app-tag-panel></app-tag-panel>
+  </div>
+  <div class="right-panel full-height">
+    <ng-container *ngIf="media">
+      <!-- Hide instead of ngIf to avoid annoying race conditions -->
+      <video
+        controls
+        loop
+        muted
+        preload="none"
+        class="video-player"
+        [class.hidden]="media.type !== 'video'"
+        [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
+        #videoElement
+      ></video>
+      <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
+      <ng-container *ngIf="media.type !== 'video'">
+        <img
+          *ngFor="let m of [media]"
+          [src]="'/api/images/' + m.hash + '/file'"
+          class="image-viewer"
+        />
+      </ng-container>
+    </ng-container>
+  </div>
+</div>
