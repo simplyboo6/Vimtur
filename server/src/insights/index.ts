@@ -4,19 +4,21 @@ import { setup as setupDb } from '../database';
 interface TrackedAverage {
   total: number;
   count: number;
-  name: string;
 }
 
 interface CalculatedAverage {
-  name: string;
   average: number;
   count: number;
 }
 
+interface SortedAverage extends CalculatedAverage {
+  name: string;
+}
+
 interface AverageData<T> {
-  tags: T[];
-  actors: T[];
-  artists: T[];
+  tags: Record<string, T>;
+  actors: Record<string, T>;
+  artists: Record<string, T>;
 }
 
 interface ScoredMedia {
@@ -27,6 +29,31 @@ interface ScoredMedia {
 const MIN_COUNT_FOR_AVERAGE = 2;
 const BATCH_SIZE = 16;
 
+function filterObject<T>(
+  obj: Record<string, T>,
+  callback: (name: string, obj: T) => boolean,
+): Record<string, T> {
+  const result: Record<string, T> = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (callback(key, value)) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+function mapObject<T, K>(
+  obj: Record<string, T>,
+  callback: (name: string, obj: T) => K,
+): Record<string, K> {
+  const result: Record<string, K> = {};
+  for (const key of Object.keys(obj)) {
+    result[key] = callback(key, obj[key]);
+  }
+  return result;
+}
+
 class Insights {
   private db: Database;
 
@@ -36,9 +63,9 @@ class Insights {
 
   public async analyse(): Promise<AverageData<CalculatedAverage>> {
     const data: AverageData<TrackedAverage> = {
-      tags: [],
-      actors: [],
-      artists: [],
+      tags: {},
+      actors: {},
+      artists: {},
     };
     const hashes = await this.db.subset({ rating: { min: 1 } });
 
@@ -68,10 +95,10 @@ class Insights {
     }
 
     // Filter out artists that are also actors.
-    data.artists = data.artists.filter(artist => {
-      const artistLower = artist.name.toLowerCase();
-      for (const actor of data.actors) {
-        if (artistLower.includes(actor.name.toLowerCase())) {
+    data.artists = filterObject(data.artists, artist => {
+      const artistLower = artist.toLowerCase();
+      for (const actor of Object.keys(data.actors)) {
+        if (artistLower.includes(actor.toLowerCase())) {
           return false;
         }
       }
@@ -89,20 +116,6 @@ class Insights {
     hashes: string[],
     insights: AverageData<CalculatedAverage>,
   ): Promise<ScoredMedia[]> {
-    // Convert to maps because they're quicker to access.
-    const tagRatings: Record<string, number> = {};
-    const actorRatings: Record<string, number> = {};
-    const artistRatings: Record<string, number> = {};
-    for (const tag of insights.tags) {
-      tagRatings[tag.name] = tag.average;
-    }
-    for (const actor of insights.actors) {
-      actorRatings[actor.name] = actor.average;
-    }
-    for (const artist of insights.artists) {
-      artistRatings[artist.name] = artist.average;
-    }
-
     const scored: ScoredMedia[] = [];
 
     while (hashes.length > 0) {
@@ -119,26 +132,26 @@ class Insights {
 
           if (media.tags) {
             for (const tag of media.tags) {
-              const rating = tagRatings[tag];
+              const rating = insights.tags[tag];
               if (rating) {
-                scoredMedia.score += rating;
+                scoredMedia.score += rating.average;
               }
             }
           }
 
           if (media.actors) {
             for (const actor of media.actors) {
-              const rating = actorRatings[actor];
+              const rating = insights.actors[actor];
               if (rating) {
-                scoredMedia.score += rating;
+                scoredMedia.score += rating.average;
               }
             }
           }
 
           if (media.metadata && media.metadata.artist) {
-            const rating = artistRatings[media.metadata.artist];
+            const rating = insights.artists[media.metadata.artist];
             if (rating) {
-              scoredMedia.score += rating;
+              scoredMedia.score += rating.average;
             }
           }
 
@@ -150,34 +163,44 @@ class Insights {
     return scored.sort((a, b) => b.score - a.score);
   }
 
-  private calculateAverages(list: TrackedAverage[]): CalculatedAverage[] {
-    return list
-      .filter(avg => avg.count >= MIN_COUNT_FOR_AVERAGE)
-      .map(el => {
-        return { name: el.name, average: el.total / el.count, count: el.count };
-      })
-      .sort((a, b) => b.average - a.average);
+  private calculateAverages(
+    list: Record<string, TrackedAverage>,
+  ): Record<string, CalculatedAverage> {
+    const filtered = filterObject<TrackedAverage>(
+      list,
+      (_, avg) => avg.count >= MIN_COUNT_FOR_AVERAGE,
+    );
+    return mapObject<TrackedAverage, CalculatedAverage>(filtered, (name, el) => {
+      return { name, average: el.total / el.count, count: el.count };
+    });
   }
 
-  private updateRating(list: TrackedAverage[], name: string, rating: number): void {
-    const avg = list.find(el => el.name === name);
+  private updateRating(list: Record<string, TrackedAverage>, name: string, rating: number): void {
+    const avg = list[name];
     const mappedRating = (rating - 3) / 2;
     if (avg) {
       avg.total += mappedRating;
       avg.count++;
     } else {
-      list.push({
-        name,
+      list[name] = {
         total: mappedRating,
         count: 1,
-      });
+      };
     }
   }
 }
 
-function printAverages(name: string, list: CalculatedAverage[]): void {
+function printAverages(name: string, list: Record<string, CalculatedAverage>): void {
+  const arr: SortedAverage[] = [];
+  for (const item of Object.keys(list)) {
+    arr.push({
+      name: item,
+      ...list[item],
+    });
+  }
+
   console.log(name);
-  for (const item of list) {
+  for (const item of arr.sort((a, b) => b.average - a.average)) {
     console.log(`${item.name}: ${item.average.toFixed(2)}`);
   }
   console.log();
