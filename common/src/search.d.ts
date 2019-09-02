@@ -23,7 +23,7 @@ export interface SubsetConstraints {
   indexed?: boolean;
   thumbnail?: boolean;
   cached?: boolean;
-  sortBy?: 'hashDate';
+  sortBy?: 'hashDate' | 'recommended';
   limit?: number;
 }
 

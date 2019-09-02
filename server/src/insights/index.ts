@@ -54,7 +54,7 @@ function mapObject<T, K>(
   return result;
 }
 
-class Insights {
+export class Insights {
   private db: Database;
 
   public constructor(db: Database) {
@@ -190,7 +190,7 @@ class Insights {
   }
 }
 
-function printAverages(name: string, list: Record<string, CalculatedAverage>): void {
+export function printAverages(name: string, list: Record<string, CalculatedAverage>): void {
   const arr: SortedAverage[] = [];
   for (const item of Object.keys(list)) {
     arr.push({
@@ -206,7 +206,7 @@ function printAverages(name: string, list: Record<string, CalculatedAverage>): v
   console.log();
 }
 
-async function printRecommendations(
+export async function printRecommendations(
   db: Database,
   recommended: ScoredMedia[],
   limit: number,
@@ -242,7 +242,9 @@ async function main(): Promise<void> {
   await db.close();
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}

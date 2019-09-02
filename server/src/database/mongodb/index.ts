@@ -14,6 +14,7 @@ import {
   SubsetFields,
   UpdateMedia,
 } from '../../types';
+import { Insights } from '../../insights';
 import { Updater } from './updater';
 import { Validator } from '../../utils/validator';
 import Config from '../../config';
@@ -338,6 +339,8 @@ export class MongoConnector extends Database {
             hashDate: 1,
           });
           break;
+        case 'recommended': // Skip, handled by subset wrapper.
+          break;
         default:
           throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
       }
@@ -348,7 +351,16 @@ export class MongoConnector extends Database {
 
   public async subset(constraints: SubsetConstraints): Promise<string[]> {
     const result = await this.subsetFields(constraints, { hash: 1 });
-    return result.map(media => media.hash);
+    const mapped = result.map(media => media.hash);
+
+    if (constraints.sortBy === 'recommended') {
+      const insights = new Insights(this);
+      const metadata = await insights.analyse();
+      const scored = await insights.getRecommendations(mapped, metadata);
+      return scored.map(el => el.hash);
+    } else {
+      return mapped;
+    }
   }
 
   public async close(): Promise<void> {
