@@ -1,3 +1,4 @@
+import { CalculatedAverage, SortedAverage } from '@vimtur/common';
 import { Database } from '../types';
 import { setup as setupDb } from '../database';
 
@@ -6,22 +7,13 @@ interface TrackedAverage {
   count: number;
 }
 
-interface CalculatedAverage {
-  average: number;
-  count: number;
-}
-
-interface SortedAverage extends CalculatedAverage {
-  name: string;
-}
-
-interface AverageData<T> {
+export interface AverageData<T> {
   tags: Record<string, T>;
   actors: Record<string, T>;
   artists: Record<string, T>;
 }
 
-interface ScoredMedia {
+export interface ScoredMedia {
   hash: string;
   score: number;
 }
@@ -190,7 +182,7 @@ export class Insights {
   }
 }
 
-export function printAverages(name: string, list: Record<string, CalculatedAverage>): void {
+export function convertToArray(list: Record<string, CalculatedAverage>): SortedAverage[] {
   const arr: SortedAverage[] = [];
   for (const item of Object.keys(list)) {
     arr.push({
@@ -198,9 +190,14 @@ export function printAverages(name: string, list: Record<string, CalculatedAvera
       ...list[item],
     });
   }
+  return arr.sort((a, b) => b.average - a.average);
+}
+
+export function printAverages(name: string, list: Record<string, CalculatedAverage>): void {
+  const arr = convertToArray(list);
 
   console.log(name);
-  for (const item of arr.sort((a, b) => b.average - a.average)) {
+  for (const item of arr) {
     console.log(`${item.name}: ${item.average.toFixed(2)}`);
   }
   console.log();

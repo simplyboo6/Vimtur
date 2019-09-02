@@ -355,8 +355,12 @@ export class MongoConnector extends Database {
 
     if (constraints.sortBy === 'recommended') {
       const insights = new Insights(this);
+      console.time('Generating analytics');
       const metadata = await insights.analyse();
+      console.timeEnd('Generating analytics');
+      console.time('Scoring and sorting recommendations');
       const scored = await insights.getRecommendations(mapped, metadata);
+      console.timeEnd('Scoring and sorting recommendations');
       return scored.map(el => el.hash);
     } else {
       return mapped;

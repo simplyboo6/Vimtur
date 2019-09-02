@@ -29,7 +29,7 @@ function stripStatus(status: Status): StrippedStatus {
   };
 }
 
-export async function create(db: Database, io: SocketIO.Server): Promise<ScannerApi> {
+export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const cache = new Importer(db, status => {
     io.sockets.emit('scanStatus', stripStatus(status));
   });
@@ -135,5 +135,5 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Scanner
     }),
   );
 
-  return { router, cache };
+  return router;
 }

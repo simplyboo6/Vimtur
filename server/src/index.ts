@@ -18,6 +18,7 @@ import Config from './config';
 // Routes
 import * as ActorRouter from './routes/actors';
 import * as ImageRouter from './routes/images';
+import * as InsightsRouter from './routes/insights';
 import * as ScannerRouter from './routes/scanner';
 import * as TagRouter from './routes/tags';
 
@@ -30,17 +31,11 @@ async function createServer(db: Database): Promise<Server> {
   app.use(BodyParser.json());
   app.use(Utils.authConnector);
 
-  const imageRouter = await ImageRouter.create(db);
-  app.use('/api/images', imageRouter);
-
-  const tagRouter = await TagRouter.create(db);
-  app.use('/api/tags', tagRouter);
-
-  const actorRouter = await ActorRouter.create(db);
-  app.use('/api/actors', actorRouter);
-
-  const scannerRouter = await ScannerRouter.create(db, io);
-  app.use('/api/scanner', scannerRouter.router);
+  app.use('/api/images', await ImageRouter.create(db));
+  app.use('/api/tags', await TagRouter.create(db));
+  app.use('/api/actors', await ActorRouter.create(db));
+  app.use('/api/scanner', await ScannerRouter.create(db, io));
+  app.use('/api/insights', await InsightsRouter.create(db));
 
   if (!require.main) {
     throw new Error('require.main undefned');
