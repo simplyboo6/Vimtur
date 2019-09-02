@@ -5,6 +5,7 @@ import { ConfigComponent } from './components/config/config.component';
 import { MetadataComponent } from './components/metadata/metadata.component';
 import { SearchComponent } from './components/search/search.component';
 import { GalleryComponent } from './components/gallery/gallery.component';
+import { InsightsComponent } from './components/insights/insights.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/gallery', pathMatch: 'full' },
@@ -13,6 +14,7 @@ const routes: Routes = [
   { path: 'metadata', component: MetadataComponent },
   { path: 'search', component: SearchComponent },
   { path: 'gallery', component: GalleryComponent },
+  { path: 'insights', component: InsightsComponent },
 ];
 
 @NgModule({

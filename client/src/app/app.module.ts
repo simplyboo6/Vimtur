@@ -18,6 +18,7 @@ import { AlertOverlayComponent } from './components/alert-overlay/alert-overlay.
 import { MetadataComponent } from './components/metadata/metadata.component';
 import { SearchComponent } from './components/search/search.component';
 import { GalleryComponent } from './components/gallery/gallery.component';
+import { InsightsComponent } from './components/insights/insights.component';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { GalleryComponent } from './components/gallery/gallery.component';
     MetadataComponent,
     SearchComponent,
     GalleryComponent,
+    InsightsComponent,
   ],
   imports: [
     NgbModule,

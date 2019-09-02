@@ -16,6 +16,7 @@
 - Import and export database to JSON format
 - Rating system
 - Configurable video caching levels
+- Media recommendations based upon your tags, actors and ratings.
 
 ## Quick-Start
 
