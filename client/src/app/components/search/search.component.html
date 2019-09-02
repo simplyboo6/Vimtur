@@ -29,7 +29,7 @@
           <div class="form-group col">
             <label>Minimum</label>
             <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
-              <option selected="selected" [value]="undefined">None</option>
+              <option selected="selected" [value]="-1">None</option>
               <option [value]="1">1</option>
               <option [value]="2">2</option>
               <option [value]="3">3</option>
@@ -40,7 +40,7 @@
           <div class="form-group col">
             <label>Maximum</label>
             <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
-              <option selected="selected" [value]="undefined">None</option>
+              <option selected="selected" [value]="-1">None</option>
               <option [value]="0">Unrated</option>
               <option [value]="1">1</option>
               <option [value]="2">2</option>
@@ -110,18 +110,11 @@
       </div>
       <div class="form-group">
         <label>Sort By</label>
-        <div
-          class="custom-control custom-checkbox input-component"
-          title="Selecting this sort by date added, newest last."
-        >
-          <input
-            type="checkbox"
-            class="custom-control-input"
-            id="search-sort-by-added"
-            [(ngModel)]="searchModel.sortByDate"
-          />
-          <label class="custom-control-label" for="search-sort-by-added">Date Added</label>
-        </div>
+        <select class="custom-select" [(ngModel)]="searchModel.sortBy">
+          <option selected="selected" [value]="undefined">None</option>
+          <option [value]="'hashDate'">Date Added (newest last)</option>
+          <option [value]="'recommended'">Recommended</option>
+        </select>
       </div>
     </div>
     <div class="col-md-3">

@@ -73,11 +73,11 @@ export class SearchComponent implements OnInit, OnDestroy {
       };
     }
 
-    if (this.searchModel.ratingMin !== undefined) {
+    if (this.searchModel.ratingMin >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.min = this.searchModel.ratingMin;
     }
-    if (this.searchModel.ratingMax !== undefined) {
+    if (this.searchModel.ratingMax >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.max = this.searchModel.ratingMax;
     }
@@ -89,8 +89,8 @@ export class SearchComponent implements OnInit, OnDestroy {
       constraints.none = '*';
     }
 
-    if (this.searchModel.sortByDate) {
-      constraints.sortBy = 'hashDate';
+    if (this.searchModel.sortBy === 'hashDate' || this.searchModel.sortBy === 'recommended') {
+      constraints.sortBy = this.searchModel.sortBy;
     }
 
     const types: string[] = [

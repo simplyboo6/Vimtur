@@ -8,7 +8,7 @@ export interface SearchModel {
   ratingMax?: number;
   tagged?: boolean;
   untagged?: boolean;
-  sortByDate?: boolean;
+  sortBy?: string;
 
   typeVideo?: boolean;
   typeGif?: boolean;
