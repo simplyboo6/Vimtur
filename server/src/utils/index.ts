@@ -26,14 +26,32 @@ export function authConnector(
 
 export async function deleteMedia(media: Media): Promise<void> {
   const hash = media.hash;
-  await Util.promisify(FS.unlink)(media.absolutePath);
+  try {
+    await Util.promisify(FS.unlink)(media.absolutePath);
+  } catch (err) {
+    if (!err.message.startsWith('ENOENT')) {
+      throw err;
+    }
+  }
   console.log(`${media.absolutePath} removed`);
 
   const thumbnail = `${Config.get().cachePath}/thumbnails/${hash}.png`;
-  await Util.promisify(FS.unlink)(thumbnail);
+  try {
+    await Util.promisify(FS.unlink)(thumbnail);
+  } catch (err) {
+    if (!err.message.startsWith('ENOENT')) {
+      throw err;
+    }
+  }
   console.log(`${thumbnail} removed`);
 
   const cache = `${Config.get().cachePath}/${hash}/`;
-  await Util.promisify(RimRaf)(cache);
+  try {
+    await Util.promisify(RimRaf)(cache);
+  } catch (err) {
+    if (!err.message.startsWith('ENOENT')) {
+      throw err;
+    }
+  }
   console.log(`${cache} removed`);
 }
