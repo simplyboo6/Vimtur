@@ -1,4 +1,5 @@
 import FS from 'fs';
+import GM from 'gm';
 import Path from 'path';
 import Rimraf from 'rimraf';
 import Stream from 'stream';
@@ -14,7 +15,10 @@ export class Transcoder {
     this.database = database;
   }
 
-  public async createThumbnail(media: Media): Promise<void> {
+  public async createVideoThumbnail(media: Media): Promise<void> {
+    if (media.type !== 'video') {
+      throw new Error('Cannot create video thumbnail for non-video media');
+    }
     if (!media.metadata) {
       throw new Error(`Can't create thumbnail for media without metadata`);
     }
@@ -23,15 +27,36 @@ export class Transcoder {
 
     const path = `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
     const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
-    if (media.type === 'video') {
-      if (!media.metadata.length) {
-        throw new Error(`Can't get thumbnail for video with no length`);
-      }
-      args.push('-ss');
-      const offset = Math.ceil(media.metadata.length / 4);
-      args.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
+    if (!media.metadata.length) {
+      throw new Error(`Can't get thumbnail for video with no length`);
     }
+    args.push('-ss');
+    const offset = Math.ceil(media.metadata.length / 4);
+    args.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
     await ImportUtils.transcode(media.absolutePath, path, args);
+  }
+
+  public async createImageThumbnail(media: Media): Promise<void> {
+    if (media.type !== 'gif' && media.type !== 'still') {
+      throw new Error('Cannot create image thumbnail for non-image media');
+    }
+    await ImportUtils.mkdir(Config.get().cachePath);
+    await ImportUtils.mkdir(`${Config.get().cachePath}/thumbnails`);
+
+    const output = `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
+
+    const gm = GM.subClass({ nativeAutoOrient: true })(media.absolutePath)
+      .autoOrient()
+      .resize(200, 200);
+    await new Promise<void>((resolve, reject) => {
+      gm.write(output, err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 
   public async transcodeSet(

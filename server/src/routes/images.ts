@@ -77,20 +77,27 @@ export async function create(db: Database): Promise<Router> {
     }),
   );
 
-  router.get('/:hash/file', (req: Request, res: Response) => {
-    db.getMedia(req.params.hash)
-      .then(media => {
-        if (media) {
-          res.sendFile(Path.resolve(Config.get().libraryPath, media.path));
-        } else {
-          res.status(404).json({
-            message: `No media found with hash: ${req.params.hash}`,
-          });
+  router.get('/:hash/file', async (req: Request, res: Response) => {
+    try {
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        return res.status(404).json({
+          message: `No media found with hash: ${req.params.hash}`,
+        });
+      }
+      const absPath = Path.resolve(Config.get().libraryPath, media.path);
+      if (media.type === 'gif' || media.type === 'still') {
+        const isRotated = await ImportUtils.isExifRotated(absPath);
+        if (isRotated) {
+          const image = await ImportUtils.loadImageAutoOrient(absPath);
+          res.set('Content-Type', image.contentType);
+          return res.end(image.buffer, 'binary');
         }
-      })
-      .catch(err => {
-        res.status(503).json({ message: err.message });
-      });
+      }
+      return res.sendFile(absPath);
+    } catch (err) {
+      return res.status(503).json({ message: err.message });
+    }
   });
 
   router.get('/:hash/stream/index.m3u8', (req: Request, res: Response) => {

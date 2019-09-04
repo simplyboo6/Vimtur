@@ -230,7 +230,18 @@ export class Importer {
               }
               const path = media.absolutePath;
               console.log(`Generating thumbnail for ${path}...`);
-              await this.transcoder.createThumbnail(media);
+              switch (media.type) {
+                case 'video':
+                  await this.transcoder.createVideoThumbnail(media);
+                  break;
+                case 'still': // Fallthrough
+                case 'gif':
+                  await this.transcoder.createImageThumbnail(media);
+                  break;
+                default:
+                  console.warn('Unhandled media type', media);
+                  return;
+              }
 
               try {
                 await this.database.saveMedia(media.hash, { thumbnail: true });

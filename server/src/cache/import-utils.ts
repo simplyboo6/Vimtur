@@ -1,6 +1,7 @@
 import ChildProcess from 'child_process';
 import Crypto from 'crypto';
 import FS from 'fs';
+import GM from 'gm';
 import Path from 'path';
 import Rimraf from 'rimraf';
 import Stream from 'stream';
@@ -15,6 +16,11 @@ const CHUNK_SIZE = 64 * 1024;
 export interface Quality {
   quality: number;
   copy: boolean;
+}
+
+export interface LoadedImage {
+  buffer: Buffer;
+  contentType: string;
 }
 
 export class ImportUtils {
@@ -317,6 +323,29 @@ export class ImportUtils {
 
   public static async wait(): Promise<void> {
     return new Promise<void>(resolve => setTimeout(resolve, 0));
+  }
+
+  public static async isExifRotated(path: string): Promise<boolean> {
+    const gm = GM(path);
+    const orientation = (await Util.promisify(gm.orientation.bind(gm))()) as any;
+    return orientation !== 'TopLeft';
+  }
+
+  public static async loadImageAutoOrient(path: string): Promise<LoadedImage> {
+    const gm = GM.subClass({ nativeAutoOrient: true })(path).autoOrient();
+    const format = path.toLowerCase().endsWith('gif') ? 'GIF' : 'PNG';
+    return new Promise<LoadedImage>((resolve, reject) => {
+      gm.toBuffer(format, (err, buffer) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({
+            buffer,
+            contentType: `image/${format.toLowerCase()}`,
+          });
+        }
+      });
+    });
   }
 
   private static async getKeyframes(media: Media): Promise<number[]> {
