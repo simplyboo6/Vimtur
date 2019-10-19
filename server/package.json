@@ -22,6 +22,7 @@
     "mongodb": "^3.3.0",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
+    "phash2": "^1.0.1",
     "rimraf": "^3.0.0",
     "socket.io": "~2.2.0",
     "strip-json-comments": "^3.0.1",
@@ -56,6 +57,7 @@
     "@types/walk": "^2.3.0",
     "@typescript-eslint/eslint-plugin": "^2.0.0",
     "@typescript-eslint/parser": "^2.0.0",
+    "@vimtur/common": "../common",
     "eslint": "^6.2.0",
     "eslint-config-prettier": "^6.0.0",
     "eslint-plugin-prettier": "^3.1.0",
@@ -64,7 +66,6 @@
     "ts-node": "^8.3.0",
     "tslib": "^1.10.0",
     "typescript": "^3.5.3",
-    "typescript-json-schema": "^0.39.0",
-    "@vimtur/common": "../common"
+    "typescript-json-schema": "^0.39.0"
   }
 }

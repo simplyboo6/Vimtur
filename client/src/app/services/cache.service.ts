@@ -23,7 +23,7 @@ const ADVANCED_ACTION_LIST: AdvancedAction[] = [
   },
   {
     name: 'Index/Import new files',
-    endpoint: 'scan',
+    endpoint: 'index',
   },
   {
     name: 'Generate missing thumbnails',
@@ -36,6 +36,10 @@ const ADVANCED_ACTION_LIST: AdvancedAction[] = [
   {
     name: 'Cache videos (if enabled)',
     endpoint: 'cache',
+  },
+  {
+    name: 'Generate perceptual hashses',
+    endpoint: 'phash',
   },
 ];
 

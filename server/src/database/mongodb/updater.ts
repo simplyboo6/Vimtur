@@ -19,26 +19,9 @@ export class Updater {
 
     if (!(await Updater.hasRun(updatesCollection, '001_update_media_with_keyframes'))) {
       console.log('Applying update 001_update_media_with_keyframes...');
-      try {
-        await db.collection('media_update').drop();
-      } catch (err) {
-        // Assume it doesn't exist.
-      }
-      console.log('Creating media_update collection...');
-      await Updater.createMediaCollection(db, mediaSchema, 'media_update');
-
-      console.log('Copying media to new collection (this may take some time)...');
-      const cursor = db.collection('media').find({});
-      while (await cursor.hasNext()) {
-        await db.collection('media_update').insertOne(await cursor.next());
-      }
-
-      console.log('Renaming collections...');
-      await db.collection('media').rename('media_old');
-      await db.collection('media_update').rename('media');
-      console.log('Dropping original...');
-      await db.collection('media_old').drop();
+      await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '001_update_media_with_keyframes');
+      await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '002_fix_prefixed_dir_names'))) {
@@ -60,6 +43,34 @@ export class Updater {
 
       await Updater.saveUpdate(updatesCollection, '002_fix_prefixed_dir_names');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '003_add_mhHash_field'))) {
+      console.log('Applying update 003_add_mhHash_field...');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
+    }
+  }
+
+  private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {
+    try {
+      await db.collection('media_update').drop();
+    } catch (err) {
+      // Assume it doesn't exist.
+    }
+    console.log('Creating media_update collection...');
+    await Updater.createMediaCollection(db, mediaSchema, 'media_update');
+
+    console.log('Copying media to new collection (this may take some time)...');
+    const cursor = db.collection('media').find({});
+    while (await cursor.hasNext()) {
+      await db.collection('media_update').insertOne(await cursor.next());
+    }
+
+    console.log('Renaming collections...');
+    await db.collection('media').rename('media_old');
+    await db.collection('media_update').rename('media');
+    console.log('Dropping original...');
+    await db.collection('media_old').drop();
   }
 
   private static hasRun(updatesCollection: Collection, update: string): Promise<boolean> {

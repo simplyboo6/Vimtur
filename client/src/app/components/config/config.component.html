@@ -252,6 +252,27 @@
       >
     </div>
   </div>
+
+  <h4>Misc Configuration</h4>
+  <!-- enablePhash -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-phash-generation"
+      [(ngModel)]="config.enablePhash"
+      (ngModelChange)="updateConfig('enablePhash', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-phash-generation"
+      >Enable pHash generation?</label
+    >
+    <div>
+      <span class="text-muted">
+        pHash's generate a fingerprint of videos or still images based on what it looks like. This
+        allows locating scaled duplicates or similiar images.
+      </span>
+    </div>
+  </div>
 </div>
 <ng-template #loading>
   <h4>Loading...</h4>

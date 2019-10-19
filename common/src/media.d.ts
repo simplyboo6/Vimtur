@@ -40,6 +40,8 @@ export interface BaseMedia {
   corrupted?: boolean;
   thumbnail?: boolean;
   rating?: number;
+  // Base64 Buffer
+  phash?: string;
 }
 
 // Optional for updates
@@ -61,6 +63,8 @@ export interface UpdateMedia {
   corrupted?: boolean;
   thumbnail?: boolean;
   rating?: number;
+  // Base64 Buffer
+  phash?: string;
 }
 
 // This is when fetched from the database.

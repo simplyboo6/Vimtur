@@ -51,6 +51,8 @@ export namespace Configuration {
     cachePath: string; // Path to store thumbnails and cached media.
     database: Mongo;
     transcoder: Transcoder;
+    // Enable pHash generation for video and stills
+    enablePhash: boolean;
     user: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.

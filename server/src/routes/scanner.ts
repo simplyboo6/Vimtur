@@ -44,6 +44,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     await cache.thumbnails();
     await cache.cacheKeyframes();
     await cache.cache();
+    await cache.calculatePerceuptualHashes();
   }
 
   io.on('connection', socket => {
@@ -57,6 +58,16 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     wrap(async () => {
       return {
         data: getStatus(),
+      };
+    }),
+  );
+
+  router.get(
+    '/new',
+    wrap(async () => {
+      const status = cache.getStatus();
+      return {
+        data: status && status.scanResults ? status.scanResults.newPaths : [],
       };
     }),
   );
@@ -107,6 +118,18 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/thumbnails',
     wrap(async () => {
       cache.thumbnails().catch(err => console.error('Error during thumbnail generation', err));
+      return {
+        data: getStatus(),
+      };
+    }),
+  );
+
+  router.post(
+    '/phash',
+    wrap(async () => {
+      cache
+        .calculatePerceuptualHashes()
+        .catch(err => console.error('Error during phash generation', err));
       return {
         data: getStatus(),
       };

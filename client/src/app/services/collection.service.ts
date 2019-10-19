@@ -15,9 +15,6 @@ const HTTP_OPTIONS = {
   }),
 };
 
-// TODO Configurable? Arbitrary for now.
-const KEYWORD_SEARCH_LIMIT = 1200;
-
 export interface CollectionMetadata {
   index: number;
   collection: string[];
@@ -151,10 +148,6 @@ export class CollectionService {
     this.index = 0;
     this.collection = undefined;
     this.update();
-
-    if (constraints.keywordSearch && !constraints.limit) {
-      constraints.limit = KEYWORD_SEARCH_LIMIT;
-    }
 
     this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS).subscribe(
       res => {

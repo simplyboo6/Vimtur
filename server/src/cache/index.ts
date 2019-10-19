@@ -1,4 +1,5 @@
 import FS from 'fs';
+import PHash from 'phash2';
 import Path from 'path';
 import Types from '@vimtur/common';
 import Util from 'util';
@@ -16,6 +17,8 @@ type Status = Types.Scanner.Status;
 export type StatusCallback = (status: Status) => void;
 
 const THUMBNAIL_BATCH_SIZE = 8;
+// Really tends to block up the worker threads if higher.
+const MH_HASH_BATCH_SIZE = 2;
 
 export class Importer {
   private status: Status;
@@ -40,6 +43,53 @@ export class Importer {
 
   public getStatus(): Status {
     return this.status;
+  }
+
+  public async calculatePerceuptualHashes(): Promise<void> {
+    if (!Config.get().enablePhash) {
+      console.debug('Skipping pHash generation.');
+      return;
+    }
+    this.setState('CALCULATING_PHASHES');
+    console.log('Generating perceptual hashses...');
+    try {
+      const mediaList = await this.database.subset({
+        type: ['video', 'still'],
+        indexed: true,
+        phashed: false,
+      });
+      this.status.progress = {
+        current: 0,
+        max: mediaList.length,
+      };
+
+      while (mediaList.length > 0) {
+        // Do them in batches of like 8, makes it a bit faster.
+        await Promise.all(
+          mediaList.splice(0, MH_HASH_BATCH_SIZE).map(async hash => {
+            try {
+              const media = await this.database.getMedia(hash);
+              if (!media) {
+                console.warn(`Couldn't find media to generate perceptual hash: ${hash}`);
+                return;
+              }
+
+              const hashBuffer = await this.getPerceptualHash(media);
+              await this.database.saveMedia(media.hash, { phash: hashBuffer.toString('base64') });
+            } catch (err) {
+              console.log(`Error generating perceuptual hash for ${hash}.`, err);
+            }
+            this.status.progress.current++;
+            this.update();
+          }),
+        );
+      }
+    } catch (err) {
+      console.error('Error generating perceuptual hashes.', err);
+      throw err;
+    } finally {
+      this.setState('IDLE');
+    }
   }
 
   public async cacheKeyframes(): Promise<void> {
@@ -313,6 +363,17 @@ export class Importer {
     return redundantMap;
   }
 
+  private getPerceptualHash(media: Types.Media): Promise<Buffer> {
+    switch (media.type) {
+      case 'still':
+        return PHash.getMhImageHash(media.absolutePath);
+      case 'video':
+        return PHash.getDctVideoHash(media.absolutePath);
+      default:
+        throw new Error(`Unsupported type for phash ${media.type}`);
+    }
+  }
+
   private setState(state: State): void {
     if (this.status.state !== 'IDLE' && state !== 'IDLE') {
       throw new Error(`Task already in progress ${this.status.state}, cannot switch to ${state}`);
@@ -330,6 +391,7 @@ export class Importer {
       case 'REHASHING':
       case 'THUMBNAILS':
       case 'KEYFRAME_CACHING':
+      case 'CALCULATING_PHASHES':
         this.status.state = state;
         break;
       default:

@@ -24,6 +24,7 @@ export interface SubsetConstraints {
   thumbnail?: boolean;
   cached?: boolean;
   sortBy?: 'hashDate' | 'recommended';
+  phashed?: boolean;
   limit?: number;
 }
 

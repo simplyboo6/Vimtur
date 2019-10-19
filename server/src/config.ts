@@ -39,6 +39,7 @@ function readJsonSync(file: string): Configuration.Main {
 
 const DEFAULTS: any = {
   port: 3523,
+  enablePhash: true,
   transcoder: {
     // Copy data to speedup setup.
     maxCopyEnabled: true,

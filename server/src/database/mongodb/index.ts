@@ -188,7 +188,7 @@ export class MongoConnector extends Database {
         }
         delete media.metadata;
       }
-      await collection.updateOne({ hash }, { $set: media });
+      await collection.updateOne({ hash }, { $set: media as any });
     } else {
       // If it's a new one then pre-validate it to show better errors.
       const result = this.mediaValidator.validate(media);
@@ -300,6 +300,14 @@ export class MongoConnector extends Database {
         query['thumbnail'] = true;
       } else {
         query['thumbnail'] = { $in: [null, false] };
+      }
+    }
+
+    if (constraints.phashed !== undefined) {
+      if (constraints.phashed) {
+        query['phash'] = true;
+      } else {
+        query['phash'] = { $in: [null, false] };
       }
     }
 
