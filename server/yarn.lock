@@ -1929,10 +1929,10 @@ performance-now@^2.1.0:
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
-phash2@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/phash2/-/phash2-1.0.1.tgz#48bdcdcc21029342ba4120a92a2a692229219c6e"
-  integrity sha512-F20KN7bm2/QF+D/j9mROeq/1lP3A04j9SnkuF1n+ArpghPO6LkUaMzNeXbm6I6ROofSJdlT9LV6gdNhL67GG6g==
+phash2@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/phash2/-/phash2-1.0.2.tgz#3ca3b288596879c3489950a71cc5e87a1de53f0e"
+  integrity sha512-nI9Z7lwJdwvmIs4P7ruuoD1SpY3d3rM8Bj435MSwttV401Col63iax8LBFr3XbXWg2Vj+u2CdJXx/cada9+R3g==
   dependencies:
     node-addon-api "^1.7.1"
     node-gyp "^6.0.0"
