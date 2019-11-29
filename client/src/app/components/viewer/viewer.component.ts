@@ -122,6 +122,9 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.hls = new Hls({
         autoStartLoad: false,
         capLevelToPlayerSize: true,
+        maxSeekHole: 5,
+        maxBufferHole: 5,
+        maxBufferLength: 60,
         ...(lowQualityOnSeek ? { startLevel: 0 } : {}),
       });
 

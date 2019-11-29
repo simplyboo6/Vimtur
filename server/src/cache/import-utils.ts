@@ -243,24 +243,19 @@ export class ImportUtils {
     const keyframes = await ImportUtils.getKeyframes(media);
     const segments: SegmentMetadata = {
       standard: [],
-      copy: [],
     };
 
     if (keyframes.length === 1 || media.metadata.length < 10) {
       segments.standard.push({ start: 0, end: media.metadata.length });
-      segments.copy.push({ start: 0, end: media.metadata.length });
     } else {
       let lastTimeIndex = 0;
       for (let i = 0; i < keyframes.length; i++) {
         if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
           segments.standard.push({ start: keyframes[lastTimeIndex], end: keyframes[i] });
-          // When copying video timestamps it needs to end a keyframe earlier for some reason.
-          segments.copy.push({ start: keyframes[lastTimeIndex], end: keyframes[i - 1] });
 
           lastTimeIndex = i;
         } else if (i === keyframes.length - 1) {
           segments.standard.push({ start: keyframes[lastTimeIndex], end: media.metadata.length });
-          segments.copy.push({ start: keyframes[lastTimeIndex], end: media.metadata.length });
         }
       }
     }
@@ -271,7 +266,6 @@ export class ImportUtils {
   public static async generateStreamPlaylist(
     media: Media,
     segments: SegmentMetadata,
-    quality: number,
   ): Promise<string> {
     if (!media.metadata) {
       throw new Error('Cannot generate playlist for media without metadatata');
@@ -283,24 +277,20 @@ export class ImportUtils {
       throw new Error(`Can't stream 0 length video`);
     }
 
-    const copy = media.metadata.codec === 'h264' && quality === media.metadata.height;
-
     let data = '';
     let longest = 0;
 
-    for (const segment of copy ? segments.copy : segments.standard) {
+    for (const segment of segments.standard) {
       const length = segment.end - segment.start;
       if (length > longest) {
         longest = length;
       }
-      data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${segment.start}&end=${
-        segment.end
-      }\n#EXT-X-DISCONTINUITY\n`;
+      data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${segment.start}&end=${segment.end}\n`;
     }
 
     const header = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${Math.ceil(
       longest,
-    )}\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-INDEPENDENT-SEGMENTS\n#EXT-X-MEDIA-SEQUENCE:0\n`;
+    )}\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-MEDIA-SEQUENCE:0\n`;
 
     return `${header + data}#EXT-X-ENDLIST\n`;
   }

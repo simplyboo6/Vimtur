@@ -12,7 +12,8 @@ export namespace Scanner {
     | 'REHASHING'
     | 'THUMBNAILS'
     | 'KEYFRAME_CACHING'
-    | 'CALCULATING_PHASHES';
+    | 'CALCULATING_PHASHES'
+    | 'CLONE_MAP';
 
   export interface StrippedFilterResults {
     newPaths: number;

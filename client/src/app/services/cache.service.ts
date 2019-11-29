@@ -41,6 +41,10 @@ const ADVANCED_ACTION_LIST: AdvancedAction[] = [
     name: 'Generate perceptual hashses',
     endpoint: 'phash',
   },
+  {
+    name: 'Generate clone map',
+    endpoint: 'clone-map',
+  },
 ];
 
 @Injectable({

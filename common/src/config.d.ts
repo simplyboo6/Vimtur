@@ -53,6 +53,8 @@ export namespace Configuration {
     transcoder: Transcoder;
     // Enable pHash generation for video and stills
     enablePhash: boolean;
+    // Maximum age of clone map before counting it as expired in seconds.
+    maxCloneAge: number;
     user: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.

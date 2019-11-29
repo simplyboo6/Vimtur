@@ -26,9 +26,15 @@ export interface SubsetConstraints {
   sortBy?: 'hashDate' | 'recommended';
   phashed?: boolean;
   limit?: number;
+  // Returns media that have potential clones.
+  hasClones?: boolean;
+  // Returns media where the clone comparator was before the given date.
+  maxCloneDate?: number;
 }
 
 export interface SubsetFields {
   hash?: number;
   path?: number;
+  phash?: number;
+  clones?: number;
 }

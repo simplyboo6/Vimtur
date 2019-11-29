@@ -22,6 +22,8 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '001_update_media_with_keyframes');
       await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
+      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
+      await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '002_fix_prefixed_dir_names'))) {
@@ -48,6 +50,21 @@ export class Updater {
       console.log('Applying update 003_add_mhHash_field...');
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
+      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
+    }
+
+    if (!(await Updater.hasRun(updatesCollection, '004_add_clone_map'))) {
+      console.log('Applying update 004_add_clone_map...');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
+    }
+
+    if (!(await Updater.hasRun(updatesCollection, '005_remove-segment-copy-ts'))) {
+      console.log('005_remove-segment-copy-ts');
+      const collection = db.collection('media');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await collection.updateMany({ type: 'video' }, { $unset: { 'metadata.segments.copy': '' } });
+      await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
     }
   }
 

@@ -9,6 +9,7 @@ import { ImportUtils } from './import-utils';
 import { Indexer } from './indexer';
 import { Scanner } from './scanner';
 import { Transcoder } from './transcoder';
+import { generateImageCloneMap } from './clone-map';
 import Config from '../config';
 
 type State = Types.Scanner.State;
@@ -45,6 +46,39 @@ export class Importer {
     return this.status;
   }
 
+  public async generateCloneMap(): Promise<void> {
+    this.setState('CLONE_MAP');
+    try {
+      // First expire any old ones.
+      await this.database.resetClones(Math.floor(Date.now() / 1000) - Config.get().maxCloneAge);
+      // Now find all phashed
+      const images = await this.database.subsetFields(
+        { type: 'still', phashed: true },
+        { phash: 1, hash: 1, clones: 1 },
+      );
+
+      const parsed = images.map(image => {
+        return {
+          hash: image.hash,
+          phash: Buffer.from(image.phash!, 'base64'),
+          clones: image.clones,
+        };
+      });
+
+      console.log(`Generating clone map for ${images.length} images`);
+
+      await generateImageCloneMap(this.database, parsed, progress => {
+        this.status.progress = progress;
+        this.update();
+      });
+    } catch (err) {
+      console.error('Error generating clone map.', err);
+      throw err;
+    } finally {
+      this.setState('IDLE');
+    }
+  }
+
   public async calculatePerceuptualHashes(): Promise<void> {
     if (!Config.get().enablePhash) {
       console.debug('Skipping pHash generation.');
@@ -54,7 +88,9 @@ export class Importer {
     console.log('Generating perceptual hashses...');
     try {
       const mediaList = await this.database.subset({
-        type: ['video', 'still'],
+        // For now just do still. Video takes a long time and is questionably accurate.
+        // Eg videos of different length not quite right.
+        type: 'still',
         indexed: true,
         phashed: false,
       });
@@ -74,6 +110,7 @@ export class Importer {
                 return;
               }
 
+              console.debug(`Generating pHash for ${media.hash} - ${media.absolutePath}`);
               const hashBuffer = await this.getPerceptualHash(media);
               await this.database.saveMedia(media.hash, { phash: hashBuffer.toString('base64') });
             } catch (err) {
@@ -392,6 +429,7 @@ export class Importer {
       case 'THUMBNAILS':
       case 'KEYFRAME_CACHING':
       case 'CALCULATING_PHASHES':
+      case 'CLONE_MAP':
         this.status.state = state;
         break;
       default:

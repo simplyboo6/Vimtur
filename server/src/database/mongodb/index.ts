@@ -165,6 +165,15 @@ export class MongoConnector extends Database {
     return undefined;
   }
 
+  public async resetClones(age: number): Promise<void> {
+    const collection = this.db.collection<BaseMedia>('media');
+    const result = await collection.updateMany(
+      { cloneDate: { $lt: age } },
+      { $unset: { clones: '' } },
+    );
+    console.log(`resetClones: ${result.matchedCount} reset`);
+  }
+
   public async saveMedia(hash: string, media: UpdateMedia): Promise<Media> {
     // Filter out various old fields we no longer require.
     // This one is generated on get media and may be accidentally passed back.
@@ -247,7 +256,7 @@ export class MongoConnector extends Database {
 
     if (constraints.type) {
       query.type = {
-        $in: constraints.type,
+        $in: Array.isArray(constraints.type) ? constraints.type : [constraints.type],
       };
     }
 
@@ -305,7 +314,7 @@ export class MongoConnector extends Database {
 
     if (constraints.phashed !== undefined) {
       if (constraints.phashed) {
-        query['phash'] = true;
+        query['phash'] = { $exists: true };
       } else {
         query['phash'] = { $in: [null, false] };
       }
@@ -317,6 +326,10 @@ export class MongoConnector extends Database {
 
     if (constraints.indexed !== undefined) {
       query['metadata'] = { $exists: constraints.indexed };
+    }
+
+    if (constraints.hasClones !== undefined) {
+      query['clones.0'] = { $exists: constraints.hasClones };
     }
 
     let queryResult = mediaCollection.find(query).project({

@@ -5,7 +5,7 @@ export interface Segment {
 
 export interface SegmentMetadata {
   standard: Segment[];
-  copy: Segment[];
+  copy?: Segment[];
 }
 
 interface MetadataBase {
@@ -42,6 +42,10 @@ export interface BaseMedia {
   rating?: number;
   // Base64 Buffer
   phash?: string;
+  // Array of hashes of potential clones.
+  clones?: string[];
+  // Time the clone comparator was run for this media.
+  cloneDate?: number;
 }
 
 // Optional for updates
@@ -65,6 +69,8 @@ export interface UpdateMedia {
   rating?: number;
   // Base64 Buffer
   phash?: string;
+  clones?: string[];
+  cloneDate?: number;
 }
 
 // This is when fetched from the database.

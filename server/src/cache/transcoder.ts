@@ -169,7 +169,7 @@ export class Transcoder {
       });
     }
 
-    return ImportUtils.generateStreamPlaylist(media, segments, quality);
+    return ImportUtils.generateStreamPlaylist(media, segments);
   }
 
   private async transcodeMediaToQuality(media: Media, requestedQuality: Quality): Promise<void> {

@@ -4,6 +4,7 @@ import Types from '@vimtur/common';
 
 import { Database } from '../types';
 import { Importer } from '../cache';
+//import { NotFound } from '../errors';
 import { wrap } from '../express-async';
 
 type StrippedStatus = Types.Scanner.StrippedStatus;
@@ -62,6 +63,28 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     }),
   );
 
+  router.post(
+    '/clone-map',
+    wrap(async () => {
+      cache.generateCloneMap().catch(err => console.error(err));
+      return {
+        data: getStatus(),
+      };
+    }),
+  );
+  /*
+  router.get(
+    '/clone-map',
+    wrap(async () => {
+      if (!cache.cloneMap) {
+        throw new NotFound('Clone map not generated');
+      }
+      return {
+        data: cache.cloneMap,
+      };
+    }),
+  );
+*/
   router.get(
     '/new',
     wrap(async () => {

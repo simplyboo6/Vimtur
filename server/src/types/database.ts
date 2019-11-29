@@ -11,6 +11,7 @@ export abstract class Database {
   public abstract getMedia(hash: string): Promise<Media | undefined>;
   public abstract saveMedia(hash: string, media: UpdateMedia): Promise<Media>;
   public abstract removeMedia(hash: string): Promise<void>;
+  public abstract resetClones(age: number): Promise<void>;
 
   public abstract subset(constraints: SubsetConstraints): Promise<string[]>;
   public abstract subsetFields(
