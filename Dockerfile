@@ -19,7 +19,7 @@ COPY ./common ./
 
 ## Build server
 WORKDIR /server
-COPY ./server/package.json ./
+COPY ./server/package.json ./server/yarn.lock ./
 RUN yarn --frozen-lockfile
 COPY ./server ./
 RUN yarn lint
@@ -30,7 +30,7 @@ RUN yarn install --production --frozen-lockfile
 
 ## Build client
 WORKDIR /client
-COPY ./client/package.json ./
+COPY ./client/package.json ./client/yarn.lock ./
 RUN yarn --frozen-lockfile
 COPY ./client ./
 RUN yarn lint
