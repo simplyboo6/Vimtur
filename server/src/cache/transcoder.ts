@@ -111,7 +111,7 @@ export class Transcoder {
     if (start) {
       inputOptions.push(...['-ss', String(start)]);
     }
-    inputOptions.push(...['-to', String(end)]);
+    inputOptions.push(...['-t', String(end - start)]);
 
     const audioCodec = ['-acodec', 'aac', '-ac', '1', '-strict', '-2'];
 
