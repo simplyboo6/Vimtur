@@ -4,8 +4,8 @@ import Types from '@vimtur/common';
 
 import { Database } from '../types';
 import { Importer } from '../cache';
-//import { NotFound } from '../errors';
 import { wrap } from '../express-async';
+import Config from '../config';
 
 type StrippedStatus = Types.Scanner.StrippedStatus;
 type Status = Types.Scanner.Status;
@@ -45,7 +45,9 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     await cache.thumbnails();
     await cache.cacheKeyframes();
     await cache.cache();
-    await cache.calculatePerceuptualHashes();
+    if (Config.get().enablePhash) {
+      await cache.calculatePerceuptualHashes();
+    }
   }
 
   io.on('connection', socket => {
@@ -72,19 +74,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
       };
     }),
   );
-  /*
-  router.get(
-    '/clone-map',
-    wrap(async () => {
-      if (!cache.cloneMap) {
-        throw new NotFound('Clone map not generated');
-      }
-      return {
-        data: cache.cloneMap,
-      };
-    }),
-  );
-*/
+
   router.get(
     '/new',
     wrap(async () => {
@@ -141,6 +131,16 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/thumbnails',
     wrap(async () => {
       cache.thumbnails().catch(err => console.error('Error during thumbnail generation', err));
+      return {
+        data: getStatus(),
+      };
+    }),
+  );
+
+  router.post(
+    '/verify-thumbnails',
+    wrap(async () => {
+      cache.verifyThumbnails().catch(err => console.error('Error verifying thumbnails', err));
       return {
         data: getStatus(),
       };

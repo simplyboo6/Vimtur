@@ -11,6 +11,7 @@ export namespace Scanner {
     | 'CACHING'
     | 'REHASHING'
     | 'THUMBNAILS'
+    | 'VERIFY_THUMBNAILS'
     | 'KEYFRAME_CACHING'
     | 'CALCULATING_PHASHES'
     | 'CLONE_MAP';

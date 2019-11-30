@@ -56,7 +56,15 @@ export class GalleryComponent implements OnInit, OnDestroy {
   }
 
   public getTitle(media: Media): string {
-    return media.metadata.title || media.path.split('/').slice(-1)[0];
+    const titles: string[] = [];
+    if (media.metadata.album) {
+      titles.push(media.metadata.album);
+    }
+    if (media.metadata.title) {
+      titles.push(media.metadata.title);
+    }
+    const title = titles.join(' - ');
+    return title || media.path.split('/').slice(-1)[0];
   }
 
   public getSubtitle(media: Media): string {

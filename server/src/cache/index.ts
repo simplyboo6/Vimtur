@@ -80,10 +80,6 @@ export class Importer {
   }
 
   public async calculatePerceuptualHashes(): Promise<void> {
-    if (!Config.get().enablePhash) {
-      console.debug('Skipping pHash generation.');
-      return;
-    }
     this.setState('CALCULATING_PHASHES');
     console.log('Generating perceptual hashses...');
     try {
@@ -295,6 +291,41 @@ export class Importer {
     }
   }
 
+  public async verifyThumbnails(): Promise<void> {
+    this.setState('VERIFY_THUMBNAILS');
+    console.log('Verifying thumbnails...');
+    try {
+      const withThumbnails = await this.database.subset({ thumbnail: true });
+      this.status.progress = {
+        current: 0,
+        max: withThumbnails.length,
+      };
+      while (withThumbnails.length > 0) {
+        await Promise.all(
+          withThumbnails.splice(0, THUMBNAIL_BATCH_SIZE).map(async hash => {
+            const media = await this.database.getMedia(hash);
+            if (!media) {
+              return;
+            }
+            const path = this.transcoder.getThumbnailPath(media);
+            const exists = await ImportUtils.exists(path);
+            if (!exists) {
+              console.warn(`${media.absolutePath} missing thumbnail`);
+              await this.database.saveMedia(media.hash, { thumbnail: false });
+            }
+            this.status.progress.current++;
+          }),
+        );
+        this.update();
+      }
+    } catch (err) {
+      console.error('Error verifying thumbnails', err);
+      throw err;
+    } finally {
+      this.setState('IDLE');
+    }
+  }
+
   public async thumbnails(): Promise<void> {
     this.setState('THUMBNAILS');
     console.log('Generating thumbnails...');
@@ -427,6 +458,7 @@ export class Importer {
       case 'CACHING':
       case 'REHASHING':
       case 'THUMBNAILS':
+      case 'VERIFY_THUMBNAILS':
       case 'KEYFRAME_CACHING':
       case 'CALCULATING_PHASHES':
       case 'CLONE_MAP':

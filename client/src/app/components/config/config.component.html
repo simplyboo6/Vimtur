@@ -242,14 +242,32 @@
       [(ngModel)]="config.transcoder.enableVideoCaching"
       (ngModelChange)="updateConfig('transcoder.enableVideoCaching', $event)"
     />
-    <label class="custom-control-label" for="config-enable-video-cachings"
+    <label class="custom-control-label" for="config-enable-video-caching"
       >Enable caching for all videos?</label
     >
     <div>
-      <span class="text-muted"
-        >Enabling this causes videos to be cached during import. Uses large amounts of disk space
-        but seeking and loading times are very fast.</span
-      >
+      <span class="text-muted">
+        Enabling this causes videos to be cached during import. Uses large amounts of disk space but
+        seeking and loading times are very fast.
+      </span>
+    </div>
+    <div>
+      <span class="text-muted">
+        Video's will be cached at these qualities:
+        {{ formatQualities(config.transcoder.cacheQualities) }}
+      </span>
+    </div>
+    <div>
+      <span class="text-muted">
+        If the source quality is less than or equal to {{ config.transcoder.minQuality }}p then it
+        will use the source quality.
+      </span>
+    </div>
+    <div>
+      <span class="text-muted">
+        Video's can be streamed at these qualities:
+        {{ formatQualities(config.transcoder.streamQualities) }}
+      </span>
     </div>
   </div>
 
@@ -269,7 +287,8 @@
     <div>
       <span class="text-muted">
         pHash's generate a fingerprint of videos or still images based on what it looks like. This
-        allows locating scaled duplicates or similiar images.
+        allows locating scaled duplicates or similiar images. Enabling this causes pHash's to be
+        generated as part of the auto-import process. It an always be triggered manually.
       </span>
     </div>
   </div>

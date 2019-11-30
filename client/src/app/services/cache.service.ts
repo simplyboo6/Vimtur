@@ -30,6 +30,10 @@ const ADVANCED_ACTION_LIST: AdvancedAction[] = [
     endpoint: 'thumbnails',
   },
   {
+    name: 'Verify existing thumbnails',
+    endpoint: 'verify-thumbnails',
+  },
+  {
     name: 'Generate video keyframe lookups (if enabled)',
     endpoint: 'keyframes',
   },

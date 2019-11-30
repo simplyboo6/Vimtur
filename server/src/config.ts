@@ -48,7 +48,8 @@ const DEFAULTS: any = {
     minQuality: 480,
     // Transcode to a small mobile quality and up to 1080p.
     // If the source is 720p it will transcode to 240p and 1080p
-    qualities: [240, 480, 720, 1080],
+    cacheQualities: [240],
+    streamQualities: [240, 480, 720, 1080],
     // Enables caching keyframes when they're initially accessed.
     enableCachingKeyframes: true,
     // Makes the first load of each video slower but initial import much faster.
@@ -140,7 +141,12 @@ class Config {
 
     const merged: Configuration.Main = DeepMerge.all(layerArray) as any;
     // Remove duplicate items in the qualities array.
-    merged.transcoder.qualities = [...new Set(merged.transcoder.qualities)].sort((a, b) => a - b);
+    merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort(
+      (a, b) => a - b,
+    );
+    merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort(
+      (a, b) => a - b,
+    );
     const schemaValidate = Ajv().compile(this.schema);
     if (!schemaValidate(merged)) {
       console.error(

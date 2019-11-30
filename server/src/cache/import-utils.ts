@@ -87,11 +87,18 @@ export class ImportUtils {
   }
 
   public static getTranscodeQualities(): number[] {
-    return Config.get().transcoder.qualities;
+    return [
+      ...new Set([
+        ...Config.get().transcoder.cacheQualities,
+        ...Config.get().transcoder.streamQualities,
+      ]),
+    ];
   }
 
-  public static getMediaDesiredQualities(media: BaseMedia): Quality[] {
-    const qualities = ImportUtils.getTranscodeQualities();
+  public static getMediaDesiredQualities(media: BaseMedia, qualities?: number[]): Quality[] {
+    if (!qualities) {
+      qualities = ImportUtils.getTranscodeQualities();
+    }
     const maxCopy = ImportUtils.isMaxCopyEnabled();
     const minQualityForTranscode = ImportUtils.getMinQualityForTranscode();
     if (!media.metadata) {

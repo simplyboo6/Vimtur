@@ -25,15 +25,21 @@ export class Transcoder {
     await ImportUtils.mkdir(Config.get().cachePath);
     await ImportUtils.mkdir(`${Config.get().cachePath}/thumbnails`);
 
-    const path = `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
+    const path = this.getThumbnailPath(media);
     const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
     if (!media.metadata.length) {
       throw new Error(`Can't get thumbnail for video with no length`);
     }
-    args.push('-ss');
-    const offset = Math.ceil(media.metadata.length / 4);
-    args.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
+    if (media.metadata.length > 10) {
+      args.push('-ss');
+      const offset = Math.ceil(media.metadata.length / 4);
+      args.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
+    }
     await ImportUtils.transcode(media.absolutePath, path, args);
+  }
+
+  public getThumbnailPath(media: Media): string {
+    return `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
   }
 
   public async createImageThumbnail(media: Media): Promise<void> {
@@ -43,7 +49,7 @@ export class Transcoder {
     await ImportUtils.mkdir(Config.get().cachePath);
     await ImportUtils.mkdir(`${Config.get().cachePath}/thumbnails`);
 
-    const output = `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
+    const output = this.getThumbnailPath(media);
 
     const gm = GM.subClass({ nativeAutoOrient: true })(media.absolutePath)
       .autoOrient()
@@ -243,7 +249,10 @@ export class Transcoder {
       throw new Error(`Can't transcode media set without metadata`);
     }
 
-    const desiredCaches = ImportUtils.getMediaDesiredQualities(media);
+    const desiredCaches = ImportUtils.getMediaDesiredQualities(
+      media,
+      Config.get().transcoder.cacheQualities,
+    );
     const actualCaches = media.metadata.qualityCache || [];
     const missingQualities: Quality[] = [];
     for (const quality of desiredCaches) {

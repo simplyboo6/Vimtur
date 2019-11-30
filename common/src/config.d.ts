@@ -8,8 +8,10 @@ export namespace Configuration {
     // then just do 480p instead. However if the source is 720p, then transcode it to the targetted quality (240p).
     // Set to 0 to disable.
     minQuality: number;
-    // An array of qualities to transcode to in heights for caching and streaming.
-    qualities: number[];
+    // An array of qualities to transcode to in heights for caching.
+    cacheQualities: number[];
+    // An array of qualities to transcode to in heights for streaming (includes cached qualities).
+    streamQualities: number[];
     // True to cache keyframes the first time they're requested.
     enableCachingKeyframes: boolean;
     // True to cache keyframes as part of the importing process.
@@ -51,7 +53,7 @@ export namespace Configuration {
     cachePath: string; // Path to store thumbnails and cached media.
     database: Mongo;
     transcoder: Transcoder;
-    // Enable pHash generation for video and stills
+    // Enable pHash generation for stills as part of import.
     enablePhash: boolean;
     // Maximum age of clone map before counting it as expired in seconds.
     maxCloneAge: number;

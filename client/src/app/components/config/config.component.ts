@@ -146,6 +146,10 @@ export class ConfigComponent implements OnInit, OnDestroy {
       .catch(err => console.warn('Actor deletion confirmation error', err));
   }
 
+  public formatQualities(qualities: number[]): string {
+    return qualities.map(quality => `${quality}p`).join(', ');
+  }
+
   public updateConfig(field: string, value: string | number | boolean) {
     const root: Configuration.Partial = {};
 
