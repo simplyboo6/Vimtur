@@ -8,6 +8,7 @@ export interface SearchModel {
   ratingMax?: number;
   tagged?: boolean;
   untagged?: boolean;
+  hasClones?: boolean;
   sortBy?: string;
 
   typeVideo?: boolean;

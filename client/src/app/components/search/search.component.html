@@ -109,6 +109,21 @@
         </div>
       </div>
       <div class="form-group">
+        <label>Others</label>
+        <div
+          class="custom-control custom-checkbox input-component"
+          title="Selecting this will display only untagged media."
+        >
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="search-filter-has-clones"
+            [(ngModel)]="searchModel.hasClones"
+          />
+          <label class="custom-control-label" for="search-filter-has-clones">Has Clones</label>
+        </div>
+      </div>
+      <div class="form-group">
         <label>Sort By</label>
         <select class="custom-select" [(ngModel)]="searchModel.sortBy">
           <option selected="selected" [value]="undefined">None</option>

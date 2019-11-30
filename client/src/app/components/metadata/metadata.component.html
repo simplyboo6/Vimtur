@@ -8,6 +8,9 @@
     <div class="media-path">
       <div>Path: {{ media.path }}</div>
       <div>Hash: {{ media.hash }}</div>
+      <div *ngIf="media.metadata">
+        Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}
+      </div>
     </div>
   </div>
 
