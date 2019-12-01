@@ -96,6 +96,7 @@ export async function create(db: Database): Promise<Router> {
       }
       return res.sendFile(absPath);
     } catch (err) {
+      console.error('Error reading file', err);
       return res.status(503).json({ message: err.message });
     }
   });
