@@ -39,7 +39,7 @@ RUN yarn install --production --frozen-lockfile
 
 FROM node:12-alpine
 
-RUN apk add --no-cache tini graphicsmagick g++ make ffmpeg jpeg libpng libsndfile libsamplerate tiff libx11 python3
+RUN apk add --no-cache tini graphicsmagick imagemagick g++ make ffmpeg jpeg libpng libsndfile libsamplerate tiff libx11 python3
 
 COPY --from=build /usr/local/lib/libpHash.so.1.0.0 /usr/local/lib/libpHash.so.1.0.0
 COPY --from=build /usr/local/lib/libpHash.so /usr/local/lib/libpHash.so

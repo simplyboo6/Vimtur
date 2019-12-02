@@ -326,6 +326,7 @@ export class ImportUtils {
     try {
       const gm = GM(path);
       const orientation = (await Util.promisify(gm.orientation.bind(gm))()) as any;
+      console.debug('isExifRotated', path, orientation);
       return orientation !== 'TopLeft';
     } catch (err) {
       console.error('isExifRotated failed', path, err);
@@ -334,7 +335,7 @@ export class ImportUtils {
   }
 
   public static async loadImageAutoOrient(path: string): Promise<LoadedImage> {
-    const gm = GM.subClass({ nativeAutoOrient: true })(path).autoOrient();
+    const gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(path).autoOrient();
     const format = path.toLowerCase().endsWith('gif') ? 'GIF' : 'PNG';
     return new Promise<LoadedImage>((resolve, reject) => {
       gm.toBuffer(format, (err, buffer) => {
