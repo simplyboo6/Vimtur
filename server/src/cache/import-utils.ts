@@ -323,9 +323,14 @@ export class ImportUtils {
   }
 
   public static async isExifRotated(path: string): Promise<boolean> {
-    const gm = GM(path);
-    const orientation = (await Util.promisify(gm.orientation.bind(gm))()) as any;
-    return orientation !== 'TopLeft';
+    try {
+      const gm = GM(path);
+      const orientation = (await Util.promisify(gm.orientation.bind(gm))()) as any;
+      return orientation !== 'TopLeft';
+    } catch (err) {
+      console.error('isExifRotated failed', path, err);
+      return false;
+    }
   }
 
   public static async loadImageAutoOrient(path: string): Promise<LoadedImage> {

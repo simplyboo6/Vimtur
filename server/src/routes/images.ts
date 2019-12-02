@@ -89,9 +89,13 @@ export async function create(db: Database): Promise<Router> {
       if (media.type === 'gif' || media.type === 'still') {
         const isRotated = await ImportUtils.isExifRotated(absPath);
         if (isRotated) {
-          const image = await ImportUtils.loadImageAutoOrient(absPath);
-          res.set('Content-Type', image.contentType);
-          return res.end(image.buffer, 'binary');
+          try {
+            const image = await ImportUtils.loadImageAutoOrient(absPath);
+            res.set('Content-Type', image.contentType);
+            return res.end(image.buffer, 'binary');
+          } catch (err) {
+            console.error('Failed to send rotated image', absPath, err);
+          }
         }
       }
       return res.sendFile(absPath);
