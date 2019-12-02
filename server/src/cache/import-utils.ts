@@ -326,8 +326,7 @@ export class ImportUtils {
     try {
       const gm = GM(path);
       const orientation = (await Util.promisify(gm.orientation.bind(gm))()) as any;
-      console.debug('isExifRotated', path, orientation);
-      return orientation !== 'TopLeft';
+      return orientation !== 'TopLeft' && orientation !== 'Unknown';
     } catch (err) {
       console.error('isExifRotated failed', path, err);
       return false;
