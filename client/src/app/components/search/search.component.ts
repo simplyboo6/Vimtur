@@ -114,7 +114,9 @@ export class SearchComponent implements OnInit, OnDestroy {
     if (noneTags.length) {
       constraints.none = noneTags;
     }
-    constraints.hasClones = this.searchModel.hasClones;
+    if (this.searchModel.hasClones) {
+      constraints.hasClones = this.searchModel.hasClones;
+    }
 
     console.debug('search', constraints);
     this.collectionService.search(constraints);
