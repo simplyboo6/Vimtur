@@ -51,7 +51,7 @@ export class Transcoder {
 
     const output = this.getThumbnailPath(media);
 
-    const gm = GM.subClass({ nativeAutoOrient: true })(media.absolutePath)
+    const gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(media.absolutePath)
       .autoOrient()
       .resize(200, 200);
     await new Promise<void>((resolve, reject) => {

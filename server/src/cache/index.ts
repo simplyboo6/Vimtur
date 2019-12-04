@@ -88,6 +88,7 @@ export class Importer {
         // Eg videos of different length not quite right.
         type: 'still',
         indexed: true,
+        corrupted: false,
         phashed: false,
       });
       this.status.progress = {

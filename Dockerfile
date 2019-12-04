@@ -3,7 +3,8 @@ FROM node:12-alpine as build
 ## Compile pHash
 RUN apk add -U git ffmpeg-dev jpeg-dev libpng-dev libsndfile-dev libsamplerate-dev tiff-dev g++ make cmake libx11-dev python3
 WORKDIR /build
-RUN git clone https://github.com/timstableford/pHash
+RUN git clone https://github.com/aetilius/pHash.git
+RUN git -C pHash checkout 887d07b9bdd9e2fb082c932002cefbcb1c8c20a1
 # Build fix on Alpine
 RUN sed 's|#include <sys/sysctl.h>||g' ./pHash/src/pHash.h.cmake > ./pHash/src/pHash.h.cmake.tmp && mv ./pHash/src/pHash.h.cmake.tmp ./pHash/src/pHash.h.cmake
 
