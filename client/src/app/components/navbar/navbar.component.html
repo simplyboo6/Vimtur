@@ -5,6 +5,7 @@
   <div
     class="btn-group btn-group-toggle nav-button-group d-none d-md-block"
     *ngIf="getRoute() === '/viewer'"
+    title="Toggle Tags"
   >
     <label class="btn-primary" ngbButtonLabel>
       <input
@@ -12,7 +13,22 @@
         ngbButton
         [(ngModel)]="tagsOpen"
         (ngModelChange)="updateTagPanelState()"
-      />Tags
+      />
+      <svg
+        class="icon"
+        aria-hidden="true"
+        focusable="false"
+        data-prefix="fas"
+        data-icon="tags"
+        role="img"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 640 512"
+      >
+        <path
+          fill="currentColor"
+          d="M497.941 225.941L286.059 14.059A48 48 0 0 0 252.118 0H48C21.49 0 0 21.49 0 48v204.118a48 48 0 0 0 14.059 33.941l211.882 211.882c18.744 18.745 49.136 18.746 67.882 0l204.118-204.118c18.745-18.745 18.745-49.137 0-67.882zM112 160c-26.51 0-48-21.49-48-48s21.49-48 48-48 48 21.49 48 48-21.49 48-48 48zm513.941 133.823L421.823 497.941c-18.745 18.745-49.137 18.745-67.882 0l-.36-.36L527.64 323.522c16.999-16.999 26.36-39.6 26.36-63.64s-9.362-46.641-26.36-63.64L331.397 0h48.721a48 48 0 0 1 33.941 14.059l211.882 211.882c18.745 18.745 18.745 49.137 0 67.882z"
+        ></path>
+      </svg>
     </label>
   </div>
   <!-- Empty button group to keep the hamburger menu on the right on mobile -->
@@ -174,6 +190,23 @@
     [ngbCollapse]="!isExpanded"
   >
     <ul class="navbar-nav">
+      <li *ngIf="qualityLevels" class="nav-item dropdown" ngbDropdown>
+        <a class="nav-link dropdown-toggle" ngbDropdownToggle>
+          Quality
+        </a>
+        <div class="dropdown-menu" ngbDropdownMenu>
+          <a class="dropdown-item" [class.disabled]="false" (click)="setQuality({ index: -1 })"
+            >Auto</a
+          >
+          <a
+            *ngFor="let level of qualityLevels"
+            class="dropdown-item"
+            [class.disabled]="currentLevel && currentLevel.index === level.index"
+            (click)="setQuality(level)"
+            >{{ level.height }}p</a
+          >
+        </div>
+      </li>
       <li class="nav-item" [class.active]="isActive('/viewer')">
         <a class="nav-link" routerLink="/viewer" (click)="isExpanded = false">Viewer</a>
       </li>

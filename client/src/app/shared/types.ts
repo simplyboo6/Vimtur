@@ -3,3 +3,9 @@ export interface Alert {
   message: string;
   autoClose?: number;
 }
+
+export interface QualityLevel {
+  width?: number;
+  height?: number;
+  index: number;
+}

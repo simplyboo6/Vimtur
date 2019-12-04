@@ -15,7 +15,7 @@
 - Auto-transcode videos for web-browser compatibility (both streaming and optional caching)
 - Import and export database to JSON format
 - Rating system
-- Configurable video caching levels
+- Configurable video caching and streaming levels, with auto and manual quality selection
 - Media recommendations based upon your tags, actors and ratings.
 
 ## Quick-Start

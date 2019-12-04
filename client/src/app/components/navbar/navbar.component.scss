@@ -25,3 +25,16 @@
     background-color: transparent !important;
   }
 }
+
+.dropdown-toggle {
+  cursor: pointer;
+}
+
+.dropdown-item {
+  cursor: pointer;
+}
+
+.dropdown-item.disabled,
+.dropdown-item:disabled {
+  background-color: rgba(0, 0, 0, 0.1);
+}
