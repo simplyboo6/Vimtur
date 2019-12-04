@@ -1,4 +1,4 @@
-FROM node:12-alpine as build
+FROM node:12.13.1-alpine3.10 as build
 
 ## Compile pHash
 RUN apk add -U git ffmpeg-dev jpeg-dev libpng-dev libsndfile-dev libsamplerate-dev tiff-dev g++ make cmake libx11-dev python3
@@ -38,7 +38,7 @@ RUN yarn lint
 RUN yarn build:prod
 RUN yarn install --production --frozen-lockfile
 
-FROM node:12-alpine
+FROM node:12.13.1-alpine3.10
 
 RUN apk add --no-cache tini graphicsmagick imagemagick g++ make ffmpeg jpeg libpng libsndfile libsamplerate tiff libx11 python3
 
