@@ -270,6 +270,24 @@
       </span>
     </div>
   </div>
+  <!-- transcoder.enableVideoPreviews -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-video-previews"
+      [(ngModel)]="config.transcoder.enableVideoPreviews"
+      (ngModelChange)="updateConfig('transcoder.enableVideoPreviews', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-video-previews"
+      >Enable generating video previews during import?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Enabling this causes video previews to be generated during auto-import.</span
+      >
+    </div>
+  </div>
 
   <h4>Misc Configuration</h4>
   <!-- enablePhash -->

@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { TagInputModule } from 'ngx-chips';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { AngularResizedEventModule } from 'angular-resize-event';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './components/app/app.component';
@@ -44,6 +45,7 @@ import { InsightsComponent } from './components/insights/insights.component';
     HttpClientModule,
     TagInputModule,
     BrowserAnimationsModule,
+    AngularResizedEventModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

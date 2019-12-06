@@ -549,6 +549,14 @@ amdefine@>=0.0.4:
   resolved "https://registry.yarnpkg.com/amdefine/-/amdefine-1.0.1.tgz#4a5282ac164729e93619bcfd3ad151f817ce91f5"
   integrity sha1-SlKCrBZHKek2Gbz9OtFR+BfOkfU=
 
+angular-resize-event@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/angular-resize-event/-/angular-resize-event-1.1.1.tgz#d6f5c660c08dba72e69e07017a8da583e63b6995"
+  integrity sha512-YBqEkdAkBNj/+kRso7M2FtzvJsFtOj+YpdAvFpN+gHhy37LhPUBxnfTNxIuHHMcpskjL/+FgnBP6Zi/M52Phcw==
+  dependencies:
+    css-element-queries "1.2.0"
+    tslib "^1.9.0"
+
 ansi-colors@4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/ansi-colors/-/ansi-colors-4.1.1.tgz#cbb9ae256bf750af1eab344f229aa27fe94ba348"
@@ -1687,6 +1695,11 @@ crypto-browserify@^3.11.0:
     public-encrypt "^4.0.0"
     randombytes "^2.0.0"
     randomfill "^1.0.3"
+
+css-element-queries@1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/css-element-queries/-/css-element-queries-1.2.0.tgz#081373d7f30302adad46b7c29b83b85f8ef8f62c"
+  integrity sha512-4gaxpioSFueMcp9yj1TJFCLjfooGv38y6ZdwFUS3GuS+9NIVijdeiExXKwSIHoQDADfpgnaYSTzmJs+bV+Hehg==
 
 css-parse@1.7.x:
   version "1.7.0"

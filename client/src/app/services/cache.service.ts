@@ -34,6 +34,10 @@ const ADVANCED_ACTION_LIST: AdvancedAction[] = [
     endpoint: 'verify-thumbnails',
   },
   {
+    name: 'Generate missing video previews',
+    endpoint: 'previews',
+  },
+  {
     name: 'Generate video keyframe lookups (if enabled)',
     endpoint: 'keyframes',
   },
