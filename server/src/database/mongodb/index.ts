@@ -312,6 +312,14 @@ export class MongoConnector extends Database {
       }
     }
 
+    if (constraints.preview !== undefined) {
+      if (constraints.preview) {
+        query['preview'] = true;
+      } else {
+        query['preview'] = { $in: [null, false] };
+      }
+    }
+
     if (constraints.phashed !== undefined) {
       if (constraints.phashed) {
         query['phash'] = { $exists: true };

@@ -38,6 +38,25 @@ export class Transcoder {
     await ImportUtils.transcode(media.absolutePath, path, args);
   }
 
+  public async createVideoPreview(media: Media): Promise<void> {
+    if (media.type !== 'video') {
+      throw new Error('Cannot create video thumbnail for non-video media');
+    }
+    if (!media.metadata || media.metadata.length === undefined) {
+      throw new Error(`Can't create thumbnail for media without metadata`);
+    }
+    await ImportUtils.mkdir(Config.get().cachePath);
+    await ImportUtils.mkdir(`${Config.get().cachePath}/previews`);
+
+    const fps = Config.get().transcoder.videoPreviewFps;
+    const count = Math.max(1, Math.floor(media.metadata.length / fps));
+    const height = Config.get().transcoder.videoPreviewHeight;
+
+    const args = ['-vf', `fps=1/${fps},scale=-1:${height},tile=1x${count}`, '-frames:v', '1'];
+    const path = `${Config.get().cachePath}/previews/${media.hash}.png`;
+    await ImportUtils.transcode(media.absolutePath, path, args);
+  }
+
   public getThumbnailPath(media: Media): string {
     return `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
   }

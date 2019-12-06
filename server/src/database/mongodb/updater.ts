@@ -24,6 +24,7 @@ export class Updater {
       await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
       await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
       await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
+      await Updater.saveUpdate(updatesCollection, '006_add_preview');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '002_fix_prefixed_dir_names'))) {
@@ -51,12 +52,14 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
       await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
+      await Updater.saveUpdate(updatesCollection, '006_add_preview');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '004_add_clone_map'))) {
       console.log('Applying update 004_add_clone_map...');
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
+      await Updater.saveUpdate(updatesCollection, '006_add_preview');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '005_remove-segment-copy-ts'))) {
@@ -65,6 +68,12 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await collection.updateMany({ type: 'video' }, { $unset: { 'metadata.segments.copy': '' } });
       await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
+    }
+
+    if (!(await Updater.hasRun(updatesCollection, '006_add_preview'))) {
+      console.log('Applying update 006_add_preview...');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '006_add_preview');
     }
   }
 

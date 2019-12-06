@@ -18,6 +18,12 @@ export namespace Configuration {
     enablePrecachingKeyframes: boolean;
     // True to enable video caching for all videos as part of the import process.
     enableVideoCaching: boolean;
+    // Enable preview generation during import
+    enableVideoPreviews: boolean;
+    // Video preview height
+    videoPreviewHeight: number;
+    // Video preview FPS (time between preview images)
+    videoPreviewFps: number;
   }
 
   // Settings to persist across UI sessions.

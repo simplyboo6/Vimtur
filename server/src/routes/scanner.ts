@@ -48,6 +48,9 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     if (Config.get().enablePhash) {
       await cache.calculatePerceuptualHashes();
     }
+    if (Config.get().transcoder.enableVideoPreviews) {
+      await cache.previews();
+    }
   }
 
   io.on('connection', socket => {
@@ -141,6 +144,16 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/verify-thumbnails',
     wrap(async () => {
       cache.verifyThumbnails().catch(err => console.error('Error verifying thumbnails', err));
+      return {
+        data: getStatus(),
+      };
+    }),
+  );
+
+  router.post(
+    '/previews',
+    wrap(async () => {
+      cache.previews().catch(err => console.error('Error during preview generation', err));
       return {
         data: getStatus(),
       };

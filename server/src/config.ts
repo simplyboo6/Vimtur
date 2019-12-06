@@ -57,6 +57,9 @@ const DEFAULTS: any = {
     // Disables caching during import of new media. Still allows using
     // the cache of existing media.
     enableVideoCaching: false,
+    enableVideoPreviews: true,
+    videoPreviewHeight: 120,
+    videoPreviewFps: 10,
   },
   user: {
     autoplayEnabled: true,
