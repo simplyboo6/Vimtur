@@ -1,14 +1,14 @@
 import {
   Component,
-  AfterViewChecked,
+  AfterViewInit,
   OnInit,
   OnDestroy,
   OnChanges,
   ViewChild,
   TemplateRef,
-  NgZone,
   SimpleChanges,
   Input,
+  NgZone,
 } from '@angular/core';
 import { ConfigService } from 'services/config.service';
 import { Subscription, timer } from 'rxjs';
@@ -44,7 +44,7 @@ interface VideoPlayerState {
   templateUrl: './video-player.component.html',
   styleUrls: ['./video-player.component.scss'],
 })
-export class VideoPlayerComponent implements AfterViewChecked, OnInit, OnDestroy, OnChanges {
+export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, OnChanges {
   @ViewChild('videoElement', { static: false }) public videoElement: any;
   @ViewChild('videoPlayer', { static: false }) public videoPlayer: any;
 
@@ -55,8 +55,8 @@ export class VideoPlayerComponent implements AfterViewChecked, OnInit, OnDestroy
   private subscriptions: Subscription[] = [];
   private hls?: any;
   private config?: Configuration.Main;
-  private videoInitialised = false;
   private zone: NgZone;
+  private initialised = false;
 
   public constructor(configService: ConfigService, zone: NgZone) {
     this.configService = configService;
@@ -100,12 +100,9 @@ export class VideoPlayerComponent implements AfterViewChecked, OnInit, OnDestroy
       reset = reset || changes.media.previousValue.hash !== changes.media.currentValue.hash;
     }
 
-    if (changes.media.currentValue.type !== 'video') {
-      this.media = undefined;
-    }
-
     if (reset) {
       if (this.hls) {
+        this.initialised = false;
         if (this.videoElement) {
           this.videoElement.nativeElement.pause();
         }
@@ -121,70 +118,65 @@ export class VideoPlayerComponent implements AfterViewChecked, OnInit, OnDestroy
         };
       }
 
-      if (this.media) {
+      if (this.media && this.media.type === 'video') {
         this.playVideo(this.media);
       }
     }
   }
 
-  public ngAfterViewChecked() {
-    if (this.videoElement && !this.videoInitialised) {
-      this.videoElement.nativeElement.muted = true;
+  public onSeeking() {
+    const lowQualityOnSeek =
+      this.config &&
+      (isMobile()
+        ? this.config.user.lowQualityOnLoadEnabledForMobile
+        : this.config.user.lowQualityOnLoadEnabled);
 
-      this.videoElement.nativeElement.addEventListener('seeking', () => {
-        const lowQualityOnSeek =
-          this.config &&
-          (isMobile()
-            ? this.config.user.lowQualityOnLoadEnabledForMobile
-            : this.config.user.lowQualityOnLoadEnabled);
+    // Only has an effect if the segment isn't already loaded.
+    if (lowQualityOnSeek) {
+      console.debug('Seeking - Forcing to level 0');
+      this.hls.nextLoadLevel = 0;
+    }
+  }
 
-        // Only has an effect if the segment isn't already loaded.
-        if (lowQualityOnSeek) {
-          console.debug('Seeking - Forcing to level 0');
-          this.hls.nextLoadLevel = 0;
-        }
-      });
-
-      this.videoElement.nativeElement.addEventListener('play', () => {
-        if (this.hls) {
-          const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
-          if (!autoPlay) {
-            this.hls.startLoad();
-          }
-        }
-      });
-      this.videoInitialised = true;
-      // If a piece of media has been loaded before the video element existed, then start it here.
-      if (this.media && this.media.type === 'video') {
-        this.playVideo(this.media);
+  public onPlay() {
+    if (this.hls) {
+      const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
+      if (!autoPlay) {
+        this.hls.startLoad();
       }
     }
+  }
 
+  public onResized() {
     if (this.videoElement) {
-      if (this.videoElement.nativeElement.clientWidth !== this.videoPlayerState.width) {
+      const update =
+        this.videoElement.nativeElement.clientWidth !== this.videoPlayerState.width ||
+        this.videoElement.nativeElement.clientHeight !== this.videoPlayerState.height ||
+        this.videoElement.nativeElement.offsetTop !== this.videoPlayerState.top;
+
+      if (update) {
         setTimeout(() => {
           this.zone.run(() => {
             this.videoPlayerState.width = this.videoElement.nativeElement.clientWidth;
-          });
-        }, 0);
-      }
-
-      if (this.videoElement.nativeElement.clientHeight !== this.videoPlayerState.height) {
-        setTimeout(() => {
-          this.zone.run(() => {
             this.videoPlayerState.height = this.videoElement.nativeElement.clientHeight;
-          });
-        }, 0);
-      }
-
-      if (this.videoElement.nativeElement.offsetTop !== this.videoPlayerState.top) {
-        setTimeout(() => {
-          this.zone.run(() => {
             this.videoPlayerState.top = this.videoElement.nativeElement.offsetTop;
           });
         }, 0);
       }
     }
+  }
+
+  public ngAfterViewInit() {
+    if (!this.media || this.media.type !== 'video') {
+      return;
+    }
+
+    this.onResized();
+    if (this.videoElement) {
+      this.videoElement.nativeElement.muted = true;
+    }
+
+    this.playVideo(this.media);
   }
 
   public syncVolume() {
@@ -358,46 +350,53 @@ export class VideoPlayerComponent implements AfterViewChecked, OnInit, OnDestroy
   }
 
   private playVideo(media: Media) {
-    if (this.videoElement) {
-      const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
-      const lowQualityOnSeek =
-        this.config &&
-        (isMobile()
-          ? this.config.user.lowQualityOnLoadEnabledForMobile
-          : this.config.user.lowQualityOnLoadEnabled);
-      console.debug('playing video', media.hash, lowQualityOnSeek, autoPlay);
-
-      this.hls = new Hls({
-        autoStartLoad: false,
-        capLevelToPlayerSize: true,
-        maxSeekHole: 5,
-        maxBufferHole: 5,
-        maxBufferLength: 60,
-        startLevel: lowQualityOnSeek ? 0 : -1,
-      });
-
-      this.syncVolume();
-
-      this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        console.log('Manifest quality levels', data.levels);
-
-        if (autoPlay) {
-          this.videoElement.nativeElement.play();
-        }
-      });
-
-      this.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-        console.log('Switched to quality level', data.level, this.hls.levels[data.level]);
-      });
-
-      this.hls.attachMedia(this.videoElement.nativeElement);
-
-      this.hls.loadSource(`/api/images/${media.hash}/stream/index.m3u8`);
-      if (autoPlay) {
-        this.hls.startLoad();
-      }
-    } else {
+    if (!this.videoElement) {
       console.warn('playVideo called before videoElement initialised');
+      return;
+    }
+
+    if (this.initialised) {
+      return;
+    } else {
+      this.initialised = true;
+    }
+
+    const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
+    const lowQualityOnSeek =
+      this.config &&
+      (isMobile()
+        ? this.config.user.lowQualityOnLoadEnabledForMobile
+        : this.config.user.lowQualityOnLoadEnabled);
+    console.debug('playing video', media.hash, lowQualityOnSeek, autoPlay);
+
+    this.hls = new Hls({
+      autoStartLoad: false,
+      capLevelToPlayerSize: true,
+      maxSeekHole: 5,
+      maxBufferHole: 5,
+      maxBufferLength: 60,
+      startLevel: lowQualityOnSeek ? 0 : -1,
+    });
+
+    this.syncVolume();
+
+    this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      console.log('Manifest quality levels', data.levels);
+
+      if (autoPlay) {
+        this.videoElement.nativeElement.play();
+      }
+    });
+
+    this.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+      console.log('Switched to quality level', data.level, this.hls.levels[data.level]);
+    });
+
+    this.hls.attachMedia(this.videoElement.nativeElement);
+
+    this.hls.loadSource(`/api/images/${media.hash}/stream/index.m3u8`);
+    if (autoPlay) {
+      this.hls.startLoad();
     }
   }
 }

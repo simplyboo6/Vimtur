@@ -4,7 +4,11 @@
   </div>
   <div class="right-panel full-height">
     <ng-container *ngIf="media">
-      <app-video-player [media]="media"></app-video-player>
+      <app-video-player
+        class="video-player"
+        [class.hidden]="!media || media.type !== 'video'"
+        [media]="media"
+      ></app-video-player>
       <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
       <ng-container *ngIf="media.type !== 'video'">
         <img

@@ -1,7 +1,7 @@
 <div
-  (resized)="ngAfterViewChecked()"
+  (resized)="onResized()"
   (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
-  [class.hidden]="!media"
+  [class.hidden]="!media || media.type !== 'video'"
   class="video-player"
   #videoPlayer
 >
@@ -103,13 +103,14 @@
     </div>
   </div>
   <video
-    (play)="videoPlayerState.playing = true"
+    (play)="onPlay(); videoPlayerState.playing = true"
     (pause)="videoPlayerState.playing = false"
     (durationchange)="videoPlayerState.duration = videoElement.duration"
     (timeupdate)="videoPlayerState.currentTime = videoElement.currentTime"
     (waiting)="videoPlayerState.loading = true"
     (canplay)="videoPlayerState.loading = false"
     (seeked)="videoPlayerState.navigationTime = undefined"
+    (seeking)="onSeeking()"
     (volumechange)="syncVolume()"
     [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
     loop
