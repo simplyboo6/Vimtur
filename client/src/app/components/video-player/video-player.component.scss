@@ -1,0 +1,122 @@
+@import '../../../helpers.scss';
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.player {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+
+  & > .overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+
+    & > div {
+      margin: auto;
+      display: flex;
+      width: 10rem;
+      height: 10rem;
+      justify-content: center;
+      padding: 3rem;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 50%;
+
+      & > .play {
+        margin-left: 0.5rem;
+      }
+
+      & > .spinner {
+        animation: spin 2s linear infinite;
+      }
+
+      & > svg {
+        color: white;
+      }
+    }
+
+    &:hover > div {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  & > .controls {
+    height: 2.5rem;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    color: white;
+
+    & > button {
+      display: flex;
+      height: 100%;
+      background-color: transparent;
+      border: none;
+
+      & > svg {
+        height: 1.5rem;
+        margin: auto;
+        color: white;
+      }
+
+      &:hover > svg {
+        color: var(--primary);
+      }
+    }
+
+    & > progress {
+      width: 100%;
+      background-color: transparent;
+      color: var(--primary);
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.2);
+      border-width: 0 1px;
+    }
+
+    & > progress.volume {
+      width: 8rem;
+    }
+
+    & > .preview {
+      position: absolute;
+      margin-top: -120px;
+    }
+
+    @media (max-width: 600px) {
+      & > progress.volume {
+        display: none;
+      }
+    }
+
+    & > span {
+      white-space: nowrap;
+      margin: auto;
+      user-select: none;
+      padding: 0 0 0 0.5rem;
+    }
+  }
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.player.no-cursor {
+  cursor: none;
+}
+
+.hidden {
+  display: none;
+}

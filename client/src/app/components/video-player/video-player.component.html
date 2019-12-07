@@ -1,0 +1,243 @@
+<div
+  (resized)="ngAfterViewChecked()"
+  (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
+  [class.hidden]="!media"
+  class="video-player"
+  #videoPlayer
+>
+  <div
+    *ngIf="videoPlayerState.width"
+    class="player"
+    [style.width.px]="videoPlayerState.width"
+    [style.height.px]="videoPlayerState.height"
+    [style.top.px]="videoPlayerState.top"
+    (mousemove)="updatePlayerActivity(true)"
+    [class.no-cursor]="!areControlsOpen()"
+  >
+    <div
+      class="overlay"
+      (mouseup)="areControlsOpen() ? onVideoOverlayClick() : updatePlayerActivity()"
+    >
+      <div *ngIf="!videoPlayerState.playing; else loadingTemplate">
+        <ng-container *ngTemplateOutlet="playIcon"></ng-container>
+      </div>
+      <ng-template #loadingTemplate>
+        <div *ngIf="videoPlayerState.loading">
+          <ng-container *ngTemplateOutlet="spinnerIcon"></ng-container>
+        </div>
+      </ng-template>
+    </div>
+
+    <div
+      *ngIf="areControlsOpen()"
+      (mouseenter)="videoPlayerState.inControls = true"
+      (mouseleave)="videoPlayerState.inControls = false"
+      class="controls"
+      [style.width.px]="videoPlayerState.width"
+    >
+      <button (click)="toggleVideoPlay()">
+        <ng-container *ngIf="videoPlayerState.playing; else playIcon">
+          <ng-container *ngTemplateOutlet="pauseIcon"></ng-container>
+        </ng-container>
+      </button>
+
+      <progress
+        [value]="videoPlayerState.navigationTime || videoPlayerState.currentTime || 0"
+        [max]="videoPlayerState.duration || 0"
+        (mousedown)="updateNavigationTime($event, true)"
+        (mouseup)="updateNavigationTime($event); applyNavigationTime()"
+        (mousemove)="updateNavigationTime($event)"
+        (mouseenter)="updateNavigationTime($event)"
+        (mouseleave)="updateNavigationTime($event); applyNavigationTime()"
+        (touchstart)="updateNavigationTime($event, true)"
+        (touchmove)="updateNavigationTime($event)"
+        (touchend)="updateNavigationTime($event); applyNavigationTime()"
+        [class.pointer]="videoPlayerState.playing"
+        #navProgress
+      >
+      </progress>
+      <app-preview
+        *ngIf="
+          videoPlayerState.previewTime !== undefined && videoPlayerState.duration !== undefined
+        "
+        class="preview"
+        [media]="media"
+        [offset]="videoPlayerState.previewTime"
+        [style.left.px]="
+          navProgress.offsetLeft +
+          (videoPlayerState.previewTime / videoPlayerState.duration) * navProgress.offsetWidth
+        "
+      >
+      </app-preview>
+
+      <span
+        >{{ formatTime(videoPlayerState.navigationTime || videoPlayerState.currentTime) }} /
+        {{ formatTime(videoPlayerState.duration) }}</span
+      >
+
+      <button (click)="videoElement.muted = !videoPlayerState.muted">
+        <ng-container *ngIf="videoPlayerState.muted; else volumeUpIcon">
+          <ng-container *ngTemplateOutlet="volumeMutedIcon"></ng-container>
+        </ng-container>
+      </button>
+
+      <progress
+        [value]="videoPlayerState.volume || 0"
+        [max]="1"
+        (mousedown)="updateVolume($event)"
+        (mouseup)="updateVolume($event)"
+        (mouseleave)="updateVolume($event)"
+        (mousemove)="updateVolume($event)"
+        (touchstart)="updateVolume($event)"
+        (touchmove)="updateVolume($event)"
+        (touchend)="updateVolume($event)"
+        class="pointer volume"
+      >
+      </progress>
+
+      <button (click)="toggleFullscreen()">
+        <ng-container *ngIf="videoPlayerState.fullscreen; else enterFullscreenIcon">
+          <ng-container *ngTemplateOutlet="exitFullscreenIcon"></ng-container>
+        </ng-container>
+      </button>
+    </div>
+  </div>
+  <video
+    (play)="videoPlayerState.playing = true"
+    (pause)="videoPlayerState.playing = false"
+    (durationchange)="videoPlayerState.duration = videoElement.duration"
+    (timeupdate)="videoPlayerState.currentTime = videoElement.currentTime"
+    (waiting)="videoPlayerState.loading = true"
+    (canplay)="videoPlayerState.loading = false"
+    (seeked)="videoPlayerState.navigationTime = undefined"
+    (volumechange)="syncVolume()"
+    [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
+    loop
+    muted
+    preload="none"
+    class="video-player"
+    #videoElement
+  ></video>
+</div>
+
+<ng-template #playIcon>
+  <svg
+    class="play"
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="play"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 448 512"
+  >
+    <path
+      fill="currentColor"
+      d="M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #pauseIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="pause"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 448 512"
+  >
+    <path
+      fill="currentColor"
+      d="M144 479H48c-26.5 0-48-21.5-48-48V79c0-26.5 21.5-48 48-48h96c26.5 0 48 21.5 48 48v352c0 26.5-21.5 48-48 48zm304-48V79c0-26.5-21.5-48-48-48h-96c-26.5 0-48 21.5-48 48v352c0 26.5 21.5 48 48 48h96c26.5 0 48-21.5 48-48z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #enterFullscreenIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="expand-arrows-alt"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 448 512"
+  >
+    <path
+      fill="currentColor"
+      d="M448 344v112a23.94 23.94 0 0 1-24 24H312c-21.39 0-32.09-25.9-17-41l36.2-36.2L224 295.6 116.77 402.9 153 439c15.09 15.1 4.39 41-17 41H24a23.94 23.94 0 0 1-24-24V344c0-21.4 25.89-32.1 41-17l36.19 36.2L184.46 256 77.18 148.7 41 185c-15.1 15.1-41 4.4-41-17V56a23.94 23.94 0 0 1 24-24h112c21.39 0 32.09 25.9 17 41l-36.2 36.2L224 216.4l107.23-107.3L295 73c-15.09-15.1-4.39-41 17-41h112a23.94 23.94 0 0 1 24 24v112c0 21.4-25.89 32.1-41 17l-36.19-36.2L263.54 256l107.28 107.3L407 327.1c15.1-15.2 41-4.5 41 16.9z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #exitFullscreenIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="compress-arrows-alt"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+  >
+    <path
+      fill="currentColor"
+      d="M200 288H88c-21.4 0-32.1 25.8-17 41l32.9 31-99.2 99.3c-6.2 6.2-6.2 16.4 0 22.6l25.4 25.4c6.2 6.2 16.4 6.2 22.6 0L152 408l31.1 33c15.1 15.1 40.9 4.4 40.9-17V312c0-13.3-10.7-24-24-24zm112-64h112c21.4 0 32.1-25.9 17-41l-33-31 99.3-99.3c6.2-6.2 6.2-16.4 0-22.6L481.9 4.7c-6.2-6.2-16.4-6.2-22.6 0L360 104l-31.1-33C313.8 55.9 288 66.6 288 88v112c0 13.3 10.7 24 24 24zm96 136l33-31.1c15.1-15.1 4.4-40.9-17-40.9H312c-13.3 0-24 10.7-24 24v112c0 21.4 25.9 32.1 41 17l31-32.9 99.3 99.3c6.2 6.2 16.4 6.2 22.6 0l25.4-25.4c6.2-6.2 6.2-16.4 0-22.6L408 360zM183 71.1L152 104 52.7 4.7c-6.2-6.2-16.4-6.2-22.6 0L4.7 30.1c-6.2 6.2-6.2 16.4 0 22.6L104 152l-33 31.1C55.9 198.2 66.6 224 88 224h112c13.3 0 24-10.7 24-24V88c0-21.3-25.9-32-41-16.9z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #spinnerIcon>
+  <svg
+    class="spinner"
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="spinner"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+  >
+    <path
+      fill="currentColor"
+      d="M304 48c0 26.51-21.49 48-48 48s-48-21.49-48-48 21.49-48 48-48 48 21.49 48 48zm-48 368c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zm208-208c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.49-48-48-48zM96 256c0-26.51-21.49-48-48-48S0 229.49 0 256s21.49 48 48 48 48-21.49 48-48zm12.922 99.078c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.491-48-48-48zm294.156 0c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48c0-26.509-21.49-48-48-48zM108.922 60.922c-26.51 0-48 21.49-48 48s21.49 48 48 48 48-21.49 48-48-21.491-48-48-48z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #volumeUpIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="volume-up"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 576 512"
+  >
+    <path
+      fill="currentColor"
+      d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zm233.32-51.08c-11.17-7.33-26.18-4.24-33.51 6.95-7.34 11.17-4.22 26.18 6.95 33.51 66.27 43.49 105.82 116.6 105.82 195.58 0 78.98-39.55 152.09-105.82 195.58-11.17 7.32-14.29 22.34-6.95 33.5 7.04 10.71 21.93 14.56 33.51 6.95C528.27 439.58 576 351.33 576 256S528.27 72.43 448.35 19.97zM480 256c0-63.53-32.06-121.94-85.77-156.24-11.19-7.14-26.03-3.82-33.12 7.46s-3.78 26.21 7.41 33.36C408.27 165.97 432 209.11 432 256s-23.73 90.03-63.48 115.42c-11.19 7.14-14.5 22.07-7.41 33.36 6.51 10.36 21.12 15.14 33.12 7.46C447.94 377.94 480 319.54 480 256zm-141.77-76.87c-11.58-6.33-26.19-2.16-32.61 9.45-6.39 11.61-2.16 26.2 9.45 32.61C327.98 228.28 336 241.63 336 256c0 14.38-8.02 27.72-20.92 34.81-11.61 6.41-15.84 21-9.45 32.61 6.43 11.66 21.05 15.8 32.61 9.45 28.23-15.55 45.77-45 45.77-76.88s-17.54-61.32-45.78-76.86z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #volumeMutedIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="volume-mute"
+    class="svg-inline--fa fa-volume-mute fa-w-16"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 576 512"
+  >
+    <path
+      fill="currentColor"
+      d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM461.64 256l45.64-45.64c6.3-6.3 6.3-16.52 0-22.82l-22.82-22.82c-6.3-6.3-16.52-6.3-22.82 0L416 210.36l-45.64-45.64c-6.3-6.3-16.52-6.3-22.82 0l-22.82 22.82c-6.3 6.3-6.3 16.52 0 22.82L370.36 256l-45.63 45.63c-6.3 6.3-6.3 16.52 0 22.82l22.82 22.82c6.3 6.3 16.52 6.3 22.82 0L416 301.64l45.64 45.64c6.3 6.3 16.52 6.3 22.82 0l22.82-22.82c6.3-6.3 6.3-16.52 0-22.82L461.64 256z"
+    ></path>
+  </svg>
+</ng-template>

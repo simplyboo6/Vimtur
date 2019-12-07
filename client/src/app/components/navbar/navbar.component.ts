@@ -4,10 +4,8 @@ import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
-import { QualityService } from 'services/quality.service';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { QualityLevel } from 'app/shared/types';
 
 @Component({
   selector: 'app-navbar',
@@ -20,14 +18,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public searchText?: string;
   public isExpanded = false;
   public page: Page = { current: 0, max: 0 };
-  public qualityLevels?: QualityLevel[];
-  public currentLevel?: QualityLevel;
 
   private route: ActivatedRoute;
   private uiService: UiService;
   private mediaService: MediaService;
   private galleryService: GalleryService;
-  private qualityService: QualityService;
   private subscriptions: Subscription[] = [];
 
   public constructor(
@@ -36,26 +31,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
     route: ActivatedRoute,
     mediaService: MediaService,
     galleryService: GalleryService,
-    qualityService: QualityService,
   ) {
     this.uiService = uiService;
     this.collectionService = collectionService;
     this.mediaService = mediaService;
     this.route = route;
     this.galleryService = galleryService;
-    this.qualityService = qualityService;
   }
 
   public ngOnInit() {
     this.updateTagPanelState();
 
     this.subscriptions.push(this.galleryService.page.subscribe(page => (this.page = page)));
-    this.subscriptions.push(
-      this.qualityService.qualityLevels.subscribe(levels => (this.qualityLevels = levels)),
-    );
-    this.subscriptions.push(
-      this.qualityService.currentLevel.subscribe(level => (this.currentLevel = level)),
-    );
   }
 
   public ngOnDestroy() {
@@ -89,10 +76,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   public updateTagPanelState() {
     this.uiService.setTagPanelState(this.tagsOpen);
-  }
-
-  public setQuality(quality: QualityLevel) {
-    this.qualityService.setLevel.next(quality);
   }
 
   public previous() {

@@ -21,6 +21,7 @@ import { SearchComponent } from './components/search/search.component';
 import { GalleryComponent } from './components/gallery/gallery.component';
 import { InsightsComponent } from './components/insights/insights.component';
 import { PreviewComponent } from './components/preview/preview.component';
+import { VideoPlayerComponent } from './components/video-player/video-player.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import { PreviewComponent } from './components/preview/preview.component';
     GalleryComponent,
     InsightsComponent,
     PreviewComponent,
+    VideoPlayerComponent,
   ],
   imports: [
     NgbModule,

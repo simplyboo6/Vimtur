@@ -6,7 +6,6 @@ import { AlertService } from 'app/services/alert.service';
 import { CollectionService } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
-import { QualityService } from 'app/services/quality.service';
 
 interface TagListItem {
   display: string;
@@ -28,7 +27,6 @@ export class MediaService {
   private alertService: AlertService;
   private tagService: TagService;
   private actorService: ActorService;
-  private qualityService: QualityService;
   private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
 
   public media?: Media;
@@ -39,13 +37,11 @@ export class MediaService {
     collectionService: CollectionService,
     tagService: TagService,
     actorService: ActorService,
-    qualityService: QualityService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.tagService = tagService;
     this.actorService = actorService;
-    this.qualityService = qualityService;
 
     collectionService.getMetadata().subscribe(metadata => {
       this.setCurrent(
@@ -65,8 +61,6 @@ export class MediaService {
   private setCurrent(hash?: string) {
     if (!hash) {
       this.mediaReplay.next(undefined);
-      this.qualityService.qualityLevels.next();
-      this.qualityService.currentLevel.next();
     } else {
       this.httpClient.get<Media>(`/api/images/${hash}`).subscribe(
         res => {

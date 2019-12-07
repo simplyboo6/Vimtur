@@ -190,23 +190,6 @@
     [ngbCollapse]="!isExpanded"
   >
     <ul class="navbar-nav">
-      <li *ngIf="qualityLevels" class="nav-item dropdown" ngbDropdown>
-        <a class="nav-link dropdown-toggle" ngbDropdownToggle>
-          Quality
-        </a>
-        <div class="dropdown-menu" ngbDropdownMenu>
-          <a class="dropdown-item" [class.disabled]="false" (click)="setQuality({ index: -1 })"
-            >Auto</a
-          >
-          <a
-            *ngFor="let level of qualityLevels"
-            class="dropdown-item"
-            [class.disabled]="currentLevel && currentLevel.index === level.index"
-            (click)="setQuality(level)"
-            >{{ level.height }}p</a
-          >
-        </div>
-      </li>
       <li class="nav-item" [class.active]="isActive('/viewer')">
         <a class="nav-link" routerLink="/viewer" (click)="isExpanded = false">Viewer</a>
       </li>
