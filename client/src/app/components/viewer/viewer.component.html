@@ -16,12 +16,12 @@
           [style.width.px]="videoPlayerState.width"
           [style.height.px]="videoPlayerState.height"
           [style.top.px]="videoPlayerState.top"
-          (mousemove)="updatePlayerActivity()"
+          (mousemove)="updatePlayerActivity(true)"
           [class.no-cursor]="!areControlsOpen()"
         >
           <div
             class="overlay"
-            (click)="areControlsOpen() ? onVideoOverlayClick() : updatePlayerActivity()"
+            (mouseup)="areControlsOpen() ? onVideoOverlayClick() : updatePlayerActivity()"
           >
             <div *ngIf="!videoPlayerState.playing; else loadingTemplate">
               <ng-container *ngTemplateOutlet="playIcon"></ng-container>
@@ -53,6 +53,9 @@
               (mouseup)="updateNavigationTime($event); applyNavigationTime()"
               (mousemove)="updateNavigationTime($event)"
               (mouseleave)="updateNavigationTime($event); applyNavigationTime()"
+              (touchstart)="updateNavigationTime($event, true)"
+              (touchmove)="updateNavigationTime($event)"
+              (touchend)="updateNavigationTime($event); applyNavigationTime()"
               [class.pointer]="videoPlayerState.playing"
             >
             </progress>
@@ -75,6 +78,9 @@
               (mouseup)="updateVolume($event)"
               (mouseleave)="updateVolume($event)"
               (mousemove)="updateVolume($event)"
+              (touchstart)="updateVolume($event)"
+              (touchmove)="updateVolume($event)"
+              (touchend)="updateVolume($event)"
               class="pointer volume"
             >
             </progress>

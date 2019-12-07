@@ -10,7 +10,7 @@ import {
 import { UiService } from 'services/ui.service';
 import { MediaService } from 'services/media.service';
 import { ConfigService } from 'services/config.service';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
 import { QualityService } from 'app/services/quality.service';
@@ -29,7 +29,7 @@ interface VideoPlayerState {
   height?: number;
   top?: number;
   loading?: boolean;
-  lastActivity?: number;
+  active?: Subscription;
   inControls?: boolean;
   lastClick?: number;
   fullscreen?: boolean;
@@ -99,7 +99,7 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
               height: this.videoPlayerState.height,
               top: this.videoPlayerState.top,
               inControls: this.videoPlayerState.inControls,
-              lastActivity: this.videoPlayerState.lastActivity,
+              active: this.videoPlayerState.active,
             };
           }
 
@@ -195,14 +195,22 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
   }
 
   public updateNavigationTime(event: any, start = false) {
-    if (!this.videoElement || !this.videoPlayerState.duration || event.button !== 0) {
+    if (event.type.startsWith('touch')) {
+      event.preventDefault();
+      event.clientX = event.changedTouches[0] && event.changedTouches[0].clientX;
+      event.button = 0;
+    }
+    if (!this.videoElement || !this.videoPlayerState.duration) {
       return;
     }
     if (!start && this.videoPlayerState.navigationTime === undefined) {
       return;
     }
+    if (start && event.button !== 0) {
+      return;
+    }
 
-    const rect = event.currentTarget.getBoundingClientRect();
+    const rect = (event.currentTarget || event.target).getBoundingClientRect();
     const offsetX = event.clientX - rect.left;
     const percent = offsetX / (rect.right - rect.left);
 
@@ -219,15 +227,27 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
     } else if (this.videoPlayerState.navigationTime > duration) {
       this.videoPlayerState.navigationTime = duration;
     }
-    this.videoElement.nativeElement.currentTime = this.videoPlayerState.navigationTime;
+    if (isNaN(this.videoPlayerState.navigationTime)) {
+      console.warn('navigationTime is NaN');
+      this.videoPlayerState.navigationTime = undefined;
+    } else {
+      console.debug(`Seeking to ${this.videoPlayerState.navigationTime}`);
+      this.videoElement.nativeElement.currentTime = this.videoPlayerState.navigationTime;
+    }
   }
 
   public updateVolume(event: any) {
+    if (event.type.startsWith('touch')) {
+      event.preventDefault();
+      event.clientX = event.changedTouches[0] && event.changedTouches[0].clientX;
+      event.button = 0;
+    }
+
     if (!this.videoElement || event.button !== 0) {
       return;
     }
 
-    if (event.type === 'mousedown') {
+    if (event.type === 'mousedown' || event.type === 'touchstart') {
       this.videoPlayerState.updatingVolume = true;
     }
 
@@ -243,23 +263,20 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
       this.videoElement.nativeElement.volume = volume;
     }
 
-    if (event.type === 'mouseup' || event.type === 'mouseleave') {
+    if (event.type === 'mouseup' || event.type === 'mouseleave' || event.type === 'touchend') {
       this.videoPlayerState.updatingVolume = false;
     }
   }
 
   public areControlsOpen(): boolean {
-    if (
+    return Boolean(
       !this.videoPlayerState.playing ||
-      this.videoPlayerState.loading ||
-      this.videoPlayerState.inControls
-    ) {
-      return true;
-    }
-    if (!this.videoPlayerState.lastActivity) {
-      return false;
-    }
-    return Date.now() - this.videoPlayerState.lastActivity < PLAYER_CONTROLS_TIMEOUT;
+        this.videoPlayerState.loading ||
+        this.videoPlayerState.inControls ||
+        this.videoPlayerState.active ||
+        this.videoPlayerState.updatingVolume ||
+        this.videoPlayerState.navigationTime !== undefined,
+    );
   }
 
   public toggleFullscreen() {
@@ -277,8 +294,20 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
     return !!document.fullscreenElement;
   }
 
-  public updatePlayerActivity() {
-    this.videoPlayerState.lastActivity = Date.now();
+  public updatePlayerActivity(move = false) {
+    if (move && isMobile()) {
+      return;
+    }
+    if (this.videoPlayerState.active) {
+      this.videoPlayerState.active.unsubscribe();
+      this.videoPlayerState.active = undefined;
+    }
+    this.videoPlayerState.active = timer(PLAYER_CONTROLS_TIMEOUT).subscribe(() => {
+      if (this.videoPlayerState.active) {
+        this.videoPlayerState.active.unsubscribe();
+        this.videoPlayerState.active = undefined;
+      }
+    });
   }
 
   public formatTime(value?: number): string {

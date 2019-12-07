@@ -37,7 +37,7 @@ export class AppComponent implements OnInit {
         config.user.initialLoadLimit && config.user.initialLoadLimit > 0
           ? { limit: config.user.initialLoadLimit }
           : {};
-      this.collectionService.search(options, { shuffle: true, init: true });
+      this.collectionService.search({ ...options, type: 'video' }, { shuffle: true, init: true });
     });
   }
 
