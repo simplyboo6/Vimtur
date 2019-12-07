@@ -20,6 +20,7 @@ import { MetadataComponent } from './components/metadata/metadata.component';
 import { SearchComponent } from './components/search/search.component';
 import { GalleryComponent } from './components/gallery/gallery.component';
 import { InsightsComponent } from './components/insights/insights.component';
+import { PreviewComponent } from './components/preview/preview.component';
 
 @NgModule({
   declarations: [
@@ -35,6 +36,7 @@ import { InsightsComponent } from './components/insights/insights.component';
     SearchComponent,
     GalleryComponent,
     InsightsComponent,
+    PreviewComponent,
   ],
   imports: [
     NgbModule,

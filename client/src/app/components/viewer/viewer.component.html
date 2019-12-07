@@ -52,13 +52,29 @@
               (mousedown)="updateNavigationTime($event, true)"
               (mouseup)="updateNavigationTime($event); applyNavigationTime()"
               (mousemove)="updateNavigationTime($event)"
+              (mouseenter)="updateNavigationTime($event)"
               (mouseleave)="updateNavigationTime($event); applyNavigationTime()"
               (touchstart)="updateNavigationTime($event, true)"
               (touchmove)="updateNavigationTime($event)"
               (touchend)="updateNavigationTime($event); applyNavigationTime()"
               [class.pointer]="videoPlayerState.playing"
+              #navProgress
             >
             </progress>
+            <app-preview
+              *ngIf="
+                videoPlayerState.previewTime !== undefined &&
+                videoPlayerState.duration !== undefined
+              "
+              class="preview"
+              [media]="media"
+              [offset]="videoPlayerState.previewTime"
+              [style.left.px]="
+                navProgress.offsetLeft +
+                (videoPlayerState.previewTime / videoPlayerState.duration) * navProgress.offsetWidth
+              "
+            >
+            </app-preview>
 
             <span
               >{{ formatTime(videoPlayerState.navigationTime || videoPlayerState.currentTime) }} /

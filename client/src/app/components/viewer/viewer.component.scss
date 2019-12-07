@@ -109,6 +109,11 @@
       width: 8rem;
     }
 
+    & > .preview {
+      position: absolute;
+      margin-top: -120px;
+    }
+
     @media (max-width: 600px) {
       & > progress.volume {
         display: none;

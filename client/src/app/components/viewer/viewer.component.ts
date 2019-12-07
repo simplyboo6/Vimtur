@@ -7,6 +7,7 @@ import {
   TemplateRef,
   NgZone,
 } from '@angular/core';
+import { DomSanitizer, SafeStyle } from '@angular/platform-browser';
 import { UiService } from 'services/ui.service';
 import { MediaService } from 'services/media.service';
 import { ConfigService } from 'services/config.service';
@@ -37,6 +38,7 @@ interface VideoPlayerState {
   muted?: boolean;
   volume?: number;
   updatingVolume?: boolean;
+  previewTime?: number;
 }
 
 @Component({
@@ -47,6 +49,7 @@ interface VideoPlayerState {
 export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
   @ViewChild('videoElement', { static: false }) public videoElement: any;
   @ViewChild('videoPlayer', { static: false }) public videoPlayer: any;
+  @ViewChild('previewDiv', { static: false }) public previewDiv: any;
 
   public tagsOpen = false;
   public media?: Media;
@@ -62,6 +65,7 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
   private videoInitialised = false;
   private currentLevel?: QualityLevel;
   private zone: NgZone;
+  private sanitizer: DomSanitizer;
 
   public constructor(
     uiService: UiService,
@@ -69,12 +73,14 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
     configService: ConfigService,
     qualityService: QualityService,
     zone: NgZone,
+    sanitizer: DomSanitizer,
   ) {
     this.uiService = uiService;
     this.mediaService = mediaService;
     this.configService = configService;
     this.qualityService = qualityService;
     this.zone = zone;
+    this.sanitizer = sanitizer;
   }
 
   public ngOnInit() {
@@ -203,6 +209,14 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
     if (!this.videoElement || !this.videoPlayerState.duration) {
       return;
     }
+
+    const rect = (event.currentTarget || event.target).getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const percent = offsetX / (rect.right - rect.left);
+    const time = percent * this.videoPlayerState.duration;
+
+    this.videoPlayerState.previewTime = time;
+
     if (!start && this.videoPlayerState.navigationTime === undefined) {
       return;
     }
@@ -210,14 +224,12 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
       return;
     }
 
-    const rect = (event.currentTarget || event.target).getBoundingClientRect();
-    const offsetX = event.clientX - rect.left;
-    const percent = offsetX / (rect.right - rect.left);
-
-    this.videoPlayerState.navigationTime = percent * this.videoPlayerState.duration;
+    this.videoPlayerState.navigationTime = time;
   }
 
   public applyNavigationTime() {
+    this.videoPlayerState.previewTime = undefined;
+
     if (!this.videoElement || this.videoPlayerState.navigationTime === undefined) {
       return;
     }
@@ -395,7 +407,6 @@ export class ViewerComponent implements AfterViewChecked, OnInit, OnDestroy {
           data.levels.map((el, i) => ({ width: el.width, height: el.height, index: i })),
         );
 
-        // this.videoElement.nativeElement.muted = true;
         if (autoPlay) {
           this.videoElement.nativeElement.play();
         }
