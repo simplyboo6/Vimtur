@@ -10,12 +10,12 @@
 - Various forms of searching (weighted keyword, tag selection, etc)
 - Metadata support for Artist/Album/Title/[People/Actors]
 - Auto-scraped metadata from files where possible
-- Internal image gallery for faster browsing
+- Internal image gallery for faster browsing (with video previews)
 - Thumbnail generation for all media
 - Auto-transcode videos for web-browser compatibility (both streaming and optional caching)
 - Import and export database to JSON format
 - Rating system
-- Configurable video caching and streaming levels, with auto and manual quality selection
+- Custom video player supporting quality selection and video previews
 - Media recommendations based upon your tags, actors and ratings.
 
 ## Quick-Start
@@ -147,6 +147,10 @@ A config file can be specified using the `-c` flag when launching with nodejs or
 ### Gallery
 
 ![Preview Image](screenshots/gallery.png)
+
+### Video Player
+
+![Preview Image](screenshots/video-player.png)
 
 ### Viewer
 

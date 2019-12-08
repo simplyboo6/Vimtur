@@ -455,7 +455,9 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     // Need this for when switching from a fixed quality to auto.
     this.hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
       this.zone.run(() => {
-        this.videoPlayerState.currentQuality = this.hls.currentLevel;
+        if (this.hls.currentLevel >= 0) {
+          this.videoPlayerState.currentQuality = this.hls.currentLevel;
+        }
         this.videoPlayerState.switching = false;
       });
     });
