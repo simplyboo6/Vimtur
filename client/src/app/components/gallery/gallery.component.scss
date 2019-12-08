@@ -5,12 +5,8 @@
   padding-top: 1rem;
 }
 
-app-preview.gallery-img {
+app-preview {
   display: flex;
-
-  & > canvas {
-    margin: auto;
-  }
 }
 
 .image-container {

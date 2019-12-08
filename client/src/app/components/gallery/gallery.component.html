@@ -12,7 +12,7 @@
       class="img-fluid img-thumbnail gallery-img"
       [slideshow]="true"
       [height]="210"
-      *ngIf="m.type === 'video'; else still"
+      *ngIf="m.type === 'video' && m.preview; else still"
       [media]="m"
     ></app-preview>
     <ng-template #still>

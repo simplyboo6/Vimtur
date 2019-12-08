@@ -368,10 +368,11 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     }
 
     if (quality.index === -1) {
-      this.videoPlayerState.switching = true;
+      console.debug('switching hls stream to auto');
       this.videoPlayerState.currentQuality = -1;
       this.videoPlayerState.selectedQuality = undefined;
       this.hls.currentLevel = quality.index;
+      this.videoPlayerState.switching = true;
       return;
     }
 
@@ -418,7 +419,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       capLevelToPlayerSize: true,
       maxSeekHole: 5,
       maxBufferHole: 5,
-      maxBufferLength: 30,
+      maxBufferLength: 20,
       startLevel: lowQualityOnSeek ? 0 : -1,
     });
 
@@ -443,8 +444,24 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       }
     });
 
+    /*for (const key of Object.keys(Hls.Events)) {
+      this.hls.on(Hls.Events[key], (event, data) => {
+        if (key !== 'FRAG_LOAD_PROGRESS' && key !== 'BUFFER_APPENDED' && key !== 'BUFFER_APPENDING' && key !== 'STREAM_STATE_TRANSITION') {
+          console.log(key, event, data);
+        }
+      });
+    }*/
+
+    // Need this for when switching from a fixed quality to auto.
+    this.hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+      this.zone.run(() => {
+        this.videoPlayerState.currentQuality = this.hls.currentLevel;
+        this.videoPlayerState.switching = false;
+      });
+    });
+
     this.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-      console.log('Switched to quality level', data.level, this.hls.levels[data.level]);
+      console.debug('Switched to quality level', data.level, this.hls.levels[data.level]);
       this.zone.run(() => {
         this.videoPlayerState.currentQuality = data.level;
         this.videoPlayerState.switching = false;

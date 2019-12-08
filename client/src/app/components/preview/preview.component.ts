@@ -27,9 +27,11 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @Input() public slideshow = false;
 
   public imageSrc?: string;
+  public thumbnailSrc?: string;
   public canvasWidth?: number;
   public canvasHeight?: number;
   public image?: any;
+  public thumbnail?: any;
 
   private configService: ConfigService;
   private changeDetector: ChangeDetectorRef;
@@ -65,12 +67,16 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       }
       this.render();
     });
+    this.render();
   }
 
-  public endSlideshow() {
+  public endSlideshow(render = true) {
     if (this.slideshowSubscription) {
       this.slideshowSubscription.unsubscribe();
       this.slideshowSubscription = undefined;
+    }
+    if (render) {
+      this.render();
     }
   }
 
@@ -78,9 +84,11 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     if (changes.media && changes.media.currentValue) {
       const media = changes.media.currentValue;
       this.image = undefined;
+      this.thumbnail = undefined;
       this.index = 0;
       if (media.metadata && media.type === 'video') {
         this.imageSrc = `/cache/previews/${media.hash}.png`;
+        this.thumbnailSrc = `/cache/thumbnails/${media.hash}.png`;
       }
     }
 
@@ -96,15 +104,10 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   public render() {
-    if (!this.config || !this.image || !this.media || !this.media.metadata || !this.canvasElement) {
+    if (!this.config || !this.media || !this.media.metadata || !this.canvasElement) {
       console.warn('preview render called with missing data');
       return;
     }
-
-    const mediaHeight = this.config.transcoder.videoPreviewHeight;
-    const mediaWidth = Math.ceil(
-      (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
-    );
 
     this.canvasHeight = this.height || this.config.transcoder.videoPreviewHeight;
     this.canvasWidth = Math.ceil(
@@ -112,26 +115,52 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     );
     this.changeDetector.detectChanges();
 
-    const offset = this.offset || 0;
-    const offsetX = 0;
-    const offsetY = this.index * this.config.transcoder.videoPreviewHeight;
-
     const canvas = this.canvasElement.nativeElement.getContext('2d');
-    canvas.drawImage(
-      this.image,
-      offsetX,
-      offsetY,
-      mediaWidth,
-      mediaHeight,
-      0,
-      0,
-      this.canvasWidth,
-      this.canvasHeight,
-    );
+
+    if (!this.slideshowSubscription && this.thumbnail && this.slideshow) {
+      canvas.drawImage(
+        this.thumbnail,
+        0,
+        0,
+        this.thumbnail.width,
+        this.thumbnail.height,
+        0,
+        0,
+        this.canvasWidth,
+        this.canvasHeight,
+      );
+    } else if (this.image) {
+      const mediaHeight = this.config.transcoder.videoPreviewHeight;
+      const mediaWidth = Math.ceil(
+        (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
+      );
+
+      const offset = this.offset || 0;
+      const offsetX = 0;
+      const offsetY = this.index * this.config.transcoder.videoPreviewHeight;
+
+      canvas.drawImage(
+        this.image,
+        offsetX,
+        offsetY,
+        mediaWidth,
+        mediaHeight,
+        0,
+        0,
+        this.canvasWidth,
+        this.canvasHeight,
+      );
+    }
   }
 
   public onImageLoaded(event: any) {
     this.image = event.target;
+    this.changeDetector.detectChanges();
+    this.render();
+  }
+
+  public onThumbnailLoaded(event: any) {
+    this.thumbnail = event.target;
     this.changeDetector.detectChanges();
     this.render();
   }
@@ -141,6 +170,6 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
-    this.endSlideshow();
+    this.endSlideshow(false);
   }
 }

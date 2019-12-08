@@ -132,6 +132,7 @@
       color: white;
       padding: 0.25rem 1rem;
       width: 100%;
+      user-select: none;
       &:hover {
         background-color: rgba(0, 0, 0, 0.4);
         color: var(--primary);
