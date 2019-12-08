@@ -139,7 +139,14 @@ export class Transcoder {
       media.metadata.codec === 'h264' &&
       (!targetHeight || targetHeight === media.metadata.height)
     ) {
-      videoCodec.push('copy');
+      videoCodec.push(
+        ...[
+          'copy',
+          // To deal with strange overflows in corner cases.
+          '-max_muxing_queue_size',
+          '9999',
+        ],
+      );
     } else {
       videoCodec.push(
         ...[
