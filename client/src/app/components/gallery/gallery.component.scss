@@ -5,6 +5,14 @@
   padding-top: 1rem;
 }
 
+app-preview.gallery-img {
+  display: flex;
+
+  & > canvas {
+    margin: auto;
+  }
+}
+
 .image-container {
   padding: 0.5rem;
   max-width: 380px;

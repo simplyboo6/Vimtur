@@ -8,10 +8,19 @@
     [title]="m.path"
     (click)="collectionService.goto(m.hash)"
   >
-    <img
+    <app-preview
       class="img-fluid img-thumbnail gallery-img"
-      [src]="'/cache/thumbnails/' + m.hash + '.png'"
-    />
+      [slideshow]="true"
+      [height]="210"
+      *ngIf="m.type === 'video'; else still"
+      [media]="m"
+    ></app-preview>
+    <ng-template #still>
+      <img
+        class="img-fluid img-thumbnail gallery-img"
+        [src]="'/cache/thumbnails/' + m.hash + '.png'"
+      />
+    </ng-template>
     <div class="type caption">
       <strong>{{ getTitle(m) }}</strong>
       <div class="subtitle">{{ getSubtitle(m) }}</div>

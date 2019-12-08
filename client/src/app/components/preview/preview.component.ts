@@ -8,9 +8,11 @@ import {
   ChangeDetectorRef,
   ViewChild,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { ConfigService } from 'app/services/config.service';
 import { Configuration, Media } from '@vimtur/common';
+
+const SLIDE_INTERVAL = 1000;
 
 @Component({
   selector: 'app-preview',
@@ -21,6 +23,8 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('canvasElement', { static: false }) public canvasElement: any;
   @Input() public media?: Media;
   @Input() public offset?: number;
+  @Input() public height?: number;
+  @Input() public slideshow = false;
 
   public imageSrc?: string;
   public canvasWidth?: number;
@@ -32,6 +36,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   private config?: Configuration.Main;
   private subscriptions: Subscription[] = [];
   private index = 0;
+  private slideshowSubscription?: Subscription;
 
   public constructor(configService: ConfigService, changeDetector: ChangeDetectorRef) {
     this.configService = configService;
@@ -44,6 +49,29 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         this.config = config;
       }),
     );
+  }
+
+  public beginSlideshow() {
+    this.endSlideshow();
+
+    this.slideshowSubscription = interval(SLIDE_INTERVAL).subscribe(() => {
+      if (!this.config || !this.media || !this.media.metadata) {
+        return;
+      }
+      this.index++;
+      const offset = this.index * this.config.transcoder.videoPreviewFps;
+      if (offset > this.media.metadata.length) {
+        this.index = 0;
+      }
+      this.render();
+    });
+  }
+
+  public endSlideshow() {
+    if (this.slideshowSubscription) {
+      this.slideshowSubscription.unsubscribe();
+      this.slideshowSubscription = undefined;
+    }
   }
 
   public ngOnChanges(changes: SimpleChanges) {
@@ -72,7 +100,13 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       console.warn('preview render called with missing data');
       return;
     }
-    this.canvasHeight = this.config.transcoder.videoPreviewHeight;
+
+    const mediaHeight = this.config.transcoder.videoPreviewHeight;
+    const mediaWidth = Math.ceil(
+      (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
+    );
+
+    this.canvasHeight = this.height || this.config.transcoder.videoPreviewHeight;
     this.canvasWidth = Math.ceil(
       (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
     );
@@ -87,8 +121,8 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       this.image,
       offsetX,
       offsetY,
-      this.canvasWidth,
-      this.canvasHeight,
+      mediaWidth,
+      mediaHeight,
       0,
       0,
       this.canvasWidth,
@@ -107,5 +141,6 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+    this.endSlideshow();
   }
 }

@@ -1,2 +1,10 @@
 <img class="hidden" [src]="imageSrc" (load)="onImageLoaded($event)" />
-<canvas *ngIf="image" [width]="canvasWidth" [height]="canvasHeight" #canvasElement> </canvas>
+<canvas
+  *ngIf="image"
+  [width]="canvasWidth"
+  [height]="canvasHeight"
+  (mouseenter)="slideshow && beginSlideshow()"
+  (mouseleave)="endSlideshow()"
+  #canvasElement
+>
+</canvas>
