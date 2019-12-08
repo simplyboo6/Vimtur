@@ -16,14 +16,16 @@
   >
     <div
       class="overlay"
-      (mouseup)="areControlsOpen() ? onVideoOverlayClick() : updatePlayerActivity()"
+      (mouseup)="
+        areControlsOpen() && $event.button === 0 ? onVideoOverlayClick() : updatePlayerActivity()
+      "
     >
-      <div *ngIf="!videoPlayerState.playing; else loadingTemplate">
-        <ng-container *ngTemplateOutlet="playIcon"></ng-container>
+      <div *ngIf="videoPlayerState.loading || videoPlayerState.switching; else playingTemplate">
+        <ng-container *ngTemplateOutlet="spinnerIcon"></ng-container>
       </div>
-      <ng-template #loadingTemplate>
-        <div *ngIf="videoPlayerState.loading">
-          <ng-container *ngTemplateOutlet="spinnerIcon"></ng-container>
+      <ng-template #playingTemplate>
+        <div *ngIf="!videoPlayerState.playing">
+          <ng-container *ngTemplateOutlet="playIcon"></ng-container>
         </div>
       </ng-template>
     </div>
@@ -75,6 +77,22 @@
         {{ formatTime(videoPlayerState.duration) }}</span
       >
 
+      <div class="quality-selector">
+        <button (click)="qualitySelectorOpen = !qualitySelectorOpen">
+          <ng-container *ngTemplateOutlet="cogIcon"></ng-container>
+        </button>
+        <div *ngIf="qualitySelectorOpen && videoPlayerState.qualities" class="quality-selector">
+          <button (click)="selectQuality({ index: -1, height: 0 })">Auto</button>
+          <button
+            *ngFor="let quality of videoPlayerState.qualities"
+            [class.selected]="quality.index === videoPlayerState.currentQuality"
+            (click)="selectQuality(quality)"
+          >
+            {{ quality.height }}p
+          </button>
+        </div>
+      </div>
+
       <button (click)="videoElement.muted = !videoPlayerState.muted">
         <ng-container *ngIf="videoPlayerState.muted; else volumeUpIcon">
           <ng-container *ngTemplateOutlet="volumeMutedIcon"></ng-container>
@@ -109,7 +127,6 @@
     (timeupdate)="videoPlayerState.currentTime = videoElement.currentTime"
     (waiting)="videoPlayerState.loading = true"
     (canplay)="videoPlayerState.loading = false"
-    (seeked)="videoPlayerState.navigationTime = undefined"
     (seeking)="onSeeking()"
     (volumechange)="syncVolume()"
     [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
@@ -239,6 +256,23 @@
     <path
       fill="currentColor"
       d="M215.03 71.05L126.06 160H24c-13.26 0-24 10.74-24 24v144c0 13.25 10.74 24 24 24h102.06l88.97 88.95c15.03 15.03 40.97 4.47 40.97-16.97V88.02c0-21.46-25.96-31.98-40.97-16.97zM461.64 256l45.64-45.64c6.3-6.3 6.3-16.52 0-22.82l-22.82-22.82c-6.3-6.3-16.52-6.3-22.82 0L416 210.36l-45.64-45.64c-6.3-6.3-16.52-6.3-22.82 0l-22.82 22.82c-6.3 6.3-6.3 16.52 0 22.82L370.36 256l-45.63 45.63c-6.3 6.3-6.3 16.52 0 22.82l22.82 22.82c6.3 6.3 16.52 6.3 22.82 0L416 301.64l45.64 45.64c6.3 6.3 16.52 6.3 22.82 0l22.82-22.82c6.3-6.3 6.3-16.52 0-22.82L461.64 256z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #cogIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="cog"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+  >
+    <path
+      fill="currentColor"
+      d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"
     ></path>
   </svg>
 </ng-template>

@@ -20,6 +20,11 @@ declare const Hls;
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
 
+interface QualityLevel {
+  index: number;
+  height: number;
+}
+
 interface VideoPlayerState {
   playing?: boolean;
   duration?: number;
@@ -28,6 +33,7 @@ interface VideoPlayerState {
   height?: number;
   top?: number;
   loading?: boolean;
+  switching?: boolean;
   active?: Subscription;
   inControls?: boolean;
   lastClick?: number;
@@ -37,6 +43,9 @@ interface VideoPlayerState {
   volume?: number;
   updatingVolume?: boolean;
   previewTime?: number;
+  qualities?: QualityLevel[];
+  currentQuality?: number;
+  selectedQuality?: QualityLevel;
 }
 
 @Component({
@@ -50,6 +59,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
 
   @Input() public media?: Media;
   public videoPlayerState: VideoPlayerState = {};
+  public qualitySelectorOpen = false;
 
   private configService: ConfigService;
   private subscriptions: Subscription[] = [];
@@ -115,6 +125,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
           top: this.videoPlayerState.top,
           inControls: this.videoPlayerState.inControls,
           active: this.videoPlayerState.active,
+          selectedQuality: this.videoPlayerState.selectedQuality,
         };
       }
 
@@ -226,13 +237,12 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     } else if (this.videoPlayerState.navigationTime > duration) {
       this.videoPlayerState.navigationTime = duration;
     }
-    if (isNaN(this.videoPlayerState.navigationTime)) {
-      console.warn('navigationTime is NaN');
-      this.videoPlayerState.navigationTime = undefined;
-    } else {
+
+    if (!isNaN(this.videoPlayerState.navigationTime)) {
       console.debug(`Seeking to ${this.videoPlayerState.navigationTime}`);
       this.videoElement.nativeElement.currentTime = this.videoPlayerState.navigationTime;
     }
+    this.videoPlayerState.navigationTime = undefined;
   }
 
   public updateVolume(event: any) {
@@ -349,6 +359,39 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.videoPlayerState.lastClick = Date.now();
   }
 
+  public selectQuality(quality: QualityLevel) {
+    this.qualitySelectorOpen = false;
+
+    if (!this.hls) {
+      return;
+    }
+
+    if (quality.index === -1) {
+      this.videoPlayerState.switching = true;
+      this.videoPlayerState.currentQuality = -1;
+      this.videoPlayerState.selectedQuality = undefined;
+      this.hls.currentLevel = quality.index;
+      return;
+    }
+
+    this.videoPlayerState.selectedQuality = quality;
+
+    if (this.hls.levels.length === 0) {
+      return;
+    }
+
+    const foundIndex = this.hls.levels.findIndex(l => l.height >= quality.height);
+    this.videoPlayerState.currentQuality =
+      foundIndex === undefined ? this.hls.levels.length - 1 : foundIndex;
+    console.debug(
+      'switching hls stream quality',
+      this.videoPlayerState.currentQuality,
+      this.hls.levels,
+    );
+    this.hls.currentLevel = this.videoPlayerState.currentQuality;
+    this.videoPlayerState.switching = true;
+  }
+
   private playVideo(media: Media) {
     if (!this.videoElement) {
       console.warn('playVideo called before videoElement initialised');
@@ -374,7 +417,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       capLevelToPlayerSize: true,
       maxSeekHole: 5,
       maxBufferHole: 5,
-      maxBufferLength: 60,
+      maxBufferLength: 30,
       startLevel: lowQualityOnSeek ? 0 : -1,
     });
 
@@ -383,6 +426,17 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
       console.log('Manifest quality levels', data.levels);
 
+      this.zone.run(() => {
+        this.videoPlayerState.qualities = data.levels.map((level, index) => ({
+          height: level.height,
+          index,
+        }));
+
+        if (this.videoPlayerState.selectedQuality !== undefined) {
+          this.selectQuality(this.videoPlayerState.selectedQuality);
+        }
+      });
+
       if (autoPlay) {
         this.videoElement.nativeElement.play();
       }
@@ -390,6 +444,14 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
 
     this.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
       console.log('Switched to quality level', data.level, this.hls.levels[data.level]);
+      this.zone.run(() => {
+        this.videoPlayerState.currentQuality = data.level;
+        this.videoPlayerState.switching = false;
+      });
+    });
+
+    this.hls.on(Hls.Events.ERROR, (event, data) => {
+      console.warn('HLS error', event, data);
     });
 
     this.hls.attachMedia(this.videoElement.nativeElement);
