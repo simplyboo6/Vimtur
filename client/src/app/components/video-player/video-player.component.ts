@@ -284,7 +284,8 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
         this.videoPlayerState.inControls ||
         this.videoPlayerState.active ||
         this.videoPlayerState.updatingVolume ||
-        this.videoPlayerState.navigationTime !== undefined,
+        this.videoPlayerState.navigationTime !== undefined ||
+        this.qualitySelectorOpen,
     );
   }
 
