@@ -101,13 +101,11 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       return;
     }
 
-    // If not previous value
-    let reset = !changes.media.previousValue;
-    // If not the next value
-    reset = reset || changes.media.currentValue;
+    // If not previous value or next value
+    let reset = !changes.media.previousValue || !changes.media.currentValue;
     // If current and previous and hashes don't match
     if (changes.media.previousValue && changes.media.currentValue) {
-      reset = reset || changes.media.previousValue.hash !== changes.media.currentValue.hash;
+      reset = changes.media.previousValue.hash !== changes.media.currentValue.hash;
     }
 
     if (reset) {
