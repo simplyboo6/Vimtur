@@ -75,6 +75,16 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '006_add_preview');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '007_add_rating_index'))) {
+      console.log('Applying update 007_add_rating_index...');
+      const collection = db.collection('media');
+      await Util.promisify((collection.createIndex as any).bind(collection))(
+        { rating: 1 },
+        { unique: false },
+      );
+      await Updater.saveUpdate(updatesCollection, '007_add_rating_index');
+    }
   }
 
   private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {
@@ -149,6 +159,10 @@ export class Updater {
     );
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
       { hashDate: 1 },
+      { unique: false },
+    );
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
+      { rating: 1 },
       { unique: false },
     );
   }

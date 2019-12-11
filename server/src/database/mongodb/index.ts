@@ -218,154 +218,121 @@ export class MongoConnector extends Database {
 
   public async subsetFields(
     constraints: SubsetConstraints,
-    fields: SubsetFields,
+    fields?: SubsetFields,
   ): Promise<BaseMedia[]> {
     console.log('subset', constraints);
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
-    const query: any = {};
+    const pipeline: object[] = [];
 
     if (constraints.any === '*') {
-      query['tags.0'] = { $exists: true };
+      pipeline.push({ $match: { 'tags.0': { $exists: true } } });
     } else if (constraints.any) {
-      query.tags = query.tags || {};
-      query.tags['$in'] = constraints.any;
+      pipeline.push({ $match: { tags: { $in: constraints.any } } });
     }
 
     if (constraints.all) {
-      query.tags = query.tags || {};
-      query.tags['$all'] = constraints.all;
+      pipeline.push({ $match: { tags: { $all: constraints.all } } });
     }
 
     if (constraints.none === '*') {
-      query['tags.0'] = { $exists: false };
+      pipeline.push({ $match: { 'tags.0': { $exists: false } } });
     } else if (Array.isArray(constraints.none)) {
-      query.tags = query.tags || {};
-      query.tags['$nin'] = constraints.none;
+      pipeline.push({ $match: { tags: { $nin: constraints.none } } });
     }
 
     if (constraints.quality) {
-      query['metadata.height'] = {};
       if (constraints.quality.min !== undefined) {
-        query['metadata.height']['$gte'] = constraints.quality.min;
+        pipeline.push({ $match: { 'metadata.height': { $gte: constraints.quality.min } } });
       }
       if (constraints.quality.max !== undefined) {
-        query['metadata.height']['$lte'] = constraints.quality.max;
+        pipeline.push({ $match: { 'metadata.height': { $lte: constraints.quality.max } } });
       }
     }
 
     if (constraints.type) {
-      query.type = {
-        $in: Array.isArray(constraints.type) ? constraints.type : [constraints.type],
-      };
+      if (Array.isArray(constraints.type)) {
+        pipeline.push({ $match: { type: { $in: constraints.type } } });
+      } else {
+        pipeline.push({ $match: { type: constraints.type } });
+      }
     }
 
     if (constraints.rating) {
       if (constraints.rating.max === 0) {
-        query['$or'] = [{ rating: { $lte: 0 } }, { rating: { $exists: false } }];
+        pipeline.push({
+          $match: { $or: [{ rating: { $lte: 0 } }, { rating: { $exists: false } }] },
+        });
       } else {
-        query.rating = {};
         if (constraints.rating.min !== undefined) {
-          query.rating['$gte'] = constraints.rating.min;
+          pipeline.push({ $match: { rating: { $gte: constraints.rating.min } } });
         }
         if (constraints.rating.max !== undefined) {
-          query.rating['$lte'] = constraints.rating.max;
+          pipeline.push({ $match: { rating: { $lte: constraints.rating.max } } });
         }
       }
-    }
-
-    if (constraints.width) {
-      query['metadata.width'] = {
-        $gte: constraints.width,
-      };
-    }
-
-    if (constraints.height) {
-      query['metadata.height'] = {
-        $gte: constraints.height,
-      };
     }
 
     if (constraints.dir !== undefined) {
-      query['dir'] = constraints.dir;
+      pipeline.push({ $match: { dir: constraints.dir } });
     }
 
     if (constraints.keywordSearch) {
-      query['$text'] = {
-        $search: constraints.keywordSearch,
-      };
+      pipeline.push({ $match: { $text: constraints.keywordSearch } });
     }
 
-    if (constraints.corrupted !== undefined) {
-      if (constraints.corrupted) {
-        query['corrupted'] = true;
-      } else {
-        query['corrupted'] = { $in: [null, false] };
+    const booleanSearch = (field: string, value?: boolean): object[] => {
+      if (value === undefined) {
+        return [];
       }
-    }
+      if (value) {
+        return [{ $match: { [field]: true } }];
+      } else {
+        return [{ $match: { $or: [{ [field]: false }, { [field]: { $exists: false } }] } }];
+      }
+    };
 
-    if (constraints.thumbnail !== undefined) {
-      if (constraints.thumbnail) {
-        query['thumbnail'] = true;
-      } else {
-        query['thumbnail'] = { $in: [null, false] };
-      }
-    }
-
-    if (constraints.preview !== undefined) {
-      if (constraints.preview) {
-        query['preview'] = true;
-      } else {
-        query['preview'] = { $in: [null, false] };
-      }
-    }
+    pipeline.push(...booleanSearch('corrupted', constraints.corrupted));
+    pipeline.push(...booleanSearch('thumbnail', constraints.thumbnail));
+    pipeline.push(...booleanSearch('preview', constraints.preview));
 
     if (constraints.phashed !== undefined) {
-      if (constraints.phashed) {
-        query['phash'] = { $exists: true };
-      } else {
-        query['phash'] = { $in: [null, false] };
-      }
+      pipeline.push({ $match: { phash: { $exists: constraints.phashed } } });
     }
 
     if (constraints.cached !== undefined) {
-      query['metadata.qualityCache.0'] = { $exists: constraints.cached };
+      pipeline.push({ $match: { 'metadata.qualityCache.0': { $exists: constraints.cached } } });
     }
 
     if (constraints.indexed !== undefined) {
-      query['metadata'] = { $exists: constraints.indexed };
+      pipeline.push({ $match: { metadata: { $exists: constraints.indexed } } });
     }
 
     if (constraints.hasClones !== undefined) {
-      query['clones.0'] = { $exists: constraints.hasClones };
+      pipeline.push({ $match: { 'clones.0': { $exists: constraints.hasClones } } });
     }
 
-    let queryResult = mediaCollection.find(query).project({
-      ...fields,
-      score: {
-        $meta: 'textScore',
-      },
-      hash: 1,
-      _id: 0,
-    });
-
-    if (constraints.limit) {
-      queryResult = queryResult.limit(constraints.limit);
+    if (constraints.sample) {
+      pipeline.push({ $sample: { size: constraints.sample } });
     }
 
     if (constraints.keywordSearch) {
-      queryResult = queryResult.sort({
-        score: {
-          $meta: 'textScore',
+      pipeline.push({ $addFields: { score: { $meta: 'textScore' } } });
+      pipeline.push({
+        $sort: {
+          score: {
+            $meta: 'textScore',
+          },
+          // After sorting by score put the highest rated after.
+          rating: -1,
         },
-        // After sorting by score put the highest rated after.
-        rating: -1,
       });
     } else if (constraints.sortBy) {
       switch (constraints.sortBy) {
         case 'hashDate':
-          queryResult = queryResult.sort({
-            hashDate: 1,
+        case 'rating':
+          pipeline.push({
+            $sort: { [constraints.sortBy]: -1 },
           });
           break;
         case 'recommended': // Skip, handled by subset wrapper.
@@ -375,11 +342,17 @@ export class MongoConnector extends Database {
       }
     }
 
-    return queryResult.toArray();
+    pipeline.push({
+      $project: fields || {
+        hash: 1,
+      },
+    });
+
+    return mediaCollection.aggregate(pipeline).toArray();
   }
 
   public async subset(constraints: SubsetConstraints): Promise<string[]> {
-    const result = await this.subsetFields(constraints, { hash: 1 });
+    const result = await this.subsetFields(constraints);
     const mapped = result.map(media => media.hash);
 
     if (constraints.sortBy === 'recommended') {

@@ -35,7 +35,7 @@ export class AppComponent implements OnInit {
     this.configService.getConfiguration().subscribe(config => {
       const options =
         config.user.initialLoadLimit && config.user.initialLoadLimit > 0
-          ? { limit: config.user.initialLoadLimit }
+          ? { sample: config.user.initialLoadLimit }
           : {};
       this.collectionService.search(options, { shuffle: true, init: true });
     });

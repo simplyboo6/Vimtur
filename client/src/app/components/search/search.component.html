@@ -127,7 +127,8 @@
         <label>Sort By</label>
         <select class="custom-select" [(ngModel)]="searchModel.sortBy">
           <option selected="selected" [value]="undefined">None</option>
-          <option [value]="'hashDate'">Date Added (newest last)</option>
+          <option [value]="'hashDate'">Date Added (newest first)</option>
+          <option [value]="'rating'">Rating</option>
           <option [value]="'recommended'">Recommended</option>
         </select>
       </div>

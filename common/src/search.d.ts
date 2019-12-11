@@ -15,8 +15,6 @@ export interface SubsetConstraints {
   quality?: QualityConstraints;
   type?: string | string[];
   rating?: RatingConstraints;
-  width?: number; // Min width
-  height?: number; // Min height
   dir?: string;
   keywordSearch?: string;
   corrupted?: boolean;
@@ -24,13 +22,12 @@ export interface SubsetConstraints {
   thumbnail?: boolean;
   preview?: boolean;
   cached?: boolean;
-  sortBy?: 'hashDate' | 'recommended';
+  sortBy?: 'hashDate' | 'recommended' | 'rating';
   phashed?: boolean;
-  limit?: number;
   // Returns media that have potential clones.
   hasClones?: boolean;
-  // Returns media where the clone comparator was before the given date.
-  maxCloneDate?: number;
+  // Return a random set of this size.
+  sample?: number;
 }
 
 export interface SubsetFields {

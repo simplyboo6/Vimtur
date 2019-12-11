@@ -89,7 +89,11 @@ export class SearchComponent implements OnInit, OnDestroy {
       constraints.none = '*';
     }
 
-    if (this.searchModel.sortBy === 'hashDate' || this.searchModel.sortBy === 'recommended') {
+    if (
+      this.searchModel.sortBy === 'hashDate' ||
+      this.searchModel.sortBy === 'recommended' ||
+      this.searchModel.sortBy === 'rating'
+    ) {
       constraints.sortBy = this.searchModel.sortBy;
     }
 

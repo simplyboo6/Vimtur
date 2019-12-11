@@ -41,9 +41,9 @@ export class GalleryService {
 
         this.updateRequired =
           this.updateRequired ||
-          (this.pageNumber !== pageNumber ||
+          this.pageNumber !== pageNumber ||
             this.pageCount !== pageCount ||
-            this.collection !== metadata.collection);
+            this.collection !== metadata.collection;
 
         this.collection = metadata.collection;
         this.pageNumber = pageNumber;
