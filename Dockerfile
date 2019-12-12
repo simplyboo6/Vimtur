@@ -1,7 +1,7 @@
-FROM node:12.13.1-alpine3.10 as build
+FROM alpine:20191114 as build
 
 ## Compile pHash
-RUN apk add -U git ffmpeg-dev jpeg-dev libpng-dev libsndfile-dev libsamplerate-dev tiff-dev g++ make cmake libx11-dev python3
+RUN apk add -U git jpeg-dev libpng-dev libsndfile-dev libsamplerate-dev tiff-dev g++ make cmake libx11-dev python3 ffmpeg-dev nodejs yarn
 WORKDIR /build
 RUN git clone https://github.com/aetilius/pHash.git
 RUN git -C pHash checkout 887d07b9bdd9e2fb082c932002cefbcb1c8c20a1
@@ -38,9 +38,9 @@ RUN yarn lint
 RUN yarn build:prod
 RUN yarn install --production --frozen-lockfile
 
-FROM node:12.13.1-alpine3.10
+FROM alpine:20191114
 
-RUN apk add --no-cache tini graphicsmagick imagemagick g++ make ffmpeg jpeg libpng libsndfile libsamplerate tiff libx11 python3
+RUN apk add --no-cache tini graphicsmagick imagemagick g++ make jpeg libpng libsndfile libsamplerate tiff libx11 python3 ffmpeg nodejs yarn
 
 COPY --from=build /usr/local/lib/libpHash.so.1.0.0 /usr/local/lib/libpHash.so.1.0.0
 COPY --from=build /usr/local/lib/libpHash.so /usr/local/lib/libpHash.so
