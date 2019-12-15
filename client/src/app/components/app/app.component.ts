@@ -46,7 +46,8 @@ export class AppComponent implements OnInit {
   public keyEvent(event: KeyboardEvent) {
     switch (this.getRoute()) {
       case '/viewer': // Fallthrough
-      case '/metadata': {
+      case '/metadata': // Fallthrough
+      case '/clone-resolver': {
         switch (event.code) {
           case 'ArrowLeft':
             this.collectionService.offset(-1);

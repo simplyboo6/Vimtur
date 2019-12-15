@@ -81,7 +81,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public previous() {
     switch (this.getRoute()) {
       case '/viewer': // Fallthrough
-      case '/metadata':
+      case '/metadata': // Fallthough
+      case '/clone-resolver':
         this.collectionService.offset(-1);
         break;
       case '/gallery':
@@ -95,7 +96,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public next() {
     switch (this.getRoute()) {
       case '/viewer': // Fallthrough
-      case '/metadata':
+      case '/metadata': // Fallthough
+      case '/clone-resolver':
         this.collectionService.offset(1);
         break;
       case '/gallery':

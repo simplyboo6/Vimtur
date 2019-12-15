@@ -1,0 +1,58 @@
+img {
+  object-fit: contain;
+  width: 380px;
+  height: 210px;
+}
+
+.image-container {
+  max-width: 380px;
+}
+
+.gallery-image-container {
+  padding: 0.5rem;
+}
+
+.card-small {
+  padding: 0.2rem;
+}
+
+.gallery {
+  padding-top: 1rem;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+}
+
+h5 {
+  margin-bottom: 0;
+}
+
+.type {
+  text-transform: capitalize;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loading {
+  margin: auto;
+  max-width: 75%;
+  padding-top: 4rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.main-body {
+  display: flex;
+  flex-direction: row;
+}
+
+.right-panel {
+  flex: 1;
+  display: flex;
+}

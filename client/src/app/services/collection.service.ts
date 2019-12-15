@@ -184,7 +184,7 @@ export class CollectionService {
         this.alertService.dismiss(loadingAlert);
         // TODO Make this configurable
         if (!options || (options && !options.init)) {
-          this.router.navigate(['/gallery']);
+          this.router.navigate([constraints.hasClones ? '/clone-resolver' : '/gallery']);
         }
       },
       (err: HttpErrorResponse) => {

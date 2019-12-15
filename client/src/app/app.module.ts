@@ -22,6 +22,7 @@ import { GalleryComponent } from './components/gallery/gallery.component';
 import { InsightsComponent } from './components/insights/insights.component';
 import { PreviewComponent } from './components/preview/preview.component';
 import { VideoPlayerComponent } from './components/video-player/video-player.component';
+import { CloneResolverComponent } from './components/clone-resolver/clone-resolver.component';
 
 @NgModule({
   declarations: [
@@ -39,6 +40,7 @@ import { VideoPlayerComponent } from './components/video-player/video-player.com
     InsightsComponent,
     PreviewComponent,
     VideoPlayerComponent,
+    CloneResolverComponent,
   ],
   imports: [
     NgbModule,

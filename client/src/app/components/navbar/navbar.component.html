@@ -34,7 +34,12 @@
   <!-- Empty button group to keep the hamburger menu on the right on mobile -->
   <div class="btn-group"></div>
   <ng-container
-    *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/gallery'"
+    *ngIf="
+      getRoute() === '/viewer' ||
+      getRoute() === '/metadata' ||
+      getRoute() === '/gallery' ||
+      getRoute() === '/clone-resolver'
+    "
   >
     <div class="btn-group">
       <button class="btn btn-outline-success" type="submit" (click)="previous()" title="Previous">
@@ -77,7 +82,11 @@
         </svg>
       </button>
 
-      <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata'">
+      <ng-container
+        *ngIf="
+          getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'
+        "
+      >
         <button
           class="btn btn-outline-success"
           type="submit"
@@ -195,6 +204,11 @@
       </li>
       <li class="nav-item" [class.active]="isActive('/metadata')">
         <a class="nav-link" routerLink="/metadata" (click)="isExpanded = false">Metadata</a>
+      </li>
+      <li class="nav-item" [class.active]="isActive('/clone-resolver')">
+        <a class="nav-link" routerLink="/clone-resolver" (click)="isExpanded = false"
+          >Clone Resolver</a
+        >
       </li>
       <li class="nav-item" [class.active]="isActive('/gallery')">
         <a class="nav-link" routerLink="/gallery" (click)="isExpanded = false">Gallery</a>
