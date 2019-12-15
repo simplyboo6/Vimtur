@@ -278,7 +278,7 @@ export class MongoConnector extends Database {
     }
 
     if (constraints.keywordSearch) {
-      pipeline.push({ $match: { $text: constraints.keywordSearch } });
+      pipeline.push({ $match: { $text: { $search: constraints.keywordSearch } } });
     }
 
     const booleanSearch = (field: string, value?: boolean): object[] => {
