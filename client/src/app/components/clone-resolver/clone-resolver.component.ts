@@ -95,4 +95,10 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
   public getSubtitle(media: Media): string {
     return `${media.tags.length} tags | ${media.actors.length} people | ${media.metadata.width}x${media.metadata.height}`;
   }
+
+  public getHoverText(media: Media): string {
+    const tags = media.tags && media.tags.length ? media.tags.join(', ') : 'None';
+    const actors = media.actors && media.actors.length ? media.actors.join(', ') : 'None';
+    return `Tags: ${tags}\nPeople: ${actors}\nPath: ${media.path}`;
+  }
 }

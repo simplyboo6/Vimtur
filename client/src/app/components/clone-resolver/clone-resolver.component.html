@@ -104,7 +104,7 @@
         class="d-block h-100 image-container gallery-image-container"
         data-toggle="tooltip"
         data-placement="bottom"
-        [title]="m.path"
+        [title]="getHoverText(m)"
         (click)="collectionService.goto(m.hash)"
       >
         <img class="img-fluid img-thumbnail" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
