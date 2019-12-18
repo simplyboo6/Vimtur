@@ -62,10 +62,9 @@ export async function create(db: Database): Promise<Router> {
     }),
   );
 
-  router.post(
+  router.patch(
     '/:hash',
     wrap(async ({ req }) => {
-      // TODO Validate this against the schema.
       const result = mediaUpdateValidator.validate(req.body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
@@ -74,6 +73,40 @@ export async function create(db: Database): Promise<Router> {
       return {
         data: await db.saveMedia(req.params.hash, req.body),
       };
+    }),
+  );
+
+  router.post(
+    '/:hash/tags',
+    wrap(async ({ req }) => {
+      if (typeof req.body.name !== 'string') {
+        throw new BadRequest('name not specified');
+      }
+      await db.addMediaTag(req.params.hash, req.body.name);
+    }),
+  );
+
+  router.delete(
+    '/:hash/tags/:name',
+    wrap(async ({ req }) => {
+      await db.removeMediaTag(req.params.hash, req.params.name);
+    }),
+  );
+
+  router.post(
+    '/:hash/actors',
+    wrap(async ({ req }) => {
+      if (typeof req.body.name !== 'string') {
+        throw new BadRequest('name not specified');
+      }
+      await db.addMediaActor(req.params.hash, req.body.name);
+    }),
+  );
+
+  router.delete(
+    '/:hash/actors/:name',
+    wrap(async ({ req }) => {
+      await db.removeMediaActor(req.params.hash, req.params.name);
     }),
   );
 

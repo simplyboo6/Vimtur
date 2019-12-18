@@ -103,8 +103,19 @@ export class MediaService {
       }
       this.media.actors.push(name);
       this.mediaReplay.next(this.media);
-      console.log('addActor', this.media.hash, name);
-      this.saveMedia(this.media.hash, { actors: this.media.actors.slice(0) });
+
+      const hash = this.media.hash;
+      console.log('addActor', hash, name);
+      this.httpClient.post(`/api/images/${hash}/actors`, { name }, HTTP_OPTIONS).subscribe(
+        () => console.debug('actor added', hash, name),
+        err => {
+          console.error('failed to add actor', hash, name, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to add actor: ${hash}: ${name}`,
+          });
+        },
+      );
     }
   }
 
@@ -117,8 +128,19 @@ export class MediaService {
     if (index >= 0) {
       this.media.actors.splice(index, 1);
       this.mediaReplay.next(this.media);
+
+      const hash = this.media.hash;
       console.log('removeActor', this.media.hash, name);
-      this.saveMedia(this.media.hash, { actors: this.media.actors.slice(0) });
+      this.httpClient.delete(`/api/images/${hash}/actors/${name}`).subscribe(
+        () => console.debug('actor removed', hash, name),
+        err => {
+          console.error('failed to remove actor', hash, name, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to remove actor: ${hash}: ${name}`,
+          });
+        },
+      );
     }
   }
 
@@ -151,8 +173,19 @@ export class MediaService {
 
       this.media.tags.push(name);
       this.mediaReplay.next(this.media);
-      console.log('addTag', this.media.hash, name);
-      this.saveMedia(this.media.hash, { tags: this.media.tags.slice(0) });
+
+      const hash = this.media.hash;
+      console.log('addTag', hash, name);
+      this.httpClient.post(`/api/images/${hash}/tags`, { name }, HTTP_OPTIONS).subscribe(
+        () => console.debug('tag added', hash, name),
+        err => {
+          console.error('failed to add tag', hash, name, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to add tag: ${hash}: ${name}`,
+          });
+        },
+      );
     }
   }
 
@@ -165,8 +198,19 @@ export class MediaService {
     if (index >= 0) {
       this.media.tags.splice(index, 1);
       this.mediaReplay.next(this.media);
-      console.log('removeTag', this.media.hash, name);
-      this.saveMedia(this.media.hash, { tags: this.media.tags.slice(0) });
+
+      const hash = this.media.hash;
+      console.log('removeTag', hash, name);
+      this.httpClient.delete(`/api/images/${hash}/tags/${name}`).subscribe(
+        () => console.debug('tag removed', hash, name),
+        err => {
+          console.error('failed to remove tag', hash, name, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to remove tag: ${hash}: ${name}`,
+          });
+        },
+      );
     }
   }
 
@@ -175,7 +219,7 @@ export class MediaService {
   }
 
   private saveMedia(hash: string, update: UpdateMedia) {
-    this.httpClient.post<Media>(`/api/images/${hash}`, update, HTTP_OPTIONS).subscribe(
+    this.httpClient.patch<Media>(`/api/images/${hash}`, update, HTTP_OPTIONS).subscribe(
       (media: Media) => {
         this.media = media;
         this.mediaReplay.next(this.media);

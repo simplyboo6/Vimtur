@@ -216,6 +216,24 @@ export class MongoConnector extends Database {
     await media.deleteOne({ hash });
   }
 
+  public async addMediaTag(hash: string, tag: string): Promise<void> {
+    await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $addToSet: { tags: tag } });
+  }
+
+  public async removeMediaTag(hash: string, tag: string): Promise<void> {
+    await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $pull: { tags: tag } });
+  }
+
+  public async addMediaActor(hash: string, actor: string): Promise<void> {
+    await this.db
+      .collection<BaseMedia>('media')
+      .updateOne({ hash }, { $addToSet: { actors: actor } });
+  }
+
+  public async removeMediaActor(hash: string, actor: string): Promise<void> {
+    await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $pull: { actors: actor } });
+  }
+
   public async subsetFields(
     constraints: SubsetConstraints,
     fields?: SubsetFields,
@@ -224,6 +242,10 @@ export class MongoConnector extends Database {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
     const pipeline: object[] = [];
+
+    if (constraints.keywordSearch) {
+      pipeline.push({ $match: { $text: { $search: constraints.keywordSearch } } });
+    }
 
     if (constraints.any === '*') {
       pipeline.push({ $match: { 'tags.0': { $exists: true } } });
@@ -275,10 +297,6 @@ export class MongoConnector extends Database {
 
     if (constraints.dir !== undefined) {
       pipeline.push({ $match: { dir: constraints.dir } });
-    }
-
-    if (constraints.keywordSearch) {
-      pipeline.push({ $match: { $text: { $search: constraints.keywordSearch } } });
     }
 
     const booleanSearch = (field: string, value?: boolean): object[] => {

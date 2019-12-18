@@ -61,9 +61,11 @@ export interface UpdateMedia {
   path?: string;
   dir?: string;
   rotation?: number;
-  tags?: string[];
-  actors?: string[];
   hashDate?: number;
+  // Tags and actors are updated with separate endpoints.
+  // This is to avoid race conditions.
+  // This doesn't need to be done for metadata because the
+  // only arrays in it are modified server-side.
   metadata?: UpdateMetadata;
   corrupted?: boolean;
   thumbnail?: boolean;

@@ -6,6 +6,11 @@ import { AlertService } from 'services/alert.service';
 import { Subscription } from 'rxjs';
 import { Media, UpdateMedia } from '@vimtur/common';
 
+interface MediaModel extends UpdateMedia {
+  tags?: string[];
+  actors?: string[];
+}
+
 @Component({
   selector: 'app-metadata',
   templateUrl: './metadata.component.html',
@@ -13,7 +18,7 @@ import { Media, UpdateMedia } from '@vimtur/common';
 })
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;
-  public mediaModel?: UpdateMedia;
+  public mediaModel?: MediaModel;
   public tags?: string[];
   public actors?: string[];
   public mediaService: MediaService;
