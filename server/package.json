@@ -24,6 +24,7 @@
     "path-is-inside": "^1.0.2",
     "phash2": "^1.0.3",
     "rimraf": "^3.0.0",
+    "saslprep": "^1.0.3",
     "socket.io": "~2.2.0",
     "strip-json-comments": "^3.0.1",
     "walk": "^2.3.9",
@@ -31,13 +32,8 @@
   },
   "scripts": {
     "start": "node dist/index.js",
-    "build-config-schema": "typescript-json-schema ./tsconfig.json --strictNullChecks --required --noExtraProps Configuration.Main -o dist/config.schema.json",
-    "build-media-schema": "typescript-json-schema ./tsconfig.json --strictNullChecks --required --noExtraProps --refs false BaseMedia -o dist/media.schema.json",
-    "build-media-update-schema": "typescript-json-schema ./tsconfig.json --strictNullChecks --required --noExtraProps UpdateMedia -o dist/media-update.schema.json",
-    "build-subset-schema": "typescript-json-schema ./tsconfig.json --strictNullChecks --required --noExtraProps SubsetConstraints -o dist/subset.schema.json",
-    "build-ts": "tsc -p .",
-    "build": "yarn build-ts && yarn build-config-schema && yarn build-media-schema && yarn build-media-update-schema && yarn build-subset-schema",
-    "clean": "rm -rf dist/* *.tsbuildinfo",
+    "build": "tsc -p . && ./create-schemas.sh && cp -R schemas dist",
+    "clean": "rm -rf dist/* *.tsbuildinfo ./.schema-build-info",
     "lint": "./node_modules/@luvies/config/scripts/lint.sh",
     "fix": "./node_modules/@luvies/config/scripts/lint.sh fix"
   },
@@ -63,7 +59,7 @@
     "eslint-plugin-prettier": "^3.1.0",
     "eslint-plugin-sort-imports-es6-autofix": "^0.4.0",
     "prettier": "^1.18.2",
-    "ts-node": "^8.3.0",
+    "ts-node": "^8.5.4",
     "tslib": "^1.10.0",
     "typescript": "^3.5.3",
     "typescript-json-schema": "^0.39.0"

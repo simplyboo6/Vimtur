@@ -1,7 +1,5 @@
 import { Db, MongoClient } from 'mongodb';
-import FS from 'fs';
 import Path from 'path';
-import StripJsonComments from 'strip-json-comments';
 import Util from 'util';
 
 import { BadRequest } from '../../errors';
@@ -35,22 +33,9 @@ export class MongoConnector extends Database {
   public static async init(): Promise<Database> {
     const server = await MongoConnector.connect();
 
-    if (!require.main) {
-      throw new Error('require.main not found');
-    }
+    const connector = new MongoConnector(server, Validator.load('BaseMedia'));
 
-    const mediaSchemaPath = `${__dirname}/../../media.schema.json`;
-    const rawSchema = await Util.promisify(FS.readFile)(mediaSchemaPath);
-    const mediaSchema = JSON.parse(StripJsonComments(rawSchema.toString()));
-    // The $schema element isn't supported by Mongo.
-    if (mediaSchema['$schema']) {
-      delete mediaSchema['$schema'];
-    }
-    mediaSchema.properties['_id'] = {};
-
-    const connector = new MongoConnector(server, await Validator.load(mediaSchemaPath));
-
-    await Updater.apply(connector.db, mediaSchema);
+    await Updater.apply(connector.db);
 
     return connector;
   }
@@ -64,6 +49,7 @@ export class MongoConnector extends Database {
       try {
         return await MongoClient.connect(config.uri, {
           useNewUrlParser: true,
+          useUnifiedTopology: true,
         });
         break;
       } catch (err) {

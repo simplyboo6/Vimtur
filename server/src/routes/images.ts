@@ -14,8 +14,8 @@ import Config from '../config';
 export async function create(db: Database): Promise<Router> {
   const router = Router();
 
-  const subsetValidator = await Validator.load(`${__dirname}/../subset.schema.json`);
-  const mediaUpdateValidator = await Validator.load(`${__dirname}/../media-update.schema.json`);
+  const subsetValidator = Validator.load('SubsetConstraints');
+  const mediaUpdateValidator = Validator.load('UpdateMedia');
   const transcoder = new Transcoder(db);
 
   router.post(

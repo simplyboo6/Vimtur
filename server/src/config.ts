@@ -1,6 +1,4 @@
-import Ajv from 'ajv';
 import Args from 'args';
-import BetterAjvErrors from 'better-ajv-errors';
 import DeepMerge from 'deepmerge';
 import FS from 'fs';
 import Path from 'path';
@@ -8,6 +6,7 @@ import PathIsInside from 'path-is-inside';
 import StripJsonComments from 'strip-json-comments';
 
 import { Configuration } from './types';
+import { Validator } from './utils/validator';
 
 Args.option('config', 'The config file to to overlay')
   .option('file', 'The json file to import or export to')
@@ -76,17 +75,17 @@ const DEFAULTS: any = {
 };
 
 class Config {
-  private schema: object;
+  private validator: Validator;
   private merged?: Configuration.Main;
   private baseLayers?: Configuration.Partial[];
 
   public static init(): Config {
-    const schema = readJsonSync(`${__dirname}/config.schema.json`);
+    const validator = Validator.load('Configuration.Main');
     // Load the constant layers, all of these together should validate.
     // They may be overwritten at runtime though.
     const userConfig = Config.getUserLayer();
     const environment = Config.getEnvironmentLayer();
-    const config = new Config(schema);
+    const config = new Config(validator);
     // Order matters, userConfig over-writes default and environment over-writes userConfig.
     config.setLayers([DEFAULTS, userConfig, environment]);
 
@@ -120,8 +119,8 @@ class Config {
     return readJsonSync(path);
   }
 
-  private constructor(schema: object) {
-    this.schema = schema;
+  private constructor(validator: Validator) {
+    this.validator = validator;
   }
 
   public get(): Configuration.Main {
@@ -150,14 +149,14 @@ class Config {
     merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort(
       (a, b) => a - b,
     );
-    const schemaValidate = Ajv().compile(this.schema);
-    if (!schemaValidate(merged)) {
-      console.error(
-        BetterAjvErrors(this.schema, merged, schemaValidate.errors),
-        schemaValidate.errors,
+
+    const validationResult = this.validator.validate(merged);
+    if (!validationResult.success) {
+      throw new Error(
+        validationResult.errorText || 'Merged configuration schema failed to validate.',
       );
-      throw new Error('Merged configuration schema failed to validate.');
     }
+
     // On the first call store the layers as the write-once base layers.
     if (!this.baseLayers) {
       // Some additional validation.

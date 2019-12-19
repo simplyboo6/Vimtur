@@ -5,7 +5,6 @@ export interface Segment {
 
 export interface SegmentMetadata {
   standard: Segment[];
-  copy?: Segment[];
 }
 
 interface MetadataBase {

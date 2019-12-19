@@ -1,22 +1,31 @@
-import * as FS from 'fs';
-import * as Util from 'util';
 import Ajv, { ValidateFunction } from 'ajv';
+import FS from 'fs';
+import Path from 'path';
 
 export interface ValidatorResult {
   success: boolean;
   errorText?: string;
 }
 
+if (!require.main) {
+  throw new Error('require.main missing');
+}
+
+const ROOT_DIR = Path.dirname(require.main.filename);
+const SCHEMA_PATH = `${ROOT_DIR}/schemas`;
+
 export class Validator {
   private validator: ValidateFunction;
   private ajv: Ajv.Ajv;
 
-  public static async load(path: string): Promise<Validator> {
-    if (!path) {
-      throw new Error('Definition path must be defined');
-    }
-    const rawSchema = await Util.promisify(FS.readFile)(path);
-    const schemaJson = JSON.parse(rawSchema.toString());
+  public static loadSchema(name: string, version?: string): any {
+    const path = version ? `${SCHEMA_PATH}/${name}.${version}.json` : `${SCHEMA_PATH}/${name}.json`;
+    const rawSchema = FS.readFileSync(path);
+    return JSON.parse(rawSchema.toString());
+  }
+
+  public static load(name: string, version?: string): Validator {
+    const schemaJson = Validator.loadSchema(name, version);
 
     const ajv = new Ajv({
       allErrors: true,

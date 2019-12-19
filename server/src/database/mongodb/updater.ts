@@ -1,14 +1,17 @@
 import { Collection, Db } from 'mongodb';
+import { Validator } from '../../utils/validator';
 import Config from '../../config';
 import Util from 'util';
 
 export class Updater {
-  public static async apply(db: Db, mediaSchema: object): Promise<void> {
-    if (!(await db.listCollections({ name: 'updates' }).hasNext())) {
-      console.log('Updates collection does not exist, running original setup');
-      // The v1 of out MongoDb collections
-      await Updater.initialSetup(db, mediaSchema);
-    }
+  public static async apply(db: Db): Promise<void> {
+    const oldRebuildUpdates: string[] = [
+      '001_update_media_with_keyframes',
+      '003_add_mhHash_field',
+      '004_add_clone_map',
+      '005_remove-segment-copy-ts',
+      '006_add_preview',
+    ];
 
     const updatesCollection = db.collection('updates');
     await db.createCollection('updates');
@@ -17,14 +20,27 @@ export class Updater {
       { unique: true },
     );
 
-    if (!(await Updater.hasRun(updatesCollection, '001_update_media_with_keyframes'))) {
-      console.log('Applying update 001_update_media_with_keyframes...');
+    if (!(await db.listCollections({ name: 'updates' }).hasNext())) {
+      console.log('Updates collection does not exist, running original setup');
+      // The v1 of out MongoDb collections
+      const currentSchema = Updater.loadMediaSchema();
+      await Updater.initialSetup(db, currentSchema);
+      const completed: string[] = [...oldRebuildUpdates, '002_fix_prefixed_dir_names'];
+      await Promise.all(completed.map(key => Updater.saveUpdate(updatesCollection, key)));
+    }
+
+    const runOldRebuilds = await Promise.all(
+      oldRebuildUpdates.map(key => Updater.hasRun(updatesCollection, key)),
+    );
+    if (runOldRebuilds.find(run => !run)) {
+      console.log('Running old bulk rebuild...');
+      const mediaSchema = Updater.loadMediaSchema('077a1332');
+      const collection = db.collection('media');
+      await collection.updateMany({ type: 'video' }, { $unset: { 'metadata.segments.copy': '' } });
+
       await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '001_update_media_with_keyframes');
-      await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
-      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
-      await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
-      await Updater.saveUpdate(updatesCollection, '006_add_preview');
+      await Promise.all(oldRebuildUpdates.map(key => Updater.saveUpdate(updatesCollection, key)));
+      console.log('Old bulk rebuild complete');
     }
 
     if (!(await Updater.hasRun(updatesCollection, '002_fix_prefixed_dir_names'))) {
@@ -47,35 +63,6 @@ export class Updater {
       await Updater.saveUpdate(updatesCollection, '002_fix_prefixed_dir_names');
     }
 
-    if (!(await Updater.hasRun(updatesCollection, '003_add_mhHash_field'))) {
-      console.log('Applying update 003_add_mhHash_field...');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '003_add_mhHash_field');
-      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
-      await Updater.saveUpdate(updatesCollection, '006_add_preview');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '004_add_clone_map'))) {
-      console.log('Applying update 004_add_clone_map...');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '004_add_clone_map');
-      await Updater.saveUpdate(updatesCollection, '006_add_preview');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '005_remove-segment-copy-ts'))) {
-      console.log('005_remove-segment-copy-ts');
-      const collection = db.collection('media');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await collection.updateMany({ type: 'video' }, { $unset: { 'metadata.segments.copy': '' } });
-      await Updater.saveUpdate(updatesCollection, '005_remove-segment-copy-ts');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '006_add_preview'))) {
-      console.log('Applying update 006_add_preview...');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '006_add_preview');
-    }
-
     if (!(await Updater.hasRun(updatesCollection, '007_add_rating_index'))) {
       console.log('Applying update 007_add_rating_index...');
       const collection = db.collection('media');
@@ -84,6 +71,13 @@ export class Updater {
         { unique: false },
       );
       await Updater.saveUpdate(updatesCollection, '007_add_rating_index');
+    }
+
+    if (!(await Updater.hasRun(updatesCollection, '008_remove-segment-copy-ts-properly'))) {
+      console.log('Applying update 008_remove-segment-copy-ts-properly...');
+      const mediaSchema = Updater.loadMediaSchema('1dba1b82');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '008_remove-segment-copy-ts-properly');
     }
   }
 
@@ -185,5 +179,16 @@ export class Updater {
       { name: 1 },
       { unique: true },
     );
+  }
+
+  private static loadMediaSchema(version?: string): any {
+    const mediaSchema = Validator.loadSchema('BaseMedia', version);
+    // The $schema element isn't supported by Mongo.
+    if (mediaSchema['$schema']) {
+      delete mediaSchema['$schema'];
+    }
+    mediaSchema.properties['_id'] = {};
+
+    return mediaSchema;
   }
 }
