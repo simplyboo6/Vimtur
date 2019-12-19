@@ -79,6 +79,17 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '008_remove-segment-copy-ts-properly');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '009_add-phash-resolutions'))) {
+      console.log('Applying update 009_add-phash-resolutions...');
+      const mediaSchema = Updater.loadMediaSchema('f33d9138');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      const collection = db.collection('media');
+      await Util.promisify((collection.createIndex as any).bind(collection))({ aliases: 1 });
+      await Util.promisify((collection.createIndex as any).bind(collection))({ related: 1 });
+      await Util.promisify((collection.createIndex as any).bind(collection))({ unrelated: 1 });
+      await Updater.saveUpdate(updatesCollection, '009_add-phash-resolutions');
+    }
   }
 
   private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {
