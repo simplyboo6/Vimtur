@@ -61,8 +61,8 @@ export class Scanner {
     await ImportUtils.wait();
 
     for (const file of databasePaths) {
-      if (!fileListMap[file]) {
-        results.missingPaths.includes(file);
+      if (!fileListMap[file] && !results.missingPaths.includes(file)) {
+        results.missingPaths.push(file);
       }
     }
 
