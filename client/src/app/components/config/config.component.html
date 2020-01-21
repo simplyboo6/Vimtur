@@ -288,6 +288,27 @@
       >
     </div>
   </div>
+  <!-- transcoder.maxCopyEnabled -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-enable-max-copy"
+      [(ngModel)]="config.transcoder.maxCopyEnabled"
+      (ngModelChange)="updateConfig('transcoder.maxCopyEnabled', $event)"
+    />
+    <label class="custom-control-label" for="config-enable-max-copy"
+      >Copy video streams if possible?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Enabling this causes video streams to be copied without transcoding if browser compatible.
+        This sometimes leads to buffer overflows if the source media is a very high bitrate, on the
+        other hand this is also faster and less CPU intensive than transcoding. This setting also
+        applies to when caches of videos are generated in the source quality.</span
+      >
+    </div>
+  </div>
 
   <h4>Misc Configuration</h4>
   <!-- enablePhash -->
