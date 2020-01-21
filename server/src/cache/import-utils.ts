@@ -160,26 +160,13 @@ export class ImportUtils {
       }
 
       const proc = ChildProcess.spawn('ffmpeg', args);
-      if (typeof output !== 'string') {
-        proc.stdout.pipe(
-          output,
-          { end: true },
-        );
-
-        output.on('close', () => {
-          // Wait slightly to avoid race condition under load.
-          setTimeout(() => {
-            proc.kill();
-          }, 20);
-        });
-      }
 
       let err = '';
       proc.stderr.on('data', data => {
         err += data;
       });
 
-      proc.on('close', code => {
+      proc.on('exit', code => {
         if (code === 0 || code === 255) {
           resolve();
         } else {
@@ -187,6 +174,20 @@ export class ImportUtils {
           reject(new Error(err));
         }
       });
+
+      if (typeof output !== 'string') {
+        output.on('close', () => {
+          // Wait slightly to avoid race condition under load.
+          setTimeout(() => {
+            proc.kill('SIGKILL');
+          }, 20);
+        });
+
+        proc.stdout.pipe(
+          output,
+          { end: true },
+        );
+      }
     });
   }
 

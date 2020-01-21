@@ -207,9 +207,11 @@ export async function create(db: Database): Promise<Router> {
       db.getMedia(req.params.hash)
         .then(media => {
           if (media) {
+            res.set('Content-Type', 'video/mp2t');
             transcoder.streamMedia(media, start, end, res, quality).catch(err => {
-              res.set('Content-Type', 'video/mp2t');
-              res.status(503).json({ message: err.message });
+              console.error('Error streaming media', err);
+              // Can't send headers
+              res.end();
             });
           } else {
             res.status(404).json({
