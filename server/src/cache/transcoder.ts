@@ -137,7 +137,8 @@ export class Transcoder {
     const videoCodec = ['-vcodec'];
     if (
       media.metadata.codec === 'h264' &&
-      (!targetHeight || targetHeight === media.metadata.height)
+      (!targetHeight || targetHeight === media.metadata.height) &&
+      Config.get().transcoder.maxCopyEnabled
     ) {
       videoCodec.push(
         ...[
