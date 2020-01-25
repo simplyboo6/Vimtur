@@ -17,6 +17,7 @@
 - Rating system
 - Custom video player supporting quality selection and video previews
 - Media recommendations based upon your tags, actors and ratings.
+- Automatic image clone detection and viewer using perceuptual hashing.
 
 ## Quick-Start
 

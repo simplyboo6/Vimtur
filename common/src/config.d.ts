@@ -45,6 +45,13 @@ export namespace Configuration {
     // If set to a value greater than 0 than the initial search done at load time will limit
     // to this number. This is useful in large collections.
     initialLoadLimit?: number;
+
+    // Quick tag panel visibility options.
+    quickTagShowRating?: boolean;
+    quickTagShowArtist?: boolean;
+    quickTagShowAlbum?: boolean;
+    quickTagShowTitle?: boolean;
+    quickTagShowPeople?: boolean;
   }
 
   export interface Mongo {

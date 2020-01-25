@@ -7,7 +7,7 @@ import {
   ViewChild,
   AfterViewChecked,
 } from '@angular/core';
-import { Media } from '@vimtur/common';
+import { Media, Configuration, UpdateMetadata } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
@@ -22,7 +22,6 @@ const DEFAULT_COLUMN_COUNT = 1;
   styleUrls: ['./tag-panel.component.scss'],
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
-  public columnCount = DEFAULT_COLUMN_COUNT;
   public tagsModel: Record<string, boolean> = {};
   public ratingModel?: number;
   public actorsModel?: string[];
@@ -32,6 +31,8 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public suggestedActors: string[] = [];
   public visible = false;
   public mediaService: MediaService;
+  public config?: Configuration.Main;
+  public mediaMetadataUpdate?: UpdateMetadata;
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
@@ -54,10 +55,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public ngOnInit() {
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
-        const count = config.user.tagColumnCount;
-        if (count) {
-          this.columnCount = count;
-        }
+        this.config = config;
       }),
     );
 
@@ -67,6 +65,13 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.tagsModel = undefined;
         this.actorsModel = undefined;
         this.ratingModel = undefined;
+
+        // Map undefined to empty strings to better do change detection.
+        media.metadata.artist = media.metadata.artist || '';
+        media.metadata.album = media.metadata.album || '';
+        media.metadata.title = media.metadata.title || '';
+
+        this.mediaMetadataUpdate = { ...media.metadata };
 
         if (this.media) {
           this.tagsModel = {};
@@ -91,6 +96,14 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.actors = actors;
       }),
     );
+  }
+
+  public saveMetadata(field: 'artist' | 'album' | 'title') {
+    if (!this.media || !this.mediaMetadataUpdate) {
+      return;
+    }
+    this.mediaService.saveMetadata({ [field]: this.mediaMetadataUpdate[field] });
+    this.media.metadata[field] = this.mediaMetadataUpdate[field];
   }
 
   public ngOnDestroy() {
@@ -139,21 +152,20 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   public getColumnIndexes(): number[] {
-    if (!this.columnCount) {
-      return [];
-    }
+    const count = (this.config && this.config.user.tagColumnCount) || DEFAULT_COLUMN_COUNT;
     const indexes: number[] = [];
-    for (let i = 0; i < this.columnCount; i++) {
+    for (let i = 0; i < count; i++) {
       indexes.push(i);
     }
     return indexes;
   }
 
   public getColumnTags(index: number): string[] {
-    if (!this.tags || !this.columnCount) {
+    const count = (this.config && this.config.user.tagColumnCount) || DEFAULT_COLUMN_COUNT;
+    if (!this.tags) {
       return [];
     }
-    const tagsPerColumn = Math.ceil(this.tags.length / this.columnCount);
+    const tagsPerColumn = Math.ceil(this.tags.length / count);
 
     return this.tags.filter((tag, i) => {
       return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;

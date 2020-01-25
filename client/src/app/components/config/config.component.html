@@ -192,6 +192,63 @@
         will speed up load in large collections. Set to 0 to disable.</span
       >
     </div>
+
+    <h5>Quick Tag Panel Configuration</h5>
+    <!-- Rating -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-rating"
+        [(ngModel)]="config.user.quickTagShowRating"
+        (ngModelChange)="updateConfig('user.quickTagShowRating', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-rating">Show rating?</label>
+    </div>
+    <!-- Artist -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-artist"
+        [(ngModel)]="config.user.quickTagShowArtist"
+        (ngModelChange)="updateConfig('user.quickTagShowArtist', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-artist">Show artist?</label>
+    </div>
+    <!-- Album -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-album"
+        [(ngModel)]="config.user.quickTagShowAlbum"
+        (ngModelChange)="updateConfig('user.quickTagShowAlbum', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-album">Show album?</label>
+    </div>
+    <!-- Title -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-title"
+        [(ngModel)]="config.user.quickTagShowTitle"
+        (ngModelChange)="updateConfig('user.quickTagShowTitle', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-title">Show title?</label>
+    </div>
+    <!-- People -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-people"
+        [(ngModel)]="config.user.quickTagShowPeople"
+        (ngModelChange)="updateConfig('user.quickTagShowPeople', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-people">Show people?</label>
+    </div>
   </div>
 
   <h4>Transcoder Configuration</h4>

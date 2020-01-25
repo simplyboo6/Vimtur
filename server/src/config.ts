@@ -71,6 +71,13 @@ const DEFAULTS: any = {
     lowQualityOnLoadEnabledForMobile: true,
     // Limit to loading 1000 items on initial UI load.
     initialLoadLimit: 1000,
+
+    // Quick tag panel visibility options.
+    quickTagShowRating: true,
+    quickTagShowArtist: true,
+    quickTagShowAlbum: true,
+    quickTagShowTitle: true,
+    quickTagShowPeople: true,
   },
 };
 

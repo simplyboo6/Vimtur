@@ -19,6 +19,23 @@
 
 .card-small {
   padding: 0.2rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.btn {
+  padding: 0;
+  margin-left: 0.25rem;
+  & > svg {
+    margin: 0;
+    padding: 0.25rem;
+    width: 1.5rem;
+  }
+}
+
+.form-control {
+  width: initial;
+  flex: 1;
 }
 
 .tag-list {
