@@ -3,6 +3,9 @@
     <app-tag-panel></app-tag-panel>
   </div>
   <div class="right-panel full-height">
+    <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath" class="text-overlay">
+      {{ media.path }}
+    </div>
     <ng-container *ngIf="media">
       <app-video-player
         class="video-player"

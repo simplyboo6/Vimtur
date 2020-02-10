@@ -3,6 +3,7 @@
 .main-body {
   display: flex;
   flex-direction: row;
+  background-color: color(background-light);
 }
 
 .left-panel {
@@ -27,4 +28,14 @@
 
 .hidden {
   display: none;
+}
+
+.text-overlay {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.7);
+  width: calc(100% - 0.2rem);
+  padding: 0.2rem;
+  z-index: 1;
+  margin-top: 0.2rem;
+  margin-right: 0.2rem;
 }

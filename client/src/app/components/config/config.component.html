@@ -249,6 +249,17 @@
       />
       <label class="custom-control-label" for="config-quick-tag-people">Show people?</label>
     </div>
+    <!-- Path -->
+    <div class="custom-control custom-checkbox input-component tag-config">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-quick-tag-path"
+        [(ngModel)]="config.user.quickTagShowPath"
+        (ngModelChange)="updateConfig('user.quickTagShowPath', $event)"
+      />
+      <label class="custom-control-label" for="config-quick-tag-path">Show path above media?</label>
+    </div>
   </div>
 
   <h4>Transcoder Configuration</h4>

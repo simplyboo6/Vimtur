@@ -4,7 +4,6 @@
   width: 100%;
   height: 100%;
   display: flex;
-  background-color: var(--gray);
 }
 
 @keyframes spin {
@@ -50,7 +49,7 @@
       height: 10rem;
       justify-content: center;
       padding: 3rem;
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: color(background-light);
       border-radius: 50%;
 
       & > .play {

@@ -4,6 +4,7 @@
   @include v(navbar-height, 56px);
 
   @include color(background-dark, #343a40);
+  @include color(background-light, #acb5bd);
 }
 
 .full-height {

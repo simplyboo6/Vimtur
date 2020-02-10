@@ -15,12 +15,12 @@ declare const Hls;
 export class ViewerComponent implements OnInit, OnDestroy {
   public tagsOpen = false;
   public media?: Media;
+  public config?: Configuration.Main;
 
   private uiService: UiService;
   private mediaService: MediaService;
   private configService: ConfigService;
   private subscriptions: Subscription[] = [];
-  private config?: Configuration.Main;
 
   public constructor(
     uiService: UiService,

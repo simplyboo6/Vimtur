@@ -78,6 +78,7 @@ const DEFAULTS: any = {
     quickTagShowAlbum: true,
     quickTagShowTitle: true,
     quickTagShowPeople: true,
+    quickTagShowPath: true,
   },
 };
 

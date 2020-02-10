@@ -52,6 +52,7 @@ export namespace Configuration {
     quickTagShowAlbum?: boolean;
     quickTagShowTitle?: boolean;
     quickTagShowPeople?: boolean;
+    quickTagShowPath?: boolean;
   }
 
   export interface Mongo {
