@@ -116,15 +116,6 @@ export class UiService {
       constraints.rating.max = this.searchModel.ratingMax;
     }
 
-    constraints.tags = {};
-
-    if (this.searchModel.tagged) {
-      constraints.tags.exists = true;
-    }
-    if (this.searchModel.untagged) {
-      constraints.tags.exists = false;
-    }
-
     if (
       this.searchModel.sortBy === 'hashDate' ||
       this.searchModel.sortBy === 'recommended' ||
@@ -144,6 +135,13 @@ export class UiService {
 
     for (const field of this.arrayFields) {
       constraints[field.field] = toArrayFilter(this.searchModel[field.field]);
+    }
+
+    if (this.searchModel.tagged) {
+      constraints.tags = Object.assign(constraints.tags || {}, { exists: true });
+    }
+    if (this.searchModel.untagged) {
+      constraints.tags = Object.assign(constraints.tags || {}, { exists: false });
     }
 
     for (const field of this.stringFields) {
