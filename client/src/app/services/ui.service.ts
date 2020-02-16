@@ -1,5 +1,13 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
+import { ArrayFilter } from '@vimtur/common';
+import { ListItem } from 'app/shared/types';
+
+export interface SearchArrayFilter {
+  equalsAny: ListItem[];
+  equalsAll: ListItem[];
+  equalsNone: ListItem[];
+}
 
 export interface SearchModel {
   keywords?: string;
@@ -15,9 +23,21 @@ export interface SearchModel {
   typeGif?: boolean;
   typeStill?: boolean;
 
-  allTags: Record<string, boolean>;
-  anyTags: Record<string, boolean>;
-  noneTags: Record<string, boolean>;
+  tags: SearchArrayFilter;
+  actors: SearchArrayFilter;
+
+  artist?: string;
+  album?: string;
+  title?: string;
+  path?: string;
+}
+
+function createBlankFilter(): SearchArrayFilter {
+  return {
+    equalsAny: [],
+    equalsAll: [],
+    equalsNone: [],
+  };
 }
 
 @Injectable({
@@ -38,9 +58,8 @@ export class UiService {
 
   public resetSearch(): SearchModel {
     this.searchModel = {
-      allTags: {},
-      anyTags: {},
-      noneTags: {},
+      tags: createBlankFilter(),
+      actors: createBlankFilter(),
     };
     return this.searchModel;
   }

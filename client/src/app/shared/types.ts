@@ -18,3 +18,10 @@ export interface ListItem<T = string> {
 export function toListItems(values: string[]): ListItem[] {
   return values.map(value => ({ id: value, itemName: value }));
 }
+
+export function fromListItems(values?: ListItem[]): string[] | undefined {
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+  return values.map(value => value.id);
+}

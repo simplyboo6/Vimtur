@@ -10,47 +10,7 @@
         <label>Keyword Search</label>
         <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
       </div>
-      <div class="form-group">
-        <label>Minimum Resolution</label>
-        <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
-          <option selected="selected" [value]="0">None</option>
-          <option [value]="240">240p</option>
-          <option [value]="360">360p</option>
-          <option [value]="480">480p</option>
-          <option [value]="720">720p</option>
-          <option [value]="1080">1080p</option>
-        </select>
-      </div>
-      <div class="container">
-        <div class="row">
-          <label>Rating</label>
-        </div>
-        <div class="row">
-          <div class="form-group col">
-            <label>Minimum</label>
-            <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
-              <option selected="selected" [value]="-1">None</option>
-              <option [value]="1">1</option>
-              <option [value]="2">2</option>
-              <option [value]="3">3</option>
-              <option [value]="4">4</option>
-              <option [value]="5">5</option>
-            </select>
-          </div>
-          <div class="form-group col">
-            <label>Maximum</label>
-            <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
-              <option selected="selected" [value]="-1">None</option>
-              <option [value]="0">Unrated</option>
-              <option [value]="1">1</option>
-              <option [value]="2">2</option>
-              <option [value]="3">3</option>
-              <option [value]="4">4</option>
-              <option [value]="5">5</option>
-            </select>
-          </div>
-        </div>
-      </div>
+
       <div class="form-group">
         <label>Type</label>
         <div class="custom-control custom-checkbox input-component">
@@ -133,53 +93,104 @@
         </select>
       </div>
     </div>
+
     <div class="col-md-3">
-      <h3>All</h3>
-      <div>
-        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
-          <input
-            type="checkbox"
-            class="custom-control-input"
-            [id]="'tag-input-all-' + tag"
-            [(ngModel)]="searchModel.allTags[tag]"
-          />
-          <label class="tag-label custom-control-label" [for]="'tag-input-all-' + tag">
-            {{ tag }}
-          </label>
+      <h3>Metadata</h3>
+
+      <div class="container">
+        <div class="row">
+          <label>Rating</label>
+        </div>
+        <div class="row">
+          <div class="form-group col">
+            <label>Minimum</label>
+            <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
+              <option selected="selected" [value]="-1">None</option>
+              <option [value]="1">1</option>
+              <option [value]="2">2</option>
+              <option [value]="3">3</option>
+              <option [value]="4">4</option>
+              <option [value]="5">5</option>
+            </select>
+          </div>
+          <div class="form-group col">
+            <label>Maximum</label>
+            <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
+              <option selected="selected" [value]="-1">None</option>
+              <option [value]="0">Unrated</option>
+              <option [value]="1">1</option>
+              <option [value]="2">2</option>
+              <option [value]="3">3</option>
+              <option [value]="4">4</option>
+              <option [value]="5">5</option>
+            </select>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <h3>Any</h3>
-      <div>
-        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
-          <input
-            type="checkbox"
-            class="custom-control-input"
-            [id]="'tag-input-any-' + tag"
-            [(ngModel)]="searchModel.anyTags[tag]"
-          />
-          <label class="tag-label custom-control-label" [for]="'tag-input-any-' + tag">
-            {{ tag }}
-          </label>
-        </div>
+
+      <div class="form-group">
+        <label>Minimum Resolution</label>
+        <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
+          <option selected="selected" [value]="0">None</option>
+          <option [value]="240">240p</option>
+          <option [value]="360">360p</option>
+          <option [value]="480">480p</option>
+          <option [value]="720">720p</option>
+          <option [value]="1080">1080p</option>
+        </select>
+      </div>
+
+      <div *ngFor="let field of stringFields" class="form-group">
+        <label>{{ field.name }}</label>
+        <input type="text" [(ngModel)]="searchModel[field.field]" class="form-control" />
       </div>
     </div>
-    <div class="col-md-3">
-      <h3>None</h3>
-      <div>
-        <div class="custom-control custom-checkbox input-component" *ngFor="let tag of tags">
-          <input
-            type="checkbox"
-            class="custom-control-input"
-            [id]="'tag-input-none-' + tag"
-            [(ngModel)]="searchModel.noneTags[tag]"
-          />
-          <label class="tag-label custom-control-label" [for]="'tag-input-none-' + tag">
-            {{ tag }}
-          </label>
+
+    <ng-container *ngFor="let field of arrayFields">
+      <div *ngIf="this[field.field]" class="col-md-3">
+        <h3>{{ field.name }}</h3>
+        <div class="form-group">
+          <label>All</label>
+          <angular2-multiselect
+            [data]="this[field.field]"
+            [settings]="{
+              enableCheckAll: true,
+              enableSearchFilter: true,
+              enableFilterSelectAll: true
+            }"
+            [(ngModel)]="searchModel[field.field].equalsAll"
+          >
+          </angular2-multiselect>
+        </div>
+
+        <div class="form-group">
+          <label>Any</label>
+          <angular2-multiselect
+            [data]="this[field.field]"
+            [settings]="{
+              enableCheckAll: true,
+              enableSearchFilter: true,
+              enableFilterSelectAll: true
+            }"
+            [(ngModel)]="searchModel[field.field].equalsAny"
+          >
+          </angular2-multiselect>
+        </div>
+
+        <div class="form-group">
+          <label>None</label>
+          <angular2-multiselect
+            [data]="this[field.field]"
+            [settings]="{
+              enableCheckAll: true,
+              enableSearchFilter: true,
+              enableFilterSelectAll: true
+            }"
+            [(ngModel)]="searchModel[field.field].equalsNone"
+          >
+          </angular2-multiselect>
         </div>
       </div>
-    </div>
+    </ng-container>
   </div>
 </div>

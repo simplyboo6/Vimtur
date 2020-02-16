@@ -2,9 +2,29 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { CollectionService } from 'services/collection.service';
-import { UiService, SearchModel } from 'services/ui.service';
+import { UiService, SearchModel, SearchArrayFilter } from 'services/ui.service';
 import { Subscription } from 'rxjs';
-import { SubsetConstraints } from '@vimtur/common';
+import { SubsetConstraints, ArrayFilter } from '@vimtur/common';
+import { ListItem, toListItems, fromListItems } from 'app/shared/types';
+
+function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
+  const output: ArrayFilter = {
+    equalsAny: fromListItems(filter.equalsAny),
+    equalsAll: fromListItems(filter.equalsAll),
+    equalsNone: fromListItems(filter.equalsNone),
+  };
+
+  if (!output.equalsAny && !output.equalsAll && !output.equalsNone) {
+    return undefined;
+  }
+
+  return output;
+}
+
+interface FilterField {
+  field: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-search',
@@ -19,9 +39,21 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
 
-  public tags?: string[];
-  public actors?: string[];
+  public tags?: ListItem[];
+  public actors?: ListItem[];
   public searchModel: SearchModel;
+
+  public readonly arrayFields: FilterField[] = [
+    { field: 'tags', name: 'Tags' },
+    { field: 'actors', name: 'Actors' },
+  ];
+
+  public readonly stringFields: FilterField[] = [
+    { field: 'artist', name: 'Artist' },
+    { field: 'album', name: 'Album' },
+    { field: 'title', name: 'Title' },
+    { field: 'path', name: 'Path' },
+  ];
 
   public constructor(
     tagService: TagService,
@@ -38,15 +70,11 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   public ngOnInit() {
     this.subscriptions.push(
-      this.tagService.getTags().subscribe(tags => {
-        this.tags = tags;
-      }),
+      this.tagService.getTags().subscribe(tags => (this.tags = toListItems(tags))),
     );
 
     this.subscriptions.push(
-      this.actorService.getActors().subscribe(actors => {
-        this.actors = actors;
-      }),
+      this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
     );
   }
 
@@ -108,33 +136,21 @@ export class SearchComponent implements OnInit, OnDestroy {
       constraints.type = { equalsAny: types };
     }
 
-    const allTags = this.tagsToList(this.searchModel.allTags);
-    if (allTags.length) {
-      constraints.tags.equalsAll = allTags;
+    for (const field of this.arrayFields) {
+      constraints[field.field] = toArrayFilter(this.searchModel[field.field]);
     }
-    const anyTags = this.tagsToList(this.searchModel.anyTags);
-    if (anyTags.length) {
-      constraints.tags.equalsAny = anyTags;
+
+    for (const field of this.stringFields) {
+      if (this.searchModel[field.field]) {
+        constraints[field.field] = { likeAll: [this.searchModel[field.field]] };
+      }
     }
-    const noneTags = this.tagsToList(this.searchModel.noneTags);
-    if (noneTags.length) {
-      constraints.tags.equalsNone = noneTags;
-    }
+
     if (this.searchModel.hasClones) {
       constraints.hasClones = this.searchModel.hasClones;
     }
 
     console.debug('search', constraints);
     this.collectionService.search(constraints);
-  }
-
-  private tagsToList(tagMap: Record<string, boolean>) {
-    const tags: string[] = [];
-    for (const key of Object.keys(tagMap)) {
-      if (tagMap[key]) {
-        tags.push(key);
-      }
-    }
-    return tags;
   }
 }
