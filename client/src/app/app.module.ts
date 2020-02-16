@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { TagInputModule } from 'ngx-chips';
+import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AngularResizedEventModule } from 'angular-resize-event';
 
@@ -49,7 +49,7 @@ import { CloneResolverComponent } from './components/clone-resolver/clone-resolv
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
-    TagInputModule,
+    AngularMultiSelectModule,
     BrowserAnimationsModule,
     AngularResizedEventModule,
   ],

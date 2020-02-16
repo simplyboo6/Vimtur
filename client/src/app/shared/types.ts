@@ -9,3 +9,12 @@ export interface QualityLevel {
   height?: number;
   index: number;
 }
+
+export interface ListItem<T = string> {
+  id: T;
+  itemName: string;
+}
+
+export function toListItems(values: string[]): ListItem[] {
+  return values.map(value => ({ id: value, itemName: value }));
+}

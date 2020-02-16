@@ -13,6 +13,7 @@ import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { Subscription } from 'rxjs';
+import { ListItem, toListItems } from 'app/shared/types';
 
 const DEFAULT_COLUMN_COUNT = 1;
 
@@ -24,20 +25,20 @@ const DEFAULT_COLUMN_COUNT = 1;
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public tagsModel: Record<string, boolean> = {};
   public ratingModel?: number;
-  public actorsModel?: string[];
+  public actorsModel?: ListItem[];
   public media?: Media;
   public tags?: string[];
-  public actors?: string[];
+  public actors?: ListItem[];
   public suggestedActors: string[] = [];
   public visible = false;
   public mediaService: MediaService;
   public config?: Configuration.Main;
   public mediaMetadataUpdate?: UpdateMetadata;
+  public actorService: ActorService;
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
   private tagService: TagService;
-  private actorService: ActorService;
   private subscriptions: Subscription[] = [];
 
   public constructor(
@@ -80,7 +81,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
           }
           this.ratingModel = media.rating;
           // Copy it since it'll be modified.
-          this.actorsModel = media.actors.map(actor => actor);
+          this.actorsModel = toListItems(media.actors);
         }
       }),
     );
@@ -93,7 +94,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.subscriptions.push(
       this.actorService.getActors().subscribe(actors => {
-        this.actors = actors;
+        this.actors = toListItems(actors);
       }),
     );
   }
@@ -118,27 +119,6 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
       // This is a ridiculous hack because there's no configurable way
       // to stop ng-bootstraps rating component stealing focus and keypresses.
       this.ratingElement.handleKeyDown = () => {};
-    }
-  }
-
-  public filterActors(event: any) {
-    if (!this.actors) {
-      return;
-    }
-    if (!event.query) {
-      this.suggestedActors = this.actors;
-    } else {
-      this.suggestedActors = this.actors
-        .filter(actor => actor.toLowerCase().includes(event.query.toLowerCase()))
-        .sort((a, b) => {
-          const aStarts = a.toLowerCase().startsWith(event.query.toLowerCase());
-          const bStarts = b.toLowerCase().startsWith(event.query.toLowerCase());
-
-          if (aStarts === bStarts) {
-            return 0;
-          }
-          return aStarts && !bStarts ? -1 : 1;
-        });
     }
   }
 

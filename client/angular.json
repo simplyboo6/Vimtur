@@ -26,7 +26,8 @@
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": [
               "src/styles.scss",
-              "./node_modules/bootstrap-css-only/css/bootstrap.min.css"
+              "./node_modules/bootstrap-css-only/css/bootstrap.min.css",
+              "./node_modules/angular2-multiselect-dropdown/themes/default.theme.css"
             ],
             "scripts": []
           },

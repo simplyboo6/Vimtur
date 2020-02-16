@@ -70,44 +70,42 @@
 
     <h5 class="form-padded-input">Tags</h5>
     <div class="row">
-      <tag-input
-        placeholder="+ Tag"
-        secondaryPlaceholder="Enter tag name..."
+      <angular2-multiselect
+        *ngIf="mediaModel.tags"
+        [data]="tags"
+        [settings]="{
+          text: '+ Tag',
+          enableCheckAll: false,
+          enableSearchFilter: true,
+          addNewItemOnFilter: true,
+          enableFilterSelectAll: true
+        }"
         [ngModel]="mediaModel.tags"
-        [disable]="!tags"
-        (onAdd)="mediaService.addTag($event)"
-        (onRemove)="mediaService.removeTag($event)"
+        (onAddFilterNewItem)="tagService.addTag($event)"
+        (onSelect)="mediaService.addTag($event.id)"
+        (onDeSelect)="mediaService.removeTag($event.id)"
       >
-        <tag-input-dropdown
-          [showDropdownIfEmpty]="true"
-          [keepOpen]="false"
-          [minimumTextLength]="0"
-          [dynamicUpdate]="false"
-          offset="-390 0"
-          [autocompleteItems]="tags"
-        ></tag-input-dropdown>
-      </tag-input>
+      </angular2-multiselect>
     </div>
 
     <h5 class="form-padded-input">Actors</h5>
     <div class="row">
-      <tag-input
-        placeholder="+ Actor"
-        secondaryPlaceholder="Enter actor name..."
+      <angular2-multiselect
+        *ngIf="mediaModel.actors"
+        [data]="actors"
+        [settings]="{
+          text: '+ Actor',
+          enableCheckAll: false,
+          enableSearchFilter: true,
+          addNewItemOnFilter: true,
+          enableFilterSelectAll: true
+        }"
         [ngModel]="mediaModel.actors"
-        [disable]="!actors"
-        (onAdd)="mediaService.addActor($event)"
-        (onRemove)="mediaService.removeActor($event)"
+        (onAddFilterNewItem)="actorService.addActor($event)"
+        (onSelect)="mediaService.addActor($event.id)"
+        (onDeSelect)="mediaService.removeActor($event.id)"
       >
-        <tag-input-dropdown
-          [showDropdownIfEmpty]="true"
-          [keepOpen]="false"
-          [minimumTextLength]="0"
-          [dynamicUpdate]="false"
-          offset="-390 0"
-          [autocompleteItems]="actors"
-        ></tag-input-dropdown>
-      </tag-input>
+      </angular2-multiselect>
     </div>
   </div>
 </div>

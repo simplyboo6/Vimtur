@@ -111,23 +111,22 @@
     <div *ngIf="config.user.quickTagShowPeople" class="card">
       <div class="card-header card-small">People</div>
       <div class="card-body card-small ui-fluid">
-        <tag-input
-          placeholder="+ Actor"
-          secondaryPlaceholder="Enter new actor name..."
+        <angular2-multiselect
+          *ngIf="actors"
+          [data]="actors"
+          [settings]="{
+            text: '+ People',
+            enableCheckAll: false,
+            enableSearchFilter: true,
+            addNewItemOnFilter: true,
+            enableFilterSelectAll: true
+          }"
           [ngModel]="actorsModel"
-          [disable]="!actorsModel || !actors"
-          (onAdd)="mediaService.addActor($event)"
-          (onRemove)="mediaService.removeActor($event)"
+          (onAddFilterNewItem)="actorService.addActor($event)"
+          (onSelect)="mediaService.addActor($event.id)"
+          (onDeSelect)="mediaService.removeActor($event.id)"
         >
-          <tag-input-dropdown
-            [showDropdownIfEmpty]="true"
-            [keepOpen]="false"
-            [minimumTextLength]="0"
-            [dynamicUpdate]="false"
-            offset="-400 0"
-            [autocompleteItems]="actors"
-          ></tag-input-dropdown>
-        </tag-input>
+        </angular2-multiselect>
       </div>
     </div>
   </ng-container>

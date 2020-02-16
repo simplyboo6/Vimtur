@@ -5,10 +5,11 @@ import { ActorService } from 'services/actor.service';
 import { AlertService } from 'services/alert.service';
 import { Subscription } from 'rxjs';
 import { Media, UpdateMedia } from '@vimtur/common';
+import { ListItem, toListItems } from 'app/shared/types';
 
 interface MediaModel extends UpdateMedia {
-  tags?: string[];
-  actors?: string[];
+  tags?: ListItem[];
+  actors?: ListItem[];
 }
 
 @Component({
@@ -19,13 +20,13 @@ interface MediaModel extends UpdateMedia {
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;
   public mediaModel?: MediaModel;
-  public tags?: string[];
-  public actors?: string[];
+  public tags?: ListItem[];
+  public actors?: ListItem[];
   public mediaService: MediaService;
+  public tagService: TagService;
+  public actorService: ActorService;
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
-  private tagService: TagService;
-  private actorService: ActorService;
   private alertService: AlertService;
   private subscriptions: Subscription[] = [];
 
@@ -48,8 +49,8 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.mediaModel = this.media
           ? {
               rating: media.rating,
-              tags: media.tags.slice(0),
-              actors: media.actors.slice(0),
+              tags: toListItems(media.tags),
+              actors: toListItems(media.actors),
               metadata: {
                 artist: media.metadata.artist || '',
                 album: media.metadata.album || '',
@@ -60,10 +61,12 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
       }),
     );
 
-    this.subscriptions.push(this.tagService.getTags().subscribe(tags => (this.tags = tags)));
+    this.subscriptions.push(
+      this.tagService.getTags().subscribe(tags => (this.tags = toListItems(tags))),
+    );
 
     this.subscriptions.push(
-      this.actorService.getActors().subscribe(actors => (this.actors = actors)),
+      this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
     );
   }
 
