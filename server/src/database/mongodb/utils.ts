@@ -46,7 +46,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
   const likeFilters: object[] = [];
 
   if (options) {
-    if (options.likeAny) {
+    if (options.likeAny && options.likeAny.length > 0) {
       likeFilters.push({
         $or: options.likeAny.map(value => {
           return {
@@ -56,7 +56,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
       });
     }
 
-    if (options.likeAll) {
+    if (options.likeAll && options.likeAll.length > 0) {
       likeFilters.push({
         $and: options.likeAll.map(value => {
           return {
@@ -66,7 +66,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
       });
     }
 
-    if (options.likeNone) {
+    if (options.likeNone && options.likeNone.length > 0) {
       likeFilters.push({
         $and: options.likeNone.map(value => {
           return {
