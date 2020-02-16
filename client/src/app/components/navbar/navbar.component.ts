@@ -54,7 +54,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   public viewFolder() {
     if (this.mediaService.media) {
-      this.collectionService.search({ dir: this.mediaService.media.dir }, { preserve: true });
+      this.collectionService.search(
+        { dir: { equalsAll: [this.mediaService.media.dir] } },
+        { preserve: true },
+      );
     }
   }
 

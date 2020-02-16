@@ -231,7 +231,7 @@ async function main(): Promise<void> {
   printAverages('Artists', results.artists);
 
   console.time('Time to build recommendations');
-  const hashes = await db.subset({ rating: { max: 0 }, any: '*' });
+  const hashes = await db.subset({ rating: { max: 0 }, tags: { exists: true } });
   const rawRecommendations = await insights.getRecommendations(hashes, results);
   console.timeEnd('Time to build recommendations');
   await printRecommendations(db, rawRecommendations, 50);

@@ -15,6 +15,7 @@ import {
 import { Insights } from '../../insights';
 import { Updater } from './updater';
 import { Validator } from '../../utils/validator';
+import { createArrayFilter, createStringFilter } from './utils';
 import Config from '../../config';
 
 interface Actor {
@@ -233,20 +234,21 @@ export class MongoConnector extends Database {
       pipeline.push({ $match: { $text: { $search: constraints.keywordSearch } } });
     }
 
-    if (constraints.any === '*') {
-      pipeline.push({ $match: { 'tags.0': { $exists: true } } });
-    } else if (constraints.any) {
-      pipeline.push({ $match: { tags: { $in: constraints.any } } });
-    }
+    let filters: object[] = [];
+    filters.push(createArrayFilter('tags', constraints.tags));
+    filters.push(createArrayFilter('actors', constraints.actors));
+    filters.push(createArrayFilter('type', constraints.type));
 
-    if (constraints.all) {
-      pipeline.push({ $match: { tags: { $all: constraints.all } } });
-    }
+    filters.push(createStringFilter('artist', constraints.artist));
+    filters.push(createStringFilter('album', constraints.album));
+    filters.push(createStringFilter('title', constraints.title));
+    filters.push(createStringFilter('dir', constraints.dir));
+    filters.push(createStringFilter('path', constraints.path));
 
-    if (constraints.none === '*') {
-      pipeline.push({ $match: { 'tags.0': { $exists: false } } });
-    } else if (Array.isArray(constraints.none)) {
-      pipeline.push({ $match: { tags: { $nin: constraints.none } } });
+    filters = filters.filter(filter => Object.keys(filter).length > 0);
+
+    if (filters.length > 0) {
+      pipeline.push({ $match: { $and: filters } });
     }
 
     if (constraints.quality) {
@@ -255,14 +257,6 @@ export class MongoConnector extends Database {
       }
       if (constraints.quality.max !== undefined) {
         pipeline.push({ $match: { 'metadata.height': { $lte: constraints.quality.max } } });
-      }
-    }
-
-    if (constraints.type) {
-      if (Array.isArray(constraints.type)) {
-        pipeline.push({ $match: { type: { $in: constraints.type } } });
-      } else {
-        pipeline.push({ $match: { type: constraints.type } });
       }
     }
 
@@ -279,10 +273,6 @@ export class MongoConnector extends Database {
           pipeline.push({ $match: { rating: { $lte: constraints.rating.max } } });
         }
       }
-    }
-
-    if (constraints.dir !== undefined) {
-      pipeline.push({ $match: { dir: constraints.dir } });
     }
 
     const booleanSearch = (field: string, value?: boolean): object[] => {

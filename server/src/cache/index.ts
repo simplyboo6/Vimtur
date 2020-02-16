@@ -53,7 +53,7 @@ export class Importer {
       await this.database.resetClones(Math.floor(Date.now() / 1000) - Config.get().maxCloneAge);
       // Now find all phashed
       const images = await this.database.subsetFields(
-        { type: 'still', phashed: true },
+        { type: { equalsAll: ['still'] }, phashed: true },
         { phash: 1, hash: 1, clones: 1 },
       );
 
@@ -86,7 +86,7 @@ export class Importer {
       const mediaList = await this.database.subset({
         // For now just do still. Video takes a long time and is questionably accurate.
         // Eg videos of different length not quite right.
-        type: 'still',
+        type: { equalsAll: ['still'] },
         indexed: true,
         corrupted: false,
         phashed: false,
@@ -136,7 +136,10 @@ export class Importer {
     console.log('Precaching keyframes...');
     console.time('Keyframe Precache Time');
     try {
-      const mediaList = await this.database.subset({ type: ['video'], indexed: true });
+      const mediaList = await this.database.subset({
+        type: { equalsAll: ['video'] },
+        indexed: true,
+      });
       for (let i = 0; i < mediaList.length; i++) {
         this.status.progress = { current: i, max: mediaList.length };
         this.update();
@@ -391,7 +394,7 @@ export class Importer {
       const withoutPreviews = await this.database.subset({
         preview: false,
         corrupted: false,
-        type: ['video'],
+        type: { equalsAll: ['video'] },
       });
       this.status.progress = {
         current: 0,
@@ -444,7 +447,7 @@ export class Importer {
     console.time('Cache Time');
     try {
       await this.transcoder.transcodeSet(
-        await this.database.subset({ type: ['video'], corrupted: false }),
+        await this.database.subset({ type: { equalsAll: ['video'] }, corrupted: false }),
         (current, max) => {
           this.status.progress = { current, max };
           this.update();
@@ -461,7 +464,10 @@ export class Importer {
 
   public async findRedundantCaches(): Promise<Record<string, number[]>> {
     const redundantMap: Record<string, number[]> = {};
-    for (const hash of await this.database.subset({ type: ['video'], corrupted: false })) {
+    for (const hash of await this.database.subset({
+      type: { equalsAll: ['video'] },
+      corrupted: false,
+    })) {
       const media = await this.database.getMedia(hash);
       if (!media) {
         console.warn(`Couldn't find media to check redundant caches: ${hash}`);

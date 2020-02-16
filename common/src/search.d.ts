@@ -8,14 +8,38 @@ export interface RatingConstraints {
   max?: number;
 }
 
+export interface StringFilterCommon {
+  equalsAny?: string[];
+  equalsAll?: string[];
+  equalsNone?: string[];
+}
+
+export interface ArrayFilter extends StringFilterCommon {
+  // Whether item.0 exists
+  exists?: boolean;
+}
+
+export interface StringFilter extends ArrayFilter {
+  likeAny?: string[];
+  likeAll?: string[];
+  likeNone?: string[];
+}
+
 export interface SubsetConstraints {
-  any?: '*' | string[];
-  all?: string[];
-  none?: '*' | string[];
+  // Arrays
+  tags?: ArrayFilter;
+  actors?: ArrayFilter;
+  type?: ArrayFilter;
+
+  // Strings
+  artist?: StringFilter;
+  album?: StringFilter;
+  title?: StringFilter;
+  dir?: StringFilter;
+  path?: StringFilter;
+
   quality?: QualityConstraints;
-  type?: string | string[];
   rating?: RatingConstraints;
-  dir?: string;
   keywordSearch?: string;
   corrupted?: boolean;
   indexed?: boolean;

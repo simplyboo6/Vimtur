@@ -82,11 +82,13 @@ export class SearchComponent implements OnInit, OnDestroy {
       constraints.rating.max = this.searchModel.ratingMax;
     }
 
+    constraints.tags = {};
+
     if (this.searchModel.tagged) {
-      constraints.any = '*';
+      constraints.tags.exists = true;
     }
     if (this.searchModel.untagged) {
-      constraints.none = '*';
+      constraints.tags.exists = false;
     }
 
     if (
@@ -103,20 +105,20 @@ export class SearchComponent implements OnInit, OnDestroy {
       ...(this.searchModel.typeStill ? ['still'] : []),
     ];
     if (types.length) {
-      constraints.type = types;
+      constraints.type = { equalsAny: types };
     }
 
     const allTags = this.tagsToList(this.searchModel.allTags);
     if (allTags.length) {
-      constraints.all = allTags;
+      constraints.tags.equalsAll = allTags;
     }
     const anyTags = this.tagsToList(this.searchModel.anyTags);
     if (anyTags.length) {
-      constraints.any = anyTags;
+      constraints.tags.equalsAny = anyTags;
     }
     const noneTags = this.tagsToList(this.searchModel.noneTags);
     if (noneTags.length) {
-      constraints.none = noneTags;
+      constraints.tags.equalsNone = noneTags;
     }
     if (this.searchModel.hasClones) {
       constraints.hasClones = this.searchModel.hasClones;
