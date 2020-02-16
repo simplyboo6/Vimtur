@@ -239,9 +239,9 @@ export class MongoConnector extends Database {
     filters.push(createArrayFilter('actors', constraints.actors));
     filters.push(createArrayFilter('type', constraints.type));
 
-    filters.push(createStringFilter('artist', constraints.artist));
-    filters.push(createStringFilter('album', constraints.album));
-    filters.push(createStringFilter('title', constraints.title));
+    filters.push(createStringFilter('metadata.artist', constraints.artist));
+    filters.push(createStringFilter('metadata.album', constraints.album));
+    filters.push(createStringFilter('metadata.title', constraints.title));
     filters.push(createStringFilter('dir', constraints.dir));
     filters.push(createStringFilter('path', constraints.path));
 
