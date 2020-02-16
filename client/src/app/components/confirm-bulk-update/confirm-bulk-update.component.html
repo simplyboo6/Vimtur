@@ -1,0 +1,19 @@
+<div class="modal-header">
+  <h4 class="modal-title">Bulk Media Update</h4>
+</div>
+<div *ngIf="constraints" class="modal-body">
+  <p>Are you sure you want to update all media that match the current search criteria?</p>
+  <p *ngIf="isConstraintsEmpty()" class="text-danger">
+    Warning! This operation will apply to all media in the entire collection.
+  </p>
+</div>
+<div class="modal-footer row footer-padding">
+  <div class="md-6">
+    <button type="button" class="btn btn-danger" (click)="modal.close(false)">Cancel</button>
+  </div>
+  <div class="md-6">
+    <button *ngIf="constraints" type="button" class="btn btn-primary" (click)="modal.close(true)">
+      Confirm
+    </button>
+  </div>
+</div>

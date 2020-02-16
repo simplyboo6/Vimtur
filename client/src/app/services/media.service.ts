@@ -7,6 +7,8 @@ import { CollectionService } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
 import { Alert } from 'app/shared/types';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { ConfirmBulkUpdateComponent } from 'app/components/confirm-bulk-update/confirm-bulk-update.component';
 
 interface TagListItem {
   display: string;
@@ -28,6 +30,7 @@ export class MediaService {
   private alertService: AlertService;
   private tagService: TagService;
   private actorService: ActorService;
+  private modalService: NgbModal;
   private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
 
   public media?: Media;
@@ -38,11 +41,13 @@ export class MediaService {
     collectionService: CollectionService,
     tagService: TagService,
     actorService: ActorService,
+    modalService: NgbModal,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.tagService = tagService;
     this.actorService = actorService;
+    this.modalService = modalService;
 
     collectionService.getMetadata().subscribe(metadata => {
       this.setCurrent(
@@ -220,6 +225,24 @@ export class MediaService {
   }
 
   public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {
+    console.log('saveBulk', constraints, update);
+    const modalRef = this.modalService.open(ConfirmBulkUpdateComponent, {
+      centered: true,
+    });
+    (modalRef.componentInstance as ConfirmBulkUpdateComponent).constraints = constraints;
+    (modalRef.componentInstance as ConfirmBulkUpdateComponent).modal = modalRef;
+    modalRef.result
+      .then(result => {
+        if (result) {
+          this.saveBulkRaw(constraints, update);
+        }
+      })
+      .catch(() => {
+        // Ignore the error. Thrown on cancel/deny
+      });
+  }
+
+  private saveBulkRaw(constraints: SubsetConstraints, update: UpdateMedia) {
     const alert: Alert = {
       type: 'info',
       message: 'Applying bulk update... (This may take a while)',

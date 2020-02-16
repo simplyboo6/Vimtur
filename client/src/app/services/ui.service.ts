@@ -134,7 +134,10 @@ export class UiService {
     }
 
     for (const field of this.arrayFields) {
-      constraints[field.field] = toArrayFilter(this.searchModel[field.field]);
+      const res = toArrayFilter(this.searchModel[field.field]);
+      if (res) {
+        constraints[field.field] = res;
+      }
     }
 
     if (this.searchModel.tagged) {
