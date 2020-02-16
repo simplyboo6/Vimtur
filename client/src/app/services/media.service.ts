@@ -1,11 +1,12 @@
 import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject, forkJoin } from 'rxjs';
-import { Media, UpdateMetadata, UpdateMedia } from '@vimtur/common';
+import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { CollectionService } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
+import { Alert } from 'app/shared/types';
 
 interface TagListItem {
   display: string;
@@ -216,6 +217,39 @@ export class MediaService {
 
   public getMedia(): ReplaySubject<Media> {
     return this.mediaReplay;
+  }
+
+  public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {
+    const alert: Alert = {
+      type: 'info',
+      message: 'Applying bulk update... (This may take a while)',
+    };
+
+    this.alertService.show(alert);
+    this.httpClient
+      .patch<number>(`/api/images/bulk-update`, { constraints, update }, HTTP_OPTIONS)
+      .subscribe(
+        (count: number) => {
+          this.alertService.dismiss(alert);
+          this.alertService.show({
+            type: 'success',
+            autoClose: 5000,
+            message: `Applied update to ${count} media`,
+          });
+          if (update.metadata) {
+            this.media.metadata = Object.assign(this.media.metadata || {}, update.metadata) as any;
+          }
+          const metadata = this.media.metadata;
+          Object.assign(this.media, update);
+          this.media.metadata = metadata;
+          this.mediaReplay.next(this.media);
+        },
+        (err: HttpErrorResponse) => {
+          this.alertService.dismiss(alert);
+          console.error('bulk update failed', constraints, update, err);
+          this.alertService.show({ type: 'danger', message: 'Failed to apply bulk update' });
+        },
+      );
   }
 
   private saveMedia(hash: string, update: UpdateMedia) {

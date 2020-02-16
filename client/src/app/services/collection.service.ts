@@ -141,7 +141,7 @@ export class CollectionService {
       return;
     }
 
-    const loadingAlert: Alert = { type: 'info', message: 'Searching...', autoClose: 5000 };
+    const loadingAlert: Alert = { type: 'info', message: 'Searching...' };
     this.alertService.show(loadingAlert);
 
     // Avoid weird artifacts when the gallery subscribes (so it doesn't get the old collection).
@@ -189,6 +189,7 @@ export class CollectionService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
+        this.alertService.dismiss(loadingAlert);
         this.alertService.show({ type: 'danger', message: 'Failed to complete search' });
       },
     );

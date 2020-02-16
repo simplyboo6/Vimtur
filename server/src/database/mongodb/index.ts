@@ -26,15 +26,16 @@ interface Tag {
   name: string;
 }
 
+const MEDIA_VALIDATOR = Validator.load('BaseMedia');
+
 export class MongoConnector extends Database {
   private server: MongoClient;
   private db: Db;
-  private mediaValidator: Validator;
 
   public static async init(): Promise<Database> {
     const server = await MongoConnector.connect();
 
-    const connector = new MongoConnector(server, Validator.load('BaseMedia'));
+    const connector = new MongoConnector(server);
 
     await Updater.apply(connector.db);
 
@@ -60,13 +61,12 @@ export class MongoConnector extends Database {
     }
   }
 
-  private constructor(server: MongoClient, mediaValidator: Validator) {
+  private constructor(server: MongoClient) {
     super();
     this.server = server;
     const dbName = Config.get().database.db;
     console.log(`Using database: ${dbName}`);
     this.db = this.server.db(dbName);
-    this.mediaValidator = mediaValidator;
   }
 
   public async getUserConfig(): Promise<Configuration.Partial> {
@@ -161,6 +161,36 @@ export class MongoConnector extends Database {
     console.log(`resetClones: ${result.matchedCount} reset`);
   }
 
+  public async saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number> {
+    console.log('Save Bulk', constraints, media);
+
+    const collection = this.db.collection('media');
+
+    // Filter out various old fields we no longer require.
+    // This one is generated on get media and may be accidentally passed back.
+    const oldMedia = media as any;
+    if (oldMedia.absolutePath !== undefined) {
+      delete oldMedia.absolutePath;
+    }
+    if (oldMedia.transcode !== undefined) {
+      delete oldMedia.transcode;
+    }
+    if (oldMedia.cached !== undefined) {
+      delete oldMedia.cached;
+    }
+
+    // Map all metadata keys to avoid over-writes, if the media already exists.
+    if (media.metadata) {
+      for (const key of Object.keys(media.metadata)) {
+        (media as any)[`metadata.${key}`] = (media.metadata as any)[key];
+      }
+      delete media.metadata;
+    }
+
+    const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: media });
+    return result.matchedCount;
+  }
+
   public async saveMedia(hash: string, media: UpdateMedia): Promise<Media> {
     // Filter out various old fields we no longer require.
     // This one is generated on get media and may be accidentally passed back.
@@ -187,7 +217,7 @@ export class MongoConnector extends Database {
       await collection.updateOne({ hash }, { $set: media as any });
     } else {
       // If it's a new one then pre-validate it to show better errors.
-      const result = this.mediaValidator.validate(media);
+      const result = MEDIA_VALIDATOR.validate(media);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
@@ -225,86 +255,9 @@ export class MongoConnector extends Database {
     constraints: SubsetConstraints,
     fields?: SubsetFields,
   ): Promise<BaseMedia[]> {
-    console.log('subset', constraints);
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
-    const pipeline: object[] = [];
-
-    if (constraints.keywordSearch) {
-      pipeline.push({ $match: { $text: { $search: constraints.keywordSearch } } });
-    }
-
-    let filters: object[] = [];
-    filters.push(createArrayFilter('tags', constraints.tags));
-    filters.push(createArrayFilter('actors', constraints.actors));
-    filters.push(createArrayFilter('type', constraints.type));
-
-    filters.push(createStringFilter('metadata.artist', constraints.artist));
-    filters.push(createStringFilter('metadata.album', constraints.album));
-    filters.push(createStringFilter('metadata.title', constraints.title));
-    filters.push(createStringFilter('dir', constraints.dir));
-    filters.push(createStringFilter('path', constraints.path));
-
-    filters = filters.filter(filter => Object.keys(filter).length > 0);
-
-    if (filters.length > 0) {
-      pipeline.push({ $match: { $and: filters } });
-    }
-
-    if (constraints.quality) {
-      if (constraints.quality.min !== undefined) {
-        pipeline.push({ $match: { 'metadata.height': { $gte: constraints.quality.min } } });
-      }
-      if (constraints.quality.max !== undefined) {
-        pipeline.push({ $match: { 'metadata.height': { $lte: constraints.quality.max } } });
-      }
-    }
-
-    if (constraints.rating) {
-      if (constraints.rating.max === 0) {
-        pipeline.push({
-          $match: { $or: [{ rating: { $lte: 0 } }, { rating: { $exists: false } }] },
-        });
-      } else {
-        if (constraints.rating.min !== undefined) {
-          pipeline.push({ $match: { rating: { $gte: constraints.rating.min } } });
-        }
-        if (constraints.rating.max !== undefined) {
-          pipeline.push({ $match: { rating: { $lte: constraints.rating.max } } });
-        }
-      }
-    }
-
-    const booleanSearch = (field: string, value?: boolean): object[] => {
-      if (value === undefined) {
-        return [];
-      }
-      if (value) {
-        return [{ $match: { [field]: true } }];
-      } else {
-        return [{ $match: { $or: [{ [field]: false }, { [field]: { $exists: false } }] } }];
-      }
-    };
-
-    pipeline.push(...booleanSearch('corrupted', constraints.corrupted));
-    pipeline.push(...booleanSearch('thumbnail', constraints.thumbnail));
-    pipeline.push(...booleanSearch('preview', constraints.preview));
-
-    if (constraints.phashed !== undefined) {
-      pipeline.push({ $match: { phash: { $exists: constraints.phashed } } });
-    }
-
-    if (constraints.cached !== undefined) {
-      pipeline.push({ $match: { 'metadata.qualityCache.0': { $exists: constraints.cached } } });
-    }
-
-    if (constraints.indexed !== undefined) {
-      pipeline.push({ $match: { metadata: { $exists: constraints.indexed } } });
-    }
-
-    if (constraints.hasClones !== undefined) {
-      pipeline.push({ $match: { 'clones.0': { $exists: constraints.hasClones } } });
-    }
+    const pipeline: object[] = [{ $match: this.buildMediaMatch(constraints) }];
 
     if (constraints.sample) {
       pipeline.push({ $sample: { size: constraints.sample } });
@@ -365,5 +318,84 @@ export class MongoConnector extends Database {
 
   public async close(): Promise<void> {
     await this.server.close();
+  }
+
+  private buildMediaMatch(constraints: SubsetConstraints): object {
+    console.log('subset', constraints);
+
+    const filters: object[] = [];
+
+    if (constraints.keywordSearch) {
+      filters.push({ $text: { $search: constraints.keywordSearch } });
+    }
+
+    filters.push(createArrayFilter('tags', constraints.tags));
+    filters.push(createArrayFilter('actors', constraints.actors));
+    filters.push(createArrayFilter('type', constraints.type));
+
+    filters.push(createStringFilter('metadata.artist', constraints.artist));
+    filters.push(createStringFilter('metadata.album', constraints.album));
+    filters.push(createStringFilter('metadata.title', constraints.title));
+    filters.push(createStringFilter('dir', constraints.dir));
+    filters.push(createStringFilter('path', constraints.path));
+
+    if (constraints.quality) {
+      if (constraints.quality.min !== undefined) {
+        filters.push({ 'metadata.height': { $gte: constraints.quality.min } });
+      }
+      if (constraints.quality.max !== undefined) {
+        filters.push({ 'metadata.height': { $lte: constraints.quality.max } });
+      }
+    }
+
+    if (constraints.rating) {
+      if (constraints.rating.max === 0) {
+        filters.push({
+          $or: [{ rating: { $lte: 0 } }, { rating: { $exists: false } }],
+        });
+      } else {
+        if (constraints.rating.min !== undefined) {
+          filters.push({ rating: { $gte: constraints.rating.min } });
+        }
+        if (constraints.rating.max !== undefined) {
+          filters.push({ rating: { $lte: constraints.rating.max } });
+        }
+      }
+    }
+
+    const booleanSearch = (field: string, value?: boolean): object => {
+      if (value === undefined) {
+        return [];
+      }
+      if (value) {
+        return { [field]: true };
+      } else {
+        return { $or: [{ [field]: false }, { [field]: { $exists: false } }] };
+      }
+    };
+
+    filters.push(booleanSearch('corrupted', constraints.corrupted));
+    filters.push(booleanSearch('thumbnail', constraints.thumbnail));
+    filters.push(booleanSearch('preview', constraints.preview));
+
+    if (constraints.phashed !== undefined) {
+      filters.push({ phash: { $exists: constraints.phashed } });
+    }
+
+    if (constraints.cached !== undefined) {
+      filters.push({ 'metadata.qualityCache.0': { $exists: constraints.cached } });
+    }
+
+    if (constraints.indexed !== undefined) {
+      filters.push({ metadata: { $exists: constraints.indexed } });
+    }
+
+    if (constraints.hasClones !== undefined) {
+      filters.push({ 'clones.0': { $exists: constraints.hasClones } });
+    }
+
+    return {
+      $and: filters.filter(filter => Object.keys(filter).length > 0),
+    };
   }
 }

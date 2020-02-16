@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, AfterViewChecked, ViewChild } from '@angu
 import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
+import { UiService } from 'services/ui.service';
 import { AlertService } from 'services/alert.service';
 import { Subscription } from 'rxjs';
 import { Media, UpdateMedia } from '@vimtur/common';
@@ -34,6 +35,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private alertService: AlertService;
+  private uiService: UiService;
   private subscriptions: Subscription[] = [];
 
   public constructor(
@@ -41,11 +43,13 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     tagService: TagService,
     alertService: AlertService,
     actorService: ActorService,
+    uiService: UiService,
   ) {
     this.mediaService = mediaService;
     this.tagService = tagService;
     this.alertService = alertService;
     this.actorService = actorService;
+    this.uiService = uiService;
   }
 
   public ngOnInit() {
@@ -74,6 +78,14 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
     );
+  }
+
+  public saveBulkMetadata(field: 'artist' | 'album' | 'title') {
+    // TODO Confirm with user and display current search set.
+    // TODO Show a warning to the user if no filters are set.
+    this.mediaService.saveBulk(this.uiService.createSearch(), {
+      metadata: { [field]: this.mediaModel.metadata[field] },
+    });
   }
 
   public saveMetadata(field: 'artist' | 'album' | 'title') {

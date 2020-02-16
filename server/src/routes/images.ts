@@ -3,7 +3,7 @@ import Path from 'path';
 import PathIsInside from 'path-is-inside';
 
 import { BadRequest, NotFound } from '../errors';
-import { Database, SubsetConstraints } from '../types';
+import { BulkUpdate, Database, SubsetConstraints } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
 import { Validator } from '../utils/validator';
@@ -11,17 +11,19 @@ import { deleteMedia } from '../utils';
 import { wrap } from '../express-async';
 import Config from '../config';
 
+const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
+const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
+const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
+
 export async function create(db: Database): Promise<Router> {
   const router = Router();
 
-  const subsetValidator = Validator.load('SubsetConstraints');
-  const mediaUpdateValidator = Validator.load('UpdateMedia');
   const transcoder = new Transcoder(db);
 
   router.post(
     '/subset',
     wrap(async ({ req }) => {
-      const result = subsetValidator.validate(req.body);
+      const result = SUBSET_VALIDATOR.validate(req.body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
@@ -33,6 +35,25 @@ export async function create(db: Database): Promise<Router> {
       console.log('Search request.', constraints);
       return {
         data: await db.subset(constraints),
+      };
+    }),
+  );
+
+  router.patch(
+    '/bulk-update',
+    wrap(async ({ req }) => {
+      const result = BULK_UPDATE_VALIDATOR.validate(req.body);
+      if (!result.success) {
+        throw new BadRequest(result.errorText!);
+      }
+
+      const request: BulkUpdate = req.body;
+      request.constraints.corrupted = false;
+      request.constraints.indexed = true;
+
+      console.log('Bulk update', request);
+      return {
+        data: await db.saveBulkMedia(request.constraints, request.update),
       };
     }),
   );
@@ -65,7 +86,7 @@ export async function create(db: Database): Promise<Router> {
   router.patch(
     '/:hash',
     wrap(async ({ req }) => {
-      const result = mediaUpdateValidator.validate(req.body);
+      const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }

@@ -140,13 +140,13 @@
         </select>
       </div>
 
-      <div *ngFor="let field of stringFields" class="form-group">
+      <div *ngFor="let field of uiService.stringFields" class="form-group">
         <label>{{ field.name }}</label>
         <input type="text" [(ngModel)]="searchModel[field.field]" class="form-control" />
       </div>
     </div>
 
-    <ng-container *ngFor="let field of arrayFields">
+    <ng-container *ngFor="let field of uiService.arrayFields">
       <div *ngIf="this[field.field]" class="col-md-3">
         <h3>{{ field.name }}</h3>
         <div class="form-group">

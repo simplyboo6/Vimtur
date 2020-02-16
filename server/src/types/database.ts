@@ -11,6 +11,10 @@ export abstract class Database {
   // Media
   public abstract getMedia(hash: string): Promise<Media | undefined>;
   public abstract saveMedia(hash: string, media: UpdateMedia): Promise<Media>;
+  public abstract saveBulkMedia(
+    constraints: SubsetConstraints,
+    media: UpdateMedia,
+  ): Promise<number>;
   public abstract removeMedia(hash: string): Promise<void>;
   // Media - tags
   public abstract addMediaTag(hash: string, tag: string): Promise<void>;
