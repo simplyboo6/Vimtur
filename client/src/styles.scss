@@ -15,3 +15,7 @@
 angular2-multiselect {
   width: 100%;
 }
+
+button:disabled {
+  cursor: initial;
+}

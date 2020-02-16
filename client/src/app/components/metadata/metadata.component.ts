@@ -26,6 +26,12 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public tagService: TagService;
   public actorService: ActorService;
 
+  public readonly metadataFields = [
+    { name: 'artist', text: 'Artist' },
+    { name: 'album', text: 'Album' },
+    { name: 'title', text: 'Title' },
+  ];
+
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private alertService: AlertService;
   private subscriptions: Subscription[] = [];
@@ -68,6 +74,30 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
     );
+  }
+
+  public saveMetadata(field: 'artist' | 'album' | 'title') {
+    this.mediaService.saveMetadata({ [field]: this.mediaModel.metadata[field] });
+  }
+
+  public isMetadataChanged(
+    field: 'artist' | 'album' | 'title',
+    media?: Media,
+    model?: MediaModel,
+  ): boolean {
+    if (!media || !model || !model.metadata || !media.metadata) {
+      return false;
+    }
+
+    if (!model.metadata[field] && !media.metadata[field]) {
+      return false;
+    }
+
+    if (model.metadata[field] === undefined) {
+      return false;
+    }
+
+    return media.metadata[field] !== model.metadata[field];
   }
 
   public ngOnDestroy() {

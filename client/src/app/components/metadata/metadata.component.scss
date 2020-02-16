@@ -53,3 +53,17 @@ h4 {
 .pad-bottom {
   padding-bottom: 2rem;
 }
+
+.horizontal {
+  display: flex;
+  flex-direction: row;
+
+  & > .form-control {
+    width: initial;
+    flex: 1;
+  }
+
+  & > button {
+    margin-left: 0.5rem;
+  }
+}
