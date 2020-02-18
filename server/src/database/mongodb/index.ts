@@ -394,8 +394,14 @@ export class MongoConnector extends Database {
       filters.push({ 'clones.0': { $exists: constraints.hasClones } });
     }
 
+    const filteredFilters = filters.filter(filter => Object.keys(filter).length > 0);
+
+    if (filteredFilters.length === 0) {
+      return {};
+    }
+
     return {
-      $and: filters.filter(filter => Object.keys(filter).length > 0),
+      $and: filteredFilters,
     };
   }
 }
