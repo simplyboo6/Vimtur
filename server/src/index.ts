@@ -91,7 +91,9 @@ async function createServer(db: Database): Promise<Server> {
     wrap(async ({ req }) => {
       // Because the new config overrides the existing one when saved
       // they must be merged first to preserve properties.
-      const merged = DeepMerge.all([await db.getUserConfig(), req.body]);
+      const merged = DeepMerge.all([await db.getUserConfig(), req.body], {
+        arrayMerge: (_, sourceArray) => sourceArray,
+      });
       Config.setUserOverlay(merged);
       await db.saveUserConfig(merged);
       const config = { ...Config.get() };
