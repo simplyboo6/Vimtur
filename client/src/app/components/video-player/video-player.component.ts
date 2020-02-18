@@ -58,7 +58,9 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   @ViewChild('videoPlayer', { static: false }) public videoPlayer: any;
 
   @Input() public media?: Media;
-  public videoPlayerState: VideoPlayerState = {};
+  public videoPlayerState: VideoPlayerState = {
+    muted: true,
+  };
   public qualitySelectorOpen = false;
 
   private configService: ConfigService;
@@ -124,6 +126,8 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
           inControls: this.videoPlayerState.inControls,
           active: this.videoPlayerState.active,
           selectedQuality: this.videoPlayerState.selectedQuality,
+          muted: this.videoPlayerState.muted,
+          volume: this.videoPlayerState.volume,
         };
       }
 
@@ -421,7 +425,8 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       startLevel: lowQualityOnSeek ? 0 : -1,
     });
 
-    this.syncVolume();
+    this.videoElement.nativeElement.volume = this.videoPlayerState.volume || 1;
+    this.videoElement.nativeElement.muted = this.videoPlayerState.muted;
 
     this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
       console.log('Manifest quality levels', data.levels);
