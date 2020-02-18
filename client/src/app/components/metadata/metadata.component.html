@@ -61,7 +61,7 @@
           enableCheckAll: false,
           enableSearchFilter: true,
           addNewItemOnFilter: true,
-          enableFilterSelectAll: true
+          enableFilterSelectAll: false
         }"
         [ngModel]="mediaModel.tags"
         (onAddFilterNewItem)="tagService.addTag($event)"
@@ -81,7 +81,7 @@
           enableCheckAll: false,
           enableSearchFilter: true,
           addNewItemOnFilter: true,
-          enableFilterSelectAll: true
+          enableFilterSelectAll: false
         }"
         [ngModel]="mediaModel.actors"
         (onAddFilterNewItem)="actorService.addActor($event)"
