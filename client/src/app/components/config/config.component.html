@@ -319,22 +319,74 @@
         seeking and loading times are very fast.
       </span>
     </div>
+  </div>
+  <!-- transcoder.cacheQualities -->
+  <div class="custom-control custom-checkbox input-component">
+    <label for="config-transcoder-cache-qualities">Video caching qualities</label>
+    <angular2-multiselect
+      id="config-transcoder-cache-qualities"
+      [data]="qualityList"
+      [settings]="{
+        text: '+ Quality',
+        enableCheckAll: false,
+        enableSearchFilter: false,
+        addNewItemOnFilter: false,
+        enableFilterSelectAll: false
+      }"
+      [ngModel]="cacheQualities"
+      (onSelect)="addQuality('cacheQualities', $event)"
+      (onDeSelect)="removeQuality('cacheQualities', $event)"
+    >
+    </angular2-multiselect>
     <div>
       <span class="text-muted">
-        Video's will be cached at these qualities:
-        {{ formatQualities(config.transcoder.cacheQualities) }}
+        When importing/caching videos will be pre-transcoded to these qualities.
       </span>
     </div>
+  </div>
+  <!-- transcoder.streamQualities -->
+  <div class="custom-control custom-checkbox input-component">
+    <label for="config-transcoder-stream-qualities">Video streaming qualities</label>
+    <angular2-multiselect
+      id="config-transcoder-stream-qualities"
+      [data]="qualityList"
+      [settings]="{
+        text: '+ Quality',
+        enableCheckAll: false,
+        enableSearchFilter: false,
+        addNewItemOnFilter: false,
+        enableFilterSelectAll: false
+      }"
+      [ngModel]="streamQualities"
+      (onSelect)="addQuality('streamQualities', $event)"
+      (onDeSelect)="removeQuality('streamQualities', $event)"
+    >
+    </angular2-multiselect>
     <div>
       <span class="text-muted">
-        If the source quality is less than or equal to {{ config.transcoder.minQuality }}p then it
-        will use the source quality.
+        When streaming a video these will be the resolutions available to stream at. To stream only
+        cached video, have this be the same as the cache qualities.
       </span>
     </div>
+  </div>
+  <!-- transcoder.minQuality -->
+  <div class="custom-control custom-checkbox input-component">
+    <label for="config-transcoder-min-quality">Minimum transcode quality</label>
+    <angular2-multiselect
+      id="config-transcoder-min-quality"
+      [data]="qualityList"
+      [settings]="{
+        text: 'Minimum Quality',
+        singleSelection: true
+      }"
+      [ngModel]="minQuality"
+      (onSelect)="updateConfig('transcoder.minQuality', $event.id)"
+    >
+    </angular2-multiselect>
     <div>
       <span class="text-muted">
-        Video's can be streamed at these qualities:
-        {{ formatQualities(config.transcoder.streamQualities) }}
+        If the source quality is less than or equal to the above then it will use the source quality
+        and not downscale.
       </span>
     </div>
   </div>

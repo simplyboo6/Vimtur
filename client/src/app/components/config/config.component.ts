@@ -8,6 +8,7 @@ import { Configuration, Scanner } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { CacheService, AdvancedAction } from 'app/services/cache.service';
 import { Subscription } from 'rxjs';
+import { ListItem } from 'app/shared/types';
 
 @Component({
   selector: 'app-config',
@@ -30,12 +31,26 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public tags?: string[];
   public actors?: string[];
   public scannerStatus?: Scanner.StrippedStatus;
+  public cacheQualities: ListItem<number>[] = [];
+  public streamQualities: ListItem<number>[] = [];
+  public minQuality: ListItem<number>[] = [];
 
   public addTagModel?: string;
   public deleteTagModel?: string;
   public addActorModel?: string;
   public deleteActorModel?: string;
   public advancedActionModel?: AdvancedAction;
+
+  public readonly qualityList: ListItem<number>[] = [
+    { id: 144, itemName: '144p' },
+    { id: 240, itemName: '240p' },
+    { id: 360, itemName: '360p' },
+    { id: 480, itemName: '480p' },
+    { id: 720, itemName: '720p' },
+    { id: 1080, itemName: '1080p' },
+    { id: 1440, itemName: '1440p' },
+    { id: 2160, itemName: '4K (2160p)' },
+  ];
 
   public constructor(
     configService: ConfigService,
@@ -61,6 +76,9 @@ export class ConfigComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
+        this.cacheQualities = this.fromQualitiesToList(config.transcoder.cacheQualities);
+        this.streamQualities = this.fromQualitiesToList(config.transcoder.streamQualities);
+        this.minQuality = this.fromQualitiesToList([config.transcoder.minQuality]);
       }),
     );
 
@@ -110,6 +128,35 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public startAction() {
     this.cacheService.startAction(this.advancedActionModel);
+  }
+
+  public addQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
+    console.log('addQuality', field, quality);
+    if (!this.config.transcoder[field].includes(quality.id)) {
+      this.config.transcoder[field].push(quality.id);
+      this[field] = this.fromQualitiesToList(this.config.transcoder[field]);
+      this.configService.updateConfiguration({
+        transcoder: { [field]: this.config.transcoder[field] },
+      });
+    }
+  }
+
+  public removeQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
+    console.log('removeQuality', field, quality);
+    const index = this.config.transcoder[field].indexOf(quality.id);
+    if (index >= 0) {
+      this.config.transcoder[field].splice(index, 1);
+      this[field] = this.fromQualitiesToList(this.config.transcoder[field]);
+      this.configService.updateConfiguration({
+        transcoder: { [field]: this.config.transcoder[field] },
+      });
+    }
+  }
+
+  public fromQualitiesToList(qualities: number[]): ListItem<number>[] {
+    return qualities
+      .map(quality => ({ id: quality, itemName: `${quality}p` }))
+      .sort((a, b) => a.id - b.id);
   }
 
   public addTag() {

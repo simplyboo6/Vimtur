@@ -149,7 +149,9 @@ class Config {
     }
     layerArray.push(...layers);
 
-    const merged: Configuration.Main = DeepMerge.all(layerArray) as any;
+    const merged: Configuration.Main = DeepMerge.all(layerArray, {
+      arrayMerge: (_, sourceArray) => sourceArray,
+    }) as any;
     // Remove duplicate items in the qualities array.
     merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort(
       (a, b) => a - b,
