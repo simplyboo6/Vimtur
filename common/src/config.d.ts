@@ -55,6 +55,8 @@ export namespace Configuration {
     quickTagShowTitle?: boolean;
     quickTagShowPeople?: boolean;
     quickTagShowPath?: boolean;
+
+    showTaskNotifications?: boolean;
   }
 
   export interface Mongo {

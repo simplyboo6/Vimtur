@@ -1,18 +1,11 @@
 <div class="container pad-bottom" *ngIf="config; else loading">
   <h4>Import</h4>
-  <div *ngIf="scannerStatus; else loading">
-    State: {{ scannerStatus.state }}, Progress: {{ getProgress() }}
-    <div *ngIf="scannerStatus.scanResults">
-      New files: {{ scannerStatus.scanResults.newPaths }}, Missing files:
-      {{ scannerStatus.scanResults.missingPaths.length }}
-    </div>
-  </div>
   <div class="row">
     <div class="col-md-12 form-padded-input">
       <button
         class="btn btn-primary btn-block"
-        [disabled]="scannerStatus && scannerStatus.state !== 'IDLE'"
-        (click)="cacheService.startImport()"
+        [disabled]="!tasks"
+        (click)="tasksService.startImport()"
       >
         Start Auto-Import
       </button>
@@ -20,21 +13,54 @@
   </div>
   <div class="row">
     <div class="col-md-8 form-padded-input">
-      <select [(ngModel)]="advancedActionModel" class="custom-select d-block w-100">
-        <option *ngFor="let action of cacheService.getActions()" [ngValue]="action">{{
-          action.name
-        }}</option>
+      <select [disabled]="!tasks" [(ngModel)]="task" class="custom-select d-block w-100">
+        <option *ngFor="let task of tasks" [ngValue]="task">{{ task.description }}</option>
       </select>
     </div>
     <div class="col-md-4 form-padded-input">
       <button
-        class="btn btn-primary btn-block"
-        [disabled]="(scannerStatus && scannerStatus.state !== 'IDLE') || !advancedActionModel"
+        class="btn btn-primary btn-block clear-button"
+        [disabled]="!task"
         (click)="startAction()"
       >
         Start
       </button>
     </div>
+  </div>
+  <div class="row" *ngIf="queue && queue.length > 0">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Description</th>
+          <th scope="col">Running</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of queue">
+          <td>{{ item.id }}</td>
+          <td>
+            {{ item.description }}
+            <p *ngIf="item.error" class="text-danger">Error running task. {{ item.error }}</p>
+          </td>
+          <td>
+            {{ item.running ? (item.max > 0 ? (item.current / item.max | percent) : 'Yes') : 'No' }}
+          </td>
+          <td>
+            <button
+              *ngIf="!item.running"
+              class="btn btn-link"
+              type="submit"
+              (click)="tasksService.cancelAction(item.id)"
+              title="Cancel"
+            >
+              <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <h4>Tags</h4>
@@ -121,6 +147,24 @@
     />
     <label class="custom-control-label" for="config-autoplay">Enable autoplay?</label>
     <div><span class="text-muted">Videos will autoplay muted.</span></div>
+  </div>
+  <!-- user.showTaskNotifications -->
+  <div class="custom-control custom-checkbox input-component">
+    <input
+      type="checkbox"
+      class="custom-control-input"
+      id="config-show-task-notifications"
+      [(ngModel)]="config.user.showTaskNotifications"
+      (ngModelChange)="updateConfig('user.showTaskNotifications', $event)"
+    />
+    <label class="custom-control-label" for="config-show-task-notifications"
+      >Enable status notifications for tasks?</label
+    >
+    <div>
+      <span class="text-muted"
+        >Displays a popup when tasks start and end if enabled. Errors will always show.</span
+      >
+    </div>
   </div>
   <!-- user.lowQualityOnLoadEnabled -->
   <div class="custom-control custom-checkbox input-component">
@@ -476,4 +520,22 @@
 </div>
 <ng-template #loading>
   <h4>Loading...</h4>
+</ng-template>
+
+<ng-template #clearIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="far"
+    data-icon="times-circle"
+    class="clear-icon svg-inline--fa fa-times-circle fa-w-16"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+  >
+    <path
+      fill="currentColor"
+      d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200zm101.8-262.2L295.6 256l62.2 62.2c4.7 4.7 4.7 12.3 0 17l-22.6 22.6c-4.7 4.7-12.3 4.7-17 0L256 295.6l-62.2 62.2c-4.7 4.7-12.3 4.7-17 0l-22.6-22.6c-4.7-4.7-4.7-12.3 0-17l62.2-62.2-62.2-62.2c-4.7-4.7-4.7-12.3 0-17l22.6-22.6c4.7-4.7 12.3-4.7 17 0l62.2 62.2 62.2-62.2c4.7-4.7 12.3-4.7 17 0l22.6 22.6c4.7 4.7 4.7 12.3 0 17z"
+    ></path>
+  </svg>
 </ng-template>

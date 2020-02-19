@@ -4,9 +4,9 @@ import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
-import { Configuration, Scanner } from '@vimtur/common';
+import { Configuration, Scanner, QueuedTask, ListedTask } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
-import { CacheService, AdvancedAction } from 'app/services/cache.service';
+import { TasksService } from 'app/services/tasks.service';
 import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 
@@ -26,11 +26,12 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
 
-  public cacheService: CacheService;
+  public tasksService: TasksService;
   public config?: Configuration.Main;
   public tags?: string[];
   public actors?: string[];
-  public scannerStatus?: Scanner.StrippedStatus;
+  public tasks?: ListedTask[];
+  public queue?: QueuedTask[];
   public cacheQualities: ListItem<number>[] = [];
   public streamQualities: ListItem<number>[] = [];
   public minQuality: ListItem<number>[] = [];
@@ -39,7 +40,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public deleteTagModel?: string;
   public addActorModel?: string;
   public deleteActorModel?: string;
-  public advancedActionModel?: AdvancedAction;
+  public task?: ListedTask;
 
   public readonly qualityList: ListItem<number>[] = [
     { id: 144, itemName: '144p' },
@@ -59,7 +60,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
     confirmationService: ConfirmationService,
     alertService: AlertService,
     actorService: ActorService,
-    cacheService: CacheService,
+    tasksService: TasksService,
   ) {
     this.configService = configService;
     this.tagService = tagService;
@@ -67,7 +68,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
     this.confirmationService = confirmationService;
     this.alertService = alertService;
     this.actorService = actorService;
-    this.cacheService = cacheService;
+    this.tasksService = tasksService;
   }
 
   public ngOnInit() {
@@ -99,13 +100,19 @@ export class ConfigComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.push(
-      this.cacheService.getStatus().subscribe(status => {
-        this.scannerStatus = status;
+      this.tasksService.getTasks().subscribe(tasks => {
+        this.tasks = tasks;
+      }),
+    );
+
+    this.subscriptions.push(
+      this.tasksService.getQueue().subscribe(queue => {
+        this.queue = queue;
       }),
     );
   }
 
-  public getProgress(): string {
+  /*public getProgress(): string {
     if (!this.scannerStatus) {
       return 'Unknown';
     } else if (this.scannerStatus.state === 'IDLE') {
@@ -117,7 +124,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
         (this.scannerStatus.progress.current / this.scannerStatus.progress.max) * 100,
       )}%`;
     }
-  }
+  }*/
 
   public ngOnDestroy() {
     for (const subscription of this.subscriptions) {
@@ -127,7 +134,9 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public startAction() {
-    this.cacheService.startAction(this.advancedActionModel);
+    if (this.task) {
+      this.tasksService.startAction(this.task.id);
+    }
   }
 
   public addQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {

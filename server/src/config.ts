@@ -81,6 +81,8 @@ const DEFAULTS: any = {
     quickTagShowTitle: true,
     quickTagShowPeople: true,
     quickTagShowPath: true,
+
+    showTaskNotifications: false,
   },
 };
 
