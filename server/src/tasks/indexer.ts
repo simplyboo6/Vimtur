@@ -3,12 +3,28 @@ import GM from 'gm';
 import Path from 'path';
 import Util from 'util';
 
-import { Database, Media, Metadata } from '../types';
-import { ImportUtils } from './import-utils';
+import { Database, Media, Metadata, RouterTask, TaskRunnerCallback } from '../types';
+import { ImportUtils } from '../cache/import-utils';
+import { Scanner } from './scanner';
 import Config from '../config';
 
 export class Indexer {
   private database: Database;
+
+  public static getTask(db: Database): RouterTask {
+    return {
+      description: 'Index new files found during a scan',
+      runner: async (callback: TaskRunnerCallback) => {
+        if (!Scanner.results) {
+          throw new Error('A scan must be run first');
+        }
+        const results = Scanner.results;
+        const indexer = new Indexer(db);
+        await indexer.indexFiles(Scanner.results.newPaths, callback);
+        results.newPaths = [];
+      },
+    };
+  }
 
   public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
     // The ffprobe typings are broken with promisify.

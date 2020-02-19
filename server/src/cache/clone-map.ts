@@ -2,7 +2,6 @@ import { Database } from '../types';
 import { Worker } from 'worker_threads';
 import OS from 'os';
 import Path from 'path';
-import Types from '@vimtur/common';
 
 const WORKER_COUNT = OS.cpus().length;
 const MH_THRESHOLD = 0.1;
@@ -34,19 +33,18 @@ export interface JobResult {
 export async function generateImageCloneMap(
   db: Database,
   images: MediaPhash[],
-  callback: (progress: Types.Scanner.Progress) => void,
+  updateStatus: (current: number, max: number) => void,
 ): Promise<void> {
   return new Promise<void>(resolve => {
     // Calculate the number of items to give each worker.
     const MEDIA_PER_SET = Math.ceil(images.length / WORKER_COUNT);
 
     // Callback to say started.
-    const progress: Types.Scanner.Progress = {
-      current: 0,
-      max: images.filter(i => i.clones === undefined).length,
-    };
-    console.log(`${progress.max} media of ${images.length} require clone maps`);
-    callback(progress);
+    let current = 0;
+    const max = images.filter(i => i.clones === undefined).length;
+
+    console.log(`${max} media of ${images.length} require clone maps`);
+    updateStatus(current, max);
 
     // Number of workers exited
     let complete = 0;
@@ -77,8 +75,7 @@ export async function generateImageCloneMap(
           }
         }
         // Callback with progress.
-        progress.current++;
-        callback(progress);
+        updateStatus(current++, max);
       });
 
       worker.on('error', err => {

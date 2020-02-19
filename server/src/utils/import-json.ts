@@ -6,7 +6,7 @@ import Util from 'util';
 
 import { BaseMedia, Database, DumpFile } from '../types';
 import { ImportUtils } from '../cache/import-utils';
-import { Indexer } from '../cache/indexer';
+import { Indexer } from '../tasks/indexer';
 import { setup as setupDb } from '../database';
 import Config from '../config';
 

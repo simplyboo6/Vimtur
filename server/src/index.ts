@@ -19,8 +19,8 @@ import Config from './config';
 import * as ActorRouter from './routes/actors';
 import * as ImageRouter from './routes/images';
 import * as InsightsRouter from './routes/insights';
-import * as ScannerRouter from './routes/scanner';
 import * as TagRouter from './routes/tags';
+import * as TasksRouter from './routes/tasks';
 
 async function createServer(db: Database): Promise<Server> {
   const app = Express();
@@ -34,8 +34,8 @@ async function createServer(db: Database): Promise<Server> {
   app.use('/api/images', await ImageRouter.create(db));
   app.use('/api/tags', await TagRouter.create(db));
   app.use('/api/actors', await ActorRouter.create(db));
-  app.use('/api/scanner', await ScannerRouter.create(db, io));
   app.use('/api/insights', await InsightsRouter.create(db));
+  app.use('/api/tasks', await TasksRouter.create(db, io));
 
   if (!require.main) {
     throw new Error('require.main undefned');

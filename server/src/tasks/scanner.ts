@@ -1,14 +1,47 @@
+import { Router } from 'express';
 import Path from 'path';
 import Types from '@vimtur/common';
 import Walk from 'walk';
 
 // Local
-import { ImportUtils } from './import-utils';
+import { Database, RouterTask } from '../types';
+import { ImportUtils } from '../cache/import-utils';
+import { wrap } from '../express-async';
 import Config from '../config';
 
 type FilterResults = Types.Scanner.FilterResults;
 
 export class Scanner {
+  public static results?: FilterResults;
+
+  public static getTask(db: Database): RouterTask {
+    const router = Router();
+    router.get(
+      '/results',
+      wrap(async () => {
+        return {
+          data: Scanner.results,
+        };
+      }),
+    );
+
+    return {
+      description: 'Scan for new files',
+      router,
+      runner: async () => {
+        const files = await Scanner.getFileList();
+        const mediaList = await db.subsetFields({}, { path: 1 });
+        const normalisedPaths: string[] = [];
+        for (const media of mediaList) {
+          normalisedPaths.push(media.path);
+        }
+        // Not an outdated value of only one task runs at a time.
+        // eslint-disable-next-line require-atomic-updates
+        Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
+      },
+    };
+  }
+
   public static async getFileList(): Promise<string[]> {
     const dir = Config.get().libraryPath;
     const options = {
