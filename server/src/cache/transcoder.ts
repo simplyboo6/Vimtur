@@ -140,34 +140,35 @@ export class Transcoder {
       (!targetHeight || targetHeight === media.metadata.height) &&
       Config.get().transcoder.maxCopyEnabled
     ) {
-      videoCodec.push(
-        ...[
-          'copy',
-          // To deal with strange overflows in corner cases.
-          '-max_muxing_queue_size',
-          '9999',
-        ],
-      );
+      videoCodec.push(...['copy']);
     } else {
+      const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
+        targetHeight || media.metadata.height,
+      );
+      const quality = `${Math.ceil(qualityRaw / 1000000)}M`;
+      const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
+
       videoCodec.push(
         ...[
           'libx264',
           '-bsf:v',
           'h264_mp4toannexb',
-          '-crf',
-          '23',
           '-tune',
           'film',
           '-quality',
           'realtime',
           '-preset',
-          'superfast',
-          // To deal with strange overflows in corner cases.
-          '-max_muxing_queue_size',
-          '9999',
+          'ultrafast',
+          '-maxrate',
+          quality,
+          '-bufsize',
+          qualityBuffer,
         ],
       );
     }
+
+    // To deal with strange overflows in corner cases.
+    videoCodec.push(...['-max_muxing_queue_size', '9999']);
 
     const scale =
       targetHeight && targetHeight !== media.metadata.height
@@ -224,25 +225,35 @@ export class Transcoder {
     media.metadata.qualityCache.push(targetHeight);
 
     const audioCodec = ['-acodec', 'aac', '-ac', '1', '-strict', '-2'];
-    let videoCodec = ['libx264', '-crf', '23', '-tune', 'film', '-vbsf', 'h264_mp4toannexb'];
     let scale: string[] = [];
-
-    // If max copy is enabled, the requested quality is the source quality and the codec is compatible,
-    // then copy the source video directly to the output HLS stream.
-    if (media.metadata.codec === 'h264' && requestedQuality.copy) {
-      videoCodec = ['copy'];
-      console.log('Max copy enabled - copying video codec');
-    }
 
     if (targetHeight !== media.metadata.height) {
       scale = ['-vf', `scale=-2:${targetHeight}`];
     }
 
+    const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
+      targetHeight || media.metadata.height,
+    );
+    // Although these are the same target qualities as streaming, without the time restrictions this
+    // produces a higher quality output the same size as the streamed version.
+    const quality = `${Math.ceil(qualityRaw / 1000000)}M`;
+    const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
+
     const args = [
       ...audioCodec,
       ...scale,
       '-vcodec',
-      ...videoCodec,
+      'libx264',
+      '-crf',
+      '23',
+      '-tune',
+      'film',
+      '-vbsf',
+      'h264_mp4toannexb',
+      '-maxrate',
+      quality,
+      '-bufsize',
+      qualityBuffer,
       '-f',
       'hls',
       '-hls_time',

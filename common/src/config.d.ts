@@ -12,6 +12,8 @@ export namespace Configuration {
     cacheQualities: number[];
     // An array of qualities to transcode to in heights for streaming (includes cached qualities).
     streamQualities: number[];
+    // A multiplier for the bitrate. Increasing this results in larger, higher quality streaming segments.
+    bitrateMultiplier: number;
     // True to cache keyframes the first time they're requested.
     enableCachingKeyframes: boolean;
     // True to cache keyframes as part of the importing process.

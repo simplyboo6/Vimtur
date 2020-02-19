@@ -49,6 +49,8 @@ const DEFAULTS: any = {
     // If the source is 720p it will transcode to 240p and 1080p
     cacheQualities: [240],
     streamQualities: [240, 480, 720, 1080],
+    // 1.5 results in 3M for 1080p.
+    bitrateMultiplier: 1.5,
     // Enables caching keyframes when they're initially accessed.
     enableCachingKeyframes: true,
     // Makes the first load of each video slower but initial import much faster.

@@ -213,9 +213,13 @@ export class ImportUtils {
     }
   }
 
-  public static estimateBandwidthFromQuality(quality: number): number {
-    // This makes a vague guess at what the likely bandwidth is.
-    return Math.ceil(710.7068 * Math.pow(quality, 1.2665));
+  public static calculateBandwidthFromQuality(quality: number): number {
+    const RES_MULTIPLIER = 1.777;
+    const bitrateMultiplier = Config.get().transcoder.bitrateMultiplier;
+    const pixels = quality * quality * RES_MULTIPLIER;
+
+    // Round to the nearest .5M
+    return Math.ceil((pixels * bitrateMultiplier) / 500000) * 500000;
   }
 
   public static generateStreamMasterPlaylist(media: BaseMedia): string {
@@ -225,7 +229,7 @@ export class ImportUtils {
     // TODO Filter out the resolutions greater than the source resolution.
     // TODO Refactor this to use actual height and maybe actual bandwidth.
     for (const quality of qualities.sort()) {
-      const bandwidth = ImportUtils.estimateBandwidthFromQuality(quality);
+      const bandwidth = ImportUtils.calculateBandwidthFromQuality(quality);
       // Get width, assume 16:10 for super max HD.
       const width = Math.ceil((quality / 10) * 16);
       const resolution = `${width}x${quality}`;
