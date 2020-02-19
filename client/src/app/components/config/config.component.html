@@ -172,7 +172,7 @@
       required
     />
     <div>
-      <span class="text-muted">The numer of columns in the quick tag panel of the viewer.</span>
+      <span class="text-muted">The number of columns in the quick tag panel of the viewer.</span>
     </div>
   </div>
   <!-- user.initialLoadLimit -->
@@ -390,6 +390,28 @@
       </span>
     </div>
   </div>
+  <!-- transcoder.bitrateMultiplier -->
+  <div class="custom-control input-component">
+    <label for="config-transcoder-bitrate-multiplier"
+      >Bitrate (quality) multiplier (Default 1.5)</label
+    >
+    <input
+      type="number"
+      class="form-control"
+      id="config-transcoder-bitrate-multiplier"
+      [(ngModel)]="config.transcoder.bitrateMultiplier"
+      (ngModelChange)="updateConfig('transcoder.bitrateMultiplier', $event)"
+      required
+    />
+    <div>
+      <span class="text-muted"
+        >Videos when streamed or cached are transcoded to a constant average bitrate. A calculations
+        run to increase bitrate as resolution increases. This field is a multiplier to that
+        calculation. Increasing it will increase chunk size and video quality, generally increasing
+        load times and quality. The default of 1.5 produces 3M bitrate for 1080p for example.</span
+      >
+    </div>
+  </div>
   <!-- transcoder.enableVideoPreviews -->
   <div class="custom-control custom-checkbox input-component">
     <input
@@ -424,8 +446,8 @@
       <span class="text-muted"
         >Enabling this causes video streams to be copied without transcoding if browser compatible.
         This sometimes leads to buffer overflows if the source media is a very high bitrate, on the
-        other hand this is also faster and less CPU intensive than transcoding. This setting also
-        applies to when caches of videos are generated in the source quality.</span
+        other hand this is also faster and less CPU intensive than transcoding. This setting does
+        not applt when caches of videos are generated.</span
       >
     </div>
   </div>
