@@ -35,6 +35,7 @@ export class TasksService {
     this.configService = configService;
 
     this.socket.on('task-queue', queue => {
+      console.debug('Task Queue', queue);
       this.queue.next(queue);
     });
 
