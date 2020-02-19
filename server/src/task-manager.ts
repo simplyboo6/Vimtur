@@ -108,12 +108,9 @@ export class TaskManager extends EventEmitter {
       taskStarted(
         Promise.resolve(
           task.runner((current, max) => {
-            const emit = queuedTask.max === 0 || current % 100 === 0 || current >= max;
             queuedTask.current = current;
             queuedTask.max = max;
-            if (emit) {
-              this.emit('queue', this.taskQueue);
-            }
+            this.emit('queue', this.taskQueue);
           }),
         ),
       );

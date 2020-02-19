@@ -11,10 +11,13 @@ import {
   KeyframeGenerator,
   PhashGenerator,
   PreviewGenerator,
+  PreviewVerifier,
   RehashTask,
   Scanner,
   ThumbnailGenerator,
   ThumbnailVerifier,
+  Uncorrupter,
+  VideoCacheVerifier,
 } from '../tasks';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
@@ -29,7 +32,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   };
 
   addTask('AUTO-IMPORT', {
-    description: 'Automatically import and cache new files',
+    description: '(Meta-task) Automatically import and cache new files',
     runner: () => {
       taskManager.start('SCAN');
       taskManager.start('INDEX');
@@ -49,6 +52,23 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     },
   });
 
+  addTask('VERIFY-CACHE', {
+    description: '(Meta-task) Verify and fix cache',
+    runner: () => {
+      taskManager.start('VERIFY-THUMBNAILS');
+      taskManager.start('VERIFY-PREVIEWS');
+      taskManager.start('VERIFY-VIDEO-CACHE');
+
+      taskManager.start('GENERATE-THUMBNAILS');
+      if (Config.get().transcoder.enableVideoPreviews) {
+        taskManager.start('GENERATE-PREVIEWS');
+      }
+      if (Config.get().transcoder.enableVideoCaching) {
+        taskManager.start('GENERATE-CACHE');
+      }
+    },
+  });
+
   addTask('SCAN', Scanner.getTask(db));
   addTask('INDEX', Indexer.getTask(db));
   addTask('GENERATE-THUMBNAILS', ThumbnailGenerator.getTask(db));
@@ -58,6 +78,9 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   addTask('GENERATE-PREVIEWS', PreviewGenerator.getTask(db));
   addTask('REHASH', RehashTask.getTask(db));
   addTask('VERIFY-THUMBNAILS', ThumbnailVerifier.getTask(db));
+  addTask('VERIFY-PREVIEWS', PreviewVerifier.getTask(db));
+  addTask('VERIFY-VIDEO-CACHE', VideoCacheVerifier.getTask(db));
+  addTask('UNCORRUPT', Uncorrupter.getTask(db));
 
   io.on('connection', socket => {
     socket.emit('task-queue', taskManager.getQueue());

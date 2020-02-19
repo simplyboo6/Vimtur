@@ -26,7 +26,7 @@ export class Transcoder {
     await ImportUtils.mkdir(`${Config.get().cachePath}/thumbnails`);
 
     const path = this.getThumbnailPath(media);
-    const args = ['-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
+    const args = ['-y', '-vf', 'thumbnail,scale=200:-1', '-frames:v', '1'];
     if (!media.metadata.length) {
       throw new Error(`Can't get thumbnail for video with no length`);
     }
@@ -52,7 +52,7 @@ export class Transcoder {
     const count = Math.max(1, Math.floor(media.metadata.length / fps));
     const height = Config.get().transcoder.videoPreviewHeight;
 
-    const args = ['-vf', `fps=1/${fps},scale=-1:${height},tile=1x${count}`, '-frames:v', '1'];
+    const args = ['-y', '-vf', `fps=1/${fps},scale=-1:${height},tile=1x${count}`, '-frames:v', '1'];
     const path = `${Config.get().cachePath}/previews/${media.hash}.png`;
     await ImportUtils.transcode(media.absolutePath, path, args);
   }
@@ -70,7 +70,9 @@ export class Transcoder {
 
     const output = this.getThumbnailPath(media);
 
-    const gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(media.absolutePath)
+    const gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(
+      media.absolutePath + (media.type === 'gif' ? '[0]' : ''),
+    )
       .autoOrient()
       .resize(200, 200);
     await new Promise<void>((resolve, reject) => {
@@ -175,7 +177,7 @@ export class Transcoder {
         ? ['-vf', `scale=-2:${targetHeight}`]
         : [];
 
-    const args = [...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
+    const args = ['-y', ...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
 
     await ImportUtils.transcode(media.absolutePath, stream, args, inputOptions);
   }
@@ -240,6 +242,7 @@ export class Transcoder {
     const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
 
     const args = [
+      '-y',
       ...audioCodec,
       ...scale,
       '-vcodec',
