@@ -30,12 +30,14 @@ export class Transcoder {
     if (!media.metadata.length) {
       throw new Error(`Can't get thumbnail for video with no length`);
     }
+
+    const inputOptions: string[] = [];
     if (media.metadata.length > 10) {
-      args.push('-ss');
       const offset = Math.ceil(media.metadata.length / 4);
-      args.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
+      inputOptions.push('-ss');
+      inputOptions.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
     }
-    await ImportUtils.transcode(media.absolutePath, path, args);
+    await ImportUtils.transcode(media.absolutePath, path, args, inputOptions);
   }
 
   public async createVideoPreview(media: Media): Promise<void> {
@@ -247,8 +249,6 @@ export class Transcoder {
       ...scale,
       '-vcodec',
       'libx264',
-      '-crf',
-      '23',
       '-tune',
       'film',
       '-vbsf',
