@@ -9,6 +9,7 @@ import {
   CacheGenerator,
   Indexer,
   KeyframeGenerator,
+  MissingDeleter,
   PhashGenerator,
   PreviewGenerator,
   PreviewVerifier,
@@ -81,6 +82,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   addTask('VERIFY-PREVIEWS', PreviewVerifier.getTask(db));
   addTask('VERIFY-VIDEO-CACHE', VideoCacheVerifier.getTask(db));
   addTask('UNCORRUPT', Uncorrupter.getTask(db));
+  addTask('DELETE-MISSING', MissingDeleter.getTask(db));
 
   io.on('connection', socket => {
     socket.emit('task-queue', taskManager.getQueue());

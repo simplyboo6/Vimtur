@@ -10,3 +10,4 @@ export * from './thumbnail-verifier';
 export * from './preview-verifier';
 export * from './video-cache-verifier';
 export * from './uncorrupter';
+export * from './missing-deleter';

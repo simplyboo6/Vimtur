@@ -40,6 +40,11 @@ export class TasksService {
     this.configService = configService;
     this.modalService = modalService;
 
+    this.socket.on('connect', () => {
+      console.debug('Websocket connected');
+      this.reloadScanResults();
+    });
+
     this.socket.on('task-queue', queue => {
       console.debug('Task Queue', queue);
       this.queue.next(queue);
@@ -72,7 +77,7 @@ export class TasksService {
         });
       }
 
-      if (!data.error && data.type === 'SCAN') {
+      if (!data.error && (data.type === 'SCAN' || data.type === 'DELETE-MISSING')) {
         this.reloadScanResults();
       }
     });
@@ -142,6 +147,7 @@ export class TasksService {
         console.log('type', res);
         const modalRef = this.modalService.open(ListModalComponent, {
           centered: true,
+          size: 'xl',
         });
 
         (modalRef.componentInstance as ListModalComponent).title = `${type} files`;
