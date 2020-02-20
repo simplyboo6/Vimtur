@@ -73,7 +73,13 @@
     <h4>Scan Results</h4>
     <div class="row">
       <div class="col-md-12 form-padded-input">
-        {{ scanResults.newPaths }} new files found and {{ scanResults.missingPaths }} files missing.
+        <a [routerLink]="" (click)="tasksService.showScannerFileList('new')"
+          >{{ scanResults.newPaths }} new files</a
+        >
+        found and
+        <a [routerLink]="" (click)="tasksService.showScannerFileList('missing')"
+          >{{ scanResults.missingPaths }} files missing</a
+        >.
       </div>
     </div>
   </ng-container>

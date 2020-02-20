@@ -5,6 +5,8 @@ import { ReplaySubject, Observable } from 'rxjs';
 import { QueuedTask, ListedTask, Scanner } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { ListModalComponent } from 'app/components/list-modal/list-modal.component';
 
 const HTTP_OPTIONS = {
   headers: new HttpHeaders({
@@ -25,15 +27,18 @@ export class TasksService {
   private tasks: ReplaySubject<ListedTask[]> = new ReplaySubject(1);
   private scanResults: ReplaySubject<Scanner.Summary> = new ReplaySubject(1);
   private socket = IO();
+  private modalService: NgbModal;
 
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
     configService: ConfigService,
+    modalService: NgbModal,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.configService = configService;
+    this.modalService = modalService;
 
     this.socket.on('task-queue', queue => {
       console.debug('Task Queue', queue);
@@ -126,6 +131,31 @@ export class TasksService {
         this.alertService.show({
           type: 'danger',
           message: `Failed to cancel task`,
+        });
+      },
+    );
+  }
+
+  public showScannerFileList(type: 'new' | 'missing'): void {
+    this.httpClient.get<string[]>(`${ROOT_PATH}/SCAN/results/${type}`).subscribe(
+      res => {
+        console.log('type', res);
+        const modalRef = this.modalService.open(ListModalComponent, {
+          centered: true,
+        });
+
+        (modalRef.componentInstance as ListModalComponent).title = `${type} files`;
+        (modalRef.componentInstance as ListModalComponent).items = res;
+        (modalRef.componentInstance as ListModalComponent).modal = modalRef;
+        modalRef.result.catch(() => {
+          // Ignore the error. Thrown on cancel/deny
+        });
+      },
+      (err: HttpErrorResponse) => {
+        console.warn(err);
+        this.alertService.show({
+          type: 'warning',
+          message: `Failed to fetch list of ${type} files`,
         });
       },
     );

@@ -24,6 +24,7 @@ import { PreviewComponent } from './components/preview/preview.component';
 import { VideoPlayerComponent } from './components/video-player/video-player.component';
 import { CloneResolverComponent } from './components/clone-resolver/clone-resolver.component';
 import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/confirm-bulk-update.component';
+import { ListModalComponent } from './components/list-modal/list-modal.component';
 
 @NgModule({
   declarations: [
@@ -43,6 +44,7 @@ import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/con
     VideoPlayerComponent,
     CloneResolverComponent,
     ConfirmBulkUpdateComponent,
+    ListModalComponent,
   ],
   imports: [
     NgbModule,
@@ -57,6 +59,11 @@ import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/con
   ],
   providers: [],
   bootstrap: [AppComponent],
-  entryComponents: [ConfirmationModalComponent, PromptModalComponent, ConfirmBulkUpdateComponent],
+  entryComponents: [
+    ConfirmationModalComponent,
+    PromptModalComponent,
+    ConfirmBulkUpdateComponent,
+    ListModalComponent,
+  ],
 })
 export class AppModule {}
