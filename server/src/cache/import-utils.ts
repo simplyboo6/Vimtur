@@ -209,7 +209,14 @@ export class ImportUtils {
     const exists = await ImportUtils.exists(path);
     if (!exists) {
       console.log(`Making directory ${path}`);
-      return Util.promisify(FS.mkdir)(path);
+      try {
+        await Util.promisify(FS.mkdir)(path);
+      } catch (err) {
+        // When done in parallel this gets a bit messy.
+        if (err.code !== 'EEXIST') {
+          throw err;
+        }
+      }
     }
   }
 

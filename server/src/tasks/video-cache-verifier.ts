@@ -61,8 +61,13 @@ export class VideoCacheVerifier {
                 console.log(`All qualities valid for ${media.hash} - ${media.path}`);
               } else {
                 console.log(`Invalid quality detected for ${media.hash} - ${media.path}`);
-                // TODO Save the actual valid qualities after this has been tested to work.
-                //await database.saveMedia(media.hash, { thumbnail: false });
+                console.log(
+                  `Updating valid qualities for ${media.hash} - ${media.path}`,
+                  validQualities,
+                );
+                await database.saveMedia(media.hash, {
+                  metadata: { qualityCache: validQualities },
+                });
               }
             }),
           );

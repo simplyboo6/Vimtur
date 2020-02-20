@@ -3,9 +3,13 @@ import { EventEmitter } from 'events';
 import { ListedTask, QueuedTask } from '@vimtur/common';
 import { Task } from './types';
 
+const MAX_TASK_QUEUE_SIZE = 30;
+const EMIT_TIME = 1000;
+
 export class TaskManager extends EventEmitter {
   private tasks: Record<string, Task> = {};
   private taskQueue: QueuedTask[] = [];
+  private lastEmitTime = 0;
 
   public start(id: string): string {
     const task = this.tasks[id];
@@ -13,7 +17,24 @@ export class TaskManager extends EventEmitter {
       throw new BadRequest(`No task with id: ${id}`);
     }
 
-    const createdId = `${id}-${this.taskQueue.length}`;
+    if (this.taskQueue.length >= MAX_TASK_QUEUE_SIZE) {
+      throw new BadRequest('Queue exceeds maximum size');
+    }
+
+    let freeId: number | undefined = undefined;
+    for (let i = 0; i < MAX_TASK_QUEUE_SIZE; i++) {
+      const el = this.taskQueue.find(queuedTask => queuedTask.id.endsWith(`-${i}`));
+      if (!el) {
+        freeId = i;
+        break;
+      }
+    }
+
+    if (freeId === undefined) {
+      throw new Error('Failed to allocate ID');
+    }
+
+    const createdId = `${id}-${freeId}`;
     this.taskQueue.push({
       id: createdId,
       type: id,
@@ -110,7 +131,13 @@ export class TaskManager extends EventEmitter {
           task.runner((current, max) => {
             queuedTask.current = current;
             queuedTask.max = max;
-            this.emit('queue', this.taskQueue);
+
+            const emit =
+              current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
+            if (emit) {
+              this.lastEmitTime = Date.now();
+              this.emit('queue', this.taskQueue);
+            }
           }),
         ),
       );
