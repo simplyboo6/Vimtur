@@ -1,5 +1,6 @@
 <div class="container pad-bottom" *ngIf="config; else loading">
-  <h4>Import</h4>
+  <h4>Tasks</h4>
+  <!-- Task Starting Options -->
   <div class="row">
     <div class="col-md-12 form-padded-input">
       <button
@@ -27,41 +28,55 @@
       </button>
     </div>
   </div>
+  <!-- Task queue/list -->
   <div class="row" *ngIf="queue && queue.length > 0">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th scope="col">ID</th>
-          <th scope="col">Description</th>
-          <th scope="col">Running</th>
-          <th scope="col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of queue">
-          <td>{{ item.id }}</td>
-          <td>
-            {{ item.description }}
-            <p *ngIf="item.error" class="text-danger">Error running task. {{ item.error }}</p>
-          </td>
-          <td>
-            {{ item.running ? (item.max > 0 ? (item.current / item.max | percent) : 'Yes') : 'No' }}
-          </td>
-          <td>
-            <button
-              *ngIf="!item.running"
-              class="btn btn-link"
-              type="submit"
-              (click)="tasksService.cancelAction(item.id)"
-              title="Cancel"
-            >
-              <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="col-md-12 form-padded-input">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Description</th>
+            <th scope="col">Running</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of queue">
+            <td>{{ item.id }}</td>
+            <td>
+              {{ item.description }}
+              <p *ngIf="item.error" class="text-danger">Error running task. {{ item.error }}</p>
+            </td>
+            <td>
+              {{
+                item.running ? (item.max > 0 ? (item.current / item.max | percent) : 'Yes') : 'No'
+              }}
+            </td>
+            <td>
+              <button
+                *ngIf="!item.running"
+                class="btn btn-link"
+                type="submit"
+                (click)="tasksService.cancelAction(item.id)"
+                title="Cancel"
+              >
+                <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  <ng-container *ngIf="scanResults">
+    <h4>Scan Results</h4>
+    <div class="row">
+      <div class="col-md-12 form-padded-input">
+        {{ scanResults.newPaths }} new files found and {{ scanResults.missingPaths }} files missing.
+      </div>
+    </div>
+  </ng-container>
 
   <h4>Tags</h4>
   <div class="row">

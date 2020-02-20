@@ -20,7 +20,33 @@ export class Scanner {
       '/results',
       wrap(async () => {
         return {
-          data: Scanner.results,
+          data: Scanner.results
+            ? {
+                newPaths: Scanner.results.newPaths.length,
+                missingPaths: Scanner.results.missingPaths.length,
+              }
+            : {
+                newPaths: 0,
+                missingPaths: 0,
+              },
+        };
+      }),
+    );
+
+    router.get(
+      '/results/missing',
+      wrap(async () => {
+        return {
+          data: Scanner.results ? Scanner.results.missingPaths : [],
+        };
+      }),
+    );
+
+    router.get(
+      '/results/new',
+      wrap(async () => {
+        return {
+          data: Scanner.results ? Scanner.results.newPaths : [],
         };
       }),
     );

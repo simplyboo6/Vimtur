@@ -157,8 +157,9 @@ export class CollectionService {
             this.alertService.show({
               type: 'info',
               message:
-                `No media found. Please click 'Start Auto-Import' to begin.` +
-                `After some media is indexed click the 'Search' tab and then the 'Search' button.`,
+                `No media found. Please click 'Start Auto-Import' to begin. ` +
+                `After some media is indexed click the 'Search' tab and then the 'Search' button. ` +
+                `Click modals to dismiss them.`,
             });
             this.router.navigate(['/config']);
           } else {

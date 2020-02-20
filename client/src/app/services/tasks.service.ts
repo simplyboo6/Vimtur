@@ -2,7 +2,7 @@ import { HttpClient, HttpResponse, HttpErrorResponse, HttpHeaders } from '@angul
 import * as IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
-import { QueuedTask, ListedTask } from '@vimtur/common';
+import { QueuedTask, ListedTask, Scanner } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
 
@@ -23,6 +23,7 @@ export class TasksService {
   private configService: ConfigService;
   private queue: ReplaySubject<QueuedTask[]> = new ReplaySubject(1);
   private tasks: ReplaySubject<ListedTask[]> = new ReplaySubject(1);
+  private scanResults: ReplaySubject<Scanner.Summary> = new ReplaySubject(1);
   private socket = IO();
 
   public constructor(
@@ -65,6 +66,10 @@ export class TasksService {
           autoClose: 3000,
         });
       }
+
+      if (!data.error && data.type === 'SCAN') {
+        this.reloadScanResults();
+      }
     });
 
     this.httpClient.get<QueuedTask[]>(`${ROOT_PATH}/queue`).subscribe(
@@ -92,6 +97,8 @@ export class TasksService {
         });
       },
     );
+
+    this.reloadScanResults();
   }
 
   public startAction(id: string) {
@@ -124,6 +131,10 @@ export class TasksService {
     );
   }
 
+  public getScanResults(): Observable<Scanner.Summary> {
+    return this.scanResults;
+  }
+
   public getTasks(): Observable<ListedTask[]> {
     return this.tasks;
   }
@@ -134,5 +145,20 @@ export class TasksService {
 
   public getQueue(): Observable<QueuedTask[]> {
     return this.queue;
+  }
+
+  private reloadScanResults() {
+    this.httpClient.get<Scanner.Summary>(`${ROOT_PATH}/SCAN/results`).subscribe(
+      res => {
+        this.scanResults.next(res);
+      },
+      (err: HttpErrorResponse) => {
+        console.warn(err);
+        this.alertService.show({
+          type: 'warning',
+          message: `Failed to fetch scan results`,
+        });
+      },
+    );
   }
 }

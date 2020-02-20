@@ -35,6 +35,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public cacheQualities: ListItem<number>[] = [];
   public streamQualities: ListItem<number>[] = [];
   public minQuality: ListItem<number>[] = [];
+  public scanResults?: Scanner.Summary;
 
   public addTagModel?: string;
   public deleteTagModel?: string;
@@ -110,21 +111,13 @@ export class ConfigComponent implements OnInit, OnDestroy {
         this.queue = queue;
       }),
     );
-  }
 
-  /*public getProgress(): string {
-    if (!this.scannerStatus) {
-      return 'Unknown';
-    } else if (this.scannerStatus.state === 'IDLE') {
-      return 'N/A';
-    } else if (this.scannerStatus.progress.max === 0) {
-      return 'Unknown';
-    } else {
-      return `${Math.round(
-        (this.scannerStatus.progress.current / this.scannerStatus.progress.max) * 100,
-      )}%`;
-    }
-  }*/
+    this.subscriptions.push(
+      this.tasksService.getScanResults().subscribe(scanResults => {
+        this.scanResults = scanResults;
+      }),
+    );
+  }
 
   public ngOnDestroy() {
     for (const subscription of this.subscriptions) {
