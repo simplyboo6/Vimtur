@@ -163,7 +163,7 @@ export async function create(db: Database): Promise<Router> {
     db.getMedia(req.params.hash)
       .then(media => {
         if (media) {
-          const master = ImportUtils.generateStreamMasterPlaylist(media);
+          const master = ImportUtils.generateStreamMasterPlaylist();
           res.set('Content-Type', 'application/vnd.apple.mpegurl');
           res.end(Buffer.from(master));
         } else {

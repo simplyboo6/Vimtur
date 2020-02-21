@@ -229,8 +229,8 @@ export class ImportUtils {
     return Math.ceil((pixels * bitrateMultiplier) / 500000) * 500000;
   }
 
-  public static generateStreamMasterPlaylist(media: BaseMedia): string {
-    const qualities = ImportUtils.getMediaDesiredQualities(media).map(el => el.quality);
+  public static generateStreamMasterPlaylist(): string {
+    const qualities = Config.get().transcoder.streamQualities;
 
     let data = '#EXTM3U';
     // TODO Filter out the resolutions greater than the source resolution.
