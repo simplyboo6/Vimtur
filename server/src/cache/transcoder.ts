@@ -148,6 +148,8 @@ export class Transcoder {
     } else {
       const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
         targetHeight || media.metadata.height,
+        media,
+        true,
       );
       const quality = `${Math.ceil(qualityRaw / 1000000)}M`;
       const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
@@ -237,6 +239,8 @@ export class Transcoder {
 
     const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
       targetHeight || media.metadata.height,
+      media,
+      true,
     );
     // Although these are the same target qualities as streaming, without the time restrictions this
     // produces a higher quality output the same size as the streamed version.

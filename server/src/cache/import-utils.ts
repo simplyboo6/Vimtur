@@ -23,6 +23,9 @@ export interface LoadedImage {
   contentType: string;
 }
 
+// Nice level for low priority tasks
+const LOW_PRIORITY = 15;
+
 export class ImportUtils {
   public static async hash(path: string): Promise<string> {
     const fd = await Util.promisify(FS.open)(path, 'r');
@@ -136,6 +139,17 @@ export class ImportUtils {
     return output;
   }
 
+  public static setNice(pid: number, priority: number): void {
+    const renice = ChildProcess.spawn('renice', [`${priority}`, `${pid}`]);
+    renice.on('exit', (code: number) => {
+      if (code === 0) {
+        console.debug(`Set nice level of ${pid} to ${priority}`);
+      } else {
+        console.debug(`Failed to set nice level of ${pid} to ${priority}: Exit code ${code}`);
+      }
+    });
+  }
+
   // You would think we'd just use fluent-ffmpeg's streaming functionality.
   // However, there appears to be a bug in streaming I can't track down
   // that corrupts that output stream even if piped to a file.
@@ -160,6 +174,10 @@ export class ImportUtils {
       }
 
       const proc = ChildProcess.spawn('ffmpeg', args);
+
+      if (typeof output === 'string') {
+        ImportUtils.setNice(proc.pid, LOW_PRIORITY);
+      }
 
       let err = '';
       proc.stderr.on('data', data => {
@@ -220,26 +238,45 @@ export class ImportUtils {
     }
   }
 
-  public static calculateBandwidthFromQuality(quality: number): number {
-    const RES_MULTIPLIER = 1.777;
+  public static calculateBandwidthFromQuality(
+    quality: number,
+    media: Media,
+    round: boolean,
+  ): number {
+    if (!media.metadata) {
+      throw new Error(`Can't calculate bandwidth without metadata: ${media.hash}`);
+    }
+
+    const resMultiplier = media.metadata.width / media.metadata.height;
+    const pixels = quality * quality * resMultiplier;
     const bitrateMultiplier = Config.get().transcoder.bitrateMultiplier;
-    const pixels = quality * quality * RES_MULTIPLIER;
+
+    if (!round) {
+      return pixels * bitrateMultiplier;
+    }
 
     // Round to the nearest .5M
     return Math.ceil((pixels * bitrateMultiplier) / 500000) * 500000;
   }
 
-  public static generateStreamMasterPlaylist(): string {
-    const qualities = Config.get().transcoder.streamQualities;
+  public static generateStreamMasterPlaylist(media: Media): string {
+    if (!media.metadata) {
+      throw new Error(`Cannot stream media that hasn't been indexed: ${media.hash}`);
+    }
+    const mediaQuality =
+      media.metadata.width > media.metadata.height ? media.metadata.height : media.metadata.width;
+
+    const qualities = Config.get().transcoder.streamQualities.filter(quality => {
+      return quality <= mediaQuality;
+    });
 
     let data = '#EXTM3U';
-    // TODO Filter out the resolutions greater than the source resolution.
-    // TODO Refactor this to use actual height and maybe actual bandwidth.
     for (const quality of qualities.sort()) {
-      const bandwidth = ImportUtils.calculateBandwidthFromQuality(quality);
-      // Get width, assume 16:10 for super max HD.
-      const width = Math.ceil((quality / 10) * 16);
-      const resolution = `${width}x${quality}`;
+      // Can't round because otherwise they come out as needing the same bandwidth.
+      const bandwidth = ImportUtils.calculateBandwidthFromQuality(quality, media, false);
+      const height = quality;
+      const width = Math.ceil((media.metadata.width / media.metadata.height) * height);
+      const resolution = `${width}x${height}`;
       data = `${data}\n#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=${bandwidth},RESOLUTION=${resolution}`;
       data = `${data}\n${quality}/index.m3u8`;
     }
