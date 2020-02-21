@@ -77,7 +77,10 @@ export class TasksService {
         });
       }
 
-      if (!data.error && (data.type === 'SCAN' || data.type === 'DELETE-MISSING')) {
+      if (
+        !data.error &&
+        (data.type === 'SCAN' || data.type === 'DELETE-MISSING' || data.type === 'INDEX')
+      ) {
         this.reloadScanResults();
       }
     });
