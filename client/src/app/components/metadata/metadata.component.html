@@ -23,6 +23,7 @@
           class="form-control"
           type="text"
           [placeholder]="media.metadata[field.name] || ''"
+          (keyup.enter)="saveMetadata(field.name)"
         />
         <button
           [disabled]="!isMetadataChanged(field.name, media, mediaModel)"
