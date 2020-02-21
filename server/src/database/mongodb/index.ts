@@ -268,6 +268,23 @@ export class MongoConnector extends Database {
       pipeline.push({ $sample: { size: constraints.sample } });
     }
 
+    const sort: object = {};
+    if (constraints.sortBy) {
+      switch (constraints.sortBy) {
+        case 'hashDate':
+        case 'rating':
+          Object.assign(sort, { [constraints.sortBy]: -1 });
+          break;
+        case 'length':
+          Object.assign(sort, { 'metadata.length': -1 });
+          break;
+        case 'recommended': // Skip, handled by subset wrapper.
+          break;
+        default:
+          throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
+      }
+    }
+
     if (constraints.keywordSearch) {
       pipeline.push({ $addFields: { score: { $meta: 'textScore' } } });
       pipeline.push({
@@ -275,23 +292,13 @@ export class MongoConnector extends Database {
           score: {
             $meta: 'textScore',
           },
-          // After sorting by score put the highest rated after.
-          rating: -1,
+          ...sort,
         },
       });
-    } else if (constraints.sortBy) {
-      switch (constraints.sortBy) {
-        case 'hashDate':
-        case 'rating':
-          pipeline.push({
-            $sort: { [constraints.sortBy]: -1 },
-          });
-          break;
-        case 'recommended': // Skip, handled by subset wrapper.
-          break;
-        default:
-          throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
-      }
+    } else if (Object.keys(sort).length > 0) {
+      pipeline.push({
+        $sort: sort,
+      });
     }
 
     pipeline.push({
