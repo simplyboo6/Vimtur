@@ -38,7 +38,8 @@ function readJsonSync(file: string): Configuration.Main {
 
 const DEFAULTS: any = {
   port: 3523,
-  enablePhash: true,
+  // Enabled pHash generation during auto-import.
+  enablePhash: false,
   maxCloneAge: 4 * 7 * 24 * 60 * 60, // 4 weeks.
   transcoder: {
     // Copy data to speedup setup.
