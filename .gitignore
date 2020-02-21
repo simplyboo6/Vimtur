@@ -11,3 +11,5 @@ utils/*.json
 **/dist/*
 **/tsconfig.tsbuildinfo
 **/.schema-build-info
+test*
+dump/*
