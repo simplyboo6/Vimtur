@@ -28,6 +28,9 @@ export interface SearchModel {
   typeGif?: boolean;
   typeStill?: boolean;
 
+  lengthMin?: number;
+  lengthMax?: number;
+
   tags: SearchArrayFilter;
   actors: SearchArrayFilter;
 
@@ -131,6 +134,19 @@ export class UiService {
     ];
     if (types.length) {
       constraints.type = { equalsAny: types };
+    }
+
+    if (this.searchModel.lengthMin !== undefined) {
+      constraints.length = Object.assign(constraints.length || {}, {
+        // Convert from minutes to seconds
+        min: this.searchModel.lengthMin * 60,
+      });
+    }
+    if (this.searchModel.lengthMax !== undefined) {
+      constraints.length = Object.assign(constraints.length || {}, {
+        // Convert from minutes to seconds
+        max: this.searchModel.lengthMax * 60,
+      });
     }
 
     for (const field of this.arrayFields) {
