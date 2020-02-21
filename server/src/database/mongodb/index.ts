@@ -15,7 +15,12 @@ import {
 import { Insights } from '../../insights';
 import { Updater } from './updater';
 import { Validator } from '../../utils/validator';
-import { createArrayFilter, createStringFilter } from './utils';
+import {
+  createArrayFilter,
+  createBooleanFilter,
+  createNumberFilter,
+  createStringFilter,
+} from './utils';
 import Config from '../../config';
 
 interface Actor {
@@ -339,51 +344,28 @@ export class MongoConnector extends Database {
     filters.push(createStringFilter('dir', constraints.dir));
     filters.push(createStringFilter('path', constraints.path));
 
-    if (constraints.quality) {
-      if (constraints.quality.min !== undefined) {
-        filters.push({ 'metadata.height': { $gte: constraints.quality.min } });
-      }
-      if (constraints.quality.max !== undefined) {
-        filters.push({ 'metadata.height': { $lte: constraints.quality.max } });
-      }
-    }
+    filters.push(createNumberFilter('metadata.height', constraints.quality));
+    filters.push(createNumberFilter('rating', constraints.rating));
+    filters.push(createNumberFilter('metadata.length', constraints.length));
 
-    if (constraints.rating) {
-      if (constraints.rating.max === 0) {
-        filters.push({
-          $or: [{ rating: { $lte: 0 } }, { rating: { $exists: false } }],
-        });
-      } else {
-        if (constraints.rating.min !== undefined) {
-          filters.push({ rating: { $gte: constraints.rating.min } });
-        }
-        if (constraints.rating.max !== undefined) {
-          filters.push({ rating: { $lte: constraints.rating.max } });
-        }
-      }
-    }
-
-    const booleanSearch = (field: string, value?: boolean): object => {
-      if (value === undefined) {
-        return [];
-      }
-      if (value) {
-        return { [field]: true };
-      } else {
-        return { $or: [{ [field]: false }, { [field]: { $exists: false } }] };
-      }
-    };
-
-    filters.push(booleanSearch('corrupted', constraints.corrupted));
-    filters.push(booleanSearch('thumbnail', constraints.thumbnail));
-    filters.push(booleanSearch('preview', constraints.preview));
+    filters.push(createBooleanFilter('corrupted', constraints.corrupted));
+    filters.push(createBooleanFilter('thumbnail', constraints.thumbnail));
+    filters.push(createBooleanFilter('preview', constraints.preview));
 
     if (constraints.phashed !== undefined) {
       filters.push({ phash: { $exists: constraints.phashed } });
     }
 
     if (constraints.cached !== undefined) {
-      filters.push({ 'metadata.qualityCache.0': { $exists: constraints.cached } });
+      if (constraints.cached) {
+        filters.push({
+          $or: [{ 'metadata.qualityCache.0': { $exists: true } }, { type: { $ne: 'video' } }],
+        });
+      } else {
+        filters.push({
+          $and: [{ 'metadata.qualityCache.0': { $exists: false } }, { type: 'video' }],
+        });
+      }
     }
 
     if (constraints.indexed !== undefined) {

@@ -70,7 +70,6 @@ export class Indexer {
     return {
       width: size.width,
       height: size.height,
-      qualityCache: [size.height],
     };
   }
 

@@ -1,4 +1,10 @@
-import { ArrayFilter, StringFilter, StringFilterCommon } from '../../types';
+import {
+  ArrayFilter,
+  BooleanFilter,
+  NumberFilter,
+  StringFilter,
+  StringFilterCommon,
+} from '../../types';
 
 function createStringFilterCommon(field: string, options?: StringFilterCommon): object {
   if (!options || Object.keys(options).length === 0) {
@@ -100,4 +106,52 @@ export function createArrayFilter(field: string, options?: ArrayFilter): object 
   }
 
   return base;
+}
+
+export function createNumberFilter(field: string, options?: NumberFilter): object {
+  const filters: object[] = [];
+
+  if (!options) {
+    return {};
+  }
+
+  if (options.min !== undefined) {
+    filters.push({
+      [field]: { $gte: options.min },
+    });
+  }
+
+  if (options.max !== undefined) {
+    if (options.max === 0) {
+      filters.push({ $or: [{ [field]: { $lte: 0 } }, { [field]: { $exists: false } }] });
+    } else {
+      filters.push({
+        [field]: { $gte: options.max },
+      });
+    }
+  }
+
+  if (options.equalsAny && options.equalsAny.length > 0) {
+    filters.push({
+      [field]: { $in: options.equalsAny },
+    });
+  }
+
+  if (filters.length === 0) {
+    return {};
+  }
+
+  return { $and: filters };
+}
+
+export function createBooleanFilter(field: string, options?: BooleanFilter): object {
+  if (options === undefined) {
+    return {};
+  }
+
+  if (options) {
+    return { [field]: true };
+  } else {
+    return { $or: [{ [field]: false }, { [field]: { $exists: false } }] };
+  }
 }

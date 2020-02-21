@@ -1,11 +1,7 @@
-export interface QualityConstraints {
+export interface NumberFilter {
   min?: number;
   max?: number;
-}
-
-export interface RatingConstraints {
-  min?: number;
-  max?: number;
+  equalsAny?: number[];
 }
 
 export interface StringFilterCommon {
@@ -25,6 +21,8 @@ export interface StringFilter extends ArrayFilter {
   likeNone?: string[];
 }
 
+export type BooleanFilter = boolean;
+
 export interface SubsetConstraints {
   // Arrays
   tags?: ArrayFilter;
@@ -38,17 +36,26 @@ export interface SubsetConstraints {
   dir?: StringFilter;
   path?: StringFilter;
 
-  quality?: QualityConstraints;
-  rating?: RatingConstraints;
+  // Numbers
+  quality?: NumberFilter;
+  rating?: NumberFilter;
+  length?: NumberFilter;
+
+  // Booleans
+  corrupted?: BooleanFilter;
+  thumbnail?: BooleanFilter;
+  preview?: BooleanFilter;
+
+  // Special cases
   keywordSearch?: string;
-  corrupted?: boolean;
-  indexed?: boolean;
-  thumbnail?: boolean;
-  preview?: boolean;
-  cached?: boolean;
   sortBy?: 'hashDate' | 'recommended' | 'rating';
+  // Checks that metadata exists
+  indexed?: boolean;
+  // Checks that metadata.qualityCache.0 exists or type != video
+  cached?: boolean;
+  // Checks if a string exists
   phashed?: boolean;
-  // Returns media that have potential clones.
+  // Returns media that have potential clones. clones.length > 0 & exists
   hasClones?: boolean;
   // Return a random set of this size.
   sample?: number;
