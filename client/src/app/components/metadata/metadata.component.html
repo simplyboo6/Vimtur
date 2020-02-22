@@ -11,6 +11,10 @@
       <div *ngIf="media.metadata">
         Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}
       </div>
+
+      <div *ngIf="media.metadata && media.metadata.createdAt">
+        Created: {{ timestampAsDate(media.metadata.createdAt) | date }}
+      </div>
     </div>
   </div>
 

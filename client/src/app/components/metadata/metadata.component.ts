@@ -80,6 +80,10 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     );
   }
 
+  public timestampAsDate(timestamp: number): Date {
+    return new Date(timestamp * 1000);
+  }
+
   public saveBulkMetadata(field: 'artist' | 'album' | 'title') {
     // TODO Confirm with user and display current search set.
     // TODO Show a warning to the user if no filters are set.

@@ -6,6 +6,7 @@ import Config from '../config';
 import SocketIO from 'socket.io';
 
 import {
+  AddCreateTimes,
   CacheGenerator,
   Indexer,
   KeyframeGenerator,
@@ -83,6 +84,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   addTask('VERIFY-VIDEO-CACHE', VideoCacheVerifier.getTask(db));
   addTask('UNCORRUPT', Uncorrupter.getTask(db));
   addTask('DELETE-MISSING', MissingDeleter.getTask(db));
+  addTask('ADD-CREATE-TIMES', AddCreateTimes.getTask(db));
 
   io.on('connection', socket => {
     socket.emit('task-queue', taskManager.getQueue());

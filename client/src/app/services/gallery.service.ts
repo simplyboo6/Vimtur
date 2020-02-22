@@ -2,9 +2,7 @@ import { Injectable, EventEmitter } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { Media } from '@vimtur/common';
 import { MediaService } from './media.service';
-import { CollectionService } from './collection.service';
-
-const PAGE_SIZE = 15;
+import { CollectionService, PAGE_SIZE } from './collection.service';
 
 export interface Page {
   current: number;

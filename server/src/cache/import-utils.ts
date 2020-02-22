@@ -56,6 +56,19 @@ export class ImportUtils {
     return hash.digest().toString('hex');
   }
 
+  public static async getFileCreationTime(path: string): Promise<number> {
+    const stat = await Util.promisify(FS.stat)(path);
+    if (!stat) {
+      throw new Error(`Failed to stat file: ${path}`);
+    }
+    const creationDate = stat.birthtime || stat.mtime;
+    if (!creationDate) {
+      throw new Error(`Failed to get creation date: ${path}`);
+    }
+
+    return Math.round(creationDate.getTime() / 1000);
+  }
+
   public static getType(filename: string): MediaType {
     const ext = Path.extname(filename || '').split('.');
     switch (ext[ext.length - 1].toLowerCase()) {

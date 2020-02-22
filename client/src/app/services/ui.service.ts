@@ -122,7 +122,9 @@ export class UiService {
     if (
       this.searchModel.sortBy === 'hashDate' ||
       this.searchModel.sortBy === 'recommended' ||
-      this.searchModel.sortBy === 'rating'
+      this.searchModel.sortBy === 'rating' ||
+      this.searchModel.sortBy === 'length' ||
+      this.searchModel.sortBy === 'createdAt'
     ) {
       constraints.sortBy = this.searchModel.sortBy;
     }

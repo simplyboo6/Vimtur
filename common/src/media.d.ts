@@ -8,6 +8,7 @@ export interface SegmentMetadata {
 }
 
 interface MetadataBase {
+  createdAt?: number;
   length?: number;
   artist?: string | null;
   album?: string | null;

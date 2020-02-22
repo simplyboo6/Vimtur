@@ -2,7 +2,7 @@
   <h4 class="modal-title">{{ title }}</h4>
 </div>
 <div class="modal-body">
-  <input type="text" [(ngModel)]="text" class="form-control" />
+  <input type="text" (keyup.enter)="modal.close(text)" [(ngModel)]="text" class="form-control" />
 </div>
 <div class="modal-footer row footer-padding">
   <div class="md-6">

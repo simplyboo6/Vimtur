@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "actors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "aliases": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "cloneDate": {
+      "type": "number"
+    },
+    "clones": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "corrupted": {
+      "type": "boolean"
+    },
+    "dir": {
+      "type": "string"
+    },
+    "hash": {
+      "type": "string"
+    },
+    "hashDate": {
+      "type": "number"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "album": {
+          "type": ["null", "string"]
+        },
+        "artist": {
+          "type": ["null", "string"]
+        },
+        "codec": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "length": {
+          "type": "number"
+        },
+        "maxCopy": {
+          "type": "boolean"
+        },
+        "qualityCache": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "segments": {
+          "additionalProperties": false,
+          "properties": {
+            "standard": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "end": {
+                    "type": "number"
+                  },
+                  "start": {
+                    "type": "number"
+                  }
+                },
+                "required": ["end", "start"],
+                "type": "object"
+              },
+              "type": "array"
+            }
+          },
+          "required": ["standard"],
+          "type": "object"
+        },
+        "title": {
+          "type": ["null", "string"]
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": ["height", "width"],
+      "type": "object"
+    },
+    "path": {
+      "type": "string"
+    },
+    "phash": {
+      "type": "string"
+    },
+    "preview": {
+      "type": "boolean"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "related": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "rotation": {
+      "type": "number"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "thumbnail": {
+      "type": "boolean"
+    },
+    "type": {
+      "enum": ["gif", "still", "video"],
+      "type": "string"
+    },
+    "unrelated": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": ["actors", "dir", "hash", "hashDate", "path", "tags", "type"],
+  "type": "object"
+}

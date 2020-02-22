@@ -84,11 +84,14 @@ export class Updater {
       console.log('Applying update 009_add-phash-resolutions...');
       const mediaSchema = Updater.loadMediaSchema('f33d9138');
       await Updater.recreateMediaCollection(db, mediaSchema);
-      const collection = db.collection('media');
-      await Util.promisify((collection.createIndex as any).bind(collection))({ aliases: 1 });
-      await Util.promisify((collection.createIndex as any).bind(collection))({ related: 1 });
-      await Util.promisify((collection.createIndex as any).bind(collection))({ unrelated: 1 });
       await Updater.saveUpdate(updatesCollection, '009_add-phash-resolutions');
+    }
+
+    if (!(await Updater.hasRun(updatesCollection, '010_add-created-at'))) {
+      console.log('Applying update 010_add-created-at...');
+      const mediaSchema = Updater.loadMediaSchema('9b0cfbc2');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '010_add-created-at');
     }
   }
 
@@ -170,6 +173,21 @@ export class Updater {
       { rating: 1 },
       { unique: false },
     );
+
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
+      { 'metadata.createdAt': 1 },
+      { unique: false },
+    );
+
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+      aliases: 1,
+    });
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+      related: 1,
+    });
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+      unrelated: 1,
+    });
   }
 
   private static async initialSetup(db: Db, mediaSchema: object): Promise<void> {

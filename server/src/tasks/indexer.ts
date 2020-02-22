@@ -83,10 +83,12 @@ export class Indexer {
 
     return {
       hash: await ImportUtils.hash(absolutePath),
-      metadata:
-        type === 'video'
+      metadata: {
+        ...(type === 'video'
           ? await Indexer.getVideoMetadata(absolutePath)
-          : await Indexer.getImageMetadata(absolutePath),
+          : await Indexer.getImageMetadata(absolutePath)),
+        createdAt: await ImportUtils.getFileCreationTime(absolutePath),
+      },
       path: file,
       dir: Path.dirname(file),
       absolutePath,

@@ -271,12 +271,13 @@ export class MongoConnector extends Database {
     const sort: object = {};
     if (constraints.sortBy) {
       switch (constraints.sortBy) {
-        case 'hashDate':
+        case 'hashDate': // Fallthrough
         case 'rating':
           Object.assign(sort, { [constraints.sortBy]: -1 });
           break;
-        case 'length':
-          Object.assign(sort, { 'metadata.length': -1 });
+        case 'length': // Fallthrough
+        case 'createdAt':
+          Object.assign(sort, { [`metadata.${constraints.sortBy}`]: -1 });
           break;
         case 'recommended': // Skip, handled by subset wrapper.
           break;

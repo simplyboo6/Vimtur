@@ -9,6 +9,8 @@ import { PromptService } from 'app/services/prompt.service';
 import { PRNG } from 'app/shared/prng';
 import { Alert } from 'app/shared/types';
 
+export const PAGE_SIZE = 15;
+
 const HTTP_OPTIONS = {
   headers: new HttpHeaders({
     'Content-Type': 'application/json',
@@ -66,13 +68,13 @@ export class CollectionService {
     this.update();
   }
 
-  public goto(location?: string) {
-    if (!location) {
+  public goto(location?: string | boolean, page?: boolean) {
+    if (typeof location === 'boolean' || location === undefined) {
       this.promptService
         .prompt('Goto')
         .then(result => {
           if (result) {
-            this.goto(result);
+            this.goto(result, location as boolean);
           }
         })
         .catch(err => console.error('prompt error', err));
@@ -93,7 +95,11 @@ export class CollectionService {
         });
       }
     } else {
-      const index = Number(location);
+      // From 1-x to 0-x
+      let index = Number(location) - 1;
+      if (page) {
+        index = index * PAGE_SIZE;
+      }
       if (index < 0 || index >= this.collection.length) {
         this.alertService.show({
           type: 'warning',
@@ -102,7 +108,6 @@ export class CollectionService {
         });
       } else {
         this.index = index;
-        this.router.navigate(['/viewer']);
         this.update();
       }
     }
