@@ -188,8 +188,16 @@ export class ImportUtils {
         if (code === 0 || code === 255) {
           resolve();
         } else {
-          console.error(`FFMPEG error: code (${code})`, err);
-          reject(new Error(err));
+          // This happens if stdout/the pipe is closed. Which can happen
+          // when a HTTP request is cancelled.
+          if (
+            err.includes('specified for output file #0 (pipe:1) has not been used for any stream')
+          ) {
+            resolve();
+          } else {
+            console.error(`FFMPEG error: code (${code})`, err);
+            reject(new Error(err));
+          }
         }
       });
 
