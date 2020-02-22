@@ -41,7 +41,7 @@ export class VideoCacheVerifier {
                 let allExist = true;
                 for (const file of dataFiles) {
                   const filePath = `${base}/${file}`;
-                  const exists = await ImportUtils.exists(file);
+                  const exists = await ImportUtils.exists(filePath);
                   if (!exists) {
                     console.warn(`Missing cache file: ${filePath}`);
                     allExist = false;
