@@ -92,6 +92,7 @@
         class="form-control"
         type="text"
         placeholder="Enter new tag name..."
+        (keyup.enter)="addTagModel && addTag()"
       />
     </div>
     <div class="col-md-4 form-padded-input">
@@ -126,6 +127,7 @@
         class="form-control"
         type="text"
         placeholder="Enter new actor name..."
+        (keyup.enter)="addActorModel && addActor()"
       />
     </div>
     <div class="col-md-4 form-padded-input">
