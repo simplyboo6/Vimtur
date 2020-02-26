@@ -48,7 +48,7 @@ export interface SubsetConstraints {
 
   // Special cases
   keywordSearch?: string;
-  sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt';
+  sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt' | 'path';
   // Checks that metadata exists
   indexed?: boolean;
   // Checks that metadata.qualityCache.0 exists or type != video

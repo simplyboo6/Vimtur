@@ -179,6 +179,11 @@ export class Updater {
       { unique: false },
     );
 
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
+      { path: 1 },
+      { unique: false },
+    );
+
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
       aliases: 1,
     });

@@ -38,6 +38,7 @@ export interface SearchModel {
   album?: string;
   title?: string;
   path?: string;
+  dir?: string;
 }
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
@@ -80,6 +81,7 @@ export class UiService {
     { field: 'album', name: 'Album' },
     { field: 'title', name: 'Title' },
     { field: 'path', name: 'Path' },
+    { field: 'dir', name: 'Dir' },
   ];
 
   public getTagPanelState(): ReplaySubject<boolean> {
@@ -124,7 +126,8 @@ export class UiService {
       this.searchModel.sortBy === 'recommended' ||
       this.searchModel.sortBy === 'rating' ||
       this.searchModel.sortBy === 'length' ||
-      this.searchModel.sortBy === 'createdAt'
+      this.searchModel.sortBy === 'createdAt' ||
+      this.searchModel.sortBy === 'path'
     ) {
       constraints.sortBy = this.searchModel.sortBy;
     }

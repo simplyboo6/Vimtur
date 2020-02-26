@@ -275,6 +275,9 @@ export class MongoConnector extends Database {
         case 'rating':
           Object.assign(sort, { [constraints.sortBy]: -1 });
           break;
+        case 'path':
+          Object.assign(sort, { [constraints.sortBy]: 1 });
+          break;
         case 'length': // Fallthrough
         case 'createdAt':
           Object.assign(sort, { [`metadata.${constraints.sortBy}`]: -1 });

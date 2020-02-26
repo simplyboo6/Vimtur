@@ -54,10 +54,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   public viewFolder() {
     if (this.mediaService.media) {
-      this.collectionService.search(
-        { dir: { equalsAll: [this.mediaService.media.dir] } },
-        { preserve: true },
-      );
+      this.uiService.resetSearch();
+      this.uiService.searchModel.dir = this.mediaService.media.dir;
+      this.uiService.searchModel.sortBy = 'path';
+      this.collectionService.search(this.uiService.createSearch(), { preserve: true });
     }
   }
 
@@ -65,7 +65,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!this.searchText) {
       return;
     }
-    this.collectionService.search({ keywordSearch: this.searchText });
+    this.uiService.resetSearch();
+    this.uiService.searchModel.keywords = this.searchText;
+    this.collectionService.search(this.uiService.createSearch());
+
     this.isExpanded = false;
   }
 
