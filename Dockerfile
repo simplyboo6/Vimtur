@@ -19,16 +19,16 @@ COPY ./common ./
 ## Build server
 WORKDIR /server
 COPY ./server/package.json ./server/yarn.lock ./
-RUN yarn --frozen-lockfile
+RUN yarn --frozen-lockfile --network-timeout 1000000
 COPY ./server ./
-RUN yarn lint && yarn build && yarn install --production --frozen-lockfile
+RUN yarn lint && yarn build && yarn install --production --frozen-lockfile --network-timeout 1000000
 
 ## Build client
 WORKDIR /client
 COPY ./client/package.json ./client/yarn.lock ./
-RUN yarn --frozen-lockfile
+RUN yarn --frozen-lockfile --network-timeout 1000000
 COPY ./client ./
-RUN yarn lint && yarn build:prod && yarn install --production --frozen-lockfile
+RUN yarn lint && yarn build:prod && yarn install --production --frozen-lockfile --network-timeout 1000000
 
 FROM alpine:20200122
 
