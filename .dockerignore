@@ -10,3 +10,4 @@ screenshots/*
 README.md
 **/tsconfig.tsbuildinfo
 **/.schema-build-info
+test*/*
