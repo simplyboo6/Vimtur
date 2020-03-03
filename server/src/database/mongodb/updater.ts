@@ -93,6 +93,19 @@ export class Updater {
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '010_add-created-at');
     }
+
+    // Media missing the PTS data completely broke streaming. This drops all those bad
+    // caches. Should only need to be done once rather than a task.
+    if (!(await Updater.hasRun(updatesCollection, '011_drop-invalid-segment-cache'))) {
+      console.log('Applying update 011_drop-invalid-segment-cache...');
+      await db
+        .collection('media')
+        .updateMany(
+          { 'metadata.segments.standard.0.start': NaN },
+          { $unset: { 'metadata.segments': '' } },
+        );
+      await Updater.saveUpdate(updatesCollection, '011_drop-invalid-segment-cache');
+    }
   }
 
   private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {

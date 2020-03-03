@@ -287,9 +287,14 @@ export class ImportUtils {
     const mediaQuality =
       media.metadata.width > media.metadata.height ? media.metadata.height : media.metadata.width;
 
-    const qualities = Config.get().transcoder.streamQualities.filter(quality => {
+    const streamQualities = Config.get().transcoder.streamQualities.filter(quality => {
       return quality <= mediaQuality;
     });
+
+    // Explicitly include qualities the medias cached at.
+    const qualities = Array.from(
+      new Set([...streamQualities, ...(media.metadata.qualityCache || [])]),
+    ).sort();
 
     let data = '#EXTM3U';
     for (const quality of qualities.sort()) {
@@ -431,7 +436,7 @@ export class ImportUtils {
       throw new Error('Cannot stream non-video type');
     }
     const results = await Util.promisify(ChildProcess.exec)(
-      `ffprobe -loglevel error -skip_frame nokey -select_streams v:0 -show_entries frame=pkt_pts_time -of csv=print_section=0 "${media.absolutePath}"`,
+      `ffprobe -fflags +genpts -loglevel error -skip_frame nokey -select_streams v:0 -show_entries frame=pkt_pts_time -of csv=print_section=0 "${media.absolutePath}"`,
     );
     return results.stdout
       .split('\n')
