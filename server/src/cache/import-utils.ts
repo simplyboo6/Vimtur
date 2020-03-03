@@ -1,5 +1,4 @@
 import ChildProcess from 'child_process';
-import Crypto from 'crypto';
 import FS from 'fs';
 import GM from 'gm';
 import Path from 'path';
@@ -9,9 +8,6 @@ import Util from 'util';
 
 import { BaseMedia, Media, MediaType, SegmentMetadata } from '../types';
 import Config from '../config';
-
-// Bytes to read from start and end of file.
-const CHUNK_SIZE = 64 * 1024;
 
 export interface Quality {
   quality: number;
@@ -27,35 +23,6 @@ export interface LoadedImage {
 const LOW_PRIORITY = 15;
 
 export class ImportUtils {
-  public static async hash(path: string): Promise<string> {
-    const fd = await Util.promisify(FS.open)(path, 'r');
-    const buffer = Buffer.alloc(CHUNK_SIZE * 2);
-    const [startReadResult, statResult] = await Promise.all([
-      Util.promisify(FS.read)(fd, buffer, 0, CHUNK_SIZE, 0),
-      Util.promisify(FS.stat)(path),
-    ]);
-
-    let total = startReadResult.bytesRead;
-    const endStart = statResult.size - CHUNK_SIZE;
-    if (endStart <= 0) {
-      buffer.copy(buffer, startReadResult.bytesRead, 0);
-    } else {
-      const endReadResult = await Util.promisify(FS.read)(
-        fd,
-        buffer,
-        startReadResult.bytesRead,
-        CHUNK_SIZE,
-        endStart,
-      );
-      total += endReadResult.bytesRead;
-    }
-    await Util.promisify(FS.close)(fd);
-
-    const hash = Crypto.createHash('md5');
-    hash.update(buffer.slice(0, total));
-    return hash.digest().toString('hex');
-  }
-
   public static async getFileCreationTime(path: string): Promise<number> {
     const stat = await Util.promisify(FS.stat)(path);
     if (!stat) {
@@ -295,6 +262,11 @@ export class ImportUtils {
     const qualities = Array.from(
       new Set([...streamQualities, ...(media.metadata.qualityCache || [])]),
     ).sort();
+
+    // If it's less than the minimum stream quality and not cached.
+    if (qualities.length === 0) {
+      qualities.push(media.metadata.height);
+    }
 
     let data = '#EXTM3U';
     for (const quality of qualities.sort()) {

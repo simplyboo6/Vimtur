@@ -6,6 +6,7 @@ import Util from 'util';
 import { Database, Media, Metadata, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Scanner } from './scanner';
+import { createHash } from '../cache/hash';
 import Config from '../config';
 
 export class Indexer {
@@ -82,7 +83,7 @@ export class Indexer {
     const type = ImportUtils.getType(file);
 
     return {
-      hash: await ImportUtils.hash(absolutePath),
+      hash: await createHash(absolutePath),
       metadata: {
         ...(type === 'video'
           ? await Indexer.getVideoMetadata(absolutePath)

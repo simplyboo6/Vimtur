@@ -1,5 +1,6 @@
 import { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
+import Config from '../config';
 
 export class KeyframeGenerator {
   public static getTask(database: Database): RouterTask {
@@ -25,12 +26,12 @@ export class KeyframeGenerator {
 
           let generateSegments = !media.metadata.segments;
           if (generateSegments && media.metadata.qualityCache) {
-            const desired = ImportUtils.getMediaDesiredQualities(media);
+            const streamQualities = Config.get().transcoder.streamQualities;
             let hasAll = true;
-            // Check if it's cached at every desired quality, if it is then don't
+            // Check if it's cached at every streaming quality, if it is then don't
             // bother precaching.
-            for (const quality of desired) {
-              if (!media.metadata.qualityCache.includes(quality.quality)) {
+            for (const quality of streamQualities) {
+              if (!media.metadata.qualityCache.includes(quality)) {
                 hasAll = false;
                 break;
               }

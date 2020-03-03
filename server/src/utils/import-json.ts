@@ -7,6 +7,7 @@ import Util from 'util';
 import { BaseMedia, Database, DumpFile } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Indexer } from '../tasks/indexer';
+import { createHash } from '../cache/hash';
 import { setup as setupDb } from '../database';
 import Config from '../config';
 
@@ -53,7 +54,7 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
 
   if (version === undefined || version === 3) {
     // In older versions the hashing mechanism was different, rehash the file.
-    const hash = await ImportUtils.hash(Path.resolve(libraryDir, media.path));
+    const hash = await createHash(Path.resolve(libraryDir, media.path));
 
     media.metadata.qualityCache = [media.metadata.height];
     if (media.type === 'video') {

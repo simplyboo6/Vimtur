@@ -3,7 +3,7 @@ import Path from 'path';
 import Util from 'util';
 
 import { Database, RouterTask, TaskRunnerCallback } from '../types';
-import { ImportUtils } from '../cache/import-utils';
+import { createHash } from '../cache/hash';
 import Config from '../config';
 
 export class RehashTask {
@@ -19,7 +19,7 @@ export class RehashTask {
             console.warn(`Couldn't find media to rehash: ${files[i]}`);
             continue;
           }
-          const hash = await ImportUtils.hash(media.absolutePath);
+          const hash = await createHash(media.absolutePath);
           if (hash !== media.hash) {
             console.warn(`Hash changed for ${media.absolutePath}`);
             // Rename the video cache folder, if it's a video.
