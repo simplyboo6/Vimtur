@@ -12,7 +12,7 @@ import { Subscription, interval } from 'rxjs';
 import { ConfigService } from 'app/services/config.service';
 import { Configuration, Media } from '@vimtur/common';
 
-const SLIDE_INTERVAL = 1000;
+const SLIDE_INTERVAL = 500;
 
 @Component({
   selector: 'app-preview',
@@ -135,9 +135,15 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
       );
 
+      const columns = Math.ceil(this.image.naturalWidth / mediaWidth);
+      const rows = Math.ceil(this.image.naturalHeight / mediaHeight);
+
+      const column = this.index % columns;
+      const row = (this.index - column) / columns;
+
       const offset = this.offset || 0;
-      const offsetX = 0;
-      const offsetY = this.index * this.config.transcoder.videoPreviewHeight;
+      const offsetX = column * mediaWidth;
+      const offsetY = row * mediaHeight;
 
       canvas.drawImage(
         this.image,
@@ -154,12 +160,14 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   public onImageLoaded(event: any) {
+    console.log('Preview loaded', this.imageSrc);
     this.image = event.target;
     this.changeDetector.detectChanges();
     this.render();
   }
 
   public onThumbnailLoaded(event: any) {
+    console.log('Thumbnail loaded', this.thumbnailSrc);
     this.thumbnail = event.target;
     this.changeDetector.detectChanges();
     this.render();

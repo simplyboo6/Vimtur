@@ -53,8 +53,21 @@ export class Transcoder {
     const fps = Config.get().transcoder.videoPreviewFps;
     const count = Math.max(1, Math.floor(media.metadata.length / fps));
     const height = Config.get().transcoder.videoPreviewHeight;
+    const maxPerColumn = Config.get().transcoder.videoPreviewMaxHeight / height;
+    const columns = Math.ceil(count / maxPerColumn);
+    const cellsPerColumn = Math.ceil(count / columns);
 
-    const args = ['-y', '-vf', `fps=1/${fps},scale=-1:${height},tile=1x${count}`, '-frames:v', '1'];
+    console.log(
+      `Creating preview. Count (${count}), Columns (${columns}), Cells Per Column (${cellsPerColumn}) - ${media.path}`,
+    );
+
+    const args = [
+      '-y',
+      '-vf',
+      `fps=1/${fps},scale=-1:${height},tile=${columns}x${cellsPerColumn}`,
+      '-frames:v',
+      '1',
+    ];
     const path = `${Config.get().cachePath}/previews/${media.hash}.png`;
     await ImportUtils.transcode(media.absolutePath, path, args);
   }

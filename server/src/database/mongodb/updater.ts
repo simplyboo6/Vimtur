@@ -106,6 +106,19 @@ export class Updater {
         );
       await Updater.saveUpdate(updatesCollection, '011_drop-invalid-segment-cache');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '012_invalidate-long-previews'))) {
+      console.log('Applying update 012_invalidate-long-previews...');
+      const maxLength =
+        (Config.get().transcoder.videoPreviewMaxHeight /
+          Config.get().transcoder.videoPreviewHeight) *
+        Config.get().transcoder.videoPreviewFps;
+      console.log(`Invaliding previews for videos longer than ${maxLength} seconds`);
+      await db
+        .collection('media')
+        .updateMany({ 'metadata.length': { $gt: maxLength } }, { $unset: { preview: '' } });
+      await Updater.saveUpdate(updatesCollection, '012_invalidate-long-previews');
+    }
   }
 
   private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {

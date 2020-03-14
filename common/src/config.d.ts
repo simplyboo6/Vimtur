@@ -26,6 +26,8 @@ export namespace Configuration {
     videoPreviewHeight: number;
     // Video preview FPS (time between preview images)
     videoPreviewFps: number;
+    // Video preview max image total height (before starting a new column).
+    videoPreviewMaxHeight: number;
   }
 
   // Settings to persist across UI sessions.

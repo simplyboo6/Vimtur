@@ -62,6 +62,8 @@ const DEFAULTS: any = {
     enableVideoPreviews: true,
     videoPreviewHeight: 120,
     videoPreviewFps: 10,
+    // Should be a multiple of videoPreviewHeight
+    videoPreviewMaxHeight: 6000,
   },
   user: {
     autoplayEnabled: true,
