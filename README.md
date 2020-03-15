@@ -26,7 +26,7 @@
 version: '3'
 services:
   primary:
-    image: simplyboo6/vimtur:latest
+    image: simplyboo6/vimtur:4
     ports:
       - "3523:3523"
     environment:
