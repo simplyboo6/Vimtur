@@ -1,3 +1,4 @@
+import { ExecutorPromise, execute } from 'proper-job';
 import FFMpeg from 'fluent-ffmpeg';
 import GM from 'gm';
 import Path from 'path';
@@ -15,14 +16,9 @@ export class Indexer {
   public static getTask(db: Database): RouterTask {
     return {
       description: 'Index new files found during a scan',
-      runner: async (callback: TaskRunnerCallback) => {
-        if (!Scanner.results) {
-          throw new Error('A scan must be run first');
-        }
-        const results = Scanner.results;
+      runner: (callback: TaskRunnerCallback) => {
         const indexer = new Indexer(db);
-        await indexer.indexFiles(Scanner.results.newPaths, callback);
-        results.newPaths = [];
+        return indexer.indexFiles(callback);
       },
     };
   }
@@ -102,28 +98,39 @@ export class Indexer {
     };
   }
 
-  public async indexFiles(
-    files: string[],
-    statusCallback: (current: number, max: number) => void,
-  ): Promise<void> {
-    for (let i = 0; i < files.length; i++) {
-      statusCallback(i, files.length);
-
-      try {
-        const media = await this.generateMediaFromFile(files[i]);
-        const existingMedia = await this.database.getMedia(media.hash);
-        if (existingMedia) {
-          await this.database.saveMedia(media.hash, {
-            path: media.path,
-          });
-        } else {
-          await this.database.saveMedia(media.hash, media);
-        }
-      } catch (err) {
-        console.error('Failed to index file', files[i], err);
-      }
-
-      statusCallback(i + 1, files.length);
+  public indexFiles(statusCallback: (current: number, max: number) => void): ExecutorPromise<any> {
+    if (!Scanner.results) {
+      throw new Error('A scan must be run first');
     }
+    const files = Scanner.results.newPaths;
+    let current = 0;
+    console.log(`Indexing ${files.length} files`);
+
+    return execute(
+      files,
+      async file => {
+        try {
+          const media = await this.generateMediaFromFile(file);
+          const existingMedia = await this.database.getMedia(media.hash);
+          if (existingMedia) {
+            await this.database.saveMedia(media.hash, {
+              path: media.path,
+            });
+          } else {
+            await this.database.saveMedia(media.hash, media);
+          }
+        } catch (err) {
+          console.error('Failed to index file', file, err);
+        }
+        statusCallback(current++, files.length);
+      },
+      { parallel: 8 },
+      () => {
+        if (Scanner.results) {
+          Scanner.results.newPaths = [];
+        }
+        return Promise.resolve();
+      },
+    );
   }
 }

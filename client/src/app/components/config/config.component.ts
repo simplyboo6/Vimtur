@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { formatPercent } from '@angular/common';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
@@ -124,6 +125,26 @@ export class ConfigComponent implements OnInit, OnDestroy {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+  }
+
+  public formatQueueState(task: QueuedTask): string {
+    if (task.complete) {
+      return 'Complete';
+    }
+
+    if (!task.running) {
+      return task.aborted ? 'Aborted' : 'No';
+    }
+
+    if (task.aborted) {
+      return 'Aborting';
+    }
+
+    if (task.max > 0) {
+      return formatPercent(task.current / task.max, 'en');
+    }
+
+    return 'Yes';
   }
 
   public startAction() {

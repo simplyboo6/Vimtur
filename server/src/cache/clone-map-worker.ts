@@ -1,4 +1,4 @@
-import { Job, JobResult, MediaClone } from './clone-map';
+import { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
 import { parentPort, workerData } from 'worker_threads';
 import PHash from 'phash2';
 
@@ -14,17 +14,9 @@ function postResult(result: JobResult): void {
   parentPort!.postMessage(result);
 }
 
-// For each image within the defined input range...
-for (let i = job.offset; i < job.data.length && i < job.offset + job.count; i++) {
-  const imageA = job.data[i];
-
-  // If there's already clones, skip this one.
-  if (imageA.clones !== undefined) {
-    continue;
-  }
-
-  const clones: MediaClone[] = [];
+parentPort.on('message', (imageA: MediaPhash) => {
   try {
+    const clones: MediaClone[] = [];
     // Compare it to every file in the set that isn't itself.
     for (const imageB of job.data) {
       if (imageA.hash === imageB.hash) {
@@ -40,6 +32,7 @@ for (let i = job.offset; i < job.data.length && i < job.offset + job.count; i++)
     }
     postResult({ hash: imageA.hash, clones });
   } catch (err) {
-    postResult({ err: err.message, hash: imageA.hash, clones });
+    console.error('CloneMapWorker Error', err);
+    postResult({ err: err.message, hash: imageA.hash });
   }
-}
+});

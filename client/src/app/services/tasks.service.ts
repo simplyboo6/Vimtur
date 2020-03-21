@@ -29,6 +29,8 @@ export class TasksService {
   private socket = IO();
   private modalService: NgbModal;
 
+  private completeTasks?: QueuedTask[];
+
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
@@ -47,6 +49,7 @@ export class TasksService {
 
     this.socket.on('task-queue', queue => {
       console.debug('Task Queue', queue);
+      this.completeTasks = queue.filter(task => task.complete);
       this.queue.next(queue);
     });
 
@@ -61,7 +64,7 @@ export class TasksService {
     });
 
     this.socket.on('task-end', data => {
-      if (data.error) {
+      if (data.error && !data.aborted) {
         this.alertService.show({
           type: 'warning',
           message: `Task failed to complete ${data.id} - ${data.error}`,
@@ -112,6 +115,16 @@ export class TasksService {
     );
 
     this.reloadScanResults();
+  }
+
+  public clearComplete() {
+    if (!this.completeTasks) {
+      return;
+    }
+
+    for (const task of this.completeTasks) {
+      this.cancelAction(task.id);
+    }
   }
 
   public startAction(id: string) {

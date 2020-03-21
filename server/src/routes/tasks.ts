@@ -1,6 +1,7 @@
 import { Database, RouterTask } from '../types';
 import { Router } from 'express';
 import { TaskManager } from '../task-manager';
+import { execute } from 'proper-job';
 import { wrap } from '../express-async';
 import Config from '../config';
 import SocketIO from 'socket.io';
@@ -8,6 +9,7 @@ import SocketIO from 'socket.io';
 import {
   AddCreateTimes,
   CacheGenerator,
+  CloneMapGenerator,
   Indexer,
   KeyframeGenerator,
   MissingDeleter,
@@ -36,38 +38,51 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   addTask('AUTO-IMPORT', {
     description: '(Meta-task) Automatically import and cache new files',
     runner: () => {
-      taskManager.start('SCAN');
-      taskManager.start('INDEX');
-      taskManager.start('GENERATE-THUMBNAILS');
-      if (Config.get().transcoder.enableVideoPreviews) {
-        taskManager.start('GENERATE-PREVIEWS');
-      }
-      if (Config.get().transcoder.enableVideoCaching) {
-        taskManager.start('GENERATE-CACHE');
-      }
-      if (Config.get().transcoder.enablePrecachingKeyframes) {
-        taskManager.start('GENERATE-KEYFRAMES');
-      }
-      if (Config.get().enablePhash) {
-        taskManager.start('GENERATE-PHASHES');
-      }
+      return execute(
+        () => {
+          taskManager.start('SCAN');
+          taskManager.start('INDEX');
+          taskManager.start('GENERATE-THUMBNAILS');
+          if (Config.get().transcoder.enableVideoPreviews) {
+            taskManager.start('GENERATE-PREVIEWS');
+          }
+          if (Config.get().transcoder.enableVideoCaching) {
+            taskManager.start('GENERATE-CACHE');
+          }
+          if (Config.get().transcoder.enablePrecachingKeyframes) {
+            taskManager.start('GENERATE-KEYFRAMES');
+          }
+          if (Config.get().enablePhash) {
+            taskManager.start('GENERATE-PHASHES');
+          }
+          return Promise.resolve([]);
+        },
+        () => Promise.resolve(),
+      );
     },
   });
 
   addTask('VERIFY-CACHE', {
     description: '(Meta-task) Verify and fix cache',
     runner: () => {
-      taskManager.start('VERIFY-THUMBNAILS');
-      taskManager.start('VERIFY-PREVIEWS');
-      taskManager.start('VERIFY-VIDEO-CACHE');
+      return execute(
+        () => {
+          taskManager.start('VERIFY-THUMBNAILS');
+          taskManager.start('VERIFY-PREVIEWS');
+          taskManager.start('VERIFY-VIDEO-CACHE');
 
-      taskManager.start('GENERATE-THUMBNAILS');
-      if (Config.get().transcoder.enableVideoPreviews) {
-        taskManager.start('GENERATE-PREVIEWS');
-      }
-      if (Config.get().transcoder.enableVideoCaching) {
-        taskManager.start('GENERATE-CACHE');
-      }
+          taskManager.start('GENERATE-THUMBNAILS');
+          if (Config.get().transcoder.enableVideoPreviews) {
+            taskManager.start('GENERATE-PREVIEWS');
+          }
+          if (Config.get().transcoder.enableVideoCaching) {
+            taskManager.start('GENERATE-CACHE');
+          }
+
+          return Promise.resolve([]);
+        },
+        () => Promise.resolve(),
+      );
     },
   });
 
@@ -85,6 +100,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   addTask('UNCORRUPT', Uncorrupter.getTask(db));
   addTask('DELETE-MISSING', MissingDeleter.getTask(db));
   addTask('ADD-CREATE-TIMES', AddCreateTimes.getTask(db));
+  addTask('GENERATE-CLONE-MAP', CloneMapGenerator.getTask(db));
 
   io.on('connection', socket => {
     socket.emit('task-queue', taskManager.getQueue());

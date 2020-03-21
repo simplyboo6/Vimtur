@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { execute } from 'proper-job';
 import Path from 'path';
 import Types from '@vimtur/common';
 import Walk from 'walk';
@@ -54,16 +55,25 @@ export class Scanner {
     return {
       description: 'Scan for new files',
       router,
-      runner: async () => {
-        const files = await Scanner.getFileList();
-        const mediaList = await db.subsetFields({}, { path: 1 });
-        const normalisedPaths: string[] = [];
-        for (const media of mediaList) {
-          normalisedPaths.push(media.path);
-        }
-        // Not an outdated value of only one task runs at a time.
-        // eslint-disable-next-line require-atomic-updates
-        Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
+      runner: () => {
+        // There's no nice way to parallelise this one at a glance.
+        // So just do it all in the init.
+        return execute(
+          async () => {
+            const files = await Scanner.getFileList();
+            const mediaList = await db.subsetFields({}, { path: 1 });
+            const normalisedPaths: string[] = [];
+            for (const media of mediaList) {
+              normalisedPaths.push(media.path);
+            }
+            // Not an outdated value of only one task runs at a time.
+            // eslint-disable-next-line require-atomic-updates
+            Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
+
+            return [];
+          },
+          () => Promise.resolve(),
+        );
       },
     };
   }

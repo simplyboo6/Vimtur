@@ -11,4 +11,5 @@ export * from './preview-verifier';
 export * from './video-cache-verifier';
 export * from './uncorrupter';
 export * from './missing-deleter';
+export * from './clone-map-generator';
 export * from './add-create-times';

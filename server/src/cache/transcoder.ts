@@ -101,33 +101,6 @@ export class Transcoder {
     });
   }
 
-  public async transcodeSet(
-    hashList: string[],
-    statusCallback?: (current: number, max: number) => void,
-  ): Promise<void> {
-    await ImportUtils.mkdir(`${Config.get().cachePath}`);
-    for (let i = 0; i < hashList.length; i++) {
-      const media = await this.database.getMedia(hashList[i]);
-      if (!media) {
-        console.warn(`Could not find media to transcode: ${hashList[i]}`);
-        continue;
-      }
-      try {
-        if (media.corrupted) {
-          console.log(`Skipping corrupted file ${media.absolutePath}`);
-        } else {
-          await this.transcodeMedia(media);
-        }
-      } catch (err) {
-        console.error(`Failed to transcode ${media.absolutePath}`, err);
-        await this.database.saveMedia(media.hash, { corrupted: true });
-      }
-      if (statusCallback) {
-        statusCallback(i, hashList.length);
-      }
-    }
-  }
-
   public async streamMedia(
     media: Media,
     start: number,
@@ -197,6 +170,49 @@ export class Transcoder {
     const args = ['-y', ...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
 
     await ImportUtils.transcode(media.absolutePath, stream, args, inputOptions);
+  }
+
+  public async transcodeMedia(media: Media): Promise<void> {
+    if (!media.metadata) {
+      throw new Error(`Can't transcode media set without metadata`);
+    }
+
+    const desiredCaches = ImportUtils.getMediaDesiredQualities(
+      media,
+      Config.get().transcoder.cacheQualities,
+    );
+    const actualCaches = media.metadata.qualityCache || [];
+    const missingQualities: Quality[] = [];
+    for (const quality of desiredCaches) {
+      if (!actualCaches.find(el => quality.quality === el)) {
+        missingQualities.push(quality);
+      }
+    }
+
+    if (missingQualities.length) {
+      console.log(`${media.hash}: ${missingQualities.length} missing quality caches detected.`);
+      await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}`);
+      for (const quality of missingQualities) {
+        await this.transcodeMediaToQuality(media, quality);
+      }
+    }
+    // Find redundant caches.
+    const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
+    if (redundant.length) {
+      console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
+      for (const quality of redundant) {
+        console.log(`${media.hash}: Removing quality ${quality}p...`);
+        await Util.promisify(Rimraf)(`${Config.get().cachePath}/${media.hash}/${quality}p`);
+        media.metadata.qualityCache!.splice(media.metadata.qualityCache!.indexOf(quality), 1);
+      }
+
+      console.log(`${media.hash}: Saving quality list...`);
+      await this.database.saveMedia(media.hash, {
+        metadata: {
+          qualityCache: media.metadata.qualityCache,
+        },
+      });
+    }
   }
 
   public async getStreamPlaylist(media: Media, quality: number): Promise<string> {
@@ -299,49 +315,6 @@ export class Transcoder {
       });
     } catch (err) {
       console.log('Failed to save media metadata.', err, media);
-    }
-  }
-
-  private async transcodeMedia(media: Media): Promise<void> {
-    if (!media.metadata) {
-      throw new Error(`Can't transcode media set without metadata`);
-    }
-
-    const desiredCaches = ImportUtils.getMediaDesiredQualities(
-      media,
-      Config.get().transcoder.cacheQualities,
-    );
-    const actualCaches = media.metadata.qualityCache || [];
-    const missingQualities: Quality[] = [];
-    for (const quality of desiredCaches) {
-      if (!actualCaches.find(el => quality.quality === el)) {
-        missingQualities.push(quality);
-      }
-    }
-
-    if (missingQualities.length) {
-      console.log(`${media.hash}: ${missingQualities.length} missing quality caches detected.`);
-      await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}`);
-      for (const quality of missingQualities) {
-        await this.transcodeMediaToQuality(media, quality);
-      }
-    }
-    // Find redundant caches.
-    const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
-    if (redundant.length) {
-      console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
-      for (const quality of redundant) {
-        console.log(`${media.hash}: Removing quality ${quality}p...`);
-        await Util.promisify(Rimraf)(`${Config.get().cachePath}/${media.hash}/${quality}p`);
-        media.metadata.qualityCache!.splice(media.metadata.qualityCache!.indexOf(quality), 1);
-      }
-
-      console.log(`${media.hash}: Saving quality list...`);
-      await this.database.saveMedia(media.hash, {
-        metadata: {
-          qualityCache: media.metadata.qualityCache,
-        },
-      });
     }
   }
 }

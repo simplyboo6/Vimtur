@@ -1,6 +1,7 @@
 import { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
+import { execute } from 'proper-job';
 
 const THUMBNAIL_BATCH_SIZE = 8;
 
@@ -8,30 +9,42 @@ export class ThumbnailVerifier {
   public static getTask(database: Database): RouterTask {
     return {
       description: 'Verify thumbnails exist',
-      runner: async (updateStatus: TaskRunnerCallback) => {
+      runner: (updateStatus: TaskRunnerCallback) => {
         const transcoder = new Transcoder(database);
-        const withThumbnails = await database.subset({ thumbnail: true });
-        let current = 0;
-        const max = withThumbnails.length;
-        updateStatus(current, max);
 
-        while (withThumbnails.length > 0) {
-          await Promise.all(
-            withThumbnails.splice(0, THUMBNAIL_BATCH_SIZE).map(async hash => {
-              const media = await database.getMedia(hash);
-              if (!media) {
-                return;
-              }
-              const path = transcoder.getThumbnailPath(media);
-              const exists = await ImportUtils.exists(path);
-              if (!exists) {
-                console.warn(`${media.absolutePath} missing thumbnail`);
-                await database.saveMedia(media.hash, { thumbnail: false });
-              }
-            }),
-          );
-          updateStatus(current++, max);
-        }
+        return execute(
+          async () => {
+            const withThumbnails = await database.subset({ thumbnail: true });
+            updateStatus(0, withThumbnails.length);
+
+            return {
+              iterable: withThumbnails,
+              init: {
+                current: 0,
+                max: withThumbnails.length,
+              },
+            };
+          },
+          async (hash, init) => {
+            if (!init) {
+              throw new Error('init not defined');
+            }
+
+            const media = await database.getMedia(hash);
+            if (!media) {
+              throw new Error(`Cannot find media for hash ${hash}`);
+            }
+            const path = transcoder.getThumbnailPath(media);
+            const exists = await ImportUtils.exists(path);
+            if (!exists) {
+              console.warn(`${media.absolutePath} missing thumbnail`);
+              await database.saveMedia(media.hash, { thumbnail: false });
+            }
+
+            updateStatus(init.current++, init.max);
+          },
+          { parallel: THUMBNAIL_BATCH_SIZE },
+        );
       },
     };
   }
