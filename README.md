@@ -63,6 +63,10 @@ services:
 - When doing the keyword search there's a limit of 1200 results.
 - All code is TypeScript and the UI framework is Angular.
 
+### Github Sponsors
+
+If you'd like to donate towards development you can [here](https://github.com/sponsors/simplyboo6). Never feel obligated to do so, I'll always provide support and respond to requests through issues.
+
 ## Docker
 
 The server can be run as a Docker instance. It accepts the following environment variables:

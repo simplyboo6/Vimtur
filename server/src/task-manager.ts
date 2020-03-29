@@ -18,7 +18,6 @@ export class TaskManager extends EventEmitter {
   private lastEmitTime = 0;
 
   public start(id: string): string {
-    console.trace('TaskManager:start', id);
     const task = this.tasks[id];
     if (!task) {
       throw new BadRequest(`No task with id: ${id}`);
