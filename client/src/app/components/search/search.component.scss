@@ -6,6 +6,14 @@
   width: calc(100% - 0.4rem);
 }
 
+.full-height {
+  display: flex;
+
+  & > :first-child {
+    flex: 1;
+  }
+}
+
 .reset-button {
   margin-left: 1rem;
 }
