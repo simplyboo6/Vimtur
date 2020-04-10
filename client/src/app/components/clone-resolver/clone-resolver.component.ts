@@ -5,6 +5,10 @@ import { CollectionService } from 'services/collection.service';
 import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 
+interface CloneMedia extends Media {
+  isClone?: boolean;
+}
+
 @Component({
   selector: 'app-clone-resolver',
   templateUrl: './clone-resolver.component.html',
@@ -12,7 +16,7 @@ import { Subscription } from 'rxjs';
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {
   public media?: Media;
-  public clones?: Media[];
+  public clones?: CloneMedia[];
   public collectionService: CollectionService;
 
   private subscriptions: Subscription[] = [];
@@ -50,6 +54,13 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
 
     this.media = undefined;
     this.clones = undefined;
+  }
+
+  public anyClonesSelected(clones?: CloneMedia[]): boolean {
+    if (!clones) {
+      return false;
+    }
+    return Boolean(clones.find(m => m.isClone));
   }
 
   private loadClones() {

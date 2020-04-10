@@ -1,4 +1,4 @@
-<div class="main-body">
+<div class="main-body full-height">
   <ng-container *ngIf="!media; else showMediaType">
     <div class="loading">
       Loading media
@@ -12,9 +12,7 @@
   </ng-container>
 
   <ng-template #showMediaType>
-    <div class="card image-container">
-      <ng-container *ngTemplateOutlet="leftPanel"></ng-container>
-    </div>
+    <ng-container *ngTemplateOutlet="leftPanel"></ng-container>
     <ng-container *ngIf="media.type !== 'still'; else showMediaCloneData">
       <div class="right-panel">
         Clone detection is currently only possible for still images.
@@ -53,66 +51,138 @@
   </ng-template>
 
   <ng-template #leftPanel>
-    <div class="card-header card-small">Current</div>
-    <div class="card-body">
-      <img
-        class="img-fluid img-thumbnail thumbnail"
-        [src]="'/cache/thumbnails/' + media.hash + '.png'"
-      />
-      <p *ngIf="media.metadata" class="media-body pb-1 mb-0 small lh-125">
-        <strong class="d-block text-gray-dark">Resolution</strong>
-        {{ media.metadata.width }}x{{ media.metadata.height }}
-      </p>
-      <ng-container *ngIf="media.metadata">
-        <p class="media-body pb-1 mb-0 small lh-125">
-          <strong class="d-block text-gray-dark">Artist</strong>
-          {{ media.metadata.artist || 'Unknown' }}
-        </p>
-        <p class="media-body pb-1 mb-0 small lh-125">
-          <strong class="d-block text-gray-dark">Album</strong>
-          {{ media.metadata.album || 'Unknown' }}
-        </p>
-        <p class="media-body pb-1 mb-0 small lh-125">
-          <strong class="d-block text-gray-dark">Title</strong>
-          {{ media.metadata.title || 'Unknown' }}
-        </p>
-      </ng-container>
-      <p class="media-body pb-1 mb-0 small lh-125">
-        <strong class="d-block text-gray-dark">Tags</strong>
-        {{ media.tags && media.tags.length ? media.tags.join(', ') : 'No tags' }}
-      </p>
-      <p class="media-body pb-1 mb-0 small lh-125">
-        <strong class="d-block text-gray-dark">People</strong>
-        {{ media.actors && media.actors.length ? media.actors.join(', ') : 'No people' }}
-      </p>
-      <p class="media-body pb-1 mb-0 small lh-125">
-        <strong class="d-block text-gray-dark">Hash</strong>
-        {{ media.hash }}
-      </p>
-      <p class="media-body pb-1 mb-0 small lh-125">
-        <strong class="d-block text-gray-dark">Path</strong>
-        {{ media.path }}
-      </p>
+    <div class="image-container">
+      <div class="card padded-auto">
+        <div class="card-header card-small">Current</div>
+        <div class="card-body card-small">
+          <img class="img-fluid thumbnail" [src]="'/cache/thumbnails/' + media.hash + '.png'" />
+          <p *ngIf="media.metadata" class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">Resolution</strong>
+            {{ media.metadata.width }}x{{ media.metadata.height }}
+          </p>
+          <ng-container *ngIf="media.metadata">
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Artist</strong>
+              {{ media.metadata.artist || 'Unknown' }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Album</strong>
+              {{ media.metadata.album || 'Unknown' }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Title</strong>
+              {{ media.metadata.title || 'Unknown' }}
+            </p>
+          </ng-container>
+          <p class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">Tags</strong>
+            {{ media.tags && media.tags.length ? media.tags.join(', ') : 'No tags' }}
+          </p>
+          <p class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">People</strong>
+            {{ media.actors && media.actors.length ? media.actors.join(', ') : 'No people' }}
+          </p>
+          <p class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">Hash</strong>
+            {{ media.hash }}
+          </p>
+          <p class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">Path</strong>
+            {{ media.path }}
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header card-small">Resolutions</div>
+        <div class="card-body card-small">
+          <button
+            [disabled]="!anyClonesSelected(clones)"
+            class="btn btn-primary btn-block"
+            title="Mark the selected items as duplicates and the rest as not duplicates"
+          >
+            Resolve (Selected)
+          </button>
+
+          <button class="btn btn-primary btn-block" title="Marks all of the items as clones">
+            Resolve (All Clones)
+          </button>
+
+          <button
+            class="btn btn-primary btn-block"
+            title="Marks all of the items as not duplicates"
+          >
+            Resolve (All Unrelated)
+          </button>
+        </div>
+      </div>
     </div>
   </ng-template>
 
   <ng-template #showClones>
     <div class="right-panel gallery">
-      <a
-        routerLink="/viewer"
+      <div
         *ngFor="let m of clones"
-        class="d-block h-100 image-container gallery-image-container"
+        class="d-block image-container card"
         data-toggle="tooltip"
         data-placement="bottom"
         [title]="getHoverText(m)"
-        (click)="collectionService.goto(m.hash)"
       >
-        <img class="img-fluid img-thumbnail" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
-        <div class="type caption">
-          <strong>{{ getTitle(m) }}</strong>
-          <div class="subtitle">{{ getSubtitle(m) }}</div>
+        <img
+          (click)="m.isClone = !m.isClone"
+          class="img-fluid clickable card-body card-small"
+          [src]="'/cache/thumbnails/' + m.hash + '.png'"
+        />
+        <ng-container *ngIf="m.isClone; else unchecked">
+          <ng-container *ngTemplateOutlet="checked"></ng-container>
+        </ng-container>
+        <div class="type caption card-header card-small">
+          <a routerLink="/clone-resolver" (click)="collectionService.goto(m.hash)">
+            <strong>{{ getTitle(m) }}</strong>
+            <div class="subtitle">{{ getSubtitle(m) }}</div>
+          </a>
         </div>
-      </a>
+      </div>
     </div>
   </ng-template>
 </div>
+
+<ng-template #unchecked>
+  <div class="check-circle">
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      data-prefix="far"
+      data-icon="circle"
+      class="svg-inline--fa fa-circle fa-w-16"
+      role="img"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+    >
+      <path
+        fill="currentColor"
+        d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200z"
+      ></path>
+    </svg>
+  </div>
+</ng-template>
+
+<ng-template #checked>
+  <div class="check-circle checked">
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      data-prefix="fas"
+      data-icon="check-circle"
+      class="svg-inline--fa fa-check-circle fa-w-16"
+      role="img"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+    >
+      <path
+        fill="currentColor"
+        d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628.001z"
+      ></path>
+    </svg>
+  </div>
+</ng-template>

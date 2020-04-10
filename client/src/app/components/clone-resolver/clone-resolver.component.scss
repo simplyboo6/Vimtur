@@ -4,12 +4,59 @@ img {
   height: 210px;
 }
 
-.image-container {
-  max-width: 380px;
+.clickable {
+  cursor: pointer;
 }
 
-.gallery-image-container {
-  padding: 0.5rem;
+.check-circle {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 2rem;
+  height: 2rem;
+  pointer-events: none;
+
+  & > svg {
+    opacity: 0.4;
+    color: var(--secondary);
+  }
+}
+
+.check-circle.checked {
+  & > svg {
+    opacity: 1;
+    color: var(--primary);
+  }
+}
+
+.image-container {
+  max-width: 380px;
+  margin: 0.2rem;
+  position: relative;
+  min-width: 300px;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
+  & > :not(:last-child) {
+    margin-bottom: 0.2rem;
+  }
+}
+
+.padded-auto {
+  margin-bottom: auto;
+  flex: 1;
+}
+
+.card {
+  border: none;
+  border-radius: 0;
+}
+
+.card-header:first-child {
+  border: none;
+  border-radius: 0;
 }
 
 .card-small {
@@ -17,10 +64,8 @@ img {
 }
 
 .gallery {
-  padding-top: 1rem;
   display: flex;
   flex-flow: row wrap;
-  justify-content: center;
 }
 
 h5 {
@@ -50,9 +95,14 @@ h5 {
 .main-body {
   display: flex;
   flex-direction: row;
+  background-color: var(--vimtur-color-background-light);
+  margin: 0;
 }
 
 .right-panel {
   flex: 1;
   display: flex;
+  height: max-content;
+  // For if it overflows the main height.
+  background-color: var(--vimtur-color-background-light);
 }

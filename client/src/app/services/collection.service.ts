@@ -85,7 +85,6 @@ export class CollectionService {
       const index = this.collection.indexOf(location);
       if (index >= 0) {
         this.index = index;
-        this.router.navigate(['/viewer']);
         this.update();
       } else {
         this.alertService.show({
