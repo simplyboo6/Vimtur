@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { ExecutorError, ExecutorPromise } from 'proper-job';
 import { ListedTask, QueuedTask } from '@vimtur/common';
 import { Task } from './types';
+import Config from './config';
 
 const MAX_TASK_QUEUE_SIZE = 30;
 const EMIT_TIME = 1000;
@@ -126,6 +127,7 @@ export class TaskManager extends EventEmitter {
 
     console.log(`Task started: ${queuedTask.id}`);
     this.emit('start', queuedTask);
+    this.emit('queue', this.taskQueue);
 
     // ESLint being stupid. This whole mess handles the promise.
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -136,6 +138,13 @@ export class TaskManager extends EventEmitter {
           queuedTask.error = `Aborted. ${result.fulfilled} complete. ${result.errors.length} errors.`;
         } else {
           console.log(`Task completed successfully: ${queuedTask.id}`);
+          if (Config.get().user.autoClearCompletedTasks) {
+            const index = this.taskQueue.findIndex(t => t.id === queuedTask.id);
+            if (index >= 0) {
+              this.taskQueue.splice(index, 1);
+            }
+            this.cancel(queuedTask.id);
+          }
         }
       })
       .catch(err => {

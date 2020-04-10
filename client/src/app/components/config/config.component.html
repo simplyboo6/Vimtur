@@ -205,6 +205,19 @@
         >
       </div>
     </div>
+    <!-- user.autoClearCompletedTasks -->
+    <div class="custom-control custom-checkbox input-component">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-auto-clear-completed-tasks"
+        [(ngModel)]="config.user.autoClearCompletedTasks"
+        (ngModelChange)="updateConfig('user.autoClearCompletedTasks', $event)"
+      />
+      <label class="custom-control-label" for="config-auto-clear-completed-tasks"
+        >Automatically clear completed tasks?</label
+      >
+    </div>
     <!-- user.lowQualityOnLoadEnabled -->
     <div class="custom-control custom-checkbox input-component">
       <input

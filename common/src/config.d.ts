@@ -59,6 +59,7 @@ export namespace Configuration {
     quickTagShowPath?: boolean;
 
     showTaskNotifications?: boolean;
+    autoClearCompletedTasks?: boolean;
   }
 
   export interface Mongo {

@@ -86,6 +86,7 @@ const DEFAULTS: any = {
     quickTagShowPath: true,
 
     showTaskNotifications: false,
+    autoClearCompletedTasks: true,
   },
 };
 
