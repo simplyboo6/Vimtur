@@ -1,19 +1,21 @@
 <div class="container pad-bottom" *ngIf="media; else loading">
-  <h4>Metadata</h4>
-  <div class="header">
-    <img
-      class="img-fluid img-thumbnail thumbnail"
-      [src]="'/cache/thumbnails/' + media.hash + '.png'"
-    />
-    <div class="media-path">
-      <div>Path: {{ media.path }}</div>
-      <div>Hash: {{ media.hash }}</div>
-      <div *ngIf="media.metadata">
-        Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}
-      </div>
+  <div class="card form-card">
+    <h4>Metadata</h4>
+    <div class="header">
+      <img
+        class="img-fluid img-thumbnail thumbnail"
+        [src]="'/cache/thumbnails/' + media.hash + '.png'"
+      />
+      <div class="media-path">
+        <div>Path: {{ media.path }}</div>
+        <div>Hash: {{ media.hash }}</div>
+        <div *ngIf="media.metadata">
+          Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}
+        </div>
 
-      <div *ngIf="media.metadata && media.metadata.createdAt">
-        Created: {{ timestampAsDate(media.metadata.createdAt) | date }}
+        <div *ngIf="media.metadata && media.metadata.createdAt">
+          Created: {{ timestampAsDate(media.metadata.createdAt) | date }}
+        </div>
       </div>
     </div>
   </div>

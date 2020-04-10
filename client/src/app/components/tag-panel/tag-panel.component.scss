@@ -7,16 +7,6 @@
   margin: 0.2rem;
 }
 
-.card {
-  border: none;
-  border-radius: 0;
-}
-
-.card-header:first-child {
-  border: none;
-  border-radius: 0;
-}
-
 .tag-header {
   height: 2rem;
   min-width: 10rem;
@@ -28,7 +18,6 @@
 }
 
 .card-small {
-  padding: 0.2rem;
   display: flex;
   flex-direction: row;
 }

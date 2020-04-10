@@ -1,6 +1,9 @@
 .padded {
   padding-top: 1rem;
-  padding-bottom: 2rem;
+  padding-bottom: 1rem;
+
+  margin: 0.2rem;
+  width: calc(100% - 0.4rem);
 }
 
 .reset-button {

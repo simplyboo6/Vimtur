@@ -19,3 +19,21 @@ angular2-multiselect {
 button:disabled {
   cursor: initial;
 }
+
+.card-small {
+  padding: 0.2rem !important;
+}
+
+.card {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.card-header:first-child {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+body {
+  background-color: var(--vimtur-color-background-light) !important;
+}
