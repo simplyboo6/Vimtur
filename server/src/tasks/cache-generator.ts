@@ -18,6 +18,7 @@ export class CacheGenerator {
             const hashes = await database.subset({
               type: { equalsAll: ['video'] },
               corrupted: false,
+              duplicateOf: { exists: false },
             });
             return {
               init: hashes.length,

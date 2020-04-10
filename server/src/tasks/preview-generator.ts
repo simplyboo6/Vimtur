@@ -17,6 +17,7 @@ export class PreviewGenerator {
               preview: false,
               corrupted: false,
               type: { equalsAll: ['video'] },
+              duplicateOf: { exists: false },
             });
             updateStatus(0, withoutPreviews.length);
 

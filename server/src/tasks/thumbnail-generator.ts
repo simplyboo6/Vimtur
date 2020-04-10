@@ -13,7 +13,11 @@ export class ThumbnailGenerator {
 
         return execute(
           async () => {
-            const withoutThumbnails = await database.subset({ thumbnail: false, corrupted: false });
+            const withoutThumbnails = await database.subset({
+              thumbnail: false,
+              corrupted: false,
+              duplicateOf: { exists: false },
+            });
             updateStatus(0, withoutThumbnails.length);
             return {
               iterable: withoutThumbnails,

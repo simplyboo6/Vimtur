@@ -37,6 +37,15 @@ function createStringFilterCommon(field: string, options?: StringFilterCommon): 
       : {},
   );
 
+  Object.assign(
+    filter,
+    options.exists !== undefined
+      ? {
+          $exists: options.exists,
+        }
+      : {},
+  );
+
   if (Object.keys(filter).length === 0) {
     return {};
   }

@@ -8,11 +8,12 @@ export interface StringFilterCommon {
   equalsAny?: string[];
   equalsAll?: string[];
   equalsNone?: string[];
+  exists?: boolean;
 }
 
 export interface ArrayFilter extends StringFilterCommon {
   // Whether item.0 exists
-  exists?: boolean;
+  // exists?: boolean;
 }
 
 export interface StringFilter extends ArrayFilter {
@@ -35,6 +36,7 @@ export interface SubsetConstraints {
   title?: StringFilter;
   dir?: StringFilter;
   path?: StringFilter;
+  duplicateOf?: StringFilter;
 
   // Numbers
   quality?: NumberFilter;

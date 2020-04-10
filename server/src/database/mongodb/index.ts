@@ -354,6 +354,7 @@ export class MongoConnector extends Database {
     filters.push(createStringFilter('metadata.title', constraints.title));
     filters.push(createStringFilter('dir', constraints.dir));
     filters.push(createStringFilter('path', constraints.path));
+    filters.push(createStringFilter('duplicateOf', constraints.duplicateOf));
 
     filters.push(createNumberFilter('metadata.height', constraints.quality));
     filters.push(createNumberFilter('rating', constraints.rating));

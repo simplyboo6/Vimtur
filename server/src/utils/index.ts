@@ -24,17 +24,7 @@ export function authConnector(
   next();
 }
 
-export async function deleteMedia(media: Media): Promise<void> {
-  const hash = media.hash;
-  try {
-    await Util.promisify(FS.unlink)(media.absolutePath);
-  } catch (err) {
-    if (!err.message.startsWith('ENOENT')) {
-      throw err;
-    }
-  }
-  console.log(`${media.absolutePath} removed`);
-
+export async function deleteCache(hash: string): Promise<void> {
   const thumbnail = `${Config.get().cachePath}/thumbnails/${hash}.png`;
   try {
     await Util.promisify(FS.unlink)(thumbnail);
@@ -45,6 +35,16 @@ export async function deleteMedia(media: Media): Promise<void> {
   }
   console.log(`${thumbnail} removed`);
 
+  const preview = `${Config.get().cachePath}/previews/${hash}.png`;
+  try {
+    await Util.promisify(FS.unlink)(preview);
+  } catch (err) {
+    if (!err.message.startsWith('ENOENT')) {
+      throw err;
+    }
+  }
+  console.log(`${preview} removed`);
+
   const cache = `${Config.get().cachePath}/${hash}/`;
   try {
     await Util.promisify(RimRaf)(cache);
@@ -54,4 +54,17 @@ export async function deleteMedia(media: Media): Promise<void> {
     }
   }
   console.log(`${cache} removed`);
+}
+
+export async function deleteMedia(media: Media): Promise<void> {
+  await deleteCache(media.hash);
+
+  try {
+    await Util.promisify(FS.unlink)(media.absolutePath);
+  } catch (err) {
+    if (!err.message.startsWith('ENOENT')) {
+      throw err;
+    }
+  }
+  console.log(`${media.absolutePath} removed`);
 }

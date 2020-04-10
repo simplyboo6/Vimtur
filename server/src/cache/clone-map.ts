@@ -46,7 +46,7 @@ export function generateImageCloneMap(
 
       // Now find all phashed
       const imagesRaw = await database.subsetFields(
-        { type: { equalsAll: ['still'] }, phashed: true },
+        { type: { equalsAll: ['still'] }, phashed: true, duplicateOf: { exists: false } },
         { phash: 1, hash: 1, clones: 1 },
       );
 

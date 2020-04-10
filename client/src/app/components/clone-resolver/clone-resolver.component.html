@@ -83,6 +83,10 @@
             {{ media.actors && media.actors.length ? media.actors.join(', ') : 'No people' }}
           </p>
           <p class="media-body pb-1 mb-0 small lh-125">
+            <strong class="d-block text-gray-dark">Rating</strong>
+            {{ media.rating ? media.rating + ' / 5' : 'Unrated' }}
+          </p>
+          <p class="media-body pb-1 mb-0 small lh-125">
             <strong class="d-block text-gray-dark">Hash</strong>
             {{ media.hash }}
           </p>
@@ -97,18 +101,31 @@
         <div class="card-header card-small">Resolutions</div>
         <div class="card-body card-small">
           <button
+            (click)="autoResolve()"
+            class="btn btn-primary btn-block"
+            title="Picks the image with the highest resolution, merges the metadata and marks all as duplicates"
+          >
+            Auto-resolve (All Clones)
+          </button>
+          <button
             [disabled]="!anyClonesSelected(clones)"
             class="btn btn-primary btn-block"
             title="Mark the selected items as duplicates and the rest as not duplicates"
+            (click)="resolveSelected()"
           >
             Resolve (Selected)
           </button>
 
-          <button class="btn btn-primary btn-block" title="Marks all of the items as clones">
+          <button
+            (click)="resolveAll()"
+            class="btn btn-primary btn-block"
+            title="Marks all of the items as clones"
+          >
             Resolve (All Clones)
           </button>
 
           <button
+            (click)="resolveNone()"
             class="btn btn-primary btn-block"
             title="Marks all of the items as not duplicates"
           >
@@ -124,6 +141,7 @@
       <div
         *ngFor="let m of clones"
         class="d-block image-container card"
+        [class.checked]="m.isClone"
         data-toggle="tooltip"
         data-placement="bottom"
         [title]="getHoverText(m)"

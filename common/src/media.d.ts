@@ -45,12 +45,11 @@ export interface BaseMedia {
   phash?: string;
   // Array of hashes of potential clones.
   clones?: string[];
-  // Other hashes confirmed to be matches.
-  aliases?: string[];
-  // pHash matches that are related in some way.
-  related?: string[];
   // pHash matches that are unrelated.
   unrelated?: string[];
+  // If this is a duplicate/alias of a different file
+  // then this should be set to the master files hash.
+  duplicateOf?: string;
   // Time the clone comparator was run for this media.
   cloneDate?: number;
 }
@@ -81,6 +80,14 @@ export interface UpdateMedia {
   phash?: string;
   clones?: string[];
   cloneDate?: number;
+  duplicateOf?: string;
+  // Update only field. Will only add as unrelated.
+  unrelated?: string[];
+}
+
+export interface MediaResolution {
+  aliases: string[];
+  unrelated: string[];
 }
 
 // This is when fetched from the database.

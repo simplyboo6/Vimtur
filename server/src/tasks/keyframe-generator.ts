@@ -10,7 +10,11 @@ export class KeyframeGenerator {
       runner: (updateStatus: TaskRunnerCallback) => {
         return execute(
           async () => {
-            const hashes = await database.subset({ type: { equalsAll: ['video'] }, indexed: true });
+            const hashes = await database.subset({
+              type: { equalsAll: ['video'] },
+              indexed: true,
+              duplicateOf: { exists: false },
+            });
             updateStatus(0, hashes.length);
 
             return {

@@ -56,11 +56,107 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     this.clones = undefined;
   }
 
+  public autoResolve() {
+    if (!this.clones || !this.media) {
+      return;
+    }
+
+    // Merge them and organise them by resolution greater to smallest
+    const all = [...this.clones, this.media].sort((a, b) => {
+      return b.metadata.width * b.metadata.height - a.metadata.width * a.metadata.height;
+    });
+    console.debug('Autoresolve: highest resolution', all[0]);
+
+    const tags: string[] = [];
+    const actors: string[] = [];
+
+    const artist = all.map(m => m.metadata && m.metadata.artist).find(a => Boolean(a));
+    console.debug('Autoresolve: artist', artist);
+
+    const album = all.map(m => m.metadata && m.metadata.album).find(a => Boolean(a));
+    console.debug('Autoresolve: album', album);
+
+    const title = all.map(m => m.metadata && m.metadata.title).find(t => Boolean(t));
+    console.debug('Autoresolve: title', title);
+
+    const ratingList = all
+      .map(m => m.rating)
+      .filter(r => Boolean(r))
+      .sort((a, b) => b - a);
+    const rating = ratingList[0];
+    console.debug('Autoresolve: rating', rating);
+
+    for (const media of all) {
+      tags.push(...media.tags);
+      actors.push(...media.actors);
+    }
+    const uniqueTags = Array.from(new Set(tags));
+    console.debug('Autoresolve: uniqueTags', uniqueTags);
+
+    const uniqueActors = Array.from(new Set(actors));
+    console.debug('Autoresolve: uniqueActors', uniqueActors);
+
+    // Apply all the merged metadata to the primary image
+    if (artist || album || title) {
+      this.mediaService.saveMedia(all[0].hash, {
+        metadata: { artist, album, title },
+      });
+    }
+
+    if (rating !== undefined) {
+      this.mediaService.saveMedia(all[0].hash, { rating });
+    }
+
+    for (const tag of uniqueTags) {
+      this.mediaService.addTagRaw(all[0], tag);
+    }
+
+    for (const actor of uniqueActors) {
+      this.mediaService.addActorRaw(all[0], actor);
+    }
+
+    // Resolve clones for it (this will also skip to it + 1.
+    this.mediaService.resolveClones(all[0].hash, {
+      aliases: all.splice(1).map(m => m.hash),
+      unrelated: [],
+    });
+  }
+
   public anyClonesSelected(clones?: CloneMedia[]): boolean {
     if (!clones) {
       return false;
     }
     return Boolean(clones.find(m => m.isClone));
+  }
+
+  public resolveSelected() {
+    if (!this.clones || !this.media) {
+      return;
+    }
+    this.mediaService.resolveClones(this.media.hash, {
+      aliases: this.clones.filter(m => m.isClone).map(m => m.hash),
+      unrelated: this.clones.filter(m => !m.isClone).map(m => m.hash),
+    });
+  }
+
+  public resolveAll() {
+    if (!this.clones || !this.media) {
+      return;
+    }
+    this.mediaService.resolveClones(this.media.hash, {
+      aliases: this.clones.map(m => m.hash),
+      unrelated: [],
+    });
+  }
+
+  public resolveNone() {
+    if (!this.clones || !this.media) {
+      return;
+    }
+    this.mediaService.resolveClones(this.media.hash, {
+      aliases: [],
+      unrelated: this.clones.map(m => m.hash),
+    });
   }
 
   private loadClones() {
@@ -104,7 +200,8 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
   }
 
   public getSubtitle(media: Media): string {
-    return `${media.tags.length} tags | ${media.actors.length} people | ${media.metadata.width}x${media.metadata.height}`;
+    const rating = media.rating ? media.rating + ' / 5' : 'Unrated';
+    return `${media.tags.length} tags | ${media.actors.length} people | ${media.metadata.width}x${media.metadata.height} | ${rating}`;
   }
 
   public getHoverText(media: Media): string {

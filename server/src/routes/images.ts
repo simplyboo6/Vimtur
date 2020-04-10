@@ -3,17 +3,18 @@ import Path from 'path';
 import PathIsInside from 'path-is-inside';
 
 import { BadRequest, NotFound } from '../errors';
-import { BulkUpdate, Database, SubsetConstraints } from '../types';
+import { BulkUpdate, Database, MediaResolution, SubsetConstraints } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
 import { Validator } from '../utils/validator';
-import { deleteMedia } from '../utils';
+import { deleteCache, deleteMedia } from '../utils';
 import { wrap } from '../express-async';
 import Config from '../config';
 
 const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
 const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
 const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
+const RESOLUTION_VALIDATOR = Validator.load('MediaResolution');
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();
@@ -31,6 +32,7 @@ export async function create(db: Database): Promise<Router> {
       const constraints: SubsetConstraints = req.body;
       constraints.corrupted = false;
       constraints.indexed = true;
+      constraints.duplicateOf = { exists: false };
 
       console.log('Search request.', constraints);
       return {
@@ -158,6 +160,50 @@ export async function create(db: Database): Promise<Router> {
       return res.status(503).json({ message: err.message });
     }
   });
+
+  router.post(
+    '/:hash/resolve',
+    wrap(async ({ req }) => {
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        throw new NotFound(`No media found with hash: ${req.params.hash}`);
+      }
+
+      if (!media.clones) {
+        throw new BadRequest('Media has no clones');
+      }
+
+      const result = RESOLUTION_VALIDATOR.validate(req.body);
+      if (!result.success) {
+        throw new BadRequest(result.errorText!);
+      }
+
+      const request = req.body as MediaResolution;
+      // Verify that aliases + unrelated contains everything in clones.
+      const allRequested = [...request.aliases, ...request.unrelated];
+      // If we can find a clone that isn't in the request body...
+      if (media.clones.find(c => !allRequested.includes(c))) {
+        throw new BadRequest('Resolver body does not resolve all clones');
+      }
+
+      for (const hash of request.aliases) {
+        // For each alias set duplicateOf to this media, mark the cache as not cached
+        // and delete the cache for it.
+        await deleteCache(hash);
+
+        // In some cases this may replace an image that already has duplicates.
+        // So for each of the aliases update any media the have duplicateOf pointing
+        // as the alias to this media.
+        await db.saveBulkMedia({ duplicateOf: { equalsAll: [hash] } }, { duplicateOf: media.hash });
+
+        // Update the clone to mark it as a duplicate.
+        await db.saveMedia(hash, { duplicateOf: media.hash });
+      }
+
+      // Update the media to set clones to undefined and add unrelated to unrelated.
+      await db.saveMedia(media.hash, { clones: [], unrelated: request.unrelated });
+    }),
+  );
 
   router.get('/:hash/stream/index.m3u8', (req: Request, res: Response) => {
     db.getMedia(req.params.hash)

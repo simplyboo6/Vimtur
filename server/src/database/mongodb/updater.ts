@@ -119,6 +119,13 @@ export class Updater {
         .updateMany({ 'metadata.length': { $gt: maxLength } }, { $unset: { preview: '' } });
       await Updater.saveUpdate(updatesCollection, '012_invalidate-long-previews');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '013_add-clone-resolutions'))) {
+      console.log('Applying update 013_add-clone-resolutions...');
+      const mediaSchema = Updater.loadMediaSchema('449b5f7f');
+      await Updater.recreateMediaCollection(db, mediaSchema);
+      await Updater.saveUpdate(updatesCollection, '013_add-clone-resolutions');
+    }
   }
 
   private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {
@@ -218,6 +225,10 @@ export class Updater {
     });
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
       unrelated: 1,
+    });
+
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+      duplicateOf: 1,
     });
   }
 

@@ -1,7 +1,13 @@
 import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject, forkJoin } from 'rxjs';
-import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints } from '@vimtur/common';
+import {
+  Media,
+  UpdateMetadata,
+  UpdateMedia,
+  SubsetConstraints,
+  MediaResolution,
+} from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { CollectionService } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
@@ -31,6 +37,7 @@ export class MediaService {
   private tagService: TagService;
   private actorService: ActorService;
   private modalService: NgbModal;
+  private collectionService: CollectionService;
   private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
 
   public media?: Media;
@@ -45,6 +52,7 @@ export class MediaService {
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
+    this.collectionService = collectionService;
     this.tagService = tagService;
     this.actorService = actorService;
     this.modalService = modalService;
@@ -91,6 +99,15 @@ export class MediaService {
   }
 
   public addActor(value: string | TagListItem) {
+    if (!this.media) {
+      return;
+    }
+
+    this.addActorRaw(this.media, value);
+    this.mediaReplay.next(this.media);
+  }
+
+  public addActorRaw(media: Media, value: string | TagListItem) {
     if (!this.actorService.actors) {
       this.alertService.show({
         type: 'danger',
@@ -100,17 +117,14 @@ export class MediaService {
     }
 
     const name = this.getValue(value);
-    if (!this.media) {
-      return;
-    }
-    if (!this.media.actors.includes(name)) {
+
+    if (!media.actors.includes(name)) {
       if (!this.actorService.actors.includes(name)) {
         this.actorService.addActor(name);
       }
-      this.media.actors.push(name);
-      this.mediaReplay.next(this.media);
+      media.actors.push(name);
 
-      const hash = this.media.hash;
+      const hash = media.hash;
       console.log('addActor', hash, name);
       this.httpClient.post(`/api/images/${hash}/actors`, { name }, HTTP_OPTIONS).subscribe(
         () => console.debug('actor added', hash, name),
@@ -160,6 +174,15 @@ export class MediaService {
   }
 
   public addTag(value: string | TagListItem) {
+    if (!this.media) {
+      return;
+    }
+
+    this.addTagRaw(this.media, value);
+    this.mediaReplay.next(this.media);
+  }
+
+  public addTagRaw(media: Media, value: string | TagListItem) {
     if (!this.tagService.tags) {
       this.alertService.show({
         type: 'danger',
@@ -169,18 +192,15 @@ export class MediaService {
     }
 
     const name = this.getValue(value);
-    if (!this.media) {
-      return;
-    }
-    if (!this.media.tags.includes(name)) {
+
+    if (!media.tags.includes(name)) {
       if (!this.tagService.tags.includes(name)) {
         this.tagService.addTag(name);
       }
 
-      this.media.tags.push(name);
-      this.mediaReplay.next(this.media);
+      media.tags.push(name);
 
-      const hash = this.media.hash;
+      const hash = media.hash;
       console.log('addTag', hash, name);
       this.httpClient.post(`/api/images/${hash}/tags`, { name }, HTTP_OPTIONS).subscribe(
         () => console.debug('tag added', hash, name),
@@ -222,6 +242,37 @@ export class MediaService {
 
   public getMedia(): ReplaySubject<Media> {
     return this.mediaReplay;
+  }
+
+  public resolveClones(hash: string, request: MediaResolution) {
+    const alert: Alert = {
+      type: 'info',
+      message: 'Resolving clones...',
+    };
+
+    this.alertService.show(alert);
+
+    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
+      () => {
+        this.alertService.dismiss(alert);
+
+        if (this.media && this.media.hash === hash) {
+          this.media = {
+            ...this.media,
+            clones: [],
+          };
+          this.mediaReplay.next(this.media);
+        }
+        this.collectionService.removeFromSet(request.aliases);
+        this.collectionService.goto(hash);
+        this.collectionService.offset(1);
+      },
+      (err: HttpErrorResponse) => {
+        this.alertService.dismiss(alert);
+        console.error('failed to resolve clones', request, err);
+        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
+      },
+    );
   }
 
   public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {
@@ -275,11 +326,13 @@ export class MediaService {
       );
   }
 
-  private saveMedia(hash: string, update: UpdateMedia) {
+  public saveMedia(hash: string, update: UpdateMedia) {
     this.httpClient.patch<Media>(`/api/images/${hash}`, update, HTTP_OPTIONS).subscribe(
       (media: Media) => {
-        this.media = media;
-        this.mediaReplay.next(this.media);
+        if (this.media && this.media.hash === hash) {
+          this.media = media;
+          this.mediaReplay.next(this.media);
+        }
         console.debug('media saved', hash, update);
       },
       (err: HttpErrorResponse) => {

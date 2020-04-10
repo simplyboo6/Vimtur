@@ -44,6 +44,10 @@ img {
   }
 }
 
+.image-container.checked {
+  outline: 0.2rem solid var(--primary);
+}
+
 .padded-auto {
   margin-bottom: auto;
   flex: 1;

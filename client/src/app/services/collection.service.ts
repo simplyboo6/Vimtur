@@ -124,11 +124,7 @@ export class CollectionService {
           console.debug(`Deleting ${hash}`);
           this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
             () => {
-              this.collection.splice(this.index, 1);
-              if (this.index >= this.collection.length) {
-                this.index = 0;
-              }
-              this.update();
+              this.removeFromSet([hash]);
             },
             (err: HttpErrorResponse) => {
               console.error(err);
@@ -138,6 +134,31 @@ export class CollectionService {
         }
       })
       .catch(err => console.error('Modal error', err));
+  }
+
+  public removeFromSet(hashes: string[]) {
+    if (!this.collection || this.index === undefined) {
+      return;
+    }
+
+    const currentHash = this.collection[this.index];
+
+    for (const hash of hashes) {
+      const index = this.collection.indexOf(hash);
+      if (index >= 0) {
+        this.collection.splice(index, 1);
+      }
+    }
+
+    const newIndex = this.collection.indexOf(currentHash);
+    if (newIndex >= 0) {
+      this.index = newIndex;
+    }
+
+    if (this.index >= this.collection.length) {
+      this.index = 0;
+    }
+    this.update();
   }
 
   public search(constraints: SubsetConstraints, options?: ClientSearchOptions) {
