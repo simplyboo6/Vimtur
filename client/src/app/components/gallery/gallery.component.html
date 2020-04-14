@@ -1,31 +1,32 @@
 <div *ngIf="media; else loading" class="gallery">
-  <a
-    routerLink="/viewer"
-    *ngFor="let m of media"
-    class="image-container card"
-    data-toggle="tooltip"
-    data-placement="bottom"
-    [title]="m.path"
-    (click)="collectionService.goto(m.hash)"
-  >
-    <app-preview
-      class="img-fluid gallery-img card-body card-small offset-preview"
-      [slideshow]="true"
-      [height]="210"
-      *ngIf="m.type === 'video' && m.preview; else still"
-      [media]="m"
-    ></app-preview>
-    <ng-template #still>
-      <img
-        class="img-fluid gallery-img card-body card-small"
-        [src]="'/cache/thumbnails/' + m.hash + '.png'"
-      />
-    </ng-template>
-    <div class="type caption card-header card-small">
-      <strong>{{ getTitle(m) }}</strong>
-      <div class="subtitle">{{ getSubtitle(m) }}</div>
-    </div>
-  </a>
+  <div *ngFor="let m of media" class="image-container">
+    <a
+      routerLink="/viewer"
+      class="card"
+      data-toggle="tooltip"
+      data-placement="bottom"
+      [title]="m.path"
+      (click)="collectionService.goto(m.hash)"
+    >
+      <app-preview
+        class="img-fluid gallery-img card-body card-small offset-preview"
+        [slideshow]="true"
+        [height]="210"
+        *ngIf="m.type === 'video' && m.preview; else still"
+        [media]="m"
+      ></app-preview>
+      <ng-template #still>
+        <img
+          class="img-fluid gallery-img card-body card-small"
+          [src]="'/cache/thumbnails/' + m.hash + '.png'"
+        />
+      </ng-template>
+      <div class="type caption card-header card-small">
+        <strong>{{ getTitle(m) }}</strong>
+        <div class="subtitle">{{ getSubtitle(m) }}</div>
+      </div>
+    </a>
+  </div>
 </div>
 
 <ng-template #loading>

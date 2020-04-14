@@ -10,17 +10,19 @@ app-preview {
 }
 
 .image-container {
-  max-width: 400px;
-  margin: 0.2rem;
-  position: relative;
-  min-width: 360px;
+  padding: 0.1rem;
+  justify-content: center;
 
   display: flex;
-  flex-direction: column;
   flex: 1;
 
   & > :not(:last-child) {
-    margin-bottom: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+
+  & > .card {
+    min-width: 360px;
+    flex: 1;
   }
 }
 
