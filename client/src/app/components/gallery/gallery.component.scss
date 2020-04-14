@@ -1,7 +1,7 @@
 .gallery-img {
   object-fit: contain;
-  width: 380px;
-  height: 244px;
+  width: calc(380px - 0.2rem);
+  height: 245px;
   margin: auto;
 }
 
@@ -12,7 +12,6 @@ app-preview {
 .image-container {
   padding: 0.1rem;
   justify-content: center;
-
   display: flex;
   flex: 1;
 
@@ -26,8 +25,12 @@ app-preview {
   }
 }
 
-.offset-preview {
-  margin-left: -0.1rem;
+.card-header > strong {
+  display: block;
+  max-width: 370px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: auto;
 }
 
 .gallery {

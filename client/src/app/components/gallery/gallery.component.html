@@ -1,4 +1,4 @@
-<div *ngIf="media; else loading" class="gallery">
+<div *ngIf="media; else loading" class="gallery full-height">
   <div *ngFor="let m of media" class="image-container">
     <a
       routerLink="/viewer"
@@ -9,9 +9,9 @@
       (click)="collectionService.goto(m.hash)"
     >
       <app-preview
-        class="img-fluid gallery-img card-body card-small offset-preview"
+        class="img-fluid gallery-img card-body card-small"
         [slideshow]="true"
-        [height]="210"
+        [height]="204"
         *ngIf="m.type === 'video' && m.preview; else still"
         [media]="m"
       ></app-preview>
