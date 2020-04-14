@@ -62,7 +62,7 @@ export class Indexer {
   }
 
   private static async getImageMetadata(absolutePath: string): Promise<Metadata> {
-    const gm = GM(absolutePath);
+    const gm = GM.subClass({ imageMagick: true })(absolutePath);
     const size: Record<string, number> = (await Util.promisify(gm.size.bind(gm))()) as any;
     return {
       width: size.width,

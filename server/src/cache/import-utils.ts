@@ -371,7 +371,7 @@ export class ImportUtils {
 
   public static async isExifRotated(path: string): Promise<boolean> {
     try {
-      const gm = GM(path);
+      const gm = GM.subClass({ imageMagick: true })(path);
       const orientation: string = (await Util.promisify(gm.orientation.bind(gm))()) as any;
       switch (orientation.toLowerCase()) {
         case 'topleft':
