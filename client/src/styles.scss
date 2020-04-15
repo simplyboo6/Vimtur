@@ -37,3 +37,12 @@ button:disabled {
 body {
   background-color: var(--vimtur-color-background-light) !important;
 }
+
+.loading {
+  margin: auto;
+  max-width: 75%;
+  margin-top: 4rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--white);
+}
