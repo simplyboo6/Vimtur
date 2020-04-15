@@ -1,23 +1,16 @@
-.padded {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-
-  margin: 0.2rem;
-  width: calc(100% - 0.4rem);
-}
-
-.full-height {
-  display: flex;
-
-  & > :first-child {
-    flex: 1;
-  }
-}
-
 .reset-button {
   margin-left: 1rem;
 }
 
+.col-md {
+  padding: 0.1rem;
+}
+
 .tag-wrapper {
   padding: 0.5rem;
+}
+
+.container-fluid {
+  margin: 0.1rem;
+  width: calc(100% - 0.2rem);
 }

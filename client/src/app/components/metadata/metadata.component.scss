@@ -5,14 +5,20 @@ h4 {
 .header {
   display: flex;
   flex-direction: row;
-}
+  flex-wrap: wrap;
 
-.media-path {
-  padding-left: 1rem;
+  & > :first-child {
+    padding-right: 1rem;
+  }
 }
 
 .thumbnail {
-  max-height: 100px;
+  max-height: 160px;
+}
+
+.container {
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
 }
 
 .loading {
@@ -50,20 +56,13 @@ h4 {
   color: #0062cc;
 }
 
-.pad-bottom {
-  padding-bottom: 2rem;
-}
-
 .horizontal {
-  display: flex;
-  flex-direction: row;
+  & > * {
+    display: flex;
+    padding: 0.2rem;
 
-  & > .form-control {
-    width: initial;
-    flex: 1;
-  }
-
-  & > button {
-    margin-left: 0.5rem;
+    & > * {
+      flex: 1;
+    }
   }
 }

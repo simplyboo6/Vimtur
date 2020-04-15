@@ -1,7 +1,8 @@
-<div class="full-height">
-  <div class="container-fluid padded card">
-    <div class="row">
-      <div class="col-md-3">
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md">
+      <div class="card card-small">
+        <h3>Search</h3>
         <div class="form-group">
           <button type="button" class="btn btn-primary" (click)="search()">Search</button>
           <button type="button" class="btn btn-danger reset-button" (click)="reset()">Reset</button>
@@ -97,8 +98,10 @@
           </select>
         </div>
       </div>
+    </div>
 
-      <div class="col-md-3">
+    <div class="col-md">
+      <div class="card card-small">
         <h3>Metadata</h3>
 
         <div class="container">
@@ -165,9 +168,11 @@
           <input type="text" [(ngModel)]="searchModel[field.field]" class="form-control" />
         </div>
       </div>
+    </div>
 
-      <ng-container *ngFor="let field of uiService.arrayFields">
-        <div *ngIf="this[field.field]" class="col-md-3">
+    <ng-container *ngFor="let field of uiService.arrayFields">
+      <div *ngIf="this[field.field]" class="col-md">
+        <div class="card card-small">
           <h3>{{ field.name }}</h3>
           <div class="form-group">
             <label>All</label>
@@ -214,7 +219,7 @@
             </angular2-multiselect>
           </div>
         </div>
-      </ng-container>
-    </div>
+      </div>
+    </ng-container>
   </div>
 </div>

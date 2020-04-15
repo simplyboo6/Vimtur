@@ -1,11 +1,13 @@
-<div class="container pad-bottom" *ngIf="media; else loading">
+<div class="container" *ngIf="media; else loading">
   <div class="card form-card">
     <h4>Metadata</h4>
     <div class="header">
-      <img
-        class="img-fluid img-thumbnail thumbnail"
-        [src]="'/cache/thumbnails/' + media.hash + '.png'"
-      />
+      <div>
+        <img
+          class="img-fluid img-thumbnail thumbnail"
+          [src]="'/cache/thumbnails/' + media.hash + '.png'"
+        />
+      </div>
       <div class="media-path">
         <div>Path: {{ media.path }}</div>
         <div>Hash: {{ media.hash }}</div>
@@ -24,23 +26,29 @@
     <ng-container *ngFor="let field of metadataFields">
       <h5 class="form-padded-input">{{ field.text }}</h5>
       <div class="row horizontal">
-        <input
-          [(ngModel)]="mediaModel.metadata[field.name]"
-          class="form-control"
-          type="text"
-          [placeholder]="media.metadata[field.name] || ''"
-          (keyup.enter)="saveMetadata(field.name)"
-        />
-        <button
-          [disabled]="!isMetadataChanged(field.name, media, mediaModel)"
-          class="btn btn-primary"
-          (click)="saveMetadata(field.name)"
-        >
-          Apply
-        </button>
-        <button class="btn btn-primary" (click)="saveBulkMetadata(field.name)">
-          Apply to all search results
-        </button>
+        <div class="col-lg-7">
+          <input
+            [(ngModel)]="mediaModel.metadata[field.name]"
+            class="form-control"
+            type="text"
+            [placeholder]="media.metadata[field.name] || ''"
+            (keyup.enter)="saveMetadata(field.name)"
+          />
+        </div>
+        <div class="col-lg-2">
+          <button
+            [disabled]="!isMetadataChanged(field.name, media, mediaModel)"
+            class="btn btn-primary"
+            (click)="saveMetadata(field.name)"
+          >
+            Apply
+          </button>
+        </div>
+        <div class="col-lg-3">
+          <button class="btn btn-primary" (click)="saveBulkMetadata(field.name)">
+            Apply to all search results
+          </button>
+        </div>
       </div>
     </ng-container>
   </div>
