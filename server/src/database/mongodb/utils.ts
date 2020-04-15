@@ -106,7 +106,12 @@ export function createStringFilter(field: string, options?: StringFilter): objec
 }
 
 export function createArrayFilter(field: string, options?: ArrayFilter): object {
-  const base = createStringFilterCommon(field, options);
+  const stringFilter = options ? { ...options } : undefined;
+  if (stringFilter) {
+    delete stringFilter['exists'];
+  }
+
+  const base = createStringFilterCommon(field, stringFilter);
 
   if (options && options.exists !== undefined) {
     Object.assign(base, {
