@@ -25,6 +25,10 @@ app-preview {
   }
 }
 
+.card-body {
+  flex: initial !important;
+}
+
 .card-header > strong {
   display: block;
   max-width: 370px;
