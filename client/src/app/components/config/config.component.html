@@ -271,6 +271,23 @@
         <span class="text-muted">The number of columns in the quick tag panel of the viewer.</span>
       </div>
     </div>
+    <!-- user.galleryImageCount -->
+    <div class="custom-control input-component">
+      <label for="config-gallery-image-count">Gallery image count</label>
+      <input
+        type="number"
+        class="form-control"
+        id="config-gallery-image-count"
+        [(ngModel)]="config.user.galleryImageCount"
+        (ngModelChange)="updateConfig('user.galleryImageCount', $event)"
+        required
+      />
+      <div>
+        <span class="text-muted">
+          Maximum number of images per-gallery page. Set to 0 to show all in a single page.
+        </span>
+      </div>
+    </div>
     <!-- user.initialLoadLimit -->
     <div class="custom-control input-component">
       <label for="config-initial-load-limit">Initial search load limit</label>
@@ -288,7 +305,9 @@
           will speed up load in large collections. Set to 0 to disable.</span
         >
       </div>
+    </div>
 
+    <div class="custom-control input-component">
       <h5>Quick Tag Panel Configuration</h5>
       <!-- Rating -->
       <div class="custom-control custom-checkbox input-component tag-config">

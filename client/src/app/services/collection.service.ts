@@ -6,10 +6,9 @@ import { SubsetConstraints } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfirmationService } from 'app/services/confirmation.service';
 import { PromptService } from 'app/services/prompt.service';
+import { ConfigService } from './config.service';
 import { PRNG } from 'app/shared/prng';
 import { Alert } from 'app/shared/types';
-
-export const PAGE_SIZE = 15;
 
 const HTTP_OPTIONS = {
   headers: new HttpHeaders({
@@ -42,18 +41,21 @@ export class CollectionService {
   private confirmationService: ConfirmationService;
   private promptService: PromptService;
   private router: Router;
+  private configService: ConfigService;
 
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
     confirmationService: ConfirmationService,
     promptService: PromptService,
+    configService: ConfigService,
     router: Router,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.confirmationService = confirmationService;
     this.promptService = promptService;
+    this.configService = configService;
     this.router = router;
   }
 
@@ -69,6 +71,13 @@ export class CollectionService {
   }
 
   public goto(location?: string | boolean, page?: boolean) {
+    if (!this.configService.config) {
+      console.warn('Cannot goto() before config is loaded');
+      return;
+    }
+
+    const pageSize = this.configService.config.user.galleryImageCount;
+
     if (typeof location === 'boolean' || location === undefined) {
       this.promptService
         .prompt('Goto')
@@ -96,8 +105,9 @@ export class CollectionService {
     } else {
       // From 1-x to 0-x
       let index = Number(location) - 1;
-      if (page) {
-        index = index * PAGE_SIZE;
+      // If pageSize > 0 then map to a page.
+      if (page && pageSize) {
+        index = index * pageSize;
       }
       if (index < 0 || index >= this.collection.length) {
         this.alertService.show({

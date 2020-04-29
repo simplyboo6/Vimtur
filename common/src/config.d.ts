@@ -49,6 +49,8 @@ export namespace Configuration {
     // If set to a value greater than 0 than the initial search done at load time will limit
     // to this number. This is useful in large collections.
     initialLoadLimit?: number;
+    // Number of images to show per-page in the gallery. 0 means all.
+    galleryImageCount?: number;
 
     // Quick tag panel visibility options.
     quickTagShowRating?: boolean;
