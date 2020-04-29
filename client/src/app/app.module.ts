@@ -25,6 +25,7 @@ import { VideoPlayerComponent } from './components/video-player/video-player.com
 import { CloneResolverComponent } from './components/clone-resolver/clone-resolver.component';
 import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/confirm-bulk-update.component';
 import { ListModalComponent } from './components/list-modal/list-modal.component';
+import { LoadingComponent } from './components/loading/loading.component';
 
 @NgModule({
   declarations: [
@@ -45,6 +46,7 @@ import { ListModalComponent } from './components/list-modal/list-modal.component
     CloneResolverComponent,
     ConfirmBulkUpdateComponent,
     ListModalComponent,
+    LoadingComponent,
   ],
   imports: [
     NgbModule,

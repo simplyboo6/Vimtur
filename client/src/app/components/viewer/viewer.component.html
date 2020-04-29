@@ -6,7 +6,7 @@
     <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath" class="text-overlay">
       {{ media.path }}
     </div>
-    <ng-container *ngIf="media">
+    <ng-container *ngIf="media; else loading">
       <app-video-player
         class="video-player"
         [class.hidden]="!media || media.type !== 'video'"
@@ -23,3 +23,7 @@
     </ng-container>
   </div>
 </div>
+
+<ng-template #loading>
+  <app-loading class="image-viewer"></app-loading>
+</ng-template>

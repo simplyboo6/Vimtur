@@ -1,225 +1,235 @@
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md">
-      <div class="card card-small">
-        <h3>Search</h3>
-        <div class="form-group">
-          <button type="button" class="btn btn-primary" (click)="search()">Search</button>
-          <button type="button" class="btn btn-danger reset-button" (click)="reset()">Reset</button>
-        </div>
-
-        <div class="form-group">
-          <label>Keyword Search</label>
-          <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
-        </div>
-
-        <div class="form-group">
-          <label>Type</label>
-          <div class="custom-control custom-checkbox input-component">
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-type-video"
-              [(ngModel)]="searchModel.typeVideo"
-            />
-            <label class="custom-control-label" for="search-filter-type-video">Video</label>
-          </div>
-          <div class="custom-control custom-checkbox input-component">
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-type-gif"
-              [(ngModel)]="searchModel.typeGif"
-            />
-            <label class="custom-control-label" for="search-filter-type-gif">Gif</label>
-          </div>
-          <div class="custom-control custom-checkbox input-component">
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-type-still"
-              [(ngModel)]="searchModel.typeStill"
-            />
-            <label class="custom-control-label" for="search-filter-type-still">Still</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Tag Status</label>
-          <div
-            class="custom-control custom-checkbox input-component"
-            title="Selecting this will select any media that has been tagged."
-          >
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-tagged"
-              [(ngModel)]="searchModel.tagged"
-            />
-            <label class="custom-control-label" for="search-filter-tagged">Tagged media</label>
-          </div>
-          <div
-            class="custom-control custom-checkbox input-component"
-            title="Selected this will will display only untagged media."
-          >
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-untagged"
-              [(ngModel)]="searchModel.untagged"
-            />
-            <label class="custom-control-label" for="search-filter-untagged">Untagged media</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Others</label>
-          <div
-            class="custom-control custom-checkbox input-component"
-            title="Selecting this will display only untagged media."
-          >
-            <input
-              type="checkbox"
-              class="custom-control-input"
-              id="search-filter-has-clones"
-              [(ngModel)]="searchModel.hasClones"
-            />
-            <label class="custom-control-label" for="search-filter-has-clones">Has Clones</label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Sort By</label>
-          <select class="custom-select" [(ngModel)]="searchModel.sortBy">
-            <option selected="selected" [value]="undefined">None</option>
-            <option [value]="'hashDate'">Date Added (newest first)</option>
-            <option [value]="'rating'">Rating</option>
-            <option [value]="'recommended'">Recommended</option>
-            <option [value]="'length'">Length (longest first)</option>
-            <option [value]="'createdAt'">File Date (newest first)</option>
-            <option [value]="'path'">Path</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md">
-      <div class="card card-small">
-        <h3>Metadata</h3>
-
-        <div class="container">
-          <div class="row">
-            <label>Rating</label>
-          </div>
-          <div class="row">
-            <div class="form-group col">
-              <label>Minimum</label>
-              <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
-                <option selected="selected" [value]="-1">None</option>
-                <option [value]="1">1</option>
-                <option [value]="2">2</option>
-                <option [value]="3">3</option>
-                <option [value]="4">4</option>
-                <option [value]="5">5</option>
-              </select>
-            </div>
-            <div class="form-group col">
-              <label>Maximum</label>
-              <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
-                <option selected="selected" [value]="-1">None</option>
-                <option [value]="0">Unrated</option>
-                <option [value]="1">1</option>
-                <option [value]="2">2</option>
-                <option [value]="3">3</option>
-                <option [value]="4">4</option>
-                <option [value]="5">5</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="container">
-          <div class="row">
-            <label>Length (Minutes)</label>
-          </div>
-          <div class="row">
-            <div class="form-group col">
-              <label>Minimum</label>
-              <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMin" />
-            </div>
-            <div class="form-group col">
-              <label>Maximum</label>
-              <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMax" />
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Minimum Resolution</label>
-          <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
-            <option selected="selected" [value]="0">None</option>
-            <option [value]="240">240p</option>
-            <option [value]="360">360p</option>
-            <option [value]="480">480p</option>
-            <option [value]="720">720p</option>
-            <option [value]="1080">1080p</option>
-          </select>
-        </div>
-
-        <div *ngFor="let field of uiService.stringFields" class="form-group">
-          <label>{{ field.name }}</label>
-          <input type="text" [(ngModel)]="searchModel[field.field]" class="form-control" />
-        </div>
-      </div>
-    </div>
-
-    <ng-container *ngFor="let field of uiService.arrayFields">
-      <div *ngIf="this[field.field]" class="col-md">
+<app-loading
+  *ngIf="collectionService.isSearching() | async; else content"
+  title="Searching"
+></app-loading>
+<ng-template #content>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md">
         <div class="card card-small">
-          <h3>{{ field.name }}</h3>
+          <h3>Search</h3>
           <div class="form-group">
-            <label>All</label>
-            <angular2-multiselect
-              [data]="this[field.field]"
-              [settings]="{
-                enableCheckAll: true,
-                enableSearchFilter: true,
-                enableFilterSelectAll: true
-              }"
-              [(ngModel)]="searchModel[field.field].equalsAll"
-              (onDeSelectAll)="searchModel[field.field].equalsAll = []"
-            >
-            </angular2-multiselect>
+            <button type="button" class="btn btn-primary" (click)="search()">Search</button>
+            <button type="button" class="btn btn-danger reset-button" (click)="reset()">
+              Reset
+            </button>
           </div>
 
           <div class="form-group">
-            <label>Any</label>
-            <angular2-multiselect
-              [data]="this[field.field]"
-              [settings]="{
-                enableCheckAll: true,
-                enableSearchFilter: true,
-                enableFilterSelectAll: true
-              }"
-              [(ngModel)]="searchModel[field.field].equalsAny"
-              (onDeSelectAll)="searchModel[field.field].equalsAny = []"
-            >
-            </angular2-multiselect>
+            <label>Keyword Search</label>
+            <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
           </div>
 
           <div class="form-group">
-            <label>None</label>
-            <angular2-multiselect
-              [data]="this[field.field]"
-              [settings]="{
-                enableCheckAll: true,
-                enableSearchFilter: true,
-                enableFilterSelectAll: true
-              }"
-              [(ngModel)]="searchModel[field.field].equalsNone"
-              (onDeSelectAll)="searchModel[field.field].equalsNone = []"
+            <label>Type</label>
+            <div class="custom-control custom-checkbox input-component">
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-type-video"
+                [(ngModel)]="searchModel.typeVideo"
+              />
+              <label class="custom-control-label" for="search-filter-type-video">Video</label>
+            </div>
+            <div class="custom-control custom-checkbox input-component">
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-type-gif"
+                [(ngModel)]="searchModel.typeGif"
+              />
+              <label class="custom-control-label" for="search-filter-type-gif">Gif</label>
+            </div>
+            <div class="custom-control custom-checkbox input-component">
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-type-still"
+                [(ngModel)]="searchModel.typeStill"
+              />
+              <label class="custom-control-label" for="search-filter-type-still">Still</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tag Status</label>
+            <div
+              class="custom-control custom-checkbox input-component"
+              title="Selecting this will select any media that has been tagged."
             >
-            </angular2-multiselect>
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-tagged"
+                [(ngModel)]="searchModel.tagged"
+              />
+              <label class="custom-control-label" for="search-filter-tagged">Tagged media</label>
+            </div>
+            <div
+              class="custom-control custom-checkbox input-component"
+              title="Selected this will will display only untagged media."
+            >
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-untagged"
+                [(ngModel)]="searchModel.untagged"
+              />
+              <label class="custom-control-label" for="search-filter-untagged"
+                >Untagged media</label
+              >
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Others</label>
+            <div
+              class="custom-control custom-checkbox input-component"
+              title="Selecting this will display only untagged media."
+            >
+              <input
+                type="checkbox"
+                class="custom-control-input"
+                id="search-filter-has-clones"
+                [(ngModel)]="searchModel.hasClones"
+              />
+              <label class="custom-control-label" for="search-filter-has-clones">Has Clones</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sort By</label>
+            <select class="custom-select" [(ngModel)]="searchModel.sortBy">
+              <option selected="selected" [value]="undefined">None</option>
+              <option [value]="'hashDate'">Date Added (newest first)</option>
+              <option [value]="'rating'">Rating</option>
+              <option [value]="'recommended'">Recommended</option>
+              <option [value]="'length'">Length (longest first)</option>
+              <option [value]="'createdAt'">File Date (newest first)</option>
+              <option [value]="'path'">Path</option>
+            </select>
           </div>
         </div>
       </div>
-    </ng-container>
+
+      <div class="col-md">
+        <div class="card card-small">
+          <h3>Metadata</h3>
+
+          <div class="container">
+            <div class="row">
+              <label>Rating</label>
+            </div>
+            <div class="row">
+              <div class="form-group col">
+                <label>Minimum</label>
+                <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
+                  <option selected="selected" [value]="-1">None</option>
+                  <option [value]="1">1</option>
+                  <option [value]="2">2</option>
+                  <option [value]="3">3</option>
+                  <option [value]="4">4</option>
+                  <option [value]="5">5</option>
+                </select>
+              </div>
+              <div class="form-group col">
+                <label>Maximum</label>
+                <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
+                  <option selected="selected" [value]="-1">None</option>
+                  <option [value]="0">Unrated</option>
+                  <option [value]="1">1</option>
+                  <option [value]="2">2</option>
+                  <option [value]="3">3</option>
+                  <option [value]="4">4</option>
+                  <option [value]="5">5</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="container">
+            <div class="row">
+              <label>Length (Minutes)</label>
+            </div>
+            <div class="row">
+              <div class="form-group col">
+                <label>Minimum</label>
+                <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMin" />
+              </div>
+              <div class="form-group col">
+                <label>Maximum</label>
+                <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMax" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Minimum Resolution</label>
+            <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
+              <option selected="selected" [value]="0">None</option>
+              <option [value]="240">240p</option>
+              <option [value]="360">360p</option>
+              <option [value]="480">480p</option>
+              <option [value]="720">720p</option>
+              <option [value]="1080">1080p</option>
+            </select>
+          </div>
+
+          <div *ngFor="let field of uiService.stringFields" class="form-group">
+            <label>{{ field.name }}</label>
+            <input type="text" [(ngModel)]="searchModel[field.field]" class="form-control" />
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngFor="let field of uiService.arrayFields">
+        <div *ngIf="this[field.field]" class="col-md">
+          <div class="card card-small">
+            <h3>{{ field.name }}</h3>
+            <div class="form-group">
+              <label>All</label>
+              <angular2-multiselect
+                [data]="this[field.field]"
+                [settings]="{
+                  enableCheckAll: true,
+                  enableSearchFilter: true,
+                  enableFilterSelectAll: true
+                }"
+                [(ngModel)]="searchModel[field.field].equalsAll"
+                (onDeSelectAll)="searchModel[field.field].equalsAll = []"
+              >
+              </angular2-multiselect>
+            </div>
+
+            <div class="form-group">
+              <label>Any</label>
+              <angular2-multiselect
+                [data]="this[field.field]"
+                [settings]="{
+                  enableCheckAll: true,
+                  enableSearchFilter: true,
+                  enableFilterSelectAll: true
+                }"
+                [(ngModel)]="searchModel[field.field].equalsAny"
+                (onDeSelectAll)="searchModel[field.field].equalsAny = []"
+              >
+              </angular2-multiselect>
+            </div>
+
+            <div class="form-group">
+              <label>None</label>
+              <angular2-multiselect
+                [data]="this[field.field]"
+                [settings]="{
+                  enableCheckAll: true,
+                  enableSearchFilter: true,
+                  enableFilterSelectAll: true
+                }"
+                [(ngModel)]="searchModel[field.field].equalsNone"
+                (onDeSelectAll)="searchModel[field.field].equalsNone = []"
+              >
+              </angular2-multiselect>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
   </div>
-</div>
+</ng-template>

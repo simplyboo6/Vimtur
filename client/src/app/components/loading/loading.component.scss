@@ -1,0 +1,50 @@
+.spinner-container {
+  position: relative;
+  margin-top: 5rem;
+  width: 100%;
+}
+
+@keyframes loading-text {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.spinner-text {
+  position: absolute;
+  // Height / 50% - 1rem for font.
+  margin-top: 4rem;
+  z-index: 2;
+  animation-name: loading-text;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  color: var(--info);
+}
+
+.spinner-background {
+  position: absolute;
+  top: 0;
+  width: calc(10rem - 2px);
+  height: calc(10rem - 2px);
+  background: var(--light);
+  opacity: 0.3;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.spinner-border {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  border-width: 0.5rem;
+  width: 10rem;
+  height: 10rem;
+  animation: spinner-border 1s linear infinite;
+}

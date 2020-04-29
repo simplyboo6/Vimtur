@@ -1,7 +1,7 @@
 import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, ReplaySubject } from 'rxjs';
+import { Observable, ReplaySubject, BehaviorSubject } from 'rxjs';
 import { SubsetConstraints } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfirmationService } from 'app/services/confirmation.service';
@@ -36,6 +36,7 @@ export class CollectionService {
   private httpClient: HttpClient;
   private alertService: AlertService;
   private metadata: ReplaySubject<CollectionMetadata> = new ReplaySubject(1);
+  private searching: BehaviorSubject<boolean> = new BehaviorSubject(false);
   private collection?: string[];
   private index = 0;
   private confirmationService: ConfirmationService;
@@ -61,6 +62,10 @@ export class CollectionService {
 
   public getMetadata(): ReplaySubject<CollectionMetadata> {
     return this.metadata;
+  }
+
+  public isSearching(): Observable<boolean> {
+    return this.searching;
   }
 
   public shuffle() {
@@ -172,18 +177,16 @@ export class CollectionService {
       return;
     }
 
-    const loadingAlert: Alert = { type: 'info', message: 'Searching...' };
-    this.alertService.show(loadingAlert);
-
     // Avoid weird artifacts when the gallery subscribes (so it doesn't get the old collection).
     this.index = 0;
     this.collection = undefined;
     this.update();
+    this.searching.next(true);
 
     this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS).subscribe(
       res => {
+        this.searching.next(false);
         if (res.length === 0) {
-          this.alertService.dismiss(loadingAlert);
           if (options && options.init) {
             this.alertService.show({
               type: 'info',
@@ -213,7 +216,6 @@ export class CollectionService {
           size: this.collection.length,
         });
         this.update();
-        this.alertService.dismiss(loadingAlert);
         // TODO Make this configurable
         if (!options || (options && !options.init)) {
           this.router.navigate([constraints.hasClones ? '/clone-resolver' : '/gallery']);
@@ -221,7 +223,7 @@ export class CollectionService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
-        this.alertService.dismiss(loadingAlert);
+        this.searching.next(false);
         this.alertService.show({ type: 'danger', message: 'Failed to complete search' });
       },
     );
