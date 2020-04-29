@@ -3,9 +3,25 @@
 </div>
 <div class="modal-footer row footer-padding">
   <div class="md-6">
-    <button type="button" class="btn btn-danger" (click)="modal.close(false)">Cancel</button>
+    <button
+      type="button"
+      class="btn"
+      [class.btn-danger]="!negative"
+      [class.btn-primary]="negative"
+      (click)="modal.close(false)"
+    >
+      Cancel
+    </button>
   </div>
   <div class="md-6">
-    <button type="button" class="btn btn-primary" (click)="modal.close(true)">Apply</button>
+    <button
+      type="button"
+      class="btn"
+      [class.btn-danger]="negative"
+      [class.btn-primary]="!negative"
+      (click)="modal.close(true)"
+    >
+      Confirm
+    </button>
   </div>
 </div>

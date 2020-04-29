@@ -8,5 +8,6 @@ import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 })
 export class ConfirmationModalComponent {
   public title?: string;
+  public negative?: boolean;
   public modal?: NgbModalRef;
 }

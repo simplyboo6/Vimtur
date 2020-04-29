@@ -12,12 +12,13 @@ export class ConfirmationService {
     this.modalService = modalService;
   }
 
-  public confirm(title: string): Promise<boolean> {
+  public confirm(title: string, negative?: boolean): Promise<boolean> {
     return new Promise(resolve => {
       const modalRef = this.modalService.open(ConfirmationModalComponent, {
         centered: true,
       });
       (modalRef.componentInstance as ConfirmationModalComponent).title = title;
+      (modalRef.componentInstance as ConfirmationModalComponent).negative = negative;
       (modalRef.componentInstance as ConfirmationModalComponent).modal = modalRef;
       modalRef.result
         .then(result => {

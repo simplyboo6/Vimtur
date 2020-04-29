@@ -127,7 +127,7 @@ export class CollectionService {
       return;
     }
     this.confirmationService
-      .confirm(`Are you sure you want to delete the current media?`)
+      .confirm(`Are you sure you want to delete the current media?`, true)
       .then(result => {
         if (result) {
           const hash = this.collection[this.index];
@@ -153,12 +153,8 @@ export class CollectionService {
 
     const currentHash = this.collection[this.index];
 
-    for (const hash of hashes) {
-      const index = this.collection.indexOf(hash);
-      if (index >= 0) {
-        this.collection.splice(index, 1);
-      }
-    }
+    // Replace the collection otherwise gallery doesnt update.
+    this.collection = this.collection.filter(hash => !hashes.includes(hash));
 
     const newIndex = this.collection.indexOf(currentHash);
     if (newIndex >= 0) {
