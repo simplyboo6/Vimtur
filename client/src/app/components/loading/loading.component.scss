@@ -21,22 +21,14 @@
   // Height / 50% - 1rem for font.
   margin-top: 4rem;
   z-index: 2;
+  color: var(--info);
+}
+
+.spinner-text.animated {
   animation-name: loading-text;
   animation-duration: 2s;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
-  color: var(--info);
-}
-
-.spinner-background {
-  position: absolute;
-  top: 0;
-  width: calc(10rem - 2px);
-  height: calc(10rem - 2px);
-  background: var(--light);
-  opacity: 0.3;
-  border-radius: 50%;
-  z-index: 1;
 }
 
 .spinner-border {

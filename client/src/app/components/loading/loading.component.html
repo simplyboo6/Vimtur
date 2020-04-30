@@ -1,7 +1,19 @@
 <div class="d-flex justify-content-center spinner-container">
-  <!--<div class="spinner-background"></div>-->
-  <div class="spinner-border text-info" role="status"></div>
-  <span class="spinner-text">
-    <strong>{{ getTitle() | async }}</strong>
-  </span>
+  <!-- If using the default text, searching is complete, and there's no results then tell the user -->
+  <ng-container
+    *ngIf="
+      !title && !collection && (collectionService.isSearching() | async) === false;
+      else normalSpinner
+    "
+  >
+    <span class="spinner-text">
+      <strong>No search results found</strong>
+    </span>
+  </ng-container>
+  <ng-template #normalSpinner>
+    <div class="spinner-border text-info" role="status"></div>
+    <span class="spinner-text animated">
+      <strong>{{ getTitle() | async }}</strong>
+    </span>
+  </ng-template>
 </div>
