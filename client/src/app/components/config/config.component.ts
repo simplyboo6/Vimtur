@@ -8,7 +8,7 @@ import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { Configuration, Scanner, QueuedTask, ListedTask } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { TasksService } from 'app/services/tasks.service';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 
 @Component({
@@ -37,6 +37,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public streamQualities: ListItem<number>[] = [];
   public minQuality: ListItem<number>[] = [];
   public scanResults?: Scanner.Summary;
+  public version?: string;
 
   public addTagModel?: string;
   public deleteTagModel?: string;
@@ -82,6 +83,12 @@ export class ConfigComponent implements OnInit, OnDestroy {
         this.cacheQualities = this.fromQualitiesToList(config.transcoder.cacheQualities);
         this.streamQualities = this.fromQualitiesToList(config.transcoder.streamQualities);
         this.minQuality = this.fromQualitiesToList([config.transcoder.minQuality]);
+      }),
+    );
+
+    this.subscriptions.push(
+      this.configService.getVersion().subscribe(version => {
+        this.version = version;
       }),
     );
 

@@ -1,7 +1,10 @@
 FROM simplyboo6/vimtur-base@sha256:f30cc178f6c9676449e08b0aee59e31c120eb5c467cb435c33fd2bedb230f593
 
+ARG VERSION_NAME=dev
+
 ## Copy in source
 COPY ./ /app/
+RUN echo "$VERSION_NAME" > /app/version
 
 ## Build server
 RUN cd /usr/lib/node_modules/phash2 && yarn link

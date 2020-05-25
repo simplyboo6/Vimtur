@@ -36,6 +36,21 @@ function readJsonSync(file: string): Configuration.Main {
   return JSON.parse(StripJsonComments(FS.readFileSync(file).toString()));
 }
 
+function getVersion(): string {
+  try {
+    const version = FS.readFileSync('./version')
+      .toString()
+      .trim();
+    console.log(`Version file found: ${version}`);
+    return version;
+  } catch (_err) {
+    console.warn('Failed to load version file. Using default.');
+    return 'DEVELOPMENT';
+  }
+}
+
+export const VERSION_NAME = getVersion();
+
 const DEFAULTS: any = {
   port: 3523,
   // Enabled pHash generation during auto-import.

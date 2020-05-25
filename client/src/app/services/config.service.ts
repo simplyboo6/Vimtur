@@ -35,6 +35,11 @@ export class ConfigService {
     );
   }
 
+  public getVersion(): Observable<string> {
+    // As json because of incorrect typings.
+    return this.httpClient.get<string>('/api/version', { responseType: 'text' as 'json' });
+  }
+
   public getConfiguration(): ReplaySubject<Configuration.Main> {
     return this.configReplay;
   }

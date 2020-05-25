@@ -13,3 +13,4 @@ utils/*.json
 **/.schema-build-info
 test*
 dump/*
+version

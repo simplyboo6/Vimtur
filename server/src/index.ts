@@ -13,7 +13,7 @@ import * as Utils from './utils';
 import { Database } from './types';
 import { setup as setupDb } from './database';
 import { wrap } from './express-async';
-import Config from './config';
+import Config, { VERSION_NAME } from './config';
 
 // Routes
 import * as ActorRouter from './routes/actors';
@@ -36,6 +36,10 @@ async function createServer(db: Database): Promise<Server> {
   app.use('/api/actors', await ActorRouter.create(db));
   app.use('/api/insights', await InsightsRouter.create(db));
   app.use('/api/tasks', await TasksRouter.create(db, io));
+
+  app.get('/api/version', (_req: Request, res: Response) => {
+    res.send(VERSION_NAME);
+  });
 
   if (!require.main) {
     throw new Error('require.main undefned');
