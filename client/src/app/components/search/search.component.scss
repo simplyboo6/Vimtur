@@ -19,3 +19,21 @@
   margin: 0.1rem;
   width: calc(100% - 0.2rem);
 }
+
+.columns {
+  display: flex;
+  flex-direction: row;
+}
+
+.string-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 0.5rem;
+}
+
+label {
+  margin-bottom: 0.25rem;
+}

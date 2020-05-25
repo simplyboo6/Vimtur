@@ -55,7 +55,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public viewFolder() {
     if (this.mediaService.media) {
       this.uiService.resetSearch();
-      this.uiService.searchModel.dir = this.mediaService.media.dir;
+      this.uiService.searchModel.dir.like = this.mediaService.media.dir;
       this.uiService.searchModel.sortBy = 'path';
       this.collectionService.search(this.uiService.createSearch(), { preserve: true });
     }

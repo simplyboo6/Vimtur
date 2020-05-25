@@ -14,6 +14,11 @@ export interface SearchArrayFilter {
   equalsNone: ListItem[];
 }
 
+export interface SearchStringFilter {
+  like?: string;
+  notLike?: string;
+}
+
 export interface SearchModel {
   keywords?: string;
   minimumResolution?: string;
@@ -34,11 +39,11 @@ export interface SearchModel {
   tags: SearchArrayFilter;
   actors: SearchArrayFilter;
 
-  artist?: string;
-  album?: string;
-  title?: string;
-  path?: string;
-  dir?: string;
+  artist?: SearchStringFilter;
+  album?: SearchStringFilter;
+  title?: SearchStringFilter;
+  path?: SearchStringFilter;
+  dir?: SearchStringFilter;
 }
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
@@ -55,7 +60,7 @@ function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
   return output;
 }
 
-function createBlankFilter(): SearchArrayFilter {
+function createBlankArrayFilter(): SearchArrayFilter {
   return {
     equalsAny: [],
     equalsAll: [],
@@ -69,7 +74,7 @@ function createBlankFilter(): SearchArrayFilter {
 export class UiService {
   private tagPanelState: ReplaySubject<boolean> = new ReplaySubject(1);
   // This is in here to allow the search parameters to persist after leaving the search page.
-  public searchModel: SearchModel = this.resetSearch();
+  public searchModel: SearchModel;
 
   public readonly arrayFields: FilterField[] = [
     { field: 'tags', name: 'Tags' },
@@ -84,6 +89,10 @@ export class UiService {
     { field: 'dir', name: 'Dir' },
   ];
 
+  public constructor() {
+    this.searchModel = this.resetSearch();
+  }
+
   public getTagPanelState(): ReplaySubject<boolean> {
     return this.tagPanelState;
   }
@@ -94,9 +103,12 @@ export class UiService {
 
   public resetSearch(): SearchModel {
     this.searchModel = {
-      tags: createBlankFilter(),
-      actors: createBlankFilter(),
+      tags: createBlankArrayFilter(),
+      actors: createBlankArrayFilter(),
     };
+    for (const field of this.stringFields) {
+      this.searchModel[field.field] = {};
+    }
     return this.searchModel;
   }
 
@@ -170,7 +182,16 @@ export class UiService {
 
     for (const field of this.stringFields) {
       if (this.searchModel[field.field]) {
-        constraints[field.field] = { likeAll: [this.searchModel[field.field]] };
+        if (this.searchModel[field.field].like) {
+          constraints[field.field] = Object.assign(constraints[field.field] || {}, {
+            likeAny: [this.searchModel[field.field].like],
+          });
+        }
+        if (this.searchModel[field.field].notLike) {
+          constraints[field.field] = Object.assign(constraints[field.field] || {}, {
+            likeNone: [this.searchModel[field.field].notLike],
+          });
+        }
       }
     }
 
