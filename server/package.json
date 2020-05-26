@@ -62,7 +62,7 @@
     "prettier": "^1.18.2",
     "ts-node": "^8.5.4",
     "tslib": "^1.10.0",
-    "typescript": "^3.5.3",
+    "typescript": "3.8.2",
     "typescript-json-schema": "^0.39.0"
   }
 }
