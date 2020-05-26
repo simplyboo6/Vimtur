@@ -189,10 +189,7 @@ export class ImportUtils {
           }, 20);
         });
 
-        proc.stdout.pipe(
-          output,
-          { end: true },
-        );
+        proc.stdout.pipe(output, { end: true });
       }
     });
   }
