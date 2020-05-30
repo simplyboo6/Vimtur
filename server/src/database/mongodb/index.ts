@@ -1,13 +1,16 @@
-import { Db, MongoClient } from 'mongodb';
+import { Db, MongoClient, ObjectId } from 'mongodb';
 import Path from 'path';
 import Util from 'util';
 
-import { BadRequest } from '../../errors';
+import { BadRequest, NotFound } from '../../errors';
 import {
   BaseMedia,
   Configuration,
   Database,
   Media,
+  Playlist,
+  PlaylistCreate,
+  PlaylistUpdate,
   SubsetConstraints,
   SubsetFields,
   UpdateMedia,
@@ -145,6 +148,205 @@ export class MongoConnector extends Database {
     await actors.deleteOne({ name: actor });
   }
 
+  public async addPlaylist(request: PlaylistCreate): Promise<Playlist> {
+    const playlists = this.db.collection('playlists');
+    const result = await playlists.insertOne({ ...request, size: 0 });
+    return this.getPlaylist(result.insertedId.toHexString());
+  }
+
+  public async removePlaylist(id: string): Promise<void> {
+    const media = this.db.collection('media');
+    await media.updateMany(
+      {
+        'playlists._id': new ObjectId(id),
+      },
+      {
+        $pull: {
+          playlists: { _id: new ObjectId(id) },
+        },
+      },
+    );
+
+    const playlists = this.db.collection('playlists');
+    await playlists.deleteOne({ _id: new ObjectId(id) });
+  }
+
+  public async updatePlaylist(id: string, request: PlaylistUpdate): Promise<void> {
+    const playlists = this.db.collection('playlists');
+    await playlists.updateOne({ _id: new ObjectId(id) }, { $set: request });
+  }
+
+  public getPlaylists(): Promise<Playlist[]> {
+    const playlists = this.db.collection('playlists');
+
+    return playlists
+      .aggregate([
+        {
+          $addFields: {
+            id: {
+              $convert: {
+                input: '$_id',
+                to: 'string',
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+          },
+        },
+      ])
+      .toArray();
+  }
+
+  public async getPlaylist(id: string): Promise<Playlist> {
+    const playlists = this.db.collection('playlists');
+
+    const raw = await playlists.findOne({ _id: new ObjectId(id) });
+    raw.id = raw._id.toHexString();
+    delete raw._id;
+
+    return raw;
+  }
+
+  public async addMediaToPlaylist(hash: string, playlistId: string): Promise<void> {
+    const media = await this.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`Media not found: ${hash}`);
+    }
+
+    if (media.playlists && media.playlists.find(playlist => playlist.id === playlistId)) {
+      // If already in the playlist, then throw because the location change.
+      throw new BadRequest('Media is already in the playlist');
+    }
+
+    const playlistCollection = this.db.collection('playlists');
+    const updateResult = await playlistCollection.findOneAndUpdate(
+      {
+        _id: new ObjectId(playlistId),
+      },
+      {
+        $inc: {
+          size: 1,
+        },
+      },
+    );
+    if (!updateResult.value || !updateResult.ok) {
+      throw new NotFound(`Playlist not found: ${playlistId}`);
+    }
+    const order = updateResult.value.size;
+    const mediaCollection = this.db.collection('media');
+
+    // If the update failed attempt a rollback, this may include ones
+    // that have been added to the set after this one.
+    const updateRollback = async (): Promise<void> => {
+      // In an ideal world these need to be done in parallel, atomically.
+      // Doing this one first at least means worse case is a gap of 1.
+      await mediaCollection.updateMany(
+        {
+          'playlists._id': new ObjectId(playlistId),
+          'playlists.order': { $gt: order },
+        },
+        {
+          $inc: {
+            'playlists.$.order': -1,
+          },
+        },
+      );
+
+      await playlistCollection.updateOne(
+        {
+          _id: new ObjectId(playlistId),
+        },
+        {
+          $inc: {
+            size: -1,
+          },
+        },
+      );
+    };
+
+    try {
+      const mediaUpdateResult = await mediaCollection.updateOne(
+        {
+          hash,
+          'playlists._id': { $ne: new ObjectId(playlistId) },
+        },
+        {
+          $push: {
+            playlists: {
+              _id: new ObjectId(playlistId),
+              order,
+            },
+          },
+        },
+      );
+      // If it's been added sometime between the initial check and now, rollback.
+      if (mediaUpdateResult.modifiedCount === 0) {
+        await updateRollback();
+      }
+    } catch (err) {
+      console.warn('Add to playlist failed', hash, playlistId, err);
+      await updateRollback();
+      throw err;
+    }
+  }
+
+  public async removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void> {
+    const mediaCollection = this.db.collection('media');
+
+    const result = await mediaCollection.findOneAndUpdate(
+      {
+        hash,
+        'playlists._id': new ObjectId(playlistId),
+      },
+      {
+        $pull: {
+          playlists: { _id: new ObjectId(playlistId) },
+        },
+      },
+    );
+
+    if (result.ok && result.value) {
+      const mediaPlaylist = result.value.playlists.find(
+        (pl: any) => pl._id.toHexString() === playlistId,
+      );
+      if (!mediaPlaylist) {
+        throw new Error(
+          `Media playlist fetched and updated with no matching playlist (${hash}/${playlistId})`,
+        );
+      }
+
+      await mediaCollection.updateMany(
+        {
+          'playlists._id': new ObjectId(playlistId),
+          'playlists.order': { $gt: mediaPlaylist.order },
+        },
+        {
+          $inc: {
+            'playlists.$.order': -1,
+          },
+        },
+      );
+
+      const playlistCollection = this.db.collection('playlists');
+
+      await playlistCollection.updateOne(
+        {
+          _id: new ObjectId(playlistId),
+        },
+        {
+          $inc: {
+            size: -1,
+          },
+        },
+      );
+    }
+  }
+
+  //public updateMediaPlaylistOrder(hash: string, order: number): Promise<void>;
+
   public async getMedia(hash: string): Promise<Media | undefined> {
     const media = this.db.collection<BaseMedia>('media');
     const result = await media.findOne({ hash });
@@ -152,6 +354,14 @@ export class MongoConnector extends Database {
       return {
         ...result,
         absolutePath: Path.resolve(Config.get().libraryPath, result.path),
+        ...(result.playlists
+          ? {
+              playlists: result.playlists.map(playlist => ({
+                id: (playlist as any)._id.toHexString(),
+                order: playlist.order,
+              })),
+            }
+          : {}),
       };
     }
     return undefined;
@@ -268,6 +478,20 @@ export class MongoConnector extends Database {
       pipeline.push({ $sample: { size: constraints.sample } });
     }
 
+    if (constraints.playlist) {
+      if (!constraints.sortBy) {
+        constraints.sortBy = 'order';
+      }
+
+      pipeline.push({
+        $addFields: {
+          order: {
+            $arrayElemAt: ['$playlists.order', 0],
+          },
+        },
+      });
+    }
+
     const sort: object = {};
     if (constraints.sortBy) {
       switch (constraints.sortBy) {
@@ -275,6 +499,7 @@ export class MongoConnector extends Database {
         case 'rating':
           Object.assign(sort, { [constraints.sortBy]: -1 });
           break;
+        case 'order': // Fallthrough
         case 'path':
           Object.assign(sort, { [constraints.sortBy]: 1 });
           break;
@@ -304,6 +529,8 @@ export class MongoConnector extends Database {
         $sort: sort,
       });
     }
+
+    console.log(await mediaCollection.aggregate(pipeline).toArray());
 
     pipeline.push({
       $project: fields || {
@@ -343,6 +570,15 @@ export class MongoConnector extends Database {
 
     if (constraints.keywordSearch) {
       filters.push({ $text: { $search: constraints.keywordSearch } });
+    }
+    if (constraints.playlist) {
+      filters.push({
+        playlists: {
+          $elemMatch: {
+            _id: new ObjectId(constraints.playlist),
+          },
+        },
+      });
     }
 
     filters.push(createArrayFilter('tags', constraints.tags));

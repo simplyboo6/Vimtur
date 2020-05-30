@@ -48,3 +48,7 @@ gen_schema "UpdateMedia" "${COMMON_TYPES}/media.d.ts"
 gen_schema "SubsetConstraints" "${COMMON_TYPES}/search.d.ts"
 gen_schema "BulkUpdate" "${COMMON_TYPES}/bulk.d.ts ${COMMON_TYPES}/media.d.ts ${COMMON_TYPES}/search.d.ts"
 gen_schema "MediaResolution" "${COMMON_TYPES}/media.d.ts"
+
+# Playlists
+gen_schema "PlaylistCreate" "${COMMON_TYPES}/playlist.d.ts"
+gen_schema "PlaylistUpdate" "${COMMON_TYPES}/playlist.d.ts"

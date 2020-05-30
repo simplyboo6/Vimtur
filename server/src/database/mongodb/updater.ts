@@ -23,7 +23,7 @@ export class Updater {
 
     if (!(await Updater.hasRun(updatesCollection, '014_add-playlists'))) {
       console.log('Applying update 014_add-playlists...');
-      const mediaSchema = Updater.loadMediaSchema('ff1fa952');
+      const mediaSchema = Updater.loadMediaSchema('3bcc3bd6');
       await Updater.recreateMediaCollection(db, mediaSchema);
       await Updater.saveUpdate(updatesCollection, '014_add-playlists');
     }
@@ -190,6 +190,9 @@ export class Updater {
       }
       mediaSchema.properties['playlists'].items.properties['_id'] = {};
       mediaSchema.properties['playlists'].items.required.push('_id');
+
+      delete mediaSchema.properties.playlist;
+      delete mediaSchema.properties.order;
     }
 
     return mediaSchema;

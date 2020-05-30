@@ -99,6 +99,20 @@ export async function create(db: Database): Promise<Router> {
     }),
   );
 
+  router.put(
+    '/:hash/playlists/:playlistId',
+    wrap(async ({ req }) => {
+      await db.addMediaToPlaylist(req.params.hash, req.params.playlistId);
+    }),
+  );
+
+  router.delete(
+    '/:hash/playlists/:playlistId',
+    wrap(async ({ req }) => {
+      await db.removeMediaFromPlaylist(req.params.hash, req.params.playlistId);
+    }),
+  );
+
   router.post(
     '/:hash/tags',
     wrap(async ({ req }) => {

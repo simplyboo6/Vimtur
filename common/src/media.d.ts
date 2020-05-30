@@ -58,6 +58,10 @@ export interface BaseMedia {
   // Time the clone comparator was run for this media.
   cloneDate?: number;
   playlists?: MediaPlaylist[];
+
+  // Augmented onto the response if searching for a playlist.
+  playlist?: string;
+  order?: number;
 }
 
 // Optional for updates
