@@ -8,12 +8,6 @@
       },
       "type": "array"
     },
-    "aliases": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
     "cloneDate": {
       "type": "number"
     },
@@ -27,6 +21,9 @@
       "type": "boolean"
     },
     "dir": {
+      "type": "string"
+    },
+    "duplicateOf": {
       "type": "string"
     },
     "hash": {
@@ -46,6 +43,9 @@
         },
         "codec": {
           "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
         },
         "height": {
           "type": "number"
@@ -101,17 +101,27 @@
     "phash": {
       "type": "string"
     },
+    "playlists": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "order": {
+            "type": "number"
+          }
+        },
+        "required": ["id", "order"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "preview": {
       "type": "boolean"
     },
     "rating": {
       "type": "number"
-    },
-    "related": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
     },
     "rotation": {
       "type": "number"

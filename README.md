@@ -173,7 +173,13 @@ A config file can be specified using the `-c` flag when launching with nodejs or
 
 ![Preview Image](screenshots/config.png)
 
-## Upgrade from V3 to V4.
+## Upgrades
+
+### General Guidance
+
+When upgrading major releases upgrades are only supports sequentially. For example going from version 4 to 5 is okay and going from 3 to 4 is okay (with notes below). However you can't directly go from 3 to 5, you must first go to 4 and make sure that all updates have completed first.
+
+### Upgrade from V3 to V4
 
 Version 4 brings a number of improvements to the server-side to reduce RAM usage to be more scaleable. This has meant a major rearchitecting of the server-side. During this support for SQL has been dropped and Vimtur 4 has switched to Mongo. The good news is upgrading is reasonably easy using the export and import tools.
 Note that during the upgrade the hashing mechanism will change from doing md5 sum's of the entire file to following SubDB's model of the first and last 64kbs. Another notable change is that
@@ -202,7 +208,6 @@ during upgrade the library needs to be partially re-cached to support multiple q
    node src/utils/import-json.js [-c /path/to/config.json] -f output.json
    ```
    The above command should be configured with the same environment variables or config file as running the program.
-
 
 ## Licenses
 

@@ -1,130 +1,31 @@
 import { Collection, Db } from 'mongodb';
 import { Validator } from '../../utils/validator';
-import Config from '../../config';
 import Util from 'util';
 
 export class Updater {
   public static async apply(db: Db): Promise<void> {
-    const oldRebuildUpdates: string[] = [
-      '001_update_media_with_keyframes',
-      '003_add_mhHash_field',
-      '004_add_clone_map',
-      '005_remove-segment-copy-ts',
-      '006_add_preview',
-    ];
+    const updatesExists = await Updater.collectionExists(db, 'updates');
 
     const updatesCollection = db.collection('updates');
-    await db.createCollection('updates');
-    await Util.promisify((updatesCollection.createIndex as any).bind(updatesCollection))(
-      { name: 1 },
-      { unique: true },
-    );
 
-    if (!(await db.listCollections({ name: 'updates' }).hasNext())) {
+    if (!updatesExists) {
       console.log('Updates collection does not exist, running original setup');
-      // The v1 of out MongoDb collections
-      const currentSchema = Updater.loadMediaSchema();
-      await Updater.initialSetup(db, currentSchema);
-      const completed: string[] = [...oldRebuildUpdates, '002_fix_prefixed_dir_names'];
-      await Promise.all(completed.map(key => Updater.saveUpdate(updatesCollection, key)));
-    }
-
-    const runOldRebuilds = await Promise.all(
-      oldRebuildUpdates.map(key => Updater.hasRun(updatesCollection, key)),
-    );
-    if (runOldRebuilds.find(run => !run)) {
-      console.log('Running old bulk rebuild...');
-      const mediaSchema = Updater.loadMediaSchema('077a1332');
-      const collection = db.collection('media');
-      await collection.updateMany({ type: 'video' }, { $unset: { 'metadata.segments.copy': '' } });
-
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Promise.all(oldRebuildUpdates.map(key => Updater.saveUpdate(updatesCollection, key)));
-      console.log('Old bulk rebuild complete');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '002_fix_prefixed_dir_names'))) {
-      // This is only the case with older collections pre-TS conversion.
-      // This won't work if the collection has been moved.
-      console.log('Applying update 002_fix_prefixed_dir_names...');
-      const cursor = db.collection('media').find({});
-      while (await cursor.hasNext()) {
-        const media = await cursor.next();
-        console.log(media.dir, Config.get().libraryPath);
-        if (media.dir.startsWith(Config.get().libraryPath)) {
-          let dir = media.dir.substring(Config.get().libraryPath.length);
-          if (dir.startsWith('/')) {
-            dir = dir.substring(1);
-          }
-          await db.collection('media').updateOne({ hash: media.hash }, { $set: { dir } });
-        }
-      }
-
-      await Updater.saveUpdate(updatesCollection, '002_fix_prefixed_dir_names');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '007_add_rating_index'))) {
-      console.log('Applying update 007_add_rating_index...');
-      const collection = db.collection('media');
-      await Util.promisify((collection.createIndex as any).bind(collection))(
-        { rating: 1 },
-        { unique: false },
+      await db.createCollection('updates');
+      await Util.promisify((updatesCollection.createIndex as any).bind(updatesCollection))(
+        { name: 1 },
+        { unique: true },
       );
-      await Updater.saveUpdate(updatesCollection, '007_add_rating_index');
+
+      await Updater.saveUpdate(updatesCollection, '014_add-playlists');
     }
 
-    if (!(await Updater.hasRun(updatesCollection, '008_remove-segment-copy-ts-properly'))) {
-      console.log('Applying update 008_remove-segment-copy-ts-properly...');
-      const mediaSchema = Updater.loadMediaSchema('1dba1b82');
+    await Updater.createCollections(db);
+
+    if (!(await Updater.hasRun(updatesCollection, '014_add-playlists'))) {
+      console.log('Applying update 014_add-playlists...');
+      const mediaSchema = Updater.loadMediaSchema('ff1fa952');
       await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '008_remove-segment-copy-ts-properly');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '009_add-phash-resolutions'))) {
-      console.log('Applying update 009_add-phash-resolutions...');
-      const mediaSchema = Updater.loadMediaSchema('f33d9138');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '009_add-phash-resolutions');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '010_add-created-at'))) {
-      console.log('Applying update 010_add-created-at...');
-      const mediaSchema = Updater.loadMediaSchema('9b0cfbc2');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '010_add-created-at');
-    }
-
-    // Media missing the PTS data completely broke streaming. This drops all those bad
-    // caches. Should only need to be done once rather than a task.
-    if (!(await Updater.hasRun(updatesCollection, '011_drop-invalid-segment-cache'))) {
-      console.log('Applying update 011_drop-invalid-segment-cache...');
-      await db
-        .collection('media')
-        .updateMany(
-          { 'metadata.segments.standard.0.start': NaN },
-          { $unset: { 'metadata.segments': '' } },
-        );
-      await Updater.saveUpdate(updatesCollection, '011_drop-invalid-segment-cache');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '012_invalidate-long-previews'))) {
-      console.log('Applying update 012_invalidate-long-previews...');
-      const maxLength =
-        (Config.get().transcoder.videoPreviewMaxHeight /
-          Config.get().transcoder.videoPreviewHeight) *
-        Config.get().transcoder.videoPreviewFps;
-      console.log(`Invaliding previews for videos longer than ${maxLength} seconds`);
-      await db
-        .collection('media')
-        .updateMany({ 'metadata.length': { $gt: maxLength } }, { $unset: { preview: '' } });
-      await Updater.saveUpdate(updatesCollection, '012_invalidate-long-previews');
-    }
-
-    if (!(await Updater.hasRun(updatesCollection, '013_add-clone-resolutions'))) {
-      console.log('Applying update 013_add-clone-resolutions...');
-      const mediaSchema = Updater.loadMediaSchema('449b5f7f');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '013_add-clone-resolutions');
+      await Updater.saveUpdate(updatesCollection, '014_add-playlists');
     }
   }
 
@@ -148,6 +49,10 @@ export class Updater {
     await db.collection('media_update').rename('media');
     console.log('Dropping original...');
     await db.collection('media_old').drop();
+  }
+
+  private static async collectionExists(db: Db, name: string): Promise<boolean> {
+    return db.listCollections({ name }).hasNext();
   }
 
   private static hasRun(updatesCollection: Collection, update: string): Promise<boolean> {
@@ -232,24 +137,39 @@ export class Updater {
     });
   }
 
-  private static async initialSetup(db: Db, mediaSchema: object): Promise<void> {
-    await Updater.createMediaCollection(db, mediaSchema, 'media');
+  private static async createCollections(db: Db): Promise<void> {
+    await Updater.createMediaCollection(db, await Updater.loadMediaSchema(), 'media');
 
-    await db.createCollection('config');
+    if (!(await Updater.collectionExists(db, 'config'))) {
+      await db.createCollection('config');
+    }
 
-    await db.createCollection('actors');
-    const actorsCollection = db.collection('config');
-    await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))(
-      { name: 1 },
-      { unique: true },
-    );
+    if (!(await Updater.collectionExists(db, 'actors'))) {
+      await db.createCollection('actors');
+      const actorsCollection = db.collection('actors');
+      await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))(
+        { name: 1 },
+        { unique: true },
+      );
+    }
 
-    await db.createCollection('tags');
-    const tagsCollection = db.collection('tags');
-    await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))(
-      { name: 1 },
-      { unique: true },
-    );
+    if (!(await Updater.collectionExists(db, 'tags'))) {
+      await db.createCollection('tags');
+      const tagsCollection = db.collection('tags');
+      await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))(
+        { name: 1 },
+        { unique: true },
+      );
+    }
+
+    if (!(await Updater.collectionExists(db, 'playlists'))) {
+      await db.createCollection('playlists');
+      const playlistsCollection = db.collection('playlists');
+      await Util.promisify((playlistsCollection.createIndex as any).bind(playlistsCollection))(
+        { name: 1 },
+        { unique: true },
+      );
+    }
   }
 
   private static loadMediaSchema(version?: string): any {
@@ -258,7 +178,19 @@ export class Updater {
     if (mediaSchema['$schema']) {
       delete mediaSchema['$schema'];
     }
+    // Patch in the _id
     mediaSchema.properties['_id'] = {};
+
+    // If playlists exists then match id with _id.
+    if (mediaSchema.properties['playlists']) {
+      delete mediaSchema.properties['playlists'].items.properties.id;
+      const index = mediaSchema.properties['playlists'].items.required.indexOf('id');
+      if (index >= 0) {
+        mediaSchema.properties['playlists'].items.required.splice(index, 1);
+      }
+      mediaSchema.properties['playlists'].items.properties['_id'] = {};
+      mediaSchema.properties['playlists'].items.required.push('_id');
+    }
 
     return mediaSchema;
   }
