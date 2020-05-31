@@ -9,3 +9,7 @@ export interface PlaylistCreate {
 }
 
 export type PlaylistUpdate = Partial<PlaylistCreate>;
+
+export interface PlaylistEntryUpdate {
+  order: number;
+}

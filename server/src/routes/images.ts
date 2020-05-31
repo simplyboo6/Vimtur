@@ -15,6 +15,7 @@ const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
 const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
 const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
 const RESOLUTION_VALIDATOR = Validator.load('MediaResolution');
+const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load('PlaylistEntryUpdate');
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();
@@ -103,6 +104,18 @@ export async function create(db: Database): Promise<Router> {
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
       await db.addMediaToPlaylist(req.params.hash, req.params.playlistId);
+    }),
+  );
+
+  router.patch(
+    '/:hash/playlists/:playlistId',
+    wrap(async ({ req }) => {
+      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
+      if (!result.success) {
+        throw new BadRequest(result.errorText!);
+      }
+
+      await db.updateMediaPlaylistOrder(req.params.hash, req.params.playlistId, req.body);
     }),
   );
 

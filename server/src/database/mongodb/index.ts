@@ -10,6 +10,7 @@ import {
   Media,
   Playlist,
   PlaylistCreate,
+  PlaylistEntryUpdate,
   PlaylistUpdate,
   SubsetConstraints,
   SubsetFields,
@@ -243,15 +244,20 @@ export class MongoConnector extends Database {
     const updateRollback = async (): Promise<void> => {
       // In an ideal world these need to be done in parallel, atomically.
       // Doing this one first at least means worse case is a gap of 1.
+
       await mediaCollection.updateMany(
         {
           'playlists._id': new ObjectId(playlistId),
-          'playlists.order': { $gt: order },
         },
         {
           $inc: {
-            'playlists.$.order': -1,
+            'playlists.$[playlist].order': -1,
           },
+        },
+        {
+          arrayFilters: [
+            { 'playlist.order': { $gt: order }, 'playlist._id': new ObjectId(playlistId) },
+          ],
         },
       );
 
@@ -321,12 +327,19 @@ export class MongoConnector extends Database {
       await mediaCollection.updateMany(
         {
           'playlists._id': new ObjectId(playlistId),
-          'playlists.order': { $gt: mediaPlaylist.order },
         },
         {
           $inc: {
-            'playlists.$.order': -1,
+            'playlists.$[playlist].order': -1,
           },
+        },
+        {
+          arrayFilters: [
+            {
+              'playlist.order': { $gt: mediaPlaylist.order },
+              'playlist._id': new ObjectId(playlistId),
+            },
+          ],
         },
       );
 
@@ -345,7 +358,103 @@ export class MongoConnector extends Database {
     }
   }
 
-  //public updateMediaPlaylistOrder(hash: string, order: number): Promise<void>;
+  public async updateMediaPlaylistOrder(
+    hash: string,
+    playlistId: string,
+    update: PlaylistEntryUpdate,
+  ): Promise<void> {
+    const mediaCollection = this.db.collection('media');
+
+    const matchedMedia = await this.subsetFields(
+      {
+        playlist: playlistId,
+        hash: { equalsAll: [hash] },
+      },
+      { order: 1, hash: 1 },
+    );
+
+    const media = matchedMedia[0];
+    if (!media) {
+      throw new NotFound(`No media found: ${hash} that has playlist ${playlistId}`);
+    }
+
+    const playlist = await this.getPlaylist(playlistId);
+    if (!playlist) {
+      throw new NotFound(`No playlist found with id ${playlistId}`);
+    }
+
+    if (update.order >= playlist.size) {
+      throw new BadRequest(
+        `Requested location (${update.order}) is >= playlist size (${playlist.size})`,
+      );
+    }
+
+    const newLocation = update.order;
+    if (newLocation < 0) {
+      throw new BadRequest(`Requested location (${update.order}) is less than 0`);
+    }
+
+    const existingLocation = media.order;
+    if (existingLocation === undefined) {
+      throw new Error('Could not retrieve existing location for media in playlist');
+    }
+
+    if (newLocation === existingLocation) {
+      return;
+    }
+
+    if (newLocation > existingLocation) {
+      await mediaCollection.updateMany(
+        {
+          'playlists._id': new ObjectId(playlistId),
+        },
+        {
+          $inc: {
+            'playlists.$[playlist].order': -1,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              'playlist.order': { $gt: existingLocation, $lte: newLocation },
+              'playlist._id': new ObjectId(playlistId),
+            },
+          ],
+        },
+      );
+    } else {
+      await mediaCollection.updateMany(
+        {
+          'playlists._id': new ObjectId(playlistId),
+        },
+        {
+          $inc: {
+            'playlists.$[playlist].order': 1,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              'playlist.order': { $lt: existingLocation, $gte: newLocation },
+              'playlist._id': new ObjectId(playlistId),
+            },
+          ],
+        },
+      );
+    }
+
+    await mediaCollection.updateOne(
+      {
+        hash,
+        'playlists._id': new ObjectId(playlistId),
+      },
+      {
+        $set: {
+          'playlists.$.order': newLocation,
+        },
+      },
+    );
+  }
 
   public async getMedia(hash: string): Promise<Media | undefined> {
     const media = this.db.collection<BaseMedia>('media');
@@ -485,8 +594,29 @@ export class MongoConnector extends Database {
 
       pipeline.push({
         $addFields: {
-          order: {
-            $arrayElemAt: ['$playlists.order', 0],
+          playlist: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$playlists',
+                  as: 'playlist',
+                  cond: { $eq: ['$$playlist._id', new ObjectId(constraints.playlist)] },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      });
+
+      pipeline.push({
+        $addFields: {
+          order: '$playlist.order',
+          playlist: {
+            $convert: {
+              input: '$playlist._id',
+              to: 'string',
+            },
           },
         },
       });
@@ -529,8 +659,6 @@ export class MongoConnector extends Database {
         $sort: sort,
       });
     }
-
-    console.log(await mediaCollection.aggregate(pipeline).toArray());
 
     pipeline.push({
       $project: fields || {
@@ -588,6 +716,7 @@ export class MongoConnector extends Database {
     filters.push(createStringFilter('metadata.artist', constraints.artist));
     filters.push(createStringFilter('metadata.album', constraints.album));
     filters.push(createStringFilter('metadata.title', constraints.title));
+    filters.push(createStringFilter('hash', constraints.hash));
     filters.push(createStringFilter('dir', constraints.dir));
     filters.push(createStringFilter('path', constraints.path));
     filters.push(createStringFilter('duplicateOf', constraints.duplicateOf));

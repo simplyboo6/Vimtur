@@ -52,3 +52,4 @@ gen_schema "MediaResolution" "${COMMON_TYPES}/media.d.ts"
 # Playlists
 gen_schema "PlaylistCreate" "${COMMON_TYPES}/playlist.d.ts"
 gen_schema "PlaylistUpdate" "${COMMON_TYPES}/playlist.d.ts"
+gen_schema "PlaylistEntryUpdate" "${COMMON_TYPES}/playlist.d.ts"

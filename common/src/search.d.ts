@@ -31,6 +31,7 @@ export interface SubsetConstraints {
   type?: ArrayFilter;
 
   // Strings
+  hash?: StringFilter;
   artist?: StringFilter;
   album?: StringFilter;
   title?: StringFilter;
@@ -70,4 +71,5 @@ export interface SubsetFields {
   path?: number;
   phash?: number;
   clones?: number;
+  order?: number;
 }

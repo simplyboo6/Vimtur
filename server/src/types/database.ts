@@ -4,6 +4,7 @@ import {
   Media,
   Playlist,
   PlaylistCreate,
+  PlaylistEntryUpdate,
   PlaylistUpdate,
   SubsetConstraints,
   SubsetFields,
@@ -28,7 +29,11 @@ export abstract class Database {
   // Media - playlists
   public abstract addMediaToPlaylist(hash: string, playlistId: string): Promise<void>;
   public abstract removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void>;
-  //public abstract updateMediaPlaylistOrder(hash: string, order: number): Promise<void>;
+  public abstract updateMediaPlaylistOrder(
+    hash: string,
+    playlistId: string,
+    update: PlaylistEntryUpdate,
+  ): Promise<void>;
   // TODO Function to add subset to playlist
 
   // Searching
