@@ -106,7 +106,7 @@ For Windows install graphicsmagick, ffmpeg and ffprobe. Make sure they're in you
 
 ### Running
 
-A config file can be specified using the `-c` flag when launching with nodejs or with the `CONFIG_PATH` variable when launching with yarn.
+A config file can be specified using the `CONFIG_PATH` environment variable when launching with yarn.
 
 ## Configuration JSON File
 
@@ -178,6 +178,10 @@ A config file can be specified using the `-c` flag when launching with nodejs or
 ### General Guidance
 
 When upgrading major releases upgrades are only supports sequentially. For example going from version 4 to 5 is okay and going from 3 to 4 is okay (with notes below). However you can't directly go from 3 to 5, you must first go to 4 and make sure that all updates have completed first.
+
+### Upgrade from V4 to V5
+
+Version 5 removes command line arguments in favour solely of environment variables. The only previously used flag was `-c` or `--config`, this is now replaced by `CONFIG_FILE`.
 
 ### Upgrade from V3 to V4
 

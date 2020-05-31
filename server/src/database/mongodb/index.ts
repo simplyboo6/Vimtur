@@ -152,7 +152,11 @@ export class MongoConnector extends Database {
   public async addPlaylist(request: PlaylistCreate): Promise<Playlist> {
     const playlists = this.db.collection('playlists');
     const result = await playlists.insertOne({ ...request, size: 0 });
-    return this.getPlaylist(result.insertedId.toHexString());
+    const fetched = await this.getPlaylist(result.insertedId.toHexString());
+    if (!fetched) {
+      throw new Error('Error adding playlist');
+    }
+    return fetched;
   }
 
   public async removePlaylist(id: string): Promise<void> {
@@ -201,10 +205,14 @@ export class MongoConnector extends Database {
       .toArray();
   }
 
-  public async getPlaylist(id: string): Promise<Playlist> {
+  public async getPlaylist(id: string): Promise<Playlist | undefined> {
     const playlists = this.db.collection('playlists');
 
     const raw = await playlists.findOne({ _id: new ObjectId(id) });
+    if (!raw) {
+      return undefined;
+    }
+
     raw.id = raw._id.toHexString();
     delete raw._id;
 

@@ -58,7 +58,7 @@ export abstract class Database {
   public abstract removePlaylist(id: string): Promise<void>;
   public abstract updatePlaylist(id: string, request: PlaylistUpdate): Promise<void>;
   public abstract getPlaylists(): Promise<Playlist[]>;
-  public abstract getPlaylist(id: string): Promise<Playlist>;
+  public abstract getPlaylist(id: string): Promise<Playlist | undefined>;
 
   // Config
   public abstract getUserConfig(): Promise<Configuration.Partial>;

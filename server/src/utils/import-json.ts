@@ -1,5 +1,4 @@
 /* eslint require-atomic-updates: 0 */
-import Args from 'args';
 import FS from 'fs';
 import Path from 'path';
 import Util from 'util';
@@ -115,10 +114,11 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
 }
 
 async function main(): Promise<void> {
-  const flags = Args.parse(process.argv);
+  const file = process.argv[2];
 
   let input = '';
-  if (flags.stdin) {
+  if (!file) {
+    console.log('Reading from stdin');
     const stdin = process.stdin;
     stdin.setEncoding('utf8');
 
@@ -131,10 +131,9 @@ async function main(): Promise<void> {
     await new Promise(resolve => {
       stdin.on('end', resolve);
     });
-  } else if (flags.file) {
-    input = FS.readFileSync(flags.file).toString();
   } else {
-    throw new Error('Please specify either -stdin or -file');
+    console.log(`Reading from file ${file}`);
+    input = FS.readFileSync(file).toString();
   }
 
   console.log('Parsing JSON...');
