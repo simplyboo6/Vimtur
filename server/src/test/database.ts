@@ -1,4 +1,5 @@
 import { Db, MongoClient } from 'mongodb';
+import { Media, Playlist } from '@vimtur/common';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
@@ -120,6 +121,311 @@ describe('Database Tests', () => {
 
     afterEach(async () => {
       await mongo.collection('playlists').deleteMany({});
+    });
+  });
+
+  describe('Playlist content manipulation', () => {
+    let playlists: Playlist[] = [];
+    let media: Media[] = [];
+
+    beforeEach(async () => {
+      playlists = [];
+      media = [];
+
+      for (let i = 0; i < 3; i++) {
+        playlists.push(
+          await database.addPlaylist({
+            name: `Playlist ${i}`,
+          }),
+        );
+      }
+
+      for (let i = 0; i < 5; i++) {
+        media.push(
+          await database.saveMedia(`hash-${i}`, {
+            path: `/tmp/${i}.jpg`,
+            dir: '/tmp',
+            type: 'still',
+            actors: [],
+            tags: [],
+            hashDate: Date.now(),
+          }),
+        );
+      }
+    });
+
+    afterEach(async () => {
+      await mongo.collection('playlists').deleteMany({});
+      await mongo.collection('media').deleteMany({});
+    });
+
+    it('Add media to playlist', async () => {
+      await database.addMediaToPlaylist(media[0].hash, playlists[0].id);
+
+      const playlist = await database.getPlaylist(playlists[0].id);
+      expect(playlist).to.be.an('object');
+      expect(playlist!.size).to.equal(1);
+
+      const fetchedMedia = await database.getMedia(media[0].hash);
+      expect(fetchedMedia).to.be.an('object');
+      expect(fetchedMedia!.playlists).to.be.an('array');
+
+      expect(fetchedMedia!.playlists!.length).to.equal(1);
+      expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+      expect(fetchedMedia!.playlists![0]!.order).to.equal(0);
+    });
+
+    it('Add second media to playlist', async () => {
+      await database.addMediaToPlaylist(media[0].hash, playlists[0].id);
+      await database.addMediaToPlaylist(media[1].hash, playlists[0].id);
+
+      {
+        const fetchedMedia = await database.getMedia(media[0].hash);
+        expect(fetchedMedia).to.be.an('object');
+        expect(fetchedMedia!.playlists).to.be.an('array');
+
+        expect(fetchedMedia!.playlists!.length).to.equal(1);
+        expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+        expect(fetchedMedia!.playlists![0]!.order).to.equal(0);
+      }
+
+      {
+        const fetchedMedia = await database.getMedia(media[1].hash);
+        expect(fetchedMedia).to.be.an('object');
+        expect(fetchedMedia!.playlists).to.be.an('array');
+
+        expect(fetchedMedia!.playlists!.length).to.equal(1);
+        expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+        expect(fetchedMedia!.playlists![0]!.order).to.equal(1);
+      }
+    });
+
+    describe('Ordered existing playlist', () => {
+      beforeEach(async () => {
+        for (const m of media) {
+          await database.addMediaToPlaylist(m.hash, playlists[0].id);
+        }
+      });
+
+      it('Move media from end to start', async () => {
+        await database.updateMediaPlaylistOrder(media[media.length - 1].hash, playlists[0].id, {
+          order: 0,
+        });
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 1 },
+          { hash: media[1].hash, order: 2 },
+          { hash: media[2].hash, order: 3 },
+          { hash: media[3].hash, order: 4 },
+          { hash: media[4].hash, order: 0 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          expect(fetchedMedia!.playlists!.length).to.equal(1);
+          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+        }
+      });
+
+      it('Move media from start to end', async () => {
+        await database.updateMediaPlaylistOrder(media[0].hash, playlists[0].id, {
+          order: media.length - 1,
+        });
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 4 },
+          { hash: media[1].hash, order: 0 },
+          { hash: media[2].hash, order: 1 },
+          { hash: media[3].hash, order: 2 },
+          { hash: media[4].hash, order: 3 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          expect(fetchedMedia!.playlists!.length).to.equal(1);
+          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+        }
+      });
+
+      it('Move from start to middle', async () => {
+        await database.updateMediaPlaylistOrder(media[0].hash, playlists[0].id, { order: 2 });
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 2 },
+          { hash: media[1].hash, order: 0 },
+          { hash: media[2].hash, order: 1 },
+          { hash: media[3].hash, order: 3 },
+          { hash: media[4].hash, order: 4 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          expect(fetchedMedia!.playlists!.length).to.equal(1);
+          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+        }
+      });
+
+      it('Move from middle to start', async () => {
+        await database.updateMediaPlaylistOrder(media[2].hash, playlists[0].id, { order: 0 });
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 1 },
+          { hash: media[1].hash, order: 2 },
+          { hash: media[2].hash, order: 0 },
+          { hash: media[3].hash, order: 3 },
+          { hash: media[4].hash, order: 4 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          expect(fetchedMedia!.playlists!.length).to.equal(1);
+          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+        }
+      });
+
+      it('Remove from start', async () => {
+        await database.removeMediaFromPlaylist(media[0].hash, playlists[0].id);
+
+        const playlist = await database.getPlaylist(playlists[0].id);
+        expect(playlist).to.be.an('object');
+        expect(playlist!.size).to.equal(4);
+
+        for (const { hash, order } of [
+          { hash: media[0].hash },
+          { hash: media[1].hash, order: 0 },
+          { hash: media[2].hash, order: 1 },
+          { hash: media[3].hash, order: 2 },
+          { hash: media[4].hash, order: 3 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          if (order !== undefined) {
+            expect(fetchedMedia!.playlists!.length).to.equal(1);
+            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          } else {
+            expect(fetchedMedia!.playlists!.length).to.equal(0);
+          }
+        }
+      });
+
+      it('Remove from middle', async () => {
+        await database.removeMediaFromPlaylist(media[2].hash, playlists[0].id);
+
+        const playlist = await database.getPlaylist(playlists[0].id);
+        expect(playlist).to.be.an('object');
+        expect(playlist!.size).to.equal(4);
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 0 },
+          { hash: media[1].hash, order: 1 },
+          { hash: media[2].hash },
+          { hash: media[3].hash, order: 2 },
+          { hash: media[4].hash, order: 3 },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          if (order !== undefined) {
+            expect(fetchedMedia!.playlists!.length).to.equal(1);
+            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          } else {
+            expect(fetchedMedia!.playlists!.length).to.equal(0);
+          }
+        }
+      });
+
+      it('Remove from end', async () => {
+        await database.removeMediaFromPlaylist(media[media.length - 1].hash, playlists[0].id);
+
+        const playlist = await database.getPlaylist(playlists[0].id);
+        expect(playlist).to.be.an('object');
+        expect(playlist!.size).to.equal(4);
+
+        for (const { hash, order } of [
+          { hash: media[0].hash, order: 0 },
+          { hash: media[1].hash, order: 1 },
+          { hash: media[2].hash, order: 2 },
+          { hash: media[3].hash, order: 3 },
+          { hash: media[4].hash },
+        ]) {
+          const fetchedMedia = await database.getMedia(hash);
+          expect(fetchedMedia).to.be.an('object');
+          expect(fetchedMedia!.playlists).to.be.an('array');
+
+          if (order !== undefined) {
+            expect(fetchedMedia!.playlists!.length).to.equal(1);
+            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          } else {
+            expect(fetchedMedia!.playlists!.length).to.equal(0);
+          }
+        }
+      });
+    });
+
+    describe('Multiple playlists', () => {
+      beforeEach(async () => {
+        for (const m of media) {
+          await database.addMediaToPlaylist(m.hash, playlists[0].id);
+        }
+
+        await database.addMediaToPlaylist(media[1].hash, playlists[1].id);
+        await database.addMediaToPlaylist(media[2].hash, playlists[1].id);
+        await database.addMediaToPlaylist(media[0].hash, playlists[1].id);
+        await database.addMediaToPlaylist(media[3].hash, playlists[1].id);
+      });
+
+      const checkPlaylistB = async (): Promise<void> => {
+        const subset = await database.subset({
+          playlist: playlists[1].id,
+        });
+
+        expect(subset.length).to.equal(4);
+
+        let i = 0;
+        for (const order of [1, 2, 0, 3]) {
+          expect(subset[i]).to.equal(media[order].hash);
+          i++;
+        }
+      };
+
+      it('Search by playlist and default sort by order (already ordered)', async () => {
+        const subset = await database.subset({
+          playlist: playlists[0].id,
+        });
+        expect(subset.length).to.equal(media.length);
+
+        for (let i = 0; i < subset.length; i++) {
+          expect(subset[i]).to.equal(media[i].hash);
+        }
+      });
+
+      it('Search by playlist and default sort by order (unordered)', async () => {
+        await checkPlaylistB();
+      });
+
+      it('Reordering one playlist does not effect another', async () => {
+        await database.updateMediaPlaylistOrder(media[2].hash, playlists[0].id, { order: 0 });
+        await checkPlaylistB();
+      });
+
+      it('Removing one playlist does not effect another', async () => {
+        await database.removeMediaFromPlaylist(media[2].hash, playlists[0].id);
+        await checkPlaylistB();
+      });
     });
   });
 

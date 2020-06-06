@@ -523,7 +523,7 @@ export class MongoConnector extends Database {
     return result.matchedCount;
   }
 
-  public async saveMedia(hash: string, media: UpdateMedia): Promise<Media> {
+  public async saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media> {
     // Filter out various old fields we no longer require.
     // This one is generated on get media and may be accidentally passed back.
     const oldMedia = media as any;
@@ -548,6 +548,7 @@ export class MongoConnector extends Database {
       }
       await collection.updateOne({ hash }, { $set: media as any });
     } else {
+      (media as BaseMedia).hash = hash;
       // If it's a new one then pre-validate it to show better errors.
       const result = MEDIA_VALIDATOR.validate(media);
       if (!result.success) {
@@ -700,8 +701,6 @@ export class MongoConnector extends Database {
   }
 
   private buildMediaMatch(constraints: SubsetConstraints): object {
-    console.log('subset', constraints);
-
     const filters: object[] = [];
 
     if (constraints.keywordSearch) {
