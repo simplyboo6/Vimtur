@@ -337,6 +337,7 @@ export async function create(db: Database): Promise<Router> {
       db.getMedia(req.params.hash)
         .then(media => {
           if (media) {
+            res.set('Cache-Control', 'public, max-age=604800, immutable');
             res.set('Content-Type', 'video/mp2t');
             transcoder.streamMedia(media, start, end, res, quality).catch(err => {
               console.error('Error streaming media', err);

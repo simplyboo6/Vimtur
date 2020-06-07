@@ -65,11 +65,7 @@ export class MediaService {
   }
 
   public loadMedia(hashes: string[]): Observable<Media[]> {
-    return forkJoin(
-      hashes.map(hash => {
-        return this.httpClient.get<Media>(`/api/images/${hash}`);
-      }),
-    );
+    return forkJoin(hashes.map(hash => this.getMedia(hash)));
   }
 
   private setCurrent(hash?: string) {
@@ -240,8 +236,12 @@ export class MediaService {
     }
   }
 
-  public getMedia(): ReplaySubject<Media> {
-    return this.mediaReplay;
+  public getMedia(hash?: string): Observable<Media> {
+    if (!hash) {
+      return this.mediaReplay;
+    }
+
+    return this.httpClient.get<Media>(`/api/images/${hash}`);
   }
 
   public resolveClones(hash: string, request: MediaResolution) {

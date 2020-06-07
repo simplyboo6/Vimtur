@@ -27,6 +27,7 @@ import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/con
 import { ListModalComponent } from './components/list-modal/list-modal.component';
 import { LoadingComponent } from './components/loading/loading.component';
 import { PlaylistsComponent } from './components/playlists/playlists.component';
+import { ActionsComponent } from './components/actions/actions.component';
 
 @NgModule({
   declarations: [
@@ -49,6 +50,7 @@ import { PlaylistsComponent } from './components/playlists/playlists.component';
     ListModalComponent,
     LoadingComponent,
     PlaylistsComponent,
+    ActionsComponent,
   ],
   imports: [
     NgbModule,

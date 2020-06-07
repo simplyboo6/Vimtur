@@ -226,8 +226,8 @@ export class MongoConnector extends Database {
     }
 
     if (media.playlists && media.playlists.find(playlist => playlist.id === playlistId)) {
-      // If already in the playlist, then throw because the location change.
-      throw new BadRequest('Media is already in the playlist');
+      // If already in the playlist, then ignore.
+      return;
     }
 
     const playlistCollection = this.db.collection('playlists');
@@ -241,6 +241,7 @@ export class MongoConnector extends Database {
         },
       },
     );
+
     if (!updateResult.value || !updateResult.ok) {
       throw new NotFound(`Playlist not found: ${playlistId}`);
     }
@@ -300,6 +301,16 @@ export class MongoConnector extends Database {
       if (mediaUpdateResult.modifiedCount === 0) {
         await updateRollback();
       }
+
+      await playlistCollection.updateOne(
+        {
+          _id: new ObjectId(playlistId),
+          thumbnail: { $exists: false },
+        },
+        {
+          $set: { thumbnail: hash },
+        },
+      );
     } catch (err) {
       console.warn('Add to playlist failed', hash, playlistId, err);
       await updateRollback();

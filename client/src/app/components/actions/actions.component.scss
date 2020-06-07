@@ -1,0 +1,14 @@
+.dropdown {
+  & > button > svg {
+    width: 2rem;
+  }
+
+  & > .dropdown-menu {
+    left: initial;
+    right: 0;
+  }
+
+  & > .dropdown-menu.visible {
+    display: block;
+  }
+}

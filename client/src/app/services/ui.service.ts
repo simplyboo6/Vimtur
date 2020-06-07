@@ -44,6 +44,8 @@ export interface SearchModel {
   title?: SearchStringFilter;
   path?: SearchStringFilter;
   dir?: SearchStringFilter;
+
+  playlist?: string;
 }
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
@@ -178,6 +180,11 @@ export class UiService {
     }
     if (this.searchModel.untagged) {
       constraints.tags = Object.assign(constraints.tags || {}, { exists: false });
+    }
+
+    if (this.searchModel.playlist) {
+      constraints.playlist = this.searchModel.playlist;
+      constraints.sortBy = 'order';
     }
 
     for (const field of this.stringFields) {

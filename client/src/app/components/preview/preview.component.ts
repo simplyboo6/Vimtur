@@ -86,8 +86,10 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       this.image = undefined;
       this.thumbnail = undefined;
       this.index = 0;
-      if (media.metadata && media.type === 'video') {
-        this.imageSrc = `/cache/previews/${media.hash}.png`;
+      if (media.metadata) {
+        if (media.type === 'video' && media.preview) {
+          this.imageSrc = `/cache/previews/${media.hash}.png`;
+        }
         this.thumbnailSrc = `/cache/thumbnails/${media.hash}.png`;
       }
     }

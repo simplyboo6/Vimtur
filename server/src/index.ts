@@ -75,6 +75,7 @@ async function createServer(db: Database): Promise<Server> {
       if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
         throw new Error('File is not inside cache directory');
       }
+      res.set('Cache-Control', 'public, max-age=604800, immutable');
       return res.sendFile(absPath);
     } catch (err) {
       return res.status(400).json({ message: err.message, type: 'config' });

@@ -95,15 +95,31 @@
             </div>
           </div>
           <div class="form-group">
+            <label>Playlist</label>
+            <select class="custom-select" [(ngModel)]="searchModel.playlist">
+              <option selected="selected" [ngValue]="undefined">None</option>
+              <ng-container *ngIf="playlists">
+                <option *ngFor="let playlist of playlists" [ngValue]="playlist.id"
+                  >{{ playlist.name }} ({{ playlist.size }})</option
+                >
+              </ng-container>
+            </select>
+          </div>
+          <div class="form-group">
             <label>Sort By</label>
-            <select class="custom-select" [(ngModel)]="searchModel.sortBy">
-              <option selected="selected" [value]="undefined">None</option>
-              <option [value]="'hashDate'">Date Added (newest first)</option>
-              <option [value]="'rating'">Rating</option>
-              <option [value]="'recommended'">Recommended</option>
-              <option [value]="'length'">Length (longest first)</option>
-              <option [value]="'createdAt'">File Date (newest first)</option>
-              <option [value]="'path'">Path</option>
+            <select
+              [disabled]="searchModel.playlist"
+              class="custom-select"
+              [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy"
+            >
+              <option selected="selected" [ngValue]="undefined">None</option>
+              <option [ngValue]="'hashDate'">Date Added (newest first)</option>
+              <option [ngValue]="'rating'">Rating</option>
+              <option [ngValue]="'recommended'">Recommended</option>
+              <option [ngValue]="'length'">Length (longest first)</option>
+              <option [ngValue]="'createdAt'">File Date (newest first)</option>
+              <option [ngValue]="'path'">Path</option>
+              <option *ngIf="searchModel.playlist" [ngValue]="'order'">Order</option>
             </select>
           </div>
         </div>
