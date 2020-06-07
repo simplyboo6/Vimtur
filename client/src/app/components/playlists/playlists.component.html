@@ -1,0 +1,84 @@
+<div class="container" *ngIf="playlists; else loading">
+  <div class="card">
+    <div class="row">
+      <div class="col-md-8">
+        <input
+          [(ngModel)]="addPlaylistModel"
+          class="form-control"
+          type="text"
+          placeholder="Enter new playlist name..."
+          (keyup.enter)="addPlaylistModel && addPlaylist()"
+        />
+      </div>
+      <div class="col-md-4">
+        <button
+          class="btn btn-primary btn-block"
+          [disabled]="!addPlaylistModel"
+          (click)="addPlaylist()"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngFor="let playlist of playlists" class="card">
+    <div class="row">
+      <div class="col-md-auto">
+        <ng-container *ngTemplateOutlet="thumbnailPlaceholder"></ng-container>
+      </div>
+      <div class="col align">{{ playlist.name }}</div>
+      <div class="col-md-1 align">{{ playlist.size }}</div>
+      <div class="col-md-1 align">
+        <button
+          class="btn btn-link text-danger"
+          type="submit"
+          (click)="deletePlaylist(playlist)"
+          title="Delete"
+        >
+          <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loading>
+  <h4>Loading...</h4>
+</ng-template>
+
+<ng-template #clearIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="far"
+    data-icon="times-circle"
+    class="clear-icon svg-inline--fa fa-times-circle fa-w-16"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+  >
+    <path
+      fill="currentColor"
+      d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200zm101.8-262.2L295.6 256l62.2 62.2c4.7 4.7 4.7 12.3 0 17l-22.6 22.6c-4.7 4.7-12.3 4.7-17 0L256 295.6l-62.2 62.2c-4.7 4.7-12.3 4.7-17 0l-22.6-22.6c-4.7-4.7-4.7-12.3 0-17l62.2-62.2-62.2-62.2c-4.7-4.7-4.7-12.3 0-17l22.6-22.6c4.7-4.7 12.3-4.7 17 0l62.2 62.2 62.2-62.2c4.7-4.7 12.3-4.7 17 0l22.6 22.6c4.7 4.7 4.7 12.3 0 17z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #thumbnailPlaceholder>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="photo-video"
+    class="thumbnail svg-inline--fa fa-photo-video fa-w-20"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 640 512"
+  >
+    <path
+      fill="currentColor"
+      d="M608 0H160a32 32 0 0 0-32 32v96h160V64h192v320h128a32 32 0 0 0 32-32V32a32 32 0 0 0-32-32zM232 103a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm352 208a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm-168 57H32a32 32 0 0 0-32 32v288a32 32 0 0 0 32 32h384a32 32 0 0 0 32-32V192a32 32 0 0 0-32-32zM96 224a32 32 0 1 1-32 32 32 32 0 0 1 32-32zm288 224H64v-32l64-64 32 32 128-128 96 96z"
+    ></path>
+  </svg>
+</ng-template>

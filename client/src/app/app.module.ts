@@ -26,6 +26,7 @@ import { CloneResolverComponent } from './components/clone-resolver/clone-resolv
 import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/confirm-bulk-update.component';
 import { ListModalComponent } from './components/list-modal/list-modal.component';
 import { LoadingComponent } from './components/loading/loading.component';
+import { PlaylistsComponent } from './components/playlists/playlists.component';
 
 @NgModule({
   declarations: [
@@ -47,6 +48,7 @@ import { LoadingComponent } from './components/loading/loading.component';
     ConfirmBulkUpdateComponent,
     ListModalComponent,
     LoadingComponent,
+    PlaylistsComponent,
   ],
   imports: [
     NgbModule,

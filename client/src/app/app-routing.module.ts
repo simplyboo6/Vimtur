@@ -7,6 +7,7 @@ import { SearchComponent } from './components/search/search.component';
 import { GalleryComponent } from './components/gallery/gallery.component';
 import { InsightsComponent } from './components/insights/insights.component';
 import { CloneResolverComponent } from './components/clone-resolver/clone-resolver.component';
+import { PlaylistsComponent } from './components/playlists/playlists.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/gallery', pathMatch: 'full' },
@@ -17,6 +18,7 @@ const routes: Routes = [
   { path: 'gallery', component: GalleryComponent },
   { path: 'insights', component: InsightsComponent },
   { path: 'clone-resolver', component: CloneResolverComponent },
+  { path: 'playlists', component: PlaylistsComponent },
 ];
 
 @NgModule({
