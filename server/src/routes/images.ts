@@ -1,4 +1,5 @@
 import { Request, Response, Router } from 'express';
+import { execute } from 'proper-job';
 import Path from 'path';
 import PathIsInside from 'path-is-inside';
 
@@ -22,23 +23,58 @@ export async function create(db: Database): Promise<Router> {
 
   const transcoder = new Transcoder(db);
 
+  const parseSubsetBody = (body: object): SubsetConstraints => {
+    const result = SUBSET_VALIDATOR.validate(body);
+    if (!result.success) {
+      throw new BadRequest(result.errorText!);
+    }
+
+    const constraints: SubsetConstraints = body;
+    constraints.corrupted = false;
+    constraints.indexed = true;
+    constraints.duplicateOf = { exists: false };
+
+    return constraints;
+  };
+
   router.post(
     '/subset',
     wrap(async ({ req }) => {
-      const result = SUBSET_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText!);
-      }
-
-      const constraints: SubsetConstraints = req.body;
-      constraints.corrupted = false;
-      constraints.indexed = true;
-      constraints.duplicateOf = { exists: false };
+      const constraints = parseSubsetBody(req.body);
 
       console.log('Search request.', constraints);
       return {
         data: await db.subset(constraints),
       };
+    }),
+  );
+
+  router.put(
+    '/subset/playlists/:playlistId',
+    wrap(async ({ req }) => {
+      const constraints = parseSubsetBody(req.body);
+      const subset = await db.subset(constraints);
+
+      // Do sequentially to preserve sort order
+      for (const hash of subset) {
+        await db.addMediaToPlaylist(hash, req.params.playlistId);
+      }
+    }),
+  );
+
+  router.delete(
+    '/subset/playlists/:playlistId',
+    wrap(async ({ req }) => {
+      const constraints = parseSubsetBody(req.body);
+      const subset = await db.subset(constraints);
+
+      await execute(
+        subset,
+        async hash => {
+          await db.removeMediaFromPlaylist(hash, req.params.playlistId);
+        },
+        { parallel: 8 },
+      );
     }),
   );
 
