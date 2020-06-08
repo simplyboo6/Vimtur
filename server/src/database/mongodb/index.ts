@@ -374,6 +374,16 @@ export class MongoConnector extends Database {
           },
         },
       );
+
+      await playlistCollection.updateOne(
+        {
+          _id: new ObjectId(playlistId),
+          thumbnail: hash,
+        },
+        {
+          $unset: { hash: '' },
+        },
+      );
     }
   }
 

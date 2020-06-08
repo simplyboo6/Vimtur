@@ -1,52 +1,102 @@
-<div class="container-lg" *ngIf="playlists; else loading">
+<div class="container-lg" *ngIf="currentPlaylist; else allPlaylists">
   <div class="card">
     <div class="row">
-      <div class="col-md-8">
-        <input
-          [(ngModel)]="addPlaylistModel"
-          class="form-control"
-          type="text"
-          placeholder="Enter new playlist name..."
-          (keyup.enter)="addPlaylistModel && addPlaylist()"
-        />
-      </div>
-      <div class="col-md-4">
-        <button
-          class="btn btn-primary btn-block"
-          [disabled]="!addPlaylistModel"
-          (click)="addPlaylist()"
-        >
-          Add
+      <div class="col-md-auto">
+        <button class="btn btn-link" (click)="unsetPlaylist()">
+          <ng-container *ngTemplateOutlet="backIcon"></ng-container>
         </button>
       </div>
+      <h4 class="col align">{{ currentPlaylist.name }}</h4>
     </div>
   </div>
 
-  <div *ngFor="let playlist of playlists" class="card">
-    <div class="row">
-      <div class="col-md-3 preview-column img-fluid img-thumbnail">
-        <app-preview
-          class="thubmnail"
-          [slideshow]="true"
-          [height]="120"
-          *ngIf="playlist.media; else thumbnailPlaceholder"
-          [media]="playlist.media"
-        ></app-preview>
-      </div>
-      <div class="col align">{{ playlist.name }}</div>
-      <div class="col-md-2 align">{{ playlist.size || 'No' }} items</div>
-      <div class="col-md-1 align">
-        <app-actions
-          [actions]="getActions(playlist)"
-          (actionSelected)="onAction($event)"
-        ></app-actions>
+  <ng-container *ngIf="currentMedia; else loading">
+    <div *ngFor="let media of currentMedia" class="card" [id]="'media-' + media.hash">
+      <div class="row">
+        <div class="col-md-1 align">
+          {{ getOrder(currentPlaylist, media) + 1 }}
+        </div>
+        <div class="col-md-3 preview-column img-fluid img-thumbnail">
+          <app-preview
+            class="thubmnail"
+            [slideshow]="true"
+            [height]="120"
+            *ngIf="media.visible; else thumbnailPlaceholder"
+            [media]="media"
+          ></app-preview>
+        </div>
+        <div class="col align">
+          <div class="flex-column">
+            <strong>{{ getTitle(media) }}</strong>
+            <span class="subtitle">{{ getSubtitle(media) }}</span>
+          </div>
+        </div>
+        <div class="col-md-1 align">
+          <app-actions
+            [actions]="getMediaActions(currentPlaylist, media)"
+            (actionSelected)="onMediaAction($event)"
+          ></app-actions>
+        </div>
       </div>
     </div>
-  </div>
+  </ng-container>
 </div>
 
+<ng-template #allPlaylists>
+  <div class="container-lg" *ngIf="playlists; else loading">
+    <div class="card">
+      <div class="row">
+        <div class="col-md-8">
+          <input
+            [(ngModel)]="addPlaylistModel"
+            class="form-control"
+            type="text"
+            placeholder="Enter new playlist name..."
+            (keyup.enter)="addPlaylistModel && addPlaylist()"
+          />
+        </div>
+        <div class="col-md-4">
+          <button
+            class="btn btn-primary btn-block"
+            [disabled]="!addPlaylistModel"
+            (click)="addPlaylist()"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngFor="let playlist of playlists" class="card">
+      <div class="row">
+        <div
+          (click)="setPlaylist(playlist)"
+          [class.clickable]="playlist.size"
+          class="col-md-3 preview-column img-fluid img-thumbnail"
+        >
+          <app-preview
+            class="thubmnail"
+            [slideshow]="true"
+            [height]="120"
+            *ngIf="playlist.media; else thumbnailPlaceholder"
+            [media]="playlist.media"
+          ></app-preview>
+        </div>
+        <div class="col align">{{ playlist.name }}</div>
+        <div class="col-md-2 align">{{ playlist.size || 'No' }} items</div>
+        <div class="col-md-1 align">
+          <app-actions
+            [actions]="getActions(playlist)"
+            (actionSelected)="onAction($event)"
+          ></app-actions>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
 <ng-template #loading>
-  <h4>Loading...</h4>
+  <app-loading></app-loading>
 </ng-template>
 
 <ng-template #thumbnailPlaceholder>
@@ -63,6 +113,24 @@
     <path
       fill="currentColor"
       d="M608 0H160a32 32 0 0 0-32 32v96h160V64h192v320h128a32 32 0 0 0 32-32V32a32 32 0 0 0-32-32zM232 103a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm352 208a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm-168 57H32a32 32 0 0 0-32 32v288a32 32 0 0 0 32 32h384a32 32 0 0 0 32-32V192a32 32 0 0 0-32-32zM96 224a32 32 0 1 1-32 32 32 32 0 0 1 32-32zm288 224H64v-32l64-64 32 32 128-128 96 96z"
+    ></path>
+  </svg>
+</ng-template>
+
+<ng-template #backIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="arrow-left"
+    class="back-icon svg-inline--fa fa-arrow-left fa-w-14"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 448 512"
+  >
+    <path
+      fill="currentColor"
+      d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"
     ></path>
   </svg>
 </ng-template>

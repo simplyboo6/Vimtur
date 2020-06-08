@@ -1,15 +1,9 @@
 import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject, forkJoin } from 'rxjs';
-import {
-  Media,
-  UpdateMetadata,
-  UpdateMedia,
-  SubsetConstraints,
-  MediaResolution,
-} from '@vimtur/common';
+import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
-import { CollectionService } from 'app/services/collection.service';
+import { CollectionMetadata } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
 import { Alert } from 'app/shared/types';
@@ -37,7 +31,6 @@ export class MediaService {
   private tagService: TagService;
   private actorService: ActorService;
   private modalService: NgbModal;
-  private collectionService: CollectionService;
   private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
 
   public media?: Media;
@@ -45,30 +38,33 @@ export class MediaService {
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
-    collectionService: CollectionService,
     tagService: TagService,
     actorService: ActorService,
     modalService: NgbModal,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
-    this.collectionService = collectionService;
     this.tagService = tagService;
     this.actorService = actorService;
     this.modalService = modalService;
+  }
 
-    collectionService.getMetadata().subscribe(metadata => {
-      this.setCurrent(
-        metadata && metadata.collection ? metadata.collection[metadata.index] : undefined,
-      );
-    });
+  public setMetadata(metadata: CollectionMetadata): void {
+    this.setCurrent(
+      metadata && metadata.collection ? metadata.collection[metadata.index] : undefined,
+    );
   }
 
   public loadMedia(hashes: string[]): Observable<Media[]> {
     return forkJoin(hashes.map(hash => this.getMedia(hash)));
   }
 
-  private setCurrent(hash?: string) {
+  public setCurrent(hash?: string | Media) {
+    if (hash && typeof hash !== 'string') {
+      this.mediaReplay.next(hash);
+      return;
+    }
+
     if (!hash) {
       this.mediaReplay.next(undefined);
     } else {
@@ -242,37 +238,6 @@ export class MediaService {
     }
 
     return this.httpClient.get<Media>(`/api/images/${hash}`);
-  }
-
-  public resolveClones(hash: string, request: MediaResolution) {
-    const alert: Alert = {
-      type: 'info',
-      message: 'Resolving clones...',
-    };
-
-    this.alertService.show(alert);
-
-    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
-      () => {
-        this.alertService.dismiss(alert);
-
-        if (this.media && this.media.hash === hash) {
-          this.media = {
-            ...this.media,
-            clones: [],
-          };
-          this.mediaReplay.next(this.media);
-        }
-        this.collectionService.removeFromSet(request.aliases);
-        this.collectionService.goto(hash);
-        this.collectionService.offset(1);
-      },
-      (err: HttpErrorResponse) => {
-        this.alertService.dismiss(alert);
-        console.error('failed to resolve clones', request, err);
-        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
-      },
-    );
   }
 
   public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {

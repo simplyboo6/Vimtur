@@ -51,6 +51,13 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         this.config = config;
       }),
     );
+
+    if (this.height && this.media) {
+      this.canvasHeight = this.height;
+      this.canvasWidth = Math.ceil(
+        (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
+      );
+    }
   }
 
   public beginSlideshow() {

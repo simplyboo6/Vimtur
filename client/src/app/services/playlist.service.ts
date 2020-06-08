@@ -1,10 +1,11 @@
 import { HttpClient, HttpResponse, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
-import { Playlist, PlaylistCreate, PlaylistUpdate } from '@vimtur/common';
-import { AlertService } from 'app/services/alert.service';
-import { UiService } from 'app/services/ui.service';
-import { ConfirmationService } from 'services/confirmation.service';
+import { Playlist, PlaylistCreate, PlaylistUpdate, Media } from '@vimtur/common';
+import { AlertService } from './alert.service';
+import { UiService } from './ui.service';
+import { MediaService } from './media.service';
+import { ConfirmationService } from './confirmation.service';
 import { Alert } from 'app/shared/types';
 
 const HTTP_OPTIONS = {
@@ -21,32 +22,65 @@ export class PlaylistService {
   private alertService: AlertService;
   private uiService: UiService;
   private confirmationService: ConfirmationService;
-  private playlistsReplay: ReplaySubject<Playlist[]> = new ReplaySubject(1);
+  private mediaService: MediaService;
+  private playlistsReplay = new ReplaySubject<Playlist[]>(1);
+  private playlistReplay = new ReplaySubject<Playlist | undefined>(1);
+  private media = new ReplaySubject<Media[] | undefined>(1);
 
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
     uiService: UiService,
     confirmationService: ConfirmationService,
+    mediaService: MediaService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.uiService = uiService;
     this.confirmationService = confirmationService;
+    this.mediaService = mediaService;
 
     this.updatePlaylists();
   }
 
-  private updatePlaylists(): void {
-    this.httpClient.get<Playlist[]>(`/api/playlists`).subscribe(
-      playlists => {
-        this.playlistsReplay.next(playlists.sort((a, b) => a.name.localeCompare(b.name)));
+  public getCurrentPlaylist(): Observable<Playlist | undefined> {
+    return this.playlistReplay;
+  }
+
+  public getCurrentMedia(): Observable<Media[] | undefined> {
+    return this.media;
+  }
+
+  public setPlaylist(playlistId?: string, collection?: string[]): void {
+    if (!playlistId) {
+      this.playlistReplay.next(undefined);
+      this.media.next(undefined);
+      return;
+    }
+
+    this.getPlaylist(playlistId).subscribe(
+      playlist => {
+        this.playlistReplay.next(playlist);
       },
-      (err: HttpErrorResponse) => {
-        console.error(err);
-        this.alertService.show({ type: 'danger', message: 'Failed to fetch playlists' });
+      err => {
+        console.warn('Failed to set playlist', err);
+        this.alertService.show({
+          type: 'warning',
+          message: 'Failed to set playlist',
+          autoClose: 5000,
+        });
       },
     );
+
+    if (collection) {
+      this.mediaService.loadMedia(collection).subscribe(media => {
+        this.media.next(media);
+      });
+    }
+  }
+
+  public getPlaylist(playlistId: string): Observable<Playlist> {
+    return this.httpClient.get<Playlist>(`/api/playlists/${playlistId}`);
   }
 
   public getPlaylists(): Observable<Playlist[]> {
@@ -139,5 +173,38 @@ export class PlaylistService {
         }
       })
       .catch(err => console.warn('Playlist add all confirmation error', err));
+  }
+
+  public removeMediaFromPlaylist(playlist: Playlist, media: Media): void {
+    this.httpClient
+      .delete<string[]>(`/api/images/${media.hash}/playlists/${playlist.id}`)
+      .subscribe(
+        res => {
+          this.alertService.show({
+            type: 'success',
+            message: `Removed from playlist`,
+            autoClose: 3000,
+          });
+          this.updatePlaylists();
+        },
+        (err: HttpErrorResponse) => {
+          console.error(err);
+          const message =
+            (err && err.error && err.error.message) || `Failed to remove from playlist`;
+          this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+        },
+      );
+  }
+
+  private updatePlaylists(): void {
+    this.httpClient.get<Playlist[]>(`/api/playlists`).subscribe(
+      playlists => {
+        this.playlistsReplay.next(playlists.sort((a, b) => a.name.localeCompare(b.name)));
+      },
+      (err: HttpErrorResponse) => {
+        console.error(err);
+        this.alertService.show({ type: 'danger', message: 'Failed to fetch playlists' });
+      },
+    );
   }
 }

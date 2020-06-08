@@ -1,7 +1,6 @@
 <img class="hidden" [src]="imageSrc" (load)="onImageLoaded($event)" />
 <img *ngIf="slideshow" class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
 <canvas
-  *ngIf="slideshow ? image || thumbnail : image"
   [width]="canvasWidth"
   [height]="canvasHeight"
   (mouseenter)="beginSlideshow()"
