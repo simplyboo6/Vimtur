@@ -583,8 +583,16 @@ export class MongoConnector extends Database {
   }
 
   public async removeMedia(hash: string): Promise<void> {
-    const media = this.db.collection<BaseMedia>('media');
-    await media.deleteOne({ hash });
+    const mediaCollection = this.db.collection<BaseMedia>('media');
+
+    const media = await this.getMedia(hash);
+    if (media && media.playlists) {
+      for (const playlist of media.playlists) {
+        await this.removeMediaFromPlaylist(hash, playlist.id);
+      }
+    }
+
+    await mediaCollection.deleteOne({ hash });
   }
 
   public async addMediaTag(hash: string, tag: string): Promise<void> {
