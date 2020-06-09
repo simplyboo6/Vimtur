@@ -41,7 +41,6 @@ export class AppComponent implements OnInit {
     });
   }
 
-  // TODO Make these contextual. So on the gallery it switches pages and delete does nothing.
   @HostListener('window:keyup', ['$event'])
   public keyEvent(event: KeyboardEvent) {
     switch (this.getRoute()) {

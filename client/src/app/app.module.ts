@@ -6,8 +6,11 @@ import { HttpClientModule } from '@angular/common/http';
 import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AngularResizedEventModule } from 'angular-resize-event';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import { RouteReuseStrategy } from '@angular/router';
 
 import { AppRoutingModule } from './app-routing.module';
+import { ReuseStrategy } from './reuse-strategy';
 import { AppComponent } from './components/app/app.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { TagPanelComponent } from './components/tag-panel/tag-panel.component';
@@ -26,8 +29,10 @@ import { CloneResolverComponent } from './components/clone-resolver/clone-resolv
 import { ConfirmBulkUpdateComponent } from './components/confirm-bulk-update/confirm-bulk-update.component';
 import { ListModalComponent } from './components/list-modal/list-modal.component';
 import { LoadingComponent } from './components/loading/loading.component';
+import { PlaylistComponent } from './components/playlist/playlist.component';
 import { PlaylistsComponent } from './components/playlists/playlists.component';
 import { ActionsComponent } from './components/actions/actions.component';
+import { LazyComponent } from './components/lazy/lazy.component';
 
 @NgModule({
   declarations: [
@@ -49,8 +54,10 @@ import { ActionsComponent } from './components/actions/actions.component';
     ConfirmBulkUpdateComponent,
     ListModalComponent,
     LoadingComponent,
+    PlaylistComponent,
     PlaylistsComponent,
     ActionsComponent,
+    LazyComponent,
   ],
   imports: [
     NgbModule,
@@ -62,8 +69,14 @@ import { ActionsComponent } from './components/actions/actions.component';
     AngularMultiSelectModule,
     BrowserAnimationsModule,
     AngularResizedEventModule,
+    DragDropModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: RouteReuseStrategy,
+      useClass: ReuseStrategy,
+    },
+  ],
   bootstrap: [AppComponent],
   entryComponents: [
     ConfirmationModalComponent,

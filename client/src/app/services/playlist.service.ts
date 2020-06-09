@@ -4,8 +4,9 @@ import { ReplaySubject, Observable } from 'rxjs';
 import { Playlist, PlaylistCreate, PlaylistUpdate, Media } from '@vimtur/common';
 import { AlertService } from './alert.service';
 import { UiService } from './ui.service';
-import { MediaService } from './media.service';
+import { MediaService, LazyMedia } from './media.service';
 import { ConfirmationService } from './confirmation.service';
+import { CollectionService } from './collection.service';
 import { Alert } from 'app/shared/types';
 
 const HTTP_OPTIONS = {
@@ -25,7 +26,7 @@ export class PlaylistService {
   private mediaService: MediaService;
   private playlistsReplay = new ReplaySubject<Playlist[]>(1);
   private playlistReplay = new ReplaySubject<Playlist | undefined>(1);
-  private media = new ReplaySubject<Media[] | undefined>(1);
+  private mediaReplay = new ReplaySubject<LazyMedia[] | undefined>(1);
 
   public constructor(
     httpClient: HttpClient,
@@ -33,12 +34,19 @@ export class PlaylistService {
     uiService: UiService,
     confirmationService: ConfirmationService,
     mediaService: MediaService,
+    collectionService: CollectionService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.uiService = uiService;
     this.confirmationService = confirmationService;
     this.mediaService = mediaService;
+
+    collectionService.getMetadata().subscribe(metadata => {
+      if (metadata && metadata.constraints) {
+        this.setPlaylist(metadata.constraints.playlist, metadata.collection);
+      }
+    });
 
     this.updatePlaylists();
   }
@@ -47,36 +55,8 @@ export class PlaylistService {
     return this.playlistReplay;
   }
 
-  public getCurrentMedia(): Observable<Media[] | undefined> {
-    return this.media;
-  }
-
-  public setPlaylist(playlistId?: string, collection?: string[]): void {
-    if (!playlistId) {
-      this.playlistReplay.next(undefined);
-      this.media.next(undefined);
-      return;
-    }
-
-    this.getPlaylist(playlistId).subscribe(
-      playlist => {
-        this.playlistReplay.next(playlist);
-      },
-      err => {
-        console.warn('Failed to set playlist', err);
-        this.alertService.show({
-          type: 'warning',
-          message: 'Failed to set playlist',
-          autoClose: 5000,
-        });
-      },
-    );
-
-    if (collection) {
-      this.mediaService.loadMedia(collection).subscribe(media => {
-        this.media.next(media);
-      });
-    }
+  public getCurrentMedia(): Observable<LazyMedia[] | undefined> {
+    return this.mediaReplay;
   }
 
   public getPlaylist(playlistId: string): Observable<Playlist> {
@@ -194,6 +174,32 @@ export class PlaylistService {
           this.alertService.show({ type: 'warning', message, autoClose: 5000 });
         },
       );
+  }
+
+  private setPlaylist(playlistId?: string, collection?: string[]): void {
+    if (!playlistId) {
+      this.playlistReplay.next(undefined);
+      this.mediaReplay.next(undefined);
+      return;
+    }
+
+    this.getPlaylist(playlistId).subscribe(
+      playlist => {
+        this.playlistReplay.next(playlist);
+      },
+      err => {
+        console.warn('Failed to set playlist', err);
+        this.alertService.show({
+          type: 'warning',
+          message: 'Failed to set playlist',
+          autoClose: 5000,
+        });
+      },
+    );
+
+    if (collection) {
+      this.mediaReplay.next(this.mediaService.lazyLoadMedia(collection));
+    }
   }
 
   private updatePlaylists(): void {

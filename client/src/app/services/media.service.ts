@@ -1,11 +1,18 @@
 import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, ReplaySubject, forkJoin } from 'rxjs';
-import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints } from '@vimtur/common';
+import { Observable, ReplaySubject, from, Subscription, forkJoin } from 'rxjs';
+import { take } from 'rxjs/operators';
+import {
+  Media,
+  UpdateMetadata,
+  UpdateMedia,
+  SubsetConstraints,
+  MediaResolution,
+} from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
-import { CollectionMetadata } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
+import { CollectionService, CollectionMetadata } from 'app/services/collection.service';
 import { Alert } from 'app/shared/types';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmBulkUpdateComponent } from 'app/components/confirm-bulk-update/confirm-bulk-update.component';
@@ -21,6 +28,13 @@ const HTTP_OPTIONS = {
   }),
 };
 
+export interface LazyMedia {
+  getter: () => Observable<Media>;
+  loadedAt?: number;
+  subscription?: Subscription;
+  media?: Media;
+}
+
 // TODO When the saving's done in here use the loading modal.
 @Injectable({
   providedIn: 'root',
@@ -31,6 +45,7 @@ export class MediaService {
   private tagService: TagService;
   private actorService: ActorService;
   private modalService: NgbModal;
+  private collectionService: CollectionService;
   private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
 
   public media?: Media;
@@ -41,21 +56,63 @@ export class MediaService {
     tagService: TagService,
     actorService: ActorService,
     modalService: NgbModal,
+    collectionService: CollectionService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.tagService = tagService;
     this.actorService = actorService;
     this.modalService = modalService;
+    this.collectionService = collectionService;
+
+    collectionService.getMetadata().subscribe(metadata => {
+      this.setCurrent(
+        metadata && metadata.collection ? metadata.collection[metadata.index] : undefined,
+      );
+    });
   }
 
-  public setMetadata(metadata: CollectionMetadata): void {
-    this.setCurrent(
-      metadata && metadata.collection ? metadata.collection[metadata.index] : undefined,
+  public resolveClones(hash: string, request: MediaResolution) {
+    const alert: Alert = {
+      type: 'info',
+      message: 'Resolving clones...',
+    };
+
+    this.alertService.show(alert);
+
+    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
+      () => {
+        this.alertService.dismiss(alert);
+
+        if (this.media && this.media.hash === hash) {
+          this.media = {
+            ...this.media,
+            clones: [],
+          };
+          this.setCurrent(this.media);
+        }
+        this.collectionService.removeFromSet(request.aliases);
+        this.collectionService.goto(hash);
+        this.collectionService.offset(1);
+      },
+      (err: HttpErrorResponse) => {
+        this.alertService.dismiss(alert);
+        console.error('failed to resolve clones', request, err);
+        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
+      },
     );
   }
 
+  public lazyLoadMedia(hashes: string[]): LazyMedia[] {
+    return hashes.map(hash => ({
+      getter: () => this.getMedia(hash),
+    }));
+  }
+
   public loadMedia(hashes: string[]): Observable<Media[]> {
+    if (hashes.length > 20) {
+      console.warn('Not recommended to load that many media at once');
+    }
     return forkJoin(hashes.map(hash => this.getMedia(hash)));
   }
 
@@ -237,7 +294,7 @@ export class MediaService {
       return this.mediaReplay;
     }
 
-    return this.httpClient.get<Media>(`/api/images/${hash}`);
+    return this.httpClient.get<Media>(`/api/images/${hash}`).pipe(take(1));
   }
 
   public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {

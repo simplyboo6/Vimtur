@@ -39,6 +39,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   private subscriptions: Subscription[] = [];
   private index = 0;
   private slideshowSubscription?: Subscription;
+  private rendered = false;
 
   public constructor(configService: ConfigService, changeDetector: ChangeDetectorRef) {
     this.configService = configService;
@@ -67,11 +68,16 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       if (!this.config || !this.media || !this.media.metadata) {
         return;
       }
+      // Return early if there's no preview.
+      if (!this.image) {
+        return;
+      }
       this.index++;
       const offset = this.index * this.config.transcoder.videoPreviewFps;
       if (offset > this.media.metadata.length) {
         this.index = 0;
       }
+      this.rendered = false;
       this.render();
     });
     this.render();
@@ -93,6 +99,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       this.image = undefined;
       this.thumbnail = undefined;
       this.index = 0;
+      this.rendered = false;
       if (media.metadata) {
         if (media.type === 'video' && media.preview) {
           this.imageSrc = `/cache/previews/${media.hash}.png`;
@@ -118,6 +125,17 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
+    // If nothing to render, leave early
+    if (!this.image && !this.thumbnail) {
+      return;
+    }
+
+    // Only render if a change has been made
+    if (this.rendered) {
+      return;
+    }
+    this.rendered = true;
+
     this.canvasHeight = this.height || this.config.transcoder.videoPreviewHeight;
     this.canvasWidth = Math.ceil(
       (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
@@ -126,7 +144,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
 
     const canvas = this.canvasElement.nativeElement.getContext('2d');
 
-    if (!this.slideshowSubscription && this.thumbnail && this.slideshow) {
+    if (this.thumbnail && !this.image) {
       canvas.drawImage(
         this.thumbnail,
         0,

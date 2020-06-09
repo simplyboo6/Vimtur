@@ -22,7 +22,7 @@ export class LoadingComponent implements OnInit, OnDestroy {
   public ngOnInit() {
     this.subscriptions.push(
       this.collectionService.getMetadata().subscribe(metadata => {
-        this.collection = metadata.collection;
+        this.collection = metadata && metadata.collection;
       }),
     );
   }

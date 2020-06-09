@@ -2,27 +2,20 @@ import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angul
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, ReplaySubject, BehaviorSubject } from 'rxjs';
-import { SubsetConstraints, MediaResolution } from '@vimtur/common';
+import { SubsetConstraints } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfirmationService } from 'app/services/confirmation.service';
 import { PromptService } from 'app/services/prompt.service';
 import { ConfigService } from './config.service';
-import { PlaylistService } from './playlist.service';
-import { MediaService } from './media.service';
-import { GalleryService } from './gallery.service';
 import { PRNG } from 'app/shared/prng';
 import { Alert } from 'app/shared/types';
+import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 const HTTP_OPTIONS = {
   headers: new HttpHeaders({
     'Content-Type': 'application/json',
   }),
 };
-
-export interface CollectionMetadata {
-  index: number;
-  collection: string[];
-}
 
 export interface ClientSearchOptions {
   shuffle?: boolean;
@@ -33,23 +26,28 @@ export interface ClientSearchOptions {
   noRedirect?: boolean;
 }
 
+export interface CollectionMetadata {
+  index: number;
+  collection: string[];
+  constraints?: SubsetConstraints;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class CollectionService {
   private httpClient: HttpClient;
   private alertService: AlertService;
-  private metadata = new ReplaySubject<CollectionMetadata | undefined>(1);
   private searching: BehaviorSubject<boolean> = new BehaviorSubject(false);
   private collection?: string[];
+  private constraints?: SubsetConstraints;
   private index = 0;
   private confirmationService: ConfirmationService;
   private promptService: PromptService;
   private router: Router;
   private configService: ConfigService;
-  private playlistService: PlaylistService;
-  private mediaService: MediaService;
-  private galleryService: GalleryService;
+  private metadata = new ReplaySubject<CollectionMetadata | undefined>(1);
+  private shuffled = false;
 
   public constructor(
     httpClient: HttpClient,
@@ -58,9 +56,6 @@ export class CollectionService {
     promptService: PromptService,
     configService: ConfigService,
     router: Router,
-    playlistService: PlaylistService,
-    mediaService: MediaService,
-    galleryService: GalleryService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
@@ -68,24 +63,22 @@ export class CollectionService {
     this.promptService = promptService;
     this.configService = configService;
     this.router = router;
-    this.playlistService = playlistService;
-    this.mediaService = mediaService;
-    this.galleryService = galleryService;
   }
 
   public isSearching(): Observable<boolean> {
     return this.searching;
   }
 
-  public getMetadata(): Observable<CollectionMetadata | undefined> {
-    return this.metadata;
-  }
-
   public shuffle() {
     this.index = 0;
     // Copy it so it's definitely picked up as changed by the gallery.
     this.collection = this.shuffleArray(this.collection).slice(0);
+    this.shuffled = true;
     this.update();
+  }
+
+  public getMetadata(): Observable<CollectionMetadata | undefined> {
+    return this.metadata;
   }
 
   public goto(location?: string | boolean, page?: boolean) {
@@ -153,6 +146,7 @@ export class CollectionService {
           this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
             () => {
               this.removeFromSet([hash]);
+              this.update(this.constraints);
             },
             (err: HttpErrorResponse) => {
               console.error(err);
@@ -162,37 +156,6 @@ export class CollectionService {
         }
       })
       .catch(err => console.error('Modal error', err));
-  }
-
-  public resolveClones(hash: string, request: MediaResolution) {
-    const alert: Alert = {
-      type: 'info',
-      message: 'Resolving clones...',
-    };
-
-    this.alertService.show(alert);
-
-    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
-      () => {
-        this.alertService.dismiss(alert);
-
-        if (this.mediaService.media && this.mediaService.media.hash === hash) {
-          this.mediaService.media = {
-            ...this.mediaService.media,
-            clones: [],
-          };
-          this.mediaService.setCurrent(this.mediaService.media);
-        }
-        this.removeFromSet(request.aliases);
-        this.goto(hash);
-        this.offset(1);
-      },
-      (err: HttpErrorResponse) => {
-        this.alertService.dismiss(alert);
-        console.error('failed to resolve clones', request, err);
-        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
-      },
-    );
   }
 
   public removeFromSet(hashes: string[]) {
@@ -216,6 +179,23 @@ export class CollectionService {
     this.update();
   }
 
+  public isShuffled(): boolean {
+    return this.shuffled;
+  }
+
+  public updateOrder(previousIndex: number, currentIndex: number): void {
+    if (!this.collection) {
+      return;
+    }
+
+    moveItemInArray(this.collection, previousIndex, currentIndex);
+    this.collection = [...this.collection];
+    if (this.index === previousIndex) {
+      this.index = currentIndex;
+    }
+    this.update();
+  }
+
   public search(constraints: SubsetConstraints, options?: ClientSearchOptions) {
     if (options && options.init && this.collection) {
       return;
@@ -224,8 +204,8 @@ export class CollectionService {
     // Avoid weird artifacts when the gallery subscribes (so it doesn't get the old collection).
     this.index = 0;
     this.collection = undefined;
-    this.update();
     this.searching.next(true);
+    this.update();
 
     this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS).subscribe(
       res => {
@@ -252,8 +232,10 @@ export class CollectionService {
 
         const collection =
           options && options.shuffle ? this.shuffleArray(res, options && options.shuffleSeed) : res;
+        this.shuffled = Boolean(options && options.shuffle);
         this.index = options && options.preserve ? this.getNewIndex(collection) : 0;
         this.collection = collection;
+        this.constraints = constraints;
 
         console.log('search result', constraints, {
           index: this.index,
@@ -285,23 +267,11 @@ export class CollectionService {
   }
 
   private update(constraints?: SubsetConstraints) {
-    // Set (or unset) the current playlist.
-    // Only do if constraints are set (so the source is a search).
-    // Otherwise it may be a shuffle and the playlist should still have
-    // the original correctly ordered items.
-    if (constraints) {
-      this.playlistService.setPlaylist(constraints.playlist, this.collection);
-    }
-
-    const metadata = {
+    this.metadata.next({
       index: this.index,
       collection: this.collection,
-    };
-
-    this.metadata.next(metadata);
-
-    this.mediaService.setMetadata(metadata);
-    this.galleryService.setMetadata(metadata);
+      constraints,
+    });
   }
 
   private getNewIndex(collection: string[]): number {

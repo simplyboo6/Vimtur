@@ -1,20 +1,30 @@
-.form-padded-input {
-  margin-top: 1rem;
-}
-
-.input-component {
-  margin-top: 1rem;
-}
-
 .align {
   align-items: center;
   display: flex;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+}
+
+h4.align {
+  margin: 0;
 }
 
 .preview-column {
   display: flex;
   justify-content: center;
   margin-left: 1rem;
+}
+
+.drag-handle {
+  width: 2rem;
+  cursor: pointer;
 }
 
 .thumbnail {
@@ -24,6 +34,10 @@
 
 .clickable {
   cursor: pointer;
+}
+
+.back-icon {
+  width: 2rem;
 }
 
 .card {

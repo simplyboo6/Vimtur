@@ -116,7 +116,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     }
 
     // Resolve clones for it (this will also skip to it + 1.
-    this.collectionService.resolveClones(all[0].hash, {
+    this.mediaService.resolveClones(all[0].hash, {
       aliases: all.splice(1).map(m => m.hash),
       unrelated: [],
     });
@@ -133,7 +133,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     if (!this.clones || !this.media) {
       return;
     }
-    this.collectionService.resolveClones(this.media.hash, {
+    this.mediaService.resolveClones(this.media.hash, {
       aliases: this.clones.filter(m => m.isClone).map(m => m.hash),
       unrelated: this.clones.filter(m => !m.isClone).map(m => m.hash),
     });
@@ -143,7 +143,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     if (!this.clones || !this.media) {
       return;
     }
-    this.collectionService.resolveClones(this.media.hash, {
+    this.mediaService.resolveClones(this.media.hash, {
       aliases: this.clones.map(m => m.hash),
       unrelated: [],
     });
@@ -153,7 +153,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     if (!this.clones || !this.media) {
       return;
     }
-    this.collectionService.resolveClones(this.media.hash, {
+    this.mediaService.resolveClones(this.media.hash, {
       aliases: [],
       unrelated: this.clones.map(m => m.hash),
     });
