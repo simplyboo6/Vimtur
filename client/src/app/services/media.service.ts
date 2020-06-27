@@ -33,6 +33,7 @@ export interface LazyMedia {
   loadedAt?: number;
   subscription?: Subscription;
   media?: Media;
+  hash: string;
 }
 
 // TODO When the saving's done in here use the loading modal.
@@ -106,6 +107,7 @@ export class MediaService {
   public lazyLoadMedia(hashes: string[]): LazyMedia[] {
     return hashes.map(hash => ({
       getter: () => this.getMedia(hash),
+      hash,
     }));
   }
 
@@ -145,6 +147,21 @@ export class MediaService {
 
     console.log('saveMetadata', this.media.hash, metadata);
     this.saveMedia(this.media.hash, { metadata });
+  }
+
+  public updateOrderInPlaylist(hash: string, playlistId: string, newLocation: number): void {
+    this.httpClient
+      .patch(`/api/images/${hash}/playlists/${playlistId}`, { order: newLocation }, HTTP_OPTIONS)
+      .subscribe(
+        () => console.debug('location updated', hash, playlistId, newLocation),
+        err => {
+          console.error('failed to update location', hash, playlistId, newLocation, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to update media order in playlist`,
+          });
+        },
+      );
   }
 
   public addActor(value: string | TagListItem) {

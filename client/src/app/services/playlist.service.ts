@@ -14,6 +14,7 @@ const HTTP_OPTIONS = {
     'Content-Type': 'application/json',
   }),
 };
+const PLAYLIST_WARNING_SIZE = 500;
 
 @Injectable({
   providedIn: 'root',
@@ -27,6 +28,7 @@ export class PlaylistService {
   private playlistsReplay = new ReplaySubject<Playlist[]>(1);
   private playlistReplay = new ReplaySubject<Playlist | undefined>(1);
   private mediaReplay = new ReplaySubject<LazyMedia[] | undefined>(1);
+  private collectionSize?: number;
 
   public constructor(
     httpClient: HttpClient,
@@ -43,8 +45,12 @@ export class PlaylistService {
     this.mediaService = mediaService;
 
     collectionService.getMetadata().subscribe(metadata => {
-      if (metadata && metadata.constraints) {
-        this.setPlaylist(metadata.constraints.playlist, metadata.collection);
+      this.collectionSize = undefined;
+      if (metadata) {
+        this.collectionSize = metadata.collection.length;
+        if (metadata.constraints) {
+          this.setPlaylist(metadata.constraints.playlist, metadata.collection);
+        }
       }
     });
 
@@ -107,7 +113,7 @@ export class PlaylistService {
   public deletePlaylist(id: string) {
     this.httpClient.delete<string[]>(`/api/playlists/${id}`).subscribe(
       res => {
-        this.alertService.show({ type: 'success', message: `Deleted playlist`, autoClose: 3000 });
+        console.debug('playlist deleted', id);
         this.updatePlaylists();
       },
       (err: HttpErrorResponse) => {
@@ -122,8 +128,15 @@ export class PlaylistService {
   public addAllCurrentToPlaylist(playlist: Playlist): void {
     const subset = this.uiService.createSearch();
 
+    let prompt = `Are you sure you want to add ${
+      this.collectionSize === undefined ? 'all' : this.collectionSize
+    } current search results to ${playlist.name}?`;
+    if (this.collectionSize !== undefined && this.collectionSize > PLAYLIST_WARNING_SIZE) {
+      prompt = `${prompt} Playlists longer than ${PLAYLIST_WARNING_SIZE} may be difficult to manage and not perform well.`;
+    }
+
     this.confirmationService
-      .confirm(`Are you sure you want to add all current search results to ${playlist.name}?`)
+      .confirm(prompt)
       .then(result => {
         if (result) {
           const alert: Alert = { type: 'info', message: `Adding all to ${playlist.name}...` };
@@ -155,25 +168,18 @@ export class PlaylistService {
       .catch(err => console.warn('Playlist add all confirmation error', err));
   }
 
-  public removeMediaFromPlaylist(playlist: Playlist, media: Media): void {
-    this.httpClient
-      .delete<string[]>(`/api/images/${media.hash}/playlists/${playlist.id}`)
-      .subscribe(
-        res => {
-          this.alertService.show({
-            type: 'success',
-            message: `Removed from playlist`,
-            autoClose: 3000,
-          });
-          this.updatePlaylists();
-        },
-        (err: HttpErrorResponse) => {
-          console.error(err);
-          const message =
-            (err && err.error && err.error.message) || `Failed to remove from playlist`;
-          this.alertService.show({ type: 'warning', message, autoClose: 5000 });
-        },
-      );
+  public removeMediaFromPlaylist(playlistId: string, hash: string): void {
+    this.httpClient.delete<string[]>(`/api/images/${hash}/playlists/${playlistId}`).subscribe(
+      res => {
+        console.debug('media removed from playlist', playlistId, hash);
+        this.updatePlaylists();
+      },
+      (err: HttpErrorResponse) => {
+        console.error(err);
+        const message = (err && err.error && err.error.message) || `Failed to remove from playlist`;
+        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+      },
+    );
   }
 
   private setPlaylist(playlistId?: string, collection?: string[]): void {

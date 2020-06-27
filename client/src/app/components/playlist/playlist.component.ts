@@ -105,31 +105,30 @@ export class PlaylistComponent implements OnInit, OnDestroy {
   }
 
   private updateIndex(previousIndex: number, currentIndex: number): void {
-    if (!this.media) {
+    if (!this.media || !this.playlist) {
       return;
     }
 
     // TODO Update playlist order entry in media
+    this.mediaService.updateOrderInPlaylist(
+      this.media[previousIndex].hash,
+      this.playlist.id,
+      currentIndex,
+    );
 
     moveItemInArray(this.media, previousIndex, currentIndex);
 
     if (!this.collectionService.isShuffled()) {
       this.collectionService.updateOrder(previousIndex, currentIndex);
-      // TODO Update order backend
     }
   }
 
-  public getOrder(playlist: Playlist, media: Media): number {
-    if (!media.playlists) {
-      return NaN;
+  public getOrder(media: LazyMedia): number {
+    if (!this.media) {
+      return;
     }
 
-    const mediaPlaylist = media.playlists.find(p => p.id === playlist.id);
-    if (!mediaPlaylist) {
-      return NaN;
-    }
-
-    return mediaPlaylist.order;
+    return this.media.indexOf(media);
   }
 
   public unsetPlaylist(): void {
@@ -137,48 +136,47 @@ export class PlaylistComponent implements OnInit, OnDestroy {
     this.collectionService.search(this.uiService.createSearch(), { noRedirect: true });
   }
 
-  public getMediaActions(playlist: Playlist, media?: Media): ListItem<Media>[] | undefined {
-    if (!media) {
+  public getMediaActions(media: LazyMedia): ListItem<LazyMedia>[] | undefined {
+    if (!this.media) {
       return undefined;
     }
 
-    const order = this.getOrder(playlist, media);
+    const order = this.getOrder(media);
     return [
       { itemName: 'Remove From Playlist', id: media },
       ...(order > 0 ? [{ itemName: 'Move Up', id: media }] : []),
-      ...(order < playlist.size - 1 ? [{ itemName: 'Move Down', id: media }] : []),
+      ...(order < this.media.length - 1 ? [{ itemName: 'Move Down', id: media }] : []),
     ];
   }
 
-  public onMediaAction(action: ListItem<Media>): void {
+  public onMediaAction(action: ListItem<LazyMedia>): void {
     if (!this.playlist || !this.media) {
       return;
     }
 
     switch (action.itemName) {
       case 'Remove From Playlist':
-        /*this.playlistService.removeMediaFromPlaylist(this.currentPlaylist, action.id);
-        if (this.currentMedia && this.currentPlaylist) {
-          this.currentPlaylist.size = this.currentPlaylist.size - 1;
-
-          const index = this.currentMedia.findIndex(m => m.hash === action.id.hash);
-          if (index >= 0) {
-            this.currentMedia.splice(index, 1);
-            for (let i = index; i < this.currentMedia.length; i++) {
-              const lists = this.currentMedia[i].playlists;
-              if (!lists) {
-                continue;
-              }
-              const list = lists.find(l => l.id === this.currentPlaylist.id);
-              if (list) {
-                list.order = list.order - 1;
-              }
-            }
-          }
-          this.collectionService.removeFromSet([ action.id.hash ]);
-        }*/
+        this.playlistService.removeMediaFromPlaylist(this.playlist.id, action.id.hash);
+        const index = this.media.indexOf(action.id);
+        if (index >= 0) {
+          this.media.splice(index, 1);
+          this.collectionService.removeFromSet([action.id.hash]);
+        }
         break;
-      // TODO Move up and down
+      case 'Move Up': {
+        const current = this.media.indexOf(action.id);
+        if (current > 0) {
+          this.updateIndex(current, current - 1);
+        }
+        break;
+      }
+      case 'Move Down': {
+        const current = this.media.indexOf(action.id);
+        if (current < this.media.length - 1) {
+          this.updateIndex(current, current + 1);
+        }
+        break;
+      }
       default:
         break;
     }

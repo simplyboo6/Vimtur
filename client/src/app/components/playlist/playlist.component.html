@@ -19,7 +19,7 @@
           </div>
           <div class="col-md-1 align">
             <ng-container *ngIf="lazyMedia.media">
-              {{ getOrder(playlist, lazyMedia.media) + 1 }}
+              {{ getOrder(lazyMedia) + 1 }}
             </ng-container>
           </div>
           <div class="col-md-3 preview-column img-fluid img-thumbnail">
@@ -44,7 +44,7 @@
           </div>
           <div class="col-md-1 align">
             <app-actions
-              [actions]="getMediaActions(playlist, lazyMedia.media)"
+              [actions]="getMediaActions(lazyMedia)"
               (actionSelected)="onMediaAction($event)"
             ></app-actions>
           </div>
