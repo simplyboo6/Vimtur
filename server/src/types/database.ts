@@ -2,6 +2,7 @@ import {
   BaseMedia,
   Configuration,
   Media,
+  MediaPlaylist,
   Playlist,
   PlaylistCreate,
   PlaylistEntryUpdate,
@@ -27,7 +28,7 @@ export abstract class Database {
   public abstract addMediaActor(hash: string, actor: string): Promise<void>;
   public abstract removeMediaActor(hash: string, actor: string): Promise<void>;
   // Media - playlists
-  public abstract addMediaToPlaylist(hash: string, playlistId: string): Promise<void>;
+  public abstract addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist>;
   public abstract removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void>;
   public abstract updateMediaPlaylistOrder(
     hash: string,

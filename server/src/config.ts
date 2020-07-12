@@ -95,6 +95,7 @@ const DEFAULTS: any = {
     quickTagShowTitle: true,
     quickTagShowPeople: true,
     quickTagShowPath: true,
+    quickTagShowPlaylists: true,
 
     showTaskNotifications: false,
     autoClearCompletedTasks: true,

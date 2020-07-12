@@ -364,6 +364,17 @@
         />
         <label class="custom-control-label" for="config-quick-tag-people">Show people?</label>
       </div>
+      <!-- Playlists -->
+      <div class="custom-control custom-checkbox input-component tag-config">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          id="config-quick-tag-playlists"
+          [(ngModel)]="config.user.quickTagShowPlaylists"
+          (ngModelChange)="updateConfig('user.quickTagShowPlaylists', $event)"
+        />
+        <label class="custom-control-label" for="config-quick-tag-playlists">Show playlists?</label>
+      </div>
       <!-- Path -->
       <div class="custom-control custom-checkbox input-component tag-config">
         <input

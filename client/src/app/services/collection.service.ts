@@ -30,6 +30,8 @@ export interface CollectionMetadata {
   index: number;
   collection: string[];
   constraints?: SubsetConstraints;
+  order?: boolean;
+  removed?: string[];
 }
 
 @Injectable({
@@ -163,6 +165,13 @@ export class CollectionService {
       return;
     }
 
+    const anyRemoved = this.collection.find(hash => hashes.includes(hash));
+    if (!anyRemoved) {
+      console.log('None to remove', hashes);
+      return;
+    }
+    console.log('Removing', hashes);
+
     const currentHash = this.collection[this.index];
 
     // Replace the collection otherwise gallery doesnt update.
@@ -176,7 +185,12 @@ export class CollectionService {
     if (this.index >= this.collection.length) {
       this.index = 0;
     }
-    this.update();
+
+    this.metadata.next({
+      index: this.index,
+      collection: this.collection,
+      removed: hashes,
+    });
   }
 
   public isShuffled(): boolean {
@@ -193,7 +207,11 @@ export class CollectionService {
     if (this.index === previousIndex) {
       this.index = currentIndex;
     }
-    this.update();
+    this.metadata.next({
+      index: this.index,
+      collection: this.collection,
+      order: true,
+    });
   }
 
   public search(constraints: SubsetConstraints, options?: ClientSearchOptions) {

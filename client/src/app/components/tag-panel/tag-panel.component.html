@@ -33,7 +33,7 @@
         <ngb-rating
           [starTemplate]="ratingStar"
           [(rate)]="ratingModel"
-          (rateChange)="mediaService.setRating(ratingModel)"
+          (rateChange)="setRating(ratingModel)"
           [readonly]="!media"
           max="5"
           [tabindex]="-1"
@@ -118,13 +118,35 @@
             text: '+ People',
             enableCheckAll: false,
             enableSearchFilter: true,
-            addNewItemOnFilter: true,
+            addNewItemOnFilter: false,
             enableFilterSelectAll: false
           }"
           [ngModel]="actorsModel"
           (onAddFilterNewItem)="actorService.addActor($event)"
           (onSelect)="mediaService.addActor($event.id)"
           (onDeSelect)="mediaService.removeActor($event.id)"
+        >
+        </angular2-multiselect>
+      </div>
+    </div>
+
+    <div *ngIf="config.user.quickTagShowPlaylists" class="card">
+      <div class="card-header card-small">Playlists</div>
+      <div class="card-body card-small ui-fluid">
+        <angular2-multiselect
+          *ngIf="playlists"
+          [data]="playlists"
+          [settings]="{
+            text: '+ Playlists',
+            enableCheckAll: false,
+            enableSearchFilter: true,
+            addNewItemOnFilter: true,
+            enableFilterSelectAll: false
+          }"
+          [ngModel]="playlistsModel"
+          (onAddFilterNewItem)="playlistService.addPlaylist({ name: $event, hashes: [media.hash] })"
+          (onSelect)="playlistService.addMediaToPlaylist($event.id, media.hash)"
+          (onDeSelect)="playlistService.removeMediaFromPlaylist($event.id, media.hash)"
         >
         </angular2-multiselect>
       </div>

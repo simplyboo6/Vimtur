@@ -7,9 +7,10 @@ import {
   ViewChild,
   AfterViewChecked,
 } from '@angular/core';
-import { Media, Configuration, UpdateMetadata } from '@vimtur/common';
+import { Media, Configuration, UpdateMetadata, Playlist } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
+import { PlaylistService } from 'services/playlist.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { Subscription } from 'rxjs';
@@ -26,15 +27,19 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public tagsModel: Record<string, boolean> = {};
   public ratingModel?: number;
   public actorsModel?: ListItem[];
+  public playlistsModel?: ListItem[];
   public media?: Media;
   public tags?: string[];
   public actors?: ListItem[];
+  public playlists?: ListItem[];
   public suggestedActors: string[] = [];
   public visible = false;
   public mediaService: MediaService;
   public config?: Configuration.Main;
   public mediaMetadataUpdate?: UpdateMetadata;
   public actorService: ActorService;
+  public playlistService: PlaylistService;
+  public currentPlaylist?: Playlist;
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
@@ -46,11 +51,13 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     mediaService: MediaService,
     tagService: TagService,
     actorService: ActorService,
+    playlistService: PlaylistService,
   ) {
     this.configService = configService;
     this.mediaService = mediaService;
     this.tagService = tagService;
     this.actorService = actorService;
+    this.playlistService = playlistService;
   }
 
   public ngOnInit() {
@@ -66,15 +73,16 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.tagsModel = undefined;
         this.actorsModel = undefined;
         this.ratingModel = undefined;
-
-        // Map undefined to empty strings to better do change detection.
-        media.metadata.artist = media.metadata.artist || '';
-        media.metadata.album = media.metadata.album || '';
-        media.metadata.title = media.metadata.title || '';
-
-        this.mediaMetadataUpdate = { ...media.metadata };
+        this.playlistsModel = undefined;
 
         if (this.media) {
+          // Map undefined to empty strings to better do change detection.
+          media.metadata.artist = media.metadata.artist || '';
+          media.metadata.album = media.metadata.album || '';
+          media.metadata.title = media.metadata.title || '';
+
+          this.mediaMetadataUpdate = { ...media.metadata };
+
           this.tagsModel = {};
           for (const tag of media.tags) {
             this.tagsModel[tag] = true;
@@ -82,6 +90,8 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.ratingModel = media.rating;
           // Copy it since it'll be modified.
           this.actorsModel = toListItems(media.actors);
+
+          this.updatePlaylistsModel();
         }
       }),
     );
@@ -97,14 +107,27 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.actors = toListItems(actors);
       }),
     );
-  }
 
-  public saveMetadata(field: 'artist' | 'album' | 'title') {
-    if (!this.media || !this.mediaMetadataUpdate) {
-      return;
-    }
-    this.mediaService.saveMetadata({ [field]: this.mediaMetadataUpdate[field] });
-    this.media.metadata[field] = this.mediaMetadataUpdate[field];
+    this.subscriptions.push(
+      this.playlistService.getCurrentPlaylist().subscribe(playlist => {
+        this.currentPlaylist = playlist;
+        this.updateDisabledPlaylists();
+      }),
+    );
+
+    this.subscriptions.push(
+      this.playlistService.getPlaylists().subscribe(playlists => {
+        this.playlists = playlists.map(playlist => {
+          return {
+            id: playlist.id,
+            itemName: playlist.name,
+          };
+        });
+
+        this.updateDisabledPlaylists();
+        this.updatePlaylistsModel();
+      }),
+    );
   }
 
   public ngOnDestroy() {
@@ -120,6 +143,20 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
       // to stop ng-bootstraps rating component stealing focus and keypresses.
       this.ratingElement.handleKeyDown = () => {};
     }
+  }
+
+  public setRating(rating?: number): void {
+    if (rating !== this.ratingModel && !isNaN(rating)) {
+      this.mediaService.setRating(rating);
+    }
+  }
+
+  public saveMetadata(field: 'artist' | 'album' | 'title') {
+    if (!this.media || !this.mediaMetadataUpdate) {
+      return;
+    }
+    this.mediaService.saveMetadata({ [field]: this.mediaMetadataUpdate[field] });
+    this.media.metadata[field] = this.mediaMetadataUpdate[field];
   }
 
   public updateTag(tag: string) {
@@ -149,6 +186,33 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     return this.tags.filter((tag, i) => {
       return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;
+    });
+  }
+
+  private updateDisabledPlaylists(): void {
+    if (!this.playlists) {
+      return;
+    }
+
+    this.playlists = this.playlists.map(pl => {
+      return {
+        ...pl,
+        disabled: Boolean(this.currentPlaylist && this.currentPlaylist.id === pl.id),
+      };
+    });
+  }
+
+  private updatePlaylistsModel(): void {
+    this.playlistsModel = undefined;
+    if (!this.media || !this.playlists) {
+      return;
+    }
+
+    this.playlistsModel = this.media.playlists.map(playlist => {
+      return {
+        id: playlist.id,
+        itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
+      };
     });
   }
 }

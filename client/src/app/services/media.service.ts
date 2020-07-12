@@ -8,6 +8,7 @@ import {
   UpdateMedia,
   SubsetConstraints,
   MediaResolution,
+  MediaPlaylist,
 } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { TagService } from 'app/services/tag.service';
@@ -171,6 +172,38 @@ export class MediaService {
 
     this.addActorRaw(this.media, value);
     this.mediaReplay.next(this.media);
+  }
+
+  public addPlaylist(hash: string, playlist: MediaPlaylist): void {
+    if (!this.media) {
+      return;
+    }
+    if (this.media.hash !== hash) {
+      return;
+    }
+
+    if (!this.media.playlists) {
+      this.media.playlists = [];
+    }
+
+    const exists = this.media.playlists.find(pl => pl.id === playlist.id);
+    if (!exists) {
+      this.media.playlists.push(playlist);
+    }
+  }
+
+  public removePlaylist(hash: string, id: string): void {
+    if (!this.media || !this.media.playlists) {
+      return;
+    }
+    if (this.media.hash !== hash) {
+      return;
+    }
+
+    const index = this.media.playlists.findIndex(pl => pl.id === id);
+    if (index >= 0) {
+      this.media.playlists.splice(index, 1);
+    }
   }
 
   public addActorRaw(media: Media, value: string | TagListItem) {

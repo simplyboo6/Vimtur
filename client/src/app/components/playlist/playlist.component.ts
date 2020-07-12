@@ -13,6 +13,11 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 export const MAX_LOADED = 20;
 
+interface MediaTitle {
+  title: string;
+  subtitle: string;
+}
+
 @Component({
   selector: 'app-playlist',
   templateUrl: './playlist.component.html',
@@ -22,7 +27,8 @@ export class PlaylistComponent implements OnInit, OnDestroy {
   @Input() public playlist?: Playlist;
   public readonly getTitle = getTitle;
   public readonly getSubtitle = getTitle;
-
+  public actions?: ListItem<LazyMedia>[][];
+  public titles?: Array<MediaTitle | undefined>;
   public media?: LazyMedia[];
 
   private mediaService: MediaService;
@@ -45,21 +51,37 @@ export class PlaylistComponent implements OnInit, OnDestroy {
 
   public ngOnInit() {
     this.subscriptions.push(
-      this.playlistService.getCurrentMedia().subscribe(media => {
+      this.collectionService.getMetadata().subscribe(metadata => {
+        // Ignore changes in order
         if (this.media) {
-          // TODO This may slowly increase in cache size when navigating back
-          // and forth between pages. Expect this to be negligible. Investigate.
-          if (media === this.media) {
+          if (metadata.order) {
             return;
           }
-          for (const lazyMedia of this.media) {
-            if (lazyMedia.subscription) {
-              lazyMedia.subscription.unsubscribe();
+
+          if (metadata.removed) {
+            for (const hash of metadata.removed) {
+              const index = this.media.findIndex(lazyMedia => lazyMedia.hash === hash);
+              if (index >= 0) {
+                this.media.splice(index, 1);
+                this.actions.splice(index, 1);
+                this.titles.splice(index, 1);
+              }
             }
           }
         }
 
-        this.media = media;
+        if (metadata && metadata.collection) {
+          if (this.media) {
+            for (const lazyMedia of this.media) {
+              if (lazyMedia.subscription) {
+                lazyMedia.subscription.unsubscribe();
+              }
+            }
+          }
+          this.media = this.mediaService.lazyLoadMedia(metadata.collection);
+          this.updateMediaActions();
+          this.titles = this.media.map(media => undefined);
+        }
       }),
     );
   }
@@ -73,13 +95,17 @@ export class PlaylistComponent implements OnInit, OnDestroy {
 
   public updateVisibility(lazyMedia: LazyMedia, visible: boolean): void {
     if (visible) {
+      if (lazyMedia.media || lazyMedia.subscription) {
+        return;
+      }
+
       if (this.media) {
         const loaded = this.media.filter(media => media.loadedAt !== undefined);
         if (loaded.length > MAX_LOADED) {
           loaded.sort((a, b) => a.loadedAt - b.loadedAt);
-          console.log(loaded);
 
           for (let i = 0; i < loaded.length - MAX_LOADED; i++) {
+            console.debug('unloading', loaded[i]);
             if (loaded[i].subscription) {
               loaded[i].subscription.unsubscribe();
               loaded[i].subscription = undefined;
@@ -90,13 +116,18 @@ export class PlaylistComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (lazyMedia.media || lazyMedia.subscription) {
-        return;
-      }
-
-      lazyMedia.subscription = lazyMedia
-        .getter()
-        .subscribe(media => ((lazyMedia.media = media), (lazyMedia.loadedAt = Date.now())));
+      console.debug('loading', lazyMedia);
+      lazyMedia.subscription = lazyMedia.getter().subscribe(media => {
+        lazyMedia.media = media;
+        lazyMedia.loadedAt = Date.now();
+        const index = this.media.findIndex(m => m === lazyMedia);
+        if (index >= 0) {
+          this.titles[index] = {
+            title: getTitle(media),
+            subtitle: getSubtitle(media),
+          };
+        }
+      });
     }
   }
 
@@ -109,26 +140,21 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // TODO Update playlist order entry in media
     this.mediaService.updateOrderInPlaylist(
       this.media[previousIndex].hash,
       this.playlist.id,
       currentIndex,
     );
 
+    this.updateMediaActions();
+
     moveItemInArray(this.media, previousIndex, currentIndex);
+    moveItemInArray(this.actions, previousIndex, currentIndex);
+    moveItemInArray(this.titles, previousIndex, currentIndex);
 
     if (!this.collectionService.isShuffled()) {
       this.collectionService.updateOrder(previousIndex, currentIndex);
     }
-  }
-
-  public getOrder(media: LazyMedia): number {
-    if (!this.media) {
-      return;
-    }
-
-    return this.media.indexOf(media);
   }
 
   public unsetPlaylist(): void {
@@ -136,17 +162,22 @@ export class PlaylistComponent implements OnInit, OnDestroy {
     this.collectionService.search(this.uiService.createSearch(), { noRedirect: true });
   }
 
-  public getMediaActions(media: LazyMedia): ListItem<LazyMedia>[] | undefined {
+  public updateMediaActions(): void {
+    this.actions = undefined;
     if (!this.media) {
-      return undefined;
+      return;
     }
 
-    const order = this.getOrder(media);
-    return [
-      { itemName: 'Remove From Playlist', id: media },
-      ...(order > 0 ? [{ itemName: 'Move Up', id: media }] : []),
-      ...(order < this.media.length - 1 ? [{ itemName: 'Move Down', id: media }] : []),
-    ];
+    this.actions = [];
+    for (let i = 0; i < this.media.length; i++) {
+      const media = this.media[i];
+      const order = i;
+      this.actions.push([
+        { itemName: 'Remove From Playlist', id: media },
+        ...(order > 0 ? [{ itemName: 'Move Up', id: media }] : []),
+        ...(order < this.media.length - 1 ? [{ itemName: 'Move Down', id: media }] : []),
+      ]);
+    }
   }
 
   public onMediaAction(action: ListItem<LazyMedia>): void {
@@ -160,6 +191,8 @@ export class PlaylistComponent implements OnInit, OnDestroy {
         const index = this.media.indexOf(action.id);
         if (index >= 0) {
           this.media.splice(index, 1);
+          this.actions.splice(index, 1);
+          this.titles.splice(index, 1);
           this.collectionService.removeFromSet([action.id.hash]);
         }
         break;

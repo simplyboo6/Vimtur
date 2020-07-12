@@ -8,6 +8,7 @@ import {
   Configuration,
   Database,
   Media,
+  MediaPlaylist,
   Playlist,
   PlaylistCreate,
   PlaylistEntryUpdate,
@@ -156,6 +157,13 @@ export class MongoConnector extends Database {
     if (!fetched) {
       throw new Error('Error adding playlist');
     }
+
+    if (request.hashes) {
+      for (const hash of request.hashes) {
+        await this.addMediaToPlaylist(hash, fetched.id);
+      }
+    }
+
     return fetched;
   }
 
@@ -219,15 +227,17 @@ export class MongoConnector extends Database {
     return raw;
   }
 
-  public async addMediaToPlaylist(hash: string, playlistId: string): Promise<void> {
+  public async addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist> {
     const media = await this.getMedia(hash);
     if (!media) {
       throw new NotFound(`Media not found: ${hash}`);
     }
 
-    if (media.playlists && media.playlists.find(playlist => playlist.id === playlistId)) {
+    const existingEntry =
+      media.playlists && media.playlists.find(playlist => playlist.id === playlistId);
+    if (existingEntry) {
       // If already in the playlist, then ignore.
-      return;
+      return existingEntry;
     }
 
     const playlistCollection = this.db.collection('playlists');
@@ -311,6 +321,11 @@ export class MongoConnector extends Database {
           $set: { thumbnail: hash },
         },
       );
+
+      return {
+        order,
+        id: playlistId,
+      };
     } catch (err) {
       console.warn('Add to playlist failed', hash, playlistId, err);
       await updateRollback();

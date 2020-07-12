@@ -1,7 +1,14 @@
 import { HttpClient, HttpResponse, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
-import { Playlist, PlaylistCreate, PlaylistUpdate, Media } from '@vimtur/common';
+import {
+  Playlist,
+  PlaylistCreate,
+  PlaylistUpdate,
+  Media,
+  SubsetConstraints,
+  MediaPlaylist,
+} from '@vimtur/common';
 import { AlertService } from './alert.service';
 import { UiService } from './ui.service';
 import { MediaService, LazyMedia } from './media.service';
@@ -27,8 +34,9 @@ export class PlaylistService {
   private mediaService: MediaService;
   private playlistsReplay = new ReplaySubject<Playlist[]>(1);
   private playlistReplay = new ReplaySubject<Playlist | undefined>(1);
-  private mediaReplay = new ReplaySubject<LazyMedia[] | undefined>(1);
   private collectionSize?: number;
+  private collectionService: CollectionService;
+  private playlistId?: string;
 
   public constructor(
     httpClient: HttpClient,
@@ -43,13 +51,19 @@ export class PlaylistService {
     this.uiService = uiService;
     this.confirmationService = confirmationService;
     this.mediaService = mediaService;
+    this.collectionService = collectionService;
 
     collectionService.getMetadata().subscribe(metadata => {
+      // Ignore changes in order
+      if (metadata.order) {
+        return;
+      }
+
       this.collectionSize = undefined;
       if (metadata) {
-        this.collectionSize = metadata.collection.length;
+        this.collectionSize = metadata.collection && metadata.collection.length;
         if (metadata.constraints) {
-          this.setPlaylist(metadata.constraints.playlist, metadata.collection);
+          this.setPlaylist(metadata.constraints.playlist);
         }
       }
     });
@@ -61,10 +75,6 @@ export class PlaylistService {
     return this.playlistReplay;
   }
 
-  public getCurrentMedia(): Observable<LazyMedia[] | undefined> {
-    return this.mediaReplay;
-  }
-
   public getPlaylist(playlistId: string): Observable<Playlist> {
     return this.httpClient.get<Playlist>(`/api/playlists/${playlistId}`);
   }
@@ -74,13 +84,25 @@ export class PlaylistService {
   }
 
   public addPlaylist(request: PlaylistCreate) {
-    this.httpClient.post<string[]>(`/api/playlists`, request, HTTP_OPTIONS).subscribe(
+    const media = this.mediaService.media;
+
+    this.httpClient.post<Playlist>(`/api/playlists`, request, HTTP_OPTIONS).subscribe(
       res => {
         this.alertService.show({
           type: 'success',
           message: `Added playlist '${request.name}'`,
           autoClose: 3000,
         });
+
+        if (request.hashes) {
+          for (let i = 0; i < request.hashes.length; i++) {
+            this.mediaService.addPlaylist(request.hashes[i], {
+              id: res.id,
+              order: i,
+            });
+          }
+        }
+
         this.updatePlaylists();
       },
       (err: HttpErrorResponse) => {
@@ -114,6 +136,11 @@ export class PlaylistService {
     this.httpClient.delete<string[]>(`/api/playlists/${id}`).subscribe(
       res => {
         console.debug('playlist deleted', id);
+
+        if (this.mediaService.media) {
+          this.mediaService.removePlaylist(this.mediaService.media.hash, id);
+        }
+
         this.updatePlaylists();
       },
       (err: HttpErrorResponse) => {
@@ -125,8 +152,8 @@ export class PlaylistService {
     );
   }
 
-  public addAllCurrentToPlaylist(playlist: Playlist): void {
-    const subset = this.uiService.createSearch();
+  public addAllCurrentToPlaylist(playlist: Playlist, constraints?: SubsetConstraints): void {
+    const subset = constraints || this.uiService.createSearch();
 
     let prompt = `Are you sure you want to add ${
       this.collectionSize === undefined ? 'all' : this.collectionSize
@@ -134,6 +161,8 @@ export class PlaylistService {
     if (this.collectionSize !== undefined && this.collectionSize > PLAYLIST_WARNING_SIZE) {
       prompt = `${prompt} Playlists longer than ${PLAYLIST_WARNING_SIZE} may be difficult to manage and not perform well.`;
     }
+
+    const media = this.mediaService.media;
 
     this.confirmationService
       .confirm(prompt)
@@ -153,6 +182,9 @@ export class PlaylistService {
                   message: `Added current set to ${playlist.name}`,
                   autoClose: 3000,
                 });
+                if (media) {
+                  this.mediaService.addPlaylist(media.hash, { id: playlist.id, order: NaN });
+                }
                 this.updatePlaylists();
               },
               (err: HttpErrorResponse) => {
@@ -172,7 +204,11 @@ export class PlaylistService {
     this.httpClient.delete<string[]>(`/api/images/${hash}/playlists/${playlistId}`).subscribe(
       res => {
         console.debug('media removed from playlist', playlistId, hash);
+        this.mediaService.removePlaylist(hash, playlistId);
         this.updatePlaylists();
+        if (playlistId === this.playlistId) {
+          this.collectionService.removeFromSet([hash]);
+        }
       },
       (err: HttpErrorResponse) => {
         console.error(err);
@@ -182,12 +218,27 @@ export class PlaylistService {
     );
   }
 
-  private setPlaylist(playlistId?: string, collection?: string[]): void {
+  public addMediaToPlaylist(playlistId: string, hash: string): void {
+    this.httpClient.put<MediaPlaylist>(`/api/images/${hash}/playlists/${playlistId}`, {}).subscribe(
+      res => {
+        console.debug('media added to playlist', playlistId, hash);
+        this.mediaService.addPlaylist(hash, res);
+        this.updatePlaylists();
+      },
+      (err: HttpErrorResponse) => {
+        console.error(err);
+        const message = (err && err.error && err.error.message) || `Failed to add to playlist`;
+        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+      },
+    );
+  }
+
+  private setPlaylist(playlistId?: string): void {
     if (!playlistId) {
       this.playlistReplay.next(undefined);
-      this.mediaReplay.next(undefined);
       return;
     }
+    this.playlistId = playlistId;
 
     this.getPlaylist(playlistId).subscribe(
       playlist => {
@@ -202,10 +253,6 @@ export class PlaylistService {
         });
       },
     );
-
-    if (collection) {
-      this.mediaReplay.next(this.mediaService.lazyLoadMedia(collection));
-    }
   }
 
   private updatePlaylists(): void {

@@ -8,9 +8,14 @@ export interface Playlist {
 export interface PlaylistCreate {
   name: string;
   thumbnail?: string;
+  // Initial media in playlist
+  hashes?: string[];
 }
 
-export type PlaylistUpdate = Partial<PlaylistCreate>;
+export interface PlaylistUpdate {
+  name?: string;
+  thumbnail?: string;
+}
 
 export interface PlaylistEntryUpdate {
   order: number;
