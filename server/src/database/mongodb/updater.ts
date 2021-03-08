@@ -138,7 +138,9 @@ export class Updater {
   }
 
   private static async createCollections(db: Db): Promise<void> {
-    await Updater.createMediaCollection(db, await Updater.loadMediaSchema(), 'media');
+    if (!(await Updater.collectionExists(db, 'media'))) {
+      await Updater.createMediaCollection(db, await Updater.loadMediaSchema(), 'media');
+    }
 
     if (!(await Updater.collectionExists(db, 'config'))) {
       await db.createCollection('config');
