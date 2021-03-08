@@ -1,7 +1,8 @@
 <div *ngIf="insights; else loading" class="insights">
-  <ngb-tabset>
-    <ngb-tab title="Overview">
-      <ng-template ngbTabContent>
+  <ul ngbNav #nav="ngbNav" class="nav-tabs">
+    <li ngbNavItem>
+      <a ngbNavLink>Overview</a>
+      <ng-template ngbNavContent>
         <p class="pad-top">
           Insights are metrics generated based upon tagged and rated data.
         </p>
@@ -18,9 +19,10 @@
           will not be very useful).
         </p>
       </ng-template>
-    </ngb-tab>
-    <ngb-tab title="Tags">
-      <ng-template ngbTabContent>
+    </li>
+    <li ngbNavItem>
+      <a ngbNavLink>Tags</a>
+      <ng-template ngbNavContent>
         <table class="table">
           <thead>
             <tr>
@@ -38,10 +40,10 @@
           </tbody>
         </table>
       </ng-template>
-    </ngb-tab>
-
-    <ngb-tab title="Actors">
-      <ng-template ngbTabContent>
+    </li>
+    <li ngbNavItem>
+      <a ngbNavLink>Actors</a>
+      <ng-template ngbNavContent>
         <table class="table">
           <thead>
             <tr>
@@ -59,10 +61,10 @@
           </tbody>
         </table>
       </ng-template>
-    </ngb-tab>
-
-    <ngb-tab title="Artists">
-      <ng-template ngbTabContent>
+    </li>
+    <li ngbNavItem>
+      <a ngbNavLink>Artists</a>
+      <ng-template ngbNavContent>
         <table class="table">
           <thead>
             <tr>
@@ -80,8 +82,9 @@
           </tbody>
         </table>
       </ng-template>
-    </ngb-tab>
-  </ngb-tabset>
+    </li>
+  </ul>
+  <div [ngbNavOutlet]="nav"></div>
 </div>
 
 <ng-template #loading>

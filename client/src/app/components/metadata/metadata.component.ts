@@ -5,12 +5,14 @@ import { ActorService } from 'services/actor.service';
 import { UiService } from 'services/ui.service';
 import { AlertService } from 'services/alert.service';
 import { Subscription } from 'rxjs';
-import { Media, UpdateMedia } from '@vimtur/common';
+import { Media, UpdateMedia, Playlist } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
+import { PlaylistService } from 'services/playlist.service';
 
 interface MediaModel extends UpdateMedia {
   tags?: ListItem[];
   actors?: ListItem[];
+  playlists?: ListItem[];
 }
 
 @Component({
@@ -23,9 +25,12 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public mediaModel?: MediaModel;
   public tags?: ListItem[];
   public actors?: ListItem[];
+  public playlists?: ListItem[];
   public mediaService: MediaService;
   public tagService: TagService;
   public actorService: ActorService;
+  public playlistService: PlaylistService;
+  public currentPlaylist?: Playlist;
 
   public readonly metadataFields = [
     { name: 'artist', text: 'Artist' },
@@ -44,12 +49,14 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     alertService: AlertService,
     actorService: ActorService,
     uiService: UiService,
+    playlistService: PlaylistService,
   ) {
     this.mediaService = mediaService;
     this.tagService = tagService;
     this.alertService = alertService;
     this.actorService = actorService;
     this.uiService = uiService;
+    this.playlistService = playlistService;
   }
 
   public ngOnInit() {
@@ -61,6 +68,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
               rating: media.rating,
               tags: toListItems(media.tags),
               actors: toListItems(media.actors),
+              playlists: this.updatePlaylistsModel(),
               metadata: {
                 artist: media.metadata.artist || '',
                 album: media.metadata.album || '',
@@ -77,6 +85,27 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.subscriptions.push(
       this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
+    );
+
+    this.subscriptions.push(
+      this.playlistService.getCurrentPlaylist().subscribe(playlist => {
+        this.currentPlaylist = playlist;
+        this.updateDisabledPlaylists();
+      }),
+    );
+
+    this.subscriptions.push(
+      this.playlistService.getPlaylists().subscribe(playlists => {
+        this.playlists = playlists.map(playlist => {
+          return {
+            id: playlist.id,
+            itemName: playlist.name,
+          };
+        });
+
+        this.updateDisabledPlaylists();
+        this.updatePlaylistsModel();
+      }),
     );
   }
 
@@ -129,5 +158,34 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
       // to stop ng-bootstraps rating component stealing focus and keypresses.
       this.ratingElement.handleKeyDown = () => {};
     }
+  }
+
+  private updateDisabledPlaylists(): void {
+    if (!this.playlists) {
+      return;
+    }
+
+    this.playlists = this.playlists.map(pl => {
+      return {
+        ...pl,
+        disabled: Boolean(this.currentPlaylist && this.currentPlaylist.id === pl.id),
+      };
+    });
+  }
+
+  private updatePlaylistsModel(): ListItem[] {
+    if (!this.media || !this.playlists || !this.mediaModel) {
+      return [];
+    }
+    this.mediaModel.playlists = undefined;
+
+    this.mediaModel.playlists = this.media.playlists.map(playlist => {
+      return {
+        id: playlist.id,
+        itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
+      };
+    });
+
+    return this.mediaModel.playlists;
   }
 }

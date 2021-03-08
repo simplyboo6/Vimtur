@@ -33,7 +33,7 @@
         <ngb-rating
           [starTemplate]="ratingStar"
           [(rate)]="ratingModel"
-          (rateChange)="setRating(ratingModel)"
+          (rateChange)="mediaService.setRating(ratingModel)"
           [readonly]="!media"
           max="5"
           [tabindex]="-1"

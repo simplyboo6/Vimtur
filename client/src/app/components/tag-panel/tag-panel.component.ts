@@ -149,12 +149,6 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  public setRating(rating?: number): void {
-    if (rating !== this.ratingModel && !isNaN(rating)) {
-      this.mediaService.setRating(rating);
-    }
-  }
-
   public saveMetadata(field: 'artist' | 'album' | 'title') {
     if (!this.media || !this.mediaMetadataUpdate) {
       return;

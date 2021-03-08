@@ -1,4 +1,4 @@
-<div class="container" *ngIf="media; else loading">
+<div class="container" *ngIf="media && mediaModel; else loading">
   <div class="card form-card">
     <h4>Metadata</h4>
     <div class="header">
@@ -102,6 +102,26 @@
         (onAddFilterNewItem)="actorService.addActor($event)"
         (onSelect)="mediaService.addActor($event.id)"
         (onDeSelect)="mediaService.removeActor($event.id)"
+      >
+      </angular2-multiselect>
+    </div>
+
+    <h5 class="form-padded-input">Playlists</h5>
+    <div class="row">
+      <angular2-multiselect
+        *ngIf="mediaModel.playlists"
+        [data]="playlists"
+        [settings]="{
+          text: '+ Playlist',
+          enableCheckAll: false,
+          enableSearchFilter: true,
+          addNewItemOnFilter: true,
+          enableFilterSelectAll: false
+        }"
+        [ngModel]="mediaModel.playlists"
+        (onAddFilterNewItem)="playlistService.addPlaylist({ name: $event, hashes: [media.hash] })"
+        (onSelect)="playlistService.addMediaToPlaylist($event.id, media.hash)"
+        (onDeSelect)="playlistService.removeMediaFromPlaylist($event.id, media.hash)"
       >
       </angular2-multiselect>
     </div>
