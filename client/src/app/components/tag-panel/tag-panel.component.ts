@@ -40,6 +40,8 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public actorService: ActorService;
   public playlistService: PlaylistService;
   public currentPlaylist?: Playlist;
+  public columnIndexes?: number[];
+  public columnTags?: string[][];
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
@@ -64,6 +66,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
+        this.updateColumnIndexes();
       }),
     );
 
@@ -99,6 +102,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.tagService.getTags().subscribe(tags => {
         this.tags = tags;
+        this.updateColumnIndexes();
       }),
     );
 
@@ -168,24 +172,31 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  public getColumnIndexes(): number[] {
+  private updateColumnIndexes(): void {
     const count = (this.config && this.config.user.tagColumnCount) || DEFAULT_COLUMN_COUNT;
     const indexes: number[] = [];
     for (let i = 0; i < count; i++) {
       indexes.push(i);
     }
-    return indexes;
+    this.columnIndexes = indexes;
+    this.updateColumnTags();
   }
 
-  public getColumnTags(index: number): string[] {
-    const count = (this.config && this.config.user.tagColumnCount) || DEFAULT_COLUMN_COUNT;
-    if (!this.tags) {
-      return [];
+  private updateColumnTags(): void {
+    this.columnTags = [];
+    if (!this.columnIndexes) {
+      return;
     }
-    const tagsPerColumn = Math.ceil(this.tags.length / count);
+    this.columnTags = this.columnIndexes.map(index => {
+      const count = (this.config && this.config.user.tagColumnCount) || DEFAULT_COLUMN_COUNT;
+      if (!this.tags) {
+        return [];
+      }
+      const tagsPerColumn = Math.ceil(this.tags.length / count);
 
-    return this.tags.filter((tag, i) => {
-      return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;
+      return this.tags.filter((tag, i) => {
+        return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;
+      });
     });
   }
 

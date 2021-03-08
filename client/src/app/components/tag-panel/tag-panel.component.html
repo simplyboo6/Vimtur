@@ -2,10 +2,10 @@
   <div class="card tag-panel margin-bottom">
     <div class="card-header card-small tag-header">Tags</div>
     <div *ngIf="tagsModel && media; else loading" class="card-body card-small tag-list">
-      <div class="tag-list-column" *ngFor="let i of getColumnIndexes()">
+      <div class="tag-list-column" *ngFor="let i of columnIndexes">
         <div
           class="tag custom-control custom-checkbox input-component"
-          *ngFor="let tag of getColumnTags(i)"
+          *ngFor="let tag of columnTags[i]"
         >
           <input
             type="checkbox"

@@ -89,6 +89,11 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     }
     this.subscriptions = [];
 
+    if (this.videoPlayerState.active) {
+      this.videoPlayerState.active.unsubscribe();
+      this.videoPlayerState.active = undefined;
+    }
+
     if (this.videoElement) {
       this.videoElement.nativeElement.pause();
     }

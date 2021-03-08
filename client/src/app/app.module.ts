@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { AngularResizedEventModule } from 'angular-resize-event';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RouteReuseStrategy } from '@angular/router';
 
@@ -33,6 +32,7 @@ import { PlaylistComponent } from './components/playlist/playlist.component';
 import { PlaylistsComponent } from './components/playlists/playlists.component';
 import { ActionsComponent } from './components/actions/actions.component';
 import { LazyComponent } from './components/lazy/lazy.component';
+import { ResizedDirective } from './shared/resized.directive';
 
 @NgModule({
   declarations: [
@@ -58,6 +58,7 @@ import { LazyComponent } from './components/lazy/lazy.component';
     PlaylistsComponent,
     ActionsComponent,
     LazyComponent,
+    ResizedDirective,
   ],
   imports: [
     NgbModule,
@@ -68,7 +69,6 @@ import { LazyComponent } from './components/lazy/lazy.component';
     HttpClientModule,
     AngularMultiSelectModule,
     BrowserAnimationsModule,
-    AngularResizedEventModule,
     DragDropModule,
   ],
   providers: [

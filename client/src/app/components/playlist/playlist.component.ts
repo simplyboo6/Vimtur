@@ -116,7 +116,6 @@ export class PlaylistComponent implements OnInit, OnDestroy {
         }
       }
 
-      console.debug('loading', lazyMedia);
       lazyMedia.subscription = lazyMedia.getter().subscribe(media => {
         lazyMedia.media = media;
         lazyMedia.loadedAt = Date.now();

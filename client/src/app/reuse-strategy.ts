@@ -1,5 +1,5 @@
 import { RouteReuseStrategy, ActivatedRouteSnapshot, DetachedRouteHandle } from '@angular/router';
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 
 @Injectable()
 export class ReuseStrategy implements RouteReuseStrategy {
@@ -10,7 +10,6 @@ export class ReuseStrategy implements RouteReuseStrategy {
   }
 
   public store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle): void {
-    console.log('store', route.routeConfig.path);
     this.storedRoutes.set(route.routeConfig.path, handle);
   }
 

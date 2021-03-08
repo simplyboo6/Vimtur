@@ -1,5 +1,5 @@
 <div
-  (resized)="onResized()"
+  (appResized)="onResized()"
   (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
   [class.hidden]="!media || media.type !== 'video'"
   class="video-player"
