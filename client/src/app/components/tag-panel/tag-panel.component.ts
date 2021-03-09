@@ -212,6 +212,10 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!this.media || !this.playlists) {
       return;
     }
+    if (!this.media.playlists) {
+      this.playlistsModel = [];
+      return;
+    }
 
     this.playlistsModel = this.media.playlists.map(playlist => {
       return {

@@ -177,14 +177,15 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!this.media || !this.playlists || !this.mediaModel) {
       return [];
     }
-    this.mediaModel.playlists = undefined;
-
-    this.mediaModel.playlists = this.media.playlists.map(playlist => {
-      return {
-        id: playlist.id,
-        itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
-      };
-    });
+    this.mediaModel.playlists = [];
+    if (this.media.playlists) {
+      this.mediaModel.playlists = this.media.playlists.map(playlist => {
+        return {
+          id: playlist.id,
+          itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
+        };
+      });
+    }
 
     return this.mediaModel.playlists;
   }
