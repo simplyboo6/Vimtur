@@ -16,7 +16,8 @@ RUN cd /app/server && \
 ## Build client
 RUN cd /app/client && \
     yarn --frozen-lockfile && \
-    yarn lint && yarn build:prod
+    yarn lint && yarn build:prod && \
+    rm -rf node_modules
 
 WORKDIR /app
 
