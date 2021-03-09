@@ -114,6 +114,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       );
       if (this.index !== index) {
         this.index = index;
+        this.rendered = false;
         this.render();
       }
     }
