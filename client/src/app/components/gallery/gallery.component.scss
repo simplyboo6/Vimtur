@@ -55,4 +55,9 @@ app-preview {
 .subtitle {
   font-size: 0.9rem;
   text-align: center;
+  display: block;
+  max-width: 370px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: auto;
 }
