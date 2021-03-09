@@ -3,7 +3,6 @@ import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { UiService } from 'services/ui.service';
-import { AlertService } from 'services/alert.service';
 import { Subscription } from 'rxjs';
 import { Media, UpdateMedia, Playlist } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
@@ -39,21 +38,18 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   ];
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
-  private alertService: AlertService;
   private uiService: UiService;
   private subscriptions: Subscription[] = [];
 
   public constructor(
     mediaService: MediaService,
     tagService: TagService,
-    alertService: AlertService,
     actorService: ActorService,
     uiService: UiService,
     playlistService: PlaylistService,
   ) {
     this.mediaService = mediaService;
     this.tagService = tagService;
-    this.alertService = alertService;
     this.actorService = actorService;
     this.uiService = uiService;
     this.playlistService = playlistService;
@@ -70,9 +66,9 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
               actors: toListItems(media.actors),
               playlists: this.updatePlaylistsModel(),
               metadata: {
-                artist: media.metadata.artist || '',
-                album: media.metadata.album || '',
-                title: media.metadata.title || '',
+                artist: media.metadata?.artist || '',
+                album: media.metadata?.album || '',
+                title: media.metadata?.title || '',
               },
             }
           : {};
@@ -114,6 +110,9 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   public saveBulkMetadata(field: 'artist' | 'album' | 'title') {
+    if (!this.mediaModel || !this.mediaModel.metadata) {
+      return;
+    }
     // TODO Confirm with user and display current search set.
     // TODO Show a warning to the user if no filters are set.
     this.mediaService.saveBulk(this.uiService.createSearch(), {
@@ -122,6 +121,9 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   public saveMetadata(field: 'artist' | 'album' | 'title') {
+    if (!this.mediaModel || !this.mediaModel.metadata) {
+      return;
+    }
     this.mediaService.saveMetadata({ [field]: this.mediaModel.metadata[field] });
   }
 
@@ -182,11 +184,11 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.mediaModel.playlists = this.media.playlists.map(playlist => {
         return {
           id: playlist.id,
-          itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
+          itemName: this.playlists?.find(list => list.id === playlist.id)?.itemName || playlist.id,
         };
       });
     }
 
-    return this.mediaModel.playlists;
+    return this.mediaModel.playlists || [];
   }
 }

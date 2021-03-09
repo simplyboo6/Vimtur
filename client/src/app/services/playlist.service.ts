@@ -1,17 +1,16 @@
-import { HttpClient, HttpResponse, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
 import {
   Playlist,
   PlaylistCreate,
   PlaylistUpdate,
-  Media,
   SubsetConstraints,
   MediaPlaylist,
 } from '@vimtur/common';
 import { AlertService } from './alert.service';
 import { UiService } from './ui.service';
-import { MediaService, LazyMedia } from './media.service';
+import { MediaService } from './media.service';
 import { ConfirmationService } from './confirmation.service';
 import { CollectionService } from './collection.service';
 import { Alert } from 'app/shared/types';
@@ -55,7 +54,7 @@ export class PlaylistService {
 
     collectionService.getMetadata().subscribe(metadata => {
       // Ignore changes in order
-      if (metadata.order) {
+      if (metadata?.order) {
         return;
       }
 
@@ -84,8 +83,6 @@ export class PlaylistService {
   }
 
   public addPlaylist(request: PlaylistCreate) {
-    const media = this.mediaService.media;
-
     this.httpClient.post<Playlist>(`/api/playlists`, request, HTTP_OPTIONS).subscribe(
       res => {
         this.alertService.show({
@@ -116,7 +113,7 @@ export class PlaylistService {
 
   public updatePlaylist(playlistId: string, update: PlaylistUpdate): void {
     this.httpClient.patch<string[]>(`/api/playlists/${playlistId}`, update, HTTP_OPTIONS).subscribe(
-      res => {
+      () => {
         this.alertService.show({
           type: 'success',
           message: `Updated playlist`,
@@ -134,7 +131,7 @@ export class PlaylistService {
 
   public deletePlaylist(id: string) {
     this.httpClient.delete<string[]>(`/api/playlists/${id}`).subscribe(
-      res => {
+      () => {
         console.debug('playlist deleted', id);
 
         if (this.mediaService.media) {
@@ -175,7 +172,7 @@ export class PlaylistService {
           this.httpClient
             .put<string[]>(`/api/images/subset/playlists/${playlist.id}`, subset, HTTP_OPTIONS)
             .subscribe(
-              res => {
+              () => {
                 this.alertService.dismiss(alert);
                 this.alertService.show({
                   type: 'success',
@@ -202,7 +199,7 @@ export class PlaylistService {
 
   public removeMediaFromPlaylist(playlistId: string, hash: string): void {
     this.httpClient.delete<string[]>(`/api/images/${hash}/playlists/${playlistId}`).subscribe(
-      res => {
+      () => {
         console.debug('media removed from playlist', playlistId, hash);
         this.mediaService.removePlaylist(hash, playlistId);
         this.updatePlaylists();

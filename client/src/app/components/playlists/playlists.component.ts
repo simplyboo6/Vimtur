@@ -1,14 +1,13 @@
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ConfirmationService } from 'services/confirmation.service';
 import { Playlist, Media } from '@vimtur/common';
 import { PlaylistService } from 'app/services/playlist.service';
-import { MediaService, LazyMedia } from 'app/services/media.service';
+import { MediaService } from 'app/services/media.service';
 import { UiService } from 'app/services/ui.service';
 import { CollectionService } from 'app/services/collection.service';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
 export interface PreviewPlaylist extends Playlist {
   media?: Media;
@@ -25,7 +24,7 @@ export interface MediaVisibility extends Media {
 })
 export class PlaylistsComponent implements OnInit, OnDestroy {
   public readonly getTitle = getTitle;
-  public readonly getSubtitle = getTitle;
+  public readonly getSubtitle = getSubtitle;
   public playlists?: PreviewPlaylist[];
   public currentPlaylist?: PreviewPlaylist;
   public addPlaylistModel?: string;
@@ -123,6 +122,9 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
 
   public addPlaylist() {
     console.debug('addPlaylist', this.addPlaylistModel);
+    if (!this.addPlaylistModel) {
+      return;
+    }
     this.playlistService.addPlaylist({ name: this.addPlaylistModel });
   }
 

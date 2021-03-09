@@ -1,12 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  OnDestroy,
-  ViewChild,
-  ElementRef,
-} from '@angular/core';
+import { Component, Output, EventEmitter, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { IntersectionService } from 'services/intersection.service';
 import { Subscription } from 'rxjs';
 

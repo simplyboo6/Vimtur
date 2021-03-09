@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Media } from '@vimtur/common';
 import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
@@ -55,7 +54,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public viewFolder() {
     if (this.mediaService.media) {
       this.uiService.resetSearch();
-      this.uiService.searchModel.dir.like = this.mediaService.media.dir;
+
+      this.uiService.searchModel.dir = {
+        like: this.mediaService.media.dir,
+      };
       this.uiService.searchModel.sortBy = 'path';
       this.collectionService.search(this.uiService.createSearch(), { preserve: true });
     }

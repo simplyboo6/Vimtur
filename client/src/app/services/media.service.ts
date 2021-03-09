@@ -1,6 +1,6 @@
-import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, ReplaySubject, from, Subscription, forkJoin } from 'rxjs';
+import { Observable, ReplaySubject, Subscription, forkJoin } from 'rxjs';
 import { take } from 'rxjs/operators';
 import {
   Media,
@@ -13,9 +13,9 @@ import {
 import { AlertService } from 'app/services/alert.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
-import { CollectionService, CollectionMetadata } from 'app/services/collection.service';
+import { CollectionService } from 'app/services/collection.service';
 import { Alert } from 'app/shared/types';
-import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmBulkUpdateComponent } from 'app/components/confirm-bulk-update/confirm-bulk-update.component';
 
 interface TagListItem {
@@ -264,7 +264,7 @@ export class MediaService {
   }
 
   public setRating(rating: number) {
-    if (rating !== this.media.rating) {
+    if (this.media && rating !== this.media.rating) {
       this.media.rating = rating;
       this.mediaReplay.next(this.media);
       console.log('setRating', this.media.hash, rating);
@@ -382,6 +382,10 @@ export class MediaService {
             autoClose: 5000,
             message: `Applied update to ${count} media`,
           });
+          if (!this.media) {
+            console.warn('Failed to apply to loaded media, media not set');
+            return;
+          }
           if (update.metadata) {
             this.media.metadata = Object.assign(this.media.metadata || {}, update.metadata) as any;
           }

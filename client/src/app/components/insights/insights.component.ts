@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { InsightsService } from 'services/insights.service';
-import { CollectionService } from 'services/collection.service';
 import { InsightsResponse } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 

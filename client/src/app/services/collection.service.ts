@@ -1,4 +1,4 @@
-import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, ReplaySubject, BehaviorSubject } from 'rxjs';
@@ -8,7 +8,6 @@ import { ConfirmationService } from 'app/services/confirmation.service';
 import { PromptService } from 'app/services/prompt.service';
 import { ConfigService } from './config.service';
 import { PRNG } from 'app/shared/prng';
-import { Alert } from 'app/shared/types';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 const HTTP_OPTIONS = {
@@ -40,7 +39,7 @@ export interface CollectionMetadata {
 export class CollectionService {
   private httpClient: HttpClient;
   private alertService: AlertService;
-  private searching: BehaviorSubject<boolean> = new BehaviorSubject(false);
+  private searching = new BehaviorSubject<boolean>(false);
   private collection?: string[];
   private constraints?: SubsetConstraints;
   private index = 0;
@@ -72,6 +71,9 @@ export class CollectionService {
   }
 
   public shuffle() {
+    if (!this.collection) {
+      return;
+    }
     this.index = 0;
     // Copy it so it's definitely picked up as changed by the gallery.
     this.collection = this.shuffleArray(this.collection).slice(0);
@@ -86,6 +88,10 @@ export class CollectionService {
   public goto(location?: string | boolean, page?: boolean) {
     if (!this.configService.config) {
       console.warn('Cannot goto() before config is loaded');
+      return;
+    }
+    if (!this.collection) {
+      console.warn('Cannot goto() before collection loaded');
       return;
     }
 
@@ -136,14 +142,16 @@ export class CollectionService {
   }
 
   public deleteCurrent() {
-    if (!this.collection || this.index === undefined) {
+    const collection = this.collection;
+    const index = this.index;
+    if (!collection || index === undefined) {
       return;
     }
     this.confirmationService
       .confirm(`Are you sure you want to delete the current media?`, true)
       .then(result => {
         if (result) {
-          const hash = this.collection[this.index];
+          const hash = collection[index];
           console.debug(`Deleting ${hash}`);
           this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
             () => {
@@ -275,6 +283,10 @@ export class CollectionService {
   }
 
   public offset(offset: number) {
+    if (!this.collection) {
+      console.warn('Cannot offset while collection not set');
+      return;
+    }
     this.index += offset;
     if (this.index < 0) {
       this.index = this.collection.length - 1;
@@ -285,6 +297,10 @@ export class CollectionService {
   }
 
   private update(constraints?: SubsetConstraints) {
+    if (!this.collection) {
+      console.warn('Cannot update metadata while collection not set');
+      return;
+    }
     this.metadata.next({
       index: this.index,
       collection: this.collection,

@@ -14,7 +14,7 @@ export class GalleryComponent implements OnInit, OnDestroy {
   public media?: Media[] = [];
   public collectionService: CollectionService;
   public readonly getTitle = getTitle;
-  public readonly getSubtitle = getTitle;
+  public readonly getSubtitle = getSubtitle;
 
   private subscriptions: Subscription[] = [];
   private galleryService: GalleryService;

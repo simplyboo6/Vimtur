@@ -4,7 +4,10 @@ export function padTime(length: number): string {
   return length < 10 ? `0${length}` : `${length}`;
 }
 
-export function formatLength(length: number): string {
+export function formatLength(length?: number): string | undefined {
+  if (length === undefined) {
+    return undefined;
+  }
   const hours = Math.floor(length / 3600);
   length -= hours * 3600;
   const minutes = Math.floor(length / 60);
@@ -15,10 +18,10 @@ export function formatLength(length: number): string {
 
 export function getTitle(media: Media): string {
   const titles: string[] = [];
-  if (media.metadata.album) {
+  if (media.metadata?.album) {
     titles.push(media.metadata.album);
   }
-  if (media.metadata.title) {
+  if (media.metadata?.title) {
     titles.push(media.metadata.title);
   }
   const title = titles.join(' - ');
@@ -26,16 +29,21 @@ export function getTitle(media: Media): string {
 }
 
 export function getSubtitle(media: Media): string {
+  const dimensions = media.metadata && `${media.metadata.width}x${media.metadata.height}`;
+  const segments: Array<string | undefined> = [];
   switch (media.type) {
     case 'video':
-      return `Video | ${formatLength(media.metadata.length)} | ${media.metadata.width}x${
-        media.metadata.height
-      }`;
+      segments.push(...['Video', formatLength(media.metadata?.length)]);
+      break;
     case 'still':
-      return `Still | ${media.metadata.width}x${media.metadata.height}`;
+      segments.push('Still');
+      break;
     case 'gif':
-      return `Gif | ${media.metadata.width}x${media.metadata.height}`;
+      segments.push('Gif');
+      break;
     default:
-      return '';
+      break;
   }
+  segments.push(dimensions);
+  return segments.filter(s => !!s).join(' | ');
 }

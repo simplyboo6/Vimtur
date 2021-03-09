@@ -11,12 +11,20 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "target": "es2018",
-    "typeRoots": ["node_modules/@types"],
     "lib": ["es2018", "dom"],
     "paths": {
       "services/*": ["./src/app/services/*"],
       "app/*": ["./src/app/*"]
-    }
+    },
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "skipLibCheck": true
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,

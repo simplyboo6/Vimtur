@@ -5,7 +5,6 @@ import {
   OnDestroy,
   OnChanges,
   ViewChild,
-  TemplateRef,
   SimpleChanges,
   Input,
   NgZone,
@@ -15,7 +14,7 @@ import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
 
-declare const Hls;
+declare const Hls: any;
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
@@ -245,7 +244,10 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       this.videoPlayerState.navigationTime = duration;
     }
 
-    if (!isNaN(this.videoPlayerState.navigationTime)) {
+    if (
+      this.videoPlayerState.navigationTime !== undefined &&
+      !isNaN(this.videoPlayerState.navigationTime)
+    ) {
       console.debug(`Seeking to ${this.videoPlayerState.navigationTime}`);
       this.videoElement.nativeElement.currentTime = this.videoPlayerState.navigationTime;
     }
@@ -389,7 +391,9 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       return;
     }
 
-    const foundIndex = this.hls.levels.findIndex(l => l.height >= quality.height);
+    const foundIndex = this.hls.levels.findIndex(
+      (l: { height: number }) => l.height >= quality.height,
+    );
     this.videoPlayerState.currentQuality =
       foundIndex === undefined ? this.hls.levels.length - 1 : foundIndex;
     console.debug(
@@ -433,24 +437,29 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.videoElement.nativeElement.volume = this.videoPlayerState.volume || 1;
     this.videoElement.nativeElement.muted = this.videoPlayerState.muted;
 
-    this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-      console.log('Manifest quality levels', data.levels);
+    this.hls.on(
+      Hls.Events.MANIFEST_PARSED,
+      (_: unknown, data: { levels: Array<{ height: number }> }) => {
+        console.log('Manifest quality levels', data.levels);
 
-      this.zone.run(() => {
-        this.videoPlayerState.qualities = data.levels.map((level, index) => ({
-          height: level.height,
-          index,
-        }));
+        this.zone.run(() => {
+          this.videoPlayerState.qualities = data.levels.map(
+            (level: { height: number }, index: number) => ({
+              height: level.height,
+              index,
+            }),
+          );
 
-        if (this.videoPlayerState.selectedQuality !== undefined) {
-          this.selectQuality(this.videoPlayerState.selectedQuality);
+          if (this.videoPlayerState.selectedQuality !== undefined) {
+            this.selectQuality(this.videoPlayerState.selectedQuality);
+          }
+        });
+
+        if (autoPlay) {
+          this.videoElement.nativeElement.play();
         }
-      });
-
-      if (autoPlay) {
-        this.videoElement.nativeElement.play();
-      }
-    });
+      },
+    );
 
     /*for (const key of Object.keys(Hls.Events)) {
       this.hls.on(Hls.Events[key], (event, data) => {
@@ -461,7 +470,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     }*/
 
     // Need this for when switching from a fixed quality to auto.
-    this.hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+    this.hls.on(Hls.Events.FRAG_LOADED, () => {
       this.zone.run(() => {
         if (this.hls.currentLevel >= 0) {
           this.videoPlayerState.currentQuality = this.hls.currentLevel;
@@ -470,7 +479,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       });
     });
 
-    this.hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+    this.hls.on(Hls.Events.LEVEL_SWITCHED, (_: unknown, data: { level: number }) => {
       console.debug('Switched to quality level', data.level, this.hls.levels[data.level]);
       this.zone.run(() => {
         this.videoPlayerState.currentQuality = data.level;
@@ -478,7 +487,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       });
     });
 
-    this.hls.on(Hls.Events.ERROR, (event, data) => {
+    this.hls.on(Hls.Events.ERROR, (event: unknown, data: unknown) => {
       console.warn('HLS error', event, data);
     });
 

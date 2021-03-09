@@ -1,12 +1,10 @@
-import { Component, OnInit, OnDestroy, NgZone, Input } from '@angular/core';
-import { ConfirmationService } from 'services/confirmation.service';
-import { Playlist, Media } from '@vimtur/common';
-import { AlertService } from 'app/services/alert.service';
+import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Playlist } from '@vimtur/common';
 import { PlaylistService } from 'app/services/playlist.service';
 import { MediaService, LazyMedia } from 'app/services/media.service';
 import { UiService } from 'app/services/ui.service';
 import { CollectionService } from 'app/services/collection.service';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -54,23 +52,23 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       this.collectionService.getMetadata().subscribe(metadata => {
         // Ignore changes in order
         if (this.media) {
-          if (metadata.order) {
+          if (metadata?.order) {
             return;
           }
 
-          if (metadata.removed) {
+          if (metadata?.removed) {
             for (const hash of metadata.removed) {
               const index = this.media.findIndex(lazyMedia => lazyMedia.hash === hash);
               if (index >= 0) {
                 this.media.splice(index, 1);
-                this.actions.splice(index, 1);
-                this.titles.splice(index, 1);
+                this.actions?.splice(index, 1);
+                this.titles?.splice(index, 1);
               }
             }
           }
         }
 
-        if (metadata && metadata.collection) {
+        if (metadata && metadata?.collection) {
           if (this.media) {
             for (const lazyMedia of this.media) {
               if (lazyMedia.subscription) {
@@ -80,7 +78,7 @@ export class PlaylistComponent implements OnInit, OnDestroy {
           }
           this.media = this.mediaService.lazyLoadMedia(metadata.collection);
           this.updateMediaActions();
-          this.titles = this.media.map(media => undefined);
+          this.titles = this.media.map(() => undefined);
         }
       }),
     );
@@ -102,12 +100,12 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       if (this.media) {
         const loaded = this.media.filter(media => media.loadedAt !== undefined);
         if (loaded.length > MAX_LOADED) {
-          loaded.sort((a, b) => a.loadedAt - b.loadedAt);
+          loaded.sort((a, b) => (a.loadedAt || 0) - (b.loadedAt || 0));
 
           for (let i = 0; i < loaded.length - MAX_LOADED; i++) {
             console.debug('unloading', loaded[i]);
             if (loaded[i].subscription) {
-              loaded[i].subscription.unsubscribe();
+              loaded[i].subscription?.unsubscribe();
               loaded[i].subscription = undefined;
             }
             loaded[i].media = undefined;
@@ -119,8 +117,8 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       lazyMedia.subscription = lazyMedia.getter().subscribe(media => {
         lazyMedia.media = media;
         lazyMedia.loadedAt = Date.now();
-        const index = this.media.findIndex(m => m === lazyMedia);
-        if (index >= 0) {
+        const index = this.media?.findIndex(m => m === lazyMedia) || -1;
+        if (index >= 0 && this.titles) {
           this.titles[index] = {
             title: getTitle(media),
             subtitle: getSubtitle(media),
@@ -148,8 +146,12 @@ export class PlaylistComponent implements OnInit, OnDestroy {
     this.updateMediaActions();
 
     moveItemInArray(this.media, previousIndex, currentIndex);
-    moveItemInArray(this.actions, previousIndex, currentIndex);
-    moveItemInArray(this.titles, previousIndex, currentIndex);
+    if (this.actions) {
+      moveItemInArray(this.actions, previousIndex, currentIndex);
+    }
+    if (this.titles) {
+      moveItemInArray(this.titles, previousIndex, currentIndex);
+    }
 
     if (!this.collectionService.isShuffled()) {
       this.collectionService.updateOrder(previousIndex, currentIndex);
@@ -191,8 +193,8 @@ export class PlaylistComponent implements OnInit, OnDestroy {
         const index = this.media.indexOf(action.id);
         if (index >= 0) {
           this.media.splice(index, 1);
-          this.actions.splice(index, 1);
-          this.titles.splice(index, 1);
+          this.actions?.splice(index, 1);
+          this.titles?.splice(index, 1);
           this.collectionService.removeFromSet([action.id.hash]);
         }
         break;

@@ -1,12 +1,4 @@
-import {
-  Component,
-  Input,
-  SimpleChanges,
-  OnInit,
-  OnDestroy,
-  ViewChild,
-  AfterViewChecked,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewChecked } from '@angular/core';
 import { Media, Configuration, UpdateMetadata, Playlist } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
@@ -24,7 +16,7 @@ const DEFAULT_COLUMN_COUNT = 1;
   styleUrls: ['./tag-panel.component.scss'],
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
-  public tagsModel: Record<string, boolean> = {};
+  public tagsModel?: Record<string, boolean>;
   public ratingModel?: number;
   public actorsModel?: ListItem[];
   public playlistsModel?: ListItem[];
@@ -80,9 +72,11 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
 
         if (this.media) {
           // Map undefined to empty strings to better do change detection.
-          media.metadata.artist = media.metadata.artist || '';
-          media.metadata.album = media.metadata.album || '';
-          media.metadata.title = media.metadata.title || '';
+          if (media.metadata) {
+            media.metadata.artist = media.metadata.artist || '';
+            media.metadata.album = media.metadata.album || '';
+            media.metadata.title = media.metadata.title || '';
+          }
 
           this.mediaMetadataUpdate = { ...media.metadata };
 
@@ -154,11 +148,13 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
     this.mediaService.saveMetadata({ [field]: this.mediaMetadataUpdate[field] });
-    this.media.metadata[field] = this.mediaMetadataUpdate[field];
+    if (this.media.metadata) {
+      this.media.metadata[field] = this.mediaMetadataUpdate[field];
+    }
   }
 
   public updateTag(tag: string) {
-    const state = !!this.tagsModel[tag];
+    const state = !!this.tagsModel?.[tag];
     if (state) {
       this.mediaService.addTag(tag);
     } else {
@@ -188,9 +184,11 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
       }
       const tagsPerColumn = Math.ceil(this.tags.length / count);
 
-      return this.tags.filter((tag, i) => {
-        return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;
-      });
+      return (
+        this.tags?.filter((_, i) => {
+          return i >= index * tagsPerColumn && i < (index + 1) * tagsPerColumn;
+        }) || []
+      );
     });
   }
 
@@ -220,7 +218,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.playlistsModel = this.media.playlists.map(playlist => {
       return {
         id: playlist.id,
-        itemName: this.playlists.find(list => list.id === playlist.id)?.itemName,
+        itemName: this.playlists?.find(list => list.id === playlist.id)?.itemName || playlist.id,
       };
     });
   }

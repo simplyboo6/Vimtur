@@ -1,12 +1,7 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
-import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
+import { ArrayFilter, SubsetConstraints, StringFilter } from '@vimtur/common';
 import { ListItem, fromListItems } from 'app/shared/types';
-
-export interface FilterField {
-  field: string;
-  name: string;
-}
 
 export interface SearchArrayFilter {
   equalsAny: ListItem[];
@@ -46,6 +41,13 @@ export interface SearchModel {
   dir?: SearchStringFilter;
 
   playlist?: string;
+}
+
+type FilterFieldType = 'tags' | 'actors' | 'artist' | 'album' | 'title' | 'path' | 'dir';
+
+export interface FilterField {
+  field: FilterFieldType;
+  name: string;
 }
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
@@ -109,7 +111,7 @@ export class UiService {
       actors: createBlankArrayFilter(),
     };
     for (const field of this.stringFields) {
-      this.searchModel[field.field] = {};
+      (this.searchModel[field.field] as StringFilter | undefined) = {};
     }
     return this.searchModel;
   }
@@ -126,11 +128,11 @@ export class UiService {
       };
     }
 
-    if (this.searchModel.ratingMin >= 0) {
+    if (this.searchModel.ratingMin !== undefined && this.searchModel.ratingMin >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.min = this.searchModel.ratingMin;
     }
-    if (this.searchModel.ratingMax >= 0) {
+    if (this.searchModel.ratingMax !== undefined && this.searchModel.ratingMax >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.max = this.searchModel.ratingMax;
     }
@@ -169,7 +171,7 @@ export class UiService {
     }
 
     for (const field of this.arrayFields) {
-      const res = toArrayFilter(this.searchModel[field.field]);
+      const res = toArrayFilter(this.searchModel[field.field] as SearchArrayFilter);
       if (res) {
         constraints[field.field] = res;
       }
@@ -188,15 +190,16 @@ export class UiService {
     }
 
     for (const field of this.stringFields) {
-      if (this.searchModel[field.field]) {
-        if (this.searchModel[field.field].like) {
+      const filter = this.searchModel[field.field] as SearchStringFilter | undefined;
+      if (filter) {
+        if (filter.like) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {
-            likeAny: [this.searchModel[field.field].like],
+            likeAny: [filter.like],
           });
         }
-        if (this.searchModel[field.field].notLike) {
+        if (filter.notLike) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {
-            likeNone: [this.searchModel[field.field].notLike],
+            likeNone: [filter.notLike],
           });
         }
       }

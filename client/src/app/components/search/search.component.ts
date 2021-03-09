@@ -2,11 +2,11 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { CollectionService } from 'services/collection.service';
-import { UiService, SearchModel, SearchArrayFilter } from 'services/ui.service';
+import { UiService, SearchModel } from 'services/ui.service';
 import { PlaylistService } from 'services/playlist.service';
 import { Subscription } from 'rxjs';
-import { SubsetConstraints, ArrayFilter, Playlist } from '@vimtur/common';
-import { ListItem, toListItems, fromListItems } from 'app/shared/types';
+import { Playlist } from '@vimtur/common';
+import { ListItem, toListItems } from 'app/shared/types';
 
 @Component({
   selector: 'app-search',

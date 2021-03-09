@@ -53,7 +53,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       }),
     );
 
-    if (this.height && this.media) {
+    if (this.height && this.media?.metadata) {
       this.canvasHeight = this.height;
       this.canvasWidth = Math.ceil(
         (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
@@ -74,7 +74,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       }
       this.index++;
       const offset = this.index * this.config.transcoder.videoPreviewFps;
-      if (offset > this.media.metadata.length) {
+      if (!this.media.metadata.length || offset > this.media.metadata.length) {
         this.index = 0;
       }
       this.rendered = false;
@@ -164,12 +164,10 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       );
 
       const columns = Math.ceil(this.image.naturalWidth / mediaWidth);
-      const rows = Math.ceil(this.image.naturalHeight / mediaHeight);
 
       const column = this.index % columns;
       const row = (this.index - column) / columns;
 
-      const offset = this.offset || 0;
       const offsetX = column * mediaWidth;
       const offsetY = row * mediaHeight;
 

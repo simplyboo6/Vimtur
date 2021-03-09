@@ -1,7 +1,6 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CollectionService } from 'services/collection.service';
-import { UiService } from 'services/ui.service';
 import { ConfigService } from 'services/config.service';
 import { GalleryService } from 'services/gallery.service';
 
@@ -12,20 +11,17 @@ import { GalleryService } from 'services/gallery.service';
 })
 export class AppComponent implements OnInit {
   private collectionService: CollectionService;
-  private uiService: UiService;
   private route: ActivatedRoute;
   private galleryService: GalleryService;
   private configService: ConfigService;
 
   public constructor(
     collectionService: CollectionService,
-    uiService: UiService,
     galleryService: GalleryService,
     configService: ConfigService,
     route: ActivatedRoute,
   ) {
     this.collectionService = collectionService;
-    this.uiService = uiService;
     this.galleryService = galleryService;
     this.configService = configService;
     this.route = route;
