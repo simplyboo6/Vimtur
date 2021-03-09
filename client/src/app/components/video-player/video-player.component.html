@@ -1,5 +1,6 @@
 <div
-  (appResized)="onResized()"
+  appResized
+  (resized)="onResized()"
   (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
   [class.hidden]="!media || media.type !== 'video'"
   class="video-player"
@@ -72,7 +73,7 @@
       >
       </app-preview>
 
-      <span
+      <span class="small-response"
         >{{ formatTime(videoPlayerState.navigationTime || videoPlayerState.currentTime) }} /
         {{ formatTime(videoPlayerState.duration) }}</span
       >
@@ -109,7 +110,7 @@
         (touchstart)="updateVolume($event)"
         (touchmove)="updateVolume($event)"
         (touchend)="updateVolume($event)"
-        class="pointer volume"
+        class="pointer volume small-response"
       >
       </progress>
 

@@ -1,7 +1,7 @@
 <div class="container-lg" *ngIf="playlist; else loading">
   <div class="card">
     <div class="row">
-      <div class="col-md-auto">
+      <div class="col-md-auto flex-0">
         <button class="btn btn-link" (click)="unsetPlaylist()">
           <ng-container *ngTemplateOutlet="backIcon"></ng-container>
         </button>
@@ -14,33 +14,37 @@
     <div *ngFor="let lazyMedia of media; index as index" class="card" [cdkDragData]="media" cdkDrag>
       <app-lazy (loadStateChange)="updateVisibility(lazyMedia, $event)">
         <div class="row">
-          <div class="col-md-1 align btn-link" cdkDragHandle>
+          <div class="col-md-1 align btn-link lg-response" cdkDragHandle>
             <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
           </div>
-          <div class="col-md-1 align">
+          <div class="col-md-1 align lg-response">
             <ng-container *ngIf="lazyMedia.media">
               {{ index + 1 }}
             </ng-container>
           </div>
-          <div class="col-md-3 preview-column img-fluid img-thumbnail">
+          <div class="col-lg-3 preview-column img-fluid img-thumbnail">
             <img [src]="'/cache/thumbnails/' + lazyMedia.hash + '.png'" />
           </div>
-          <div class="col align">
-            <div class="flex-column">
-              <ng-container *ngIf="titles && titles[index]; else loadingMedia">
-                <strong>{{ titles[index].title }}</strong>
-                <span class="subtitle">{{ titles[index].subtitle }}</span>
-              </ng-container>
-              <ng-template #loadingMedia>
-                <strong>Loading...</strong>
-              </ng-template>
+          <div class="col-lg">
+            <div class="row height-100">
+              <div class="col align overflow-hidden">
+                <div class="flex-column">
+                  <ng-container *ngIf="titles && titles[index]; else loadingMedia">
+                    <strong>{{ titles[index].title }}</strong>
+                    <span class="subtitle">{{ titles[index].subtitle }}</span>
+                  </ng-container>
+                  <ng-template #loadingMedia>
+                    <strong>Loading...</strong>
+                  </ng-template>
+                </div>
+              </div>
+              <div *ngIf="actions && actions[index]" class="col-lg-1 align flex-end flex-0">
+                <app-actions
+                  [actions]="actions[index]"
+                  (actionSelected)="onMediaAction($event)"
+                ></app-actions>
+              </div>
             </div>
-          </div>
-          <div *ngIf="actions && actions[index]" class="col-md-1 align">
-            <app-actions
-              [actions]="actions[index]"
-              (actionSelected)="onMediaAction($event)"
-            ></app-actions>
           </div>
         </div>
       </app-lazy>

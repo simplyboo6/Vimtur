@@ -173,6 +173,7 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       const order = i;
       this.actions.push([
         { itemName: 'Remove From Playlist', id: media },
+        { itemName: 'Set As Thumbnail', id: media },
         ...(order > 0 ? [{ itemName: 'Move Up', id: media }] : []),
         ...(order < this.media.length - 1 ? [{ itemName: 'Move Down', id: media }] : []),
       ]);
@@ -207,6 +208,10 @@ export class PlaylistComponent implements OnInit, OnDestroy {
         if (current < this.media.length - 1) {
           this.updateIndex(current, current + 1);
         }
+        break;
+      }
+      case 'Set As Thumbnail': {
+        this.playlistService.updatePlaylist(this.playlist.id, { thumbnail: action.id.hash });
         break;
       }
       default:

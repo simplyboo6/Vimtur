@@ -98,12 +98,6 @@
       margin-top: -120px;
     }
 
-    @media (max-width: 600px) {
-      & > progress.volume {
-        display: none;
-      }
-    }
-
     & > span {
       white-space: nowrap;
       margin: auto;

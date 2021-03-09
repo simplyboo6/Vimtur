@@ -6,8 +6,7 @@ import { ResizeService } from 'services/resize.service';
   selector: '[appResized]',
 })
 export class ResizedDirective implements OnInit, OnDestroy {
-  @Output()
-  public readonly resized = new EventEmitter<void>();
+  @Output() public readonly resized = new EventEmitter<void>();
 
   private resizeService: ResizeService;
   private element: ElementRef;

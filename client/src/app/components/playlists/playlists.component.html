@@ -10,7 +10,7 @@
         <div class="col-md-8">
           <input
             [(ngModel)]="addPlaylistModel"
-            class="form-control"
+            class="form-control mb-1"
             type="text"
             placeholder="Enter new playlist name..."
             (keyup.enter)="addPlaylistModel && addPlaylist()"
@@ -43,13 +43,17 @@
             [media]="playlist.media"
           ></app-preview>
         </div>
-        <div class="col align">{{ playlist.name }}</div>
-        <div class="col-md-2 align">{{ playlist.size || 'No' }} items</div>
-        <div class="col-md-1 align">
-          <app-actions
-            [actions]="getActions(playlist)"
-            (actionSelected)="onAction($event)"
-          ></app-actions>
+        <div class="col">
+          <div class="row actions-row">
+            <div class="col align">{{ playlist.name }}</div>
+            <div class="col-sm-2 align">{{ playlist.size || 'No' }} items</div>
+            <div class="col-sm-1 align">
+              <app-actions
+                [actions]="getActions(playlist)"
+                (actionSelected)="onAction($event)"
+              ></app-actions>
+            </div>
+          </div>
         </div>
       </div>
     </div>
