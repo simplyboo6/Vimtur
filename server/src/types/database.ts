@@ -2,6 +2,11 @@ import {
   BaseMedia,
   Configuration,
   Media,
+  MediaPlaylist,
+  Playlist,
+  PlaylistCreate,
+  PlaylistEntryUpdate,
+  PlaylistUpdate,
   SubsetConstraints,
   SubsetFields,
   UpdateMedia,
@@ -10,7 +15,7 @@ import {
 export abstract class Database {
   // Media
   public abstract getMedia(hash: string): Promise<Media | undefined>;
-  public abstract saveMedia(hash: string, media: UpdateMedia): Promise<Media>;
+  public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
   public abstract saveBulkMedia(
     constraints: SubsetConstraints,
     media: UpdateMedia,
@@ -22,6 +27,15 @@ export abstract class Database {
   // Media - actors
   public abstract addMediaActor(hash: string, actor: string): Promise<void>;
   public abstract removeMediaActor(hash: string, actor: string): Promise<void>;
+  // Media - playlists
+  public abstract addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist>;
+  public abstract removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void>;
+  public abstract updateMediaPlaylistOrder(
+    hash: string,
+    playlistId: string,
+    update: PlaylistEntryUpdate,
+  ): Promise<void>;
+  // TODO Function to add subset to playlist
 
   // Searching
   public abstract subset(constraints: SubsetConstraints): Promise<string[]>;
@@ -39,6 +53,13 @@ export abstract class Database {
   public abstract addTag(name: string): Promise<void>;
   public abstract removeTag(name: string): Promise<void>;
   public abstract getTags(): Promise<string[]>;
+
+  // Playlists
+  public abstract addPlaylist(request: PlaylistCreate): Promise<Playlist>;
+  public abstract removePlaylist(id: string): Promise<void>;
+  public abstract updatePlaylist(id: string, request: PlaylistUpdate): Promise<void>;
+  public abstract getPlaylists(): Promise<Playlist[]>;
+  public abstract getPlaylist(id: string): Promise<Playlist | undefined>;
 
   // Config
   public abstract getUserConfig(): Promise<Configuration.Partial>;

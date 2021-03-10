@@ -1,12 +1,7 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
 import { ListItem, fromListItems } from 'app/shared/types';
-
-export interface FilterField {
-  field: string;
-  name: string;
-}
 
 export interface SearchArrayFilter {
   equalsAny: ListItem[];
@@ -15,8 +10,8 @@ export interface SearchArrayFilter {
 }
 
 export interface SearchStringFilter {
-  like?: string;
-  notLike?: string;
+  like: string;
+  notLike: string;
 }
 
 export interface SearchModel {
@@ -39,11 +34,23 @@ export interface SearchModel {
   tags: SearchArrayFilter;
   actors: SearchArrayFilter;
 
-  artist?: SearchStringFilter;
-  album?: SearchStringFilter;
-  title?: SearchStringFilter;
-  path?: SearchStringFilter;
-  dir?: SearchStringFilter;
+  artist: SearchStringFilter;
+  album: SearchStringFilter;
+  title: SearchStringFilter;
+  path: SearchStringFilter;
+  dir: SearchStringFilter;
+
+  playlist?: string;
+}
+
+export interface ArrayFilterField {
+  field: 'tags' | 'actors';
+  name: string;
+}
+
+export interface StringFilterField {
+  field: 'artist' | 'album' | 'title' | 'path' | 'dir';
+  name: string;
 }
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
@@ -68,6 +75,13 @@ function createBlankArrayFilter(): SearchArrayFilter {
   };
 }
 
+function createBlankStringFilter(): SearchStringFilter {
+  return {
+    like: '',
+    notLike: '',
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -76,12 +90,12 @@ export class UiService {
   // This is in here to allow the search parameters to persist after leaving the search page.
   public searchModel: SearchModel;
 
-  public readonly arrayFields: FilterField[] = [
+  public readonly arrayFields: ArrayFilterField[] = [
     { field: 'tags', name: 'Tags' },
     { field: 'actors', name: 'Actors' },
   ];
 
-  public readonly stringFields: FilterField[] = [
+  public readonly stringFields: StringFilterField[] = [
     { field: 'artist', name: 'Artist' },
     { field: 'album', name: 'Album' },
     { field: 'title', name: 'Title' },
@@ -105,10 +119,12 @@ export class UiService {
     this.searchModel = {
       tags: createBlankArrayFilter(),
       actors: createBlankArrayFilter(),
+      artist: createBlankStringFilter(),
+      album: createBlankStringFilter(),
+      title: createBlankStringFilter(),
+      path: createBlankStringFilter(),
+      dir: createBlankStringFilter(),
     };
-    for (const field of this.stringFields) {
-      this.searchModel[field.field] = {};
-    }
     return this.searchModel;
   }
 
@@ -124,11 +140,11 @@ export class UiService {
       };
     }
 
-    if (this.searchModel.ratingMin >= 0) {
+    if (this.searchModel.ratingMin !== undefined && this.searchModel.ratingMin >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.min = this.searchModel.ratingMin;
     }
-    if (this.searchModel.ratingMax >= 0) {
+    if (this.searchModel.ratingMax !== undefined && this.searchModel.ratingMax >= 0) {
       constraints.rating = constraints.rating || {};
       constraints.rating.max = this.searchModel.ratingMax;
     }
@@ -180,16 +196,22 @@ export class UiService {
       constraints.tags = Object.assign(constraints.tags || {}, { exists: false });
     }
 
+    if (this.searchModel.playlist) {
+      constraints.playlist = this.searchModel.playlist;
+      constraints.sortBy = 'order';
+    }
+
     for (const field of this.stringFields) {
-      if (this.searchModel[field.field]) {
-        if (this.searchModel[field.field].like) {
+      const filter = this.searchModel[field.field];
+      if (filter) {
+        if (filter.like) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {
-            likeAny: [this.searchModel[field.field].like],
+            likeAny: [filter.like],
           });
         }
-        if (this.searchModel[field.field].notLike) {
+        if (filter.notLike) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {
-            likeNone: [this.searchModel[field.field].notLike],
+            likeNone: [filter.notLike],
           });
         }
       }

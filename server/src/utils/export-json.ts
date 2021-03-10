@@ -1,13 +1,11 @@
 import { DumpFile } from '../types';
 import { setup as setupDb } from '../database';
-import Args from 'args';
 import Config from '../config';
 import FS from 'fs';
 import Util from 'util';
 
 async function main(): Promise<void> {
-  const flags = Args.parse(process.argv);
-  const file = flags.file;
+  const file = process.argv[2];
   if (!file) {
     throw new Error('Set file to output to');
   }

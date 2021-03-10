@@ -1,4 +1,4 @@
-import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, ReplaySubject, BehaviorSubject } from 'rxjs';
@@ -8,7 +8,7 @@ import { ConfirmationService } from 'app/services/confirmation.service';
 import { PromptService } from 'app/services/prompt.service';
 import { ConfigService } from './config.service';
 import { PRNG } from 'app/shared/prng';
-import { Alert } from 'app/shared/types';
+import { moveItemInArray } from '@angular/cdk/drag-drop';
 
 const HTTP_OPTIONS = {
   headers: new HttpHeaders({
@@ -16,17 +16,21 @@ const HTTP_OPTIONS = {
   }),
 };
 
-export interface CollectionMetadata {
-  index: number;
-  collection: string[];
-}
-
 export interface ClientSearchOptions {
   shuffle?: boolean;
   shuffleSeed?: number;
   preserve?: boolean;
   // If true only search if not initialised
   init?: boolean;
+  noRedirect?: boolean;
+}
+
+export interface CollectionMetadata {
+  index: number;
+  collection: string[];
+  constraints?: SubsetConstraints;
+  order?: boolean;
+  removed?: string[];
 }
 
 @Injectable({
@@ -35,14 +39,16 @@ export interface ClientSearchOptions {
 export class CollectionService {
   private httpClient: HttpClient;
   private alertService: AlertService;
-  private metadata: ReplaySubject<CollectionMetadata> = new ReplaySubject(1);
-  private searching: BehaviorSubject<boolean> = new BehaviorSubject(false);
+  private searching = new BehaviorSubject<boolean>(false);
   private collection?: string[];
+  private constraints?: SubsetConstraints;
   private index = 0;
   private confirmationService: ConfirmationService;
   private promptService: PromptService;
   private router: Router;
   private configService: ConfigService;
+  private metadata = new ReplaySubject<CollectionMetadata | undefined>(1);
+  private shuffled = false;
 
   public constructor(
     httpClient: HttpClient,
@@ -60,24 +66,32 @@ export class CollectionService {
     this.router = router;
   }
 
-  public getMetadata(): ReplaySubject<CollectionMetadata> {
-    return this.metadata;
-  }
-
   public isSearching(): Observable<boolean> {
     return this.searching;
   }
 
   public shuffle() {
+    if (!this.collection) {
+      return;
+    }
     this.index = 0;
     // Copy it so it's definitely picked up as changed by the gallery.
     this.collection = this.shuffleArray(this.collection).slice(0);
+    this.shuffled = true;
     this.update();
+  }
+
+  public getMetadata(): Observable<CollectionMetadata | undefined> {
+    return this.metadata;
   }
 
   public goto(location?: string | boolean, page?: boolean) {
     if (!this.configService.config) {
       console.warn('Cannot goto() before config is loaded');
+      return;
+    }
+    if (!this.collection) {
+      console.warn('Cannot goto() before collection loaded');
       return;
     }
 
@@ -128,18 +142,21 @@ export class CollectionService {
   }
 
   public deleteCurrent() {
-    if (!this.collection || this.index === undefined) {
+    const collection = this.collection;
+    const index = this.index;
+    if (!collection || index === undefined) {
       return;
     }
     this.confirmationService
       .confirm(`Are you sure you want to delete the current media?`, true)
       .then(result => {
         if (result) {
-          const hash = this.collection[this.index];
+          const hash = collection[index];
           console.debug(`Deleting ${hash}`);
           this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
             () => {
               this.removeFromSet([hash]);
+              this.update(this.constraints);
             },
             (err: HttpErrorResponse) => {
               console.error(err);
@@ -156,6 +173,13 @@ export class CollectionService {
       return;
     }
 
+    const anyRemoved = this.collection.find(hash => hashes.includes(hash));
+    if (!anyRemoved) {
+      console.log('None to remove', hashes);
+      return;
+    }
+    console.log('Removing', hashes);
+
     const currentHash = this.collection[this.index];
 
     // Replace the collection otherwise gallery doesnt update.
@@ -169,7 +193,33 @@ export class CollectionService {
     if (this.index >= this.collection.length) {
       this.index = 0;
     }
-    this.update();
+
+    this.metadata.next({
+      index: this.index,
+      collection: this.collection,
+      removed: hashes,
+    });
+  }
+
+  public isShuffled(): boolean {
+    return this.shuffled;
+  }
+
+  public updateOrder(previousIndex: number, currentIndex: number): void {
+    if (!this.collection) {
+      return;
+    }
+
+    moveItemInArray(this.collection, previousIndex, currentIndex);
+    this.collection = [...this.collection];
+    if (this.index === previousIndex) {
+      this.index = currentIndex;
+    }
+    this.metadata.next({
+      index: this.index,
+      collection: this.collection,
+      order: true,
+    });
   }
 
   public search(constraints: SubsetConstraints, options?: ClientSearchOptions) {
@@ -180,8 +230,8 @@ export class CollectionService {
     // Avoid weird artifacts when the gallery subscribes (so it doesn't get the old collection).
     this.index = 0;
     this.collection = undefined;
-    this.update();
     this.searching.next(true);
+    this.update();
 
     this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS).subscribe(
       res => {
@@ -208,16 +258,19 @@ export class CollectionService {
 
         const collection =
           options && options.shuffle ? this.shuffleArray(res, options && options.shuffleSeed) : res;
+        this.shuffled = Boolean(options && options.shuffle);
         this.index = options && options.preserve ? this.getNewIndex(collection) : 0;
         this.collection = collection;
+        this.constraints = constraints;
 
         console.log('search result', constraints, {
           index: this.index,
           size: this.collection.length,
         });
-        this.update();
-        // TODO Make this configurable
-        if (!options || (options && !options.init)) {
+
+        this.update(constraints);
+
+        if (!options || (options && !options.init && !options.noRedirect)) {
           this.router.navigate([constraints.hasClones ? '/clone-resolver' : '/gallery']);
         }
       },
@@ -230,6 +283,10 @@ export class CollectionService {
   }
 
   public offset(offset: number) {
+    if (!this.collection) {
+      console.warn('Cannot offset while collection not set');
+      return;
+    }
     this.index += offset;
     if (this.index < 0) {
       this.index = this.collection.length - 1;
@@ -239,10 +296,15 @@ export class CollectionService {
     this.update();
   }
 
-  private update() {
+  private update(constraints?: SubsetConstraints) {
+    if (!this.collection) {
+      console.warn('Cannot update metadata while collection not set');
+      return;
+    }
     this.metadata.next({
       index: this.index,
       collection: this.collection,
+      constraints,
     });
   }
 

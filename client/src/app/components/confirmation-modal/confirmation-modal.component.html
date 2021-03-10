@@ -8,7 +8,7 @@
       class="btn"
       [class.btn-danger]="!negative"
       [class.btn-primary]="negative"
-      (click)="modal.close(false)"
+      (click)="modal?.close(false)"
     >
       Cancel
     </button>
@@ -19,7 +19,7 @@
       class="btn"
       [class.btn-danger]="negative"
       [class.btn-primary]="!negative"
-      (click)="modal.close(true)"
+      (click)="modal?.close(true)"
     >
       Confirm
     </button>

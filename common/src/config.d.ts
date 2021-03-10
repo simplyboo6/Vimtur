@@ -59,6 +59,7 @@ export namespace Configuration {
     quickTagShowTitle?: boolean;
     quickTagShowPeople?: boolean;
     quickTagShowPath?: boolean;
+    quickTagShowPlaylists?: boolean;
 
     showTaskNotifications?: boolean;
     autoClearCompletedTasks?: boolean;

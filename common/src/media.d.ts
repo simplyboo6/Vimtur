@@ -26,6 +26,11 @@ export interface Metadata extends MetadataBase {
 
 export type MediaType = 'still' | 'gif' | 'video';
 
+export interface MediaPlaylist {
+  id: string;
+  order: number;
+}
+
 // As stored within the database.
 export interface BaseMedia {
   hash: string;
@@ -52,6 +57,11 @@ export interface BaseMedia {
   duplicateOf?: string;
   // Time the clone comparator was run for this media.
   cloneDate?: number;
+  playlists?: MediaPlaylist[];
+
+  // Augmented onto the response if searching for a playlist.
+  playlist?: string;
+  order?: number;
 }
 
 // Optional for updates

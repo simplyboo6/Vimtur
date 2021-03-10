@@ -1,25 +1,17 @@
-FROM simplyboo6/vimtur-base@sha256:f30cc178f6c9676449e08b0aee59e31c120eb5c467cb435c33fd2bedb230f593
+# Get the prebuilt binaries of the app
+ARG PRE_IMAGE
+FROM $PRE_IMAGE as build
 
-ARG VERSION_NAME=dev
+# Build the resultant image.
+FROM simplyboo6/vimtur-base@sha256:b3576d012e192fa39b97f0f5845cda875cef94d64a39dc97747fa32d035e14bd
 
-## Copy in source
-COPY ./ /app/
-RUN echo "$VERSION_NAME" > /app/version
+RUN apk add --no-cache jq
 
-## Build server
-RUN cd /usr/lib/node_modules/phash2 && yarn link
-RUN cd /app/server && \
-    yarn link phash2 && \
-    yarn --frozen-lockfile --network-timeout 1000000 && \
-    yarn lint && yarn build && \
-    yarn install --production --frozen-lockfile --network-timeout 1000000
-
-## Build client
-RUN cd /app/client && \
-    yarn --frozen-lockfile --network-timeout 1000000 && \
-    yarn lint && yarn build:prod && \
-    yarn install --production --frozen-lockfile --network-timeout 1000000
+COPY --from=build /app /app
 
 WORKDIR /app
+
+# Yarn doesn't have prune
+RUN (cd server/node_modules && rm -r $(cat ../package.json | jq -r '.devDependencies | keys | join(" ")'))
 
 ENTRYPOINT [ "/sbin/tini", "--", "node", "/app/server/dist/index.js" ]

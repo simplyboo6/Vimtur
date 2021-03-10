@@ -1,19 +1,21 @@
-import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, ReplaySubject, forkJoin } from 'rxjs';
+import { Observable, ReplaySubject, Subscription, forkJoin } from 'rxjs';
+import { take } from 'rxjs/operators';
 import {
   Media,
   UpdateMetadata,
   UpdateMedia,
   SubsetConstraints,
   MediaResolution,
+  MediaPlaylist,
 } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
-import { CollectionService } from 'app/services/collection.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
+import { CollectionService } from 'app/services/collection.service';
 import { Alert } from 'app/shared/types';
-import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ConfirmBulkUpdateComponent } from 'app/components/confirm-bulk-update/confirm-bulk-update.component';
 
 interface TagListItem {
@@ -26,6 +28,14 @@ const HTTP_OPTIONS = {
     'Content-Type': 'application/json',
   }),
 };
+
+export interface LazyMedia {
+  getter: () => Observable<Media>;
+  loadedAt?: number;
+  subscription?: Subscription;
+  media?: Media;
+  hash: string;
+}
 
 // TODO When the saving's done in here use the loading modal.
 @Injectable({
@@ -45,17 +55,17 @@ export class MediaService {
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
-    collectionService: CollectionService,
     tagService: TagService,
     actorService: ActorService,
     modalService: NgbModal,
+    collectionService: CollectionService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
-    this.collectionService = collectionService;
     this.tagService = tagService;
     this.actorService = actorService;
     this.modalService = modalService;
+    this.collectionService = collectionService;
 
     collectionService.getMetadata().subscribe(metadata => {
       this.setCurrent(
@@ -64,15 +74,57 @@ export class MediaService {
     });
   }
 
-  public loadMedia(hashes: string[]): Observable<Media[]> {
-    return forkJoin(
-      hashes.map(hash => {
-        return this.httpClient.get<Media>(`/api/images/${hash}`);
-      }),
+  public resolveClones(hash: string, request: MediaResolution) {
+    const alert: Alert = {
+      type: 'info',
+      message: 'Resolving clones...',
+    };
+
+    this.alertService.show(alert);
+
+    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
+      () => {
+        this.alertService.dismiss(alert);
+
+        if (this.media && this.media.hash === hash) {
+          this.media = {
+            ...this.media,
+            clones: [],
+          };
+          this.setCurrent(this.media);
+        }
+        this.collectionService.removeFromSet(request.aliases);
+        this.collectionService.goto(hash);
+        this.collectionService.offset(1);
+      },
+      (err: HttpErrorResponse) => {
+        this.alertService.dismiss(alert);
+        console.error('failed to resolve clones', request, err);
+        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
+      },
     );
   }
 
-  private setCurrent(hash?: string) {
+  public lazyLoadMedia(hashes: string[]): LazyMedia[] {
+    return hashes.map(hash => ({
+      getter: () => this.getMedia(hash),
+      hash,
+    }));
+  }
+
+  public loadMedia(hashes: string[]): Observable<Media[]> {
+    if (hashes.length > 20) {
+      console.warn('Not recommended to load that many media at once');
+    }
+    return forkJoin(hashes.map(hash => this.getMedia(hash)));
+  }
+
+  public setCurrent(hash?: string | Media) {
+    if (hash && typeof hash !== 'string') {
+      this.mediaReplay.next(hash);
+      return;
+    }
+
     if (!hash) {
       this.mediaReplay.next(undefined);
     } else {
@@ -98,6 +150,21 @@ export class MediaService {
     this.saveMedia(this.media.hash, { metadata });
   }
 
+  public updateOrderInPlaylist(hash: string, playlistId: string, newLocation: number): void {
+    this.httpClient
+      .patch(`/api/images/${hash}/playlists/${playlistId}`, { order: newLocation }, HTTP_OPTIONS)
+      .subscribe(
+        () => console.debug('location updated', hash, playlistId, newLocation),
+        err => {
+          console.error('failed to update location', hash, playlistId, newLocation, err);
+          this.alertService.show({
+            type: 'danger',
+            message: `Failed to update media order in playlist`,
+          });
+        },
+      );
+  }
+
   public addActor(value: string | TagListItem) {
     if (!this.media) {
       return;
@@ -105,6 +172,38 @@ export class MediaService {
 
     this.addActorRaw(this.media, value);
     this.mediaReplay.next(this.media);
+  }
+
+  public addPlaylist(hash: string, playlist: MediaPlaylist): void {
+    if (!this.media) {
+      return;
+    }
+    if (this.media.hash !== hash) {
+      return;
+    }
+
+    if (!this.media.playlists) {
+      this.media.playlists = [];
+    }
+
+    const exists = this.media.playlists.find(pl => pl.id === playlist.id);
+    if (!exists) {
+      this.media.playlists.push(playlist);
+    }
+  }
+
+  public removePlaylist(hash: string, id: string): void {
+    if (!this.media || !this.media.playlists) {
+      return;
+    }
+    if (this.media.hash !== hash) {
+      return;
+    }
+
+    const index = this.media.playlists.findIndex(pl => pl.id === id);
+    if (index >= 0) {
+      this.media.playlists.splice(index, 1);
+    }
   }
 
   public addActorRaw(media: Media, value: string | TagListItem) {
@@ -165,7 +264,7 @@ export class MediaService {
   }
 
   public setRating(rating: number) {
-    if (rating !== this.media.rating) {
+    if (this.media && rating !== this.media.rating) {
       this.media.rating = rating;
       this.mediaReplay.next(this.media);
       console.log('setRating', this.media.hash, rating);
@@ -240,39 +339,12 @@ export class MediaService {
     }
   }
 
-  public getMedia(): ReplaySubject<Media> {
-    return this.mediaReplay;
-  }
+  public getMedia(hash?: string): Observable<Media> {
+    if (!hash) {
+      return this.mediaReplay;
+    }
 
-  public resolveClones(hash: string, request: MediaResolution) {
-    const alert: Alert = {
-      type: 'info',
-      message: 'Resolving clones...',
-    };
-
-    this.alertService.show(alert);
-
-    this.httpClient.post<number>(`/api/images/${hash}/resolve`, request, HTTP_OPTIONS).subscribe(
-      () => {
-        this.alertService.dismiss(alert);
-
-        if (this.media && this.media.hash === hash) {
-          this.media = {
-            ...this.media,
-            clones: [],
-          };
-          this.mediaReplay.next(this.media);
-        }
-        this.collectionService.removeFromSet(request.aliases);
-        this.collectionService.goto(hash);
-        this.collectionService.offset(1);
-      },
-      (err: HttpErrorResponse) => {
-        this.alertService.dismiss(alert);
-        console.error('failed to resolve clones', request, err);
-        this.alertService.show({ type: 'danger', message: 'Failed to resolve clones' });
-      },
-    );
+    return this.httpClient.get<Media>(`/api/images/${hash}`).pipe(take(1));
   }
 
   public saveBulk(constraints: SubsetConstraints, update: UpdateMedia) {
@@ -310,6 +382,10 @@ export class MediaService {
             autoClose: 5000,
             message: `Applied update to ${count} media`,
           });
+          if (!this.media) {
+            console.warn('Failed to apply to loaded media, media not set');
+            return;
+          }
           if (update.metadata) {
             this.media.metadata = Object.assign(this.media.metadata || {}, update.metadata) as any;
           }

@@ -37,3 +37,21 @@ button:disabled {
 body {
   background-color: var(--vimtur-color-background-light) !important;
 }
+
+.small-response {
+  @media (max-width: 576px) {
+    display: none !important;
+  }
+}
+
+.lg-response {
+  @media (max-width: 992px) {
+    display: none !important;
+  }
+}
+
+.xxl-response {
+  @media (max-width: 1320px) {
+    display: none !important;
+  }
+}

@@ -3,7 +3,7 @@ services:
   vimtur:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.pre
     environment:
       - CACHE_PATH=/cache/
       - DATA_PATH=/data/

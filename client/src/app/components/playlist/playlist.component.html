@@ -1,0 +1,104 @@
+<div class="container-lg" *ngIf="playlist; else loading">
+  <div class="card">
+    <div class="row">
+      <div class="col-md-auto flex-0">
+        <button class="btn btn-link" (click)="unsetPlaylist()">
+          <ng-container *ngTemplateOutlet="backIcon"></ng-container>
+        </button>
+      </div>
+      <h4 class="col align">{{ playlist.name }}</h4>
+    </div>
+  </div>
+
+  <div *ngIf="media; else loading" cdkDropList (cdkDropListDropped)="dragAndDrop($event)">
+    <div *ngFor="let lazyMedia of media; index as index" class="card" [cdkDragData]="media" cdkDrag>
+      <app-lazy (loadStateChange)="updateVisibility(lazyMedia, $event)">
+        <div class="row">
+          <div class="col-md-1 align btn-link lg-response" cdkDragHandle>
+            <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
+          </div>
+          <div class="col-md-1 align lg-response">
+            <ng-container *ngIf="lazyMedia.media">
+              {{ index + 1 }}
+            </ng-container>
+          </div>
+          <div class="col-lg-3 preview-column img-fluid img-thumbnail">
+            <img [src]="'/cache/thumbnails/' + lazyMedia.hash + '.png'" />
+          </div>
+          <div class="col-lg">
+            <div class="row height-100">
+              <div class="col align overflow-hidden">
+                <div class="flex-column">
+                  <ng-container *ngIf="titles && titles[index]; else loadingMedia">
+                    <strong>{{ titles[index]?.title }}</strong>
+                    <span class="subtitle">{{ titles[index]?.subtitle }}</span>
+                  </ng-container>
+                  <ng-template #loadingMedia>
+                    <strong>Loading...</strong>
+                  </ng-template>
+                </div>
+              </div>
+              <div *ngIf="actions && actions[index]" class="col-lg-1 align flex-end flex-0">
+                <app-actions
+                  [actions]="actions[index]"
+                  (actionSelected)="onMediaAction($event)"
+                ></app-actions>
+              </div>
+            </div>
+          </div>
+        </div>
+      </app-lazy>
+    </div>
+  </div>
+</div>
+
+<ng-template #loading>
+  <app-loading></app-loading>
+</ng-template>
+
+<ng-template #dragHandle>
+  <svg class="drag-handle" fill="currentColor" viewBox="0 0 24 24">
+    <path
+      d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"
+    ></path>
+    <path d="M0 0h24v24H0z" fill="none"></path>
+  </svg>
+</ng-template>
+
+<!--
+<ng-template #thumbnailPlaceholder>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="photo-video"
+    class="thumbnail svg-inline--fa fa-photo-video fa-w-20"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 640 512"
+  >
+    <path
+      fill="currentColor"
+      d="M608 0H160a32 32 0 0 0-32 32v96h160V64h192v320h128a32 32 0 0 0 32-32V32a32 32 0 0 0-32-32zM232 103a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm352 208a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm-168 57H32a32 32 0 0 0-32 32v288a32 32 0 0 0 32 32h384a32 32 0 0 0 32-32V192a32 32 0 0 0-32-32zM96 224a32 32 0 1 1-32 32 32 32 0 0 1 32-32zm288 224H64v-32l64-64 32 32 128-128 96 96z"
+    ></path>
+  </svg>
+</ng-template>
+-->
+
+<ng-template #backIcon>
+  <svg
+    aria-hidden="true"
+    focusable="false"
+    data-prefix="fas"
+    data-icon="arrow-left"
+    class="back-icon svg-inline--fa fa-arrow-left fa-w-14"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 448 512"
+  >
+    <path
+      fill="currentColor"
+      d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"
+    ></path>
+  </svg>
+</ng-template>

@@ -19,6 +19,7 @@ import Config, { VERSION_NAME } from './config';
 import * as ActorRouter from './routes/actors';
 import * as ImageRouter from './routes/images';
 import * as InsightsRouter from './routes/insights';
+import * as PlaylistRouter from './routes/playlists';
 import * as TagRouter from './routes/tags';
 import * as TasksRouter from './routes/tasks';
 
@@ -36,6 +37,7 @@ async function createServer(db: Database): Promise<Server> {
   app.use('/api/actors', await ActorRouter.create(db));
   app.use('/api/insights', await InsightsRouter.create(db));
   app.use('/api/tasks', await TasksRouter.create(db, io));
+  app.use('/api/playlists', await PlaylistRouter.create(db));
 
   app.get('/api/version', (_req: Request, res: Response) => {
     res.send(VERSION_NAME);
@@ -73,6 +75,7 @@ async function createServer(db: Database): Promise<Server> {
       if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
         throw new Error('File is not inside cache directory');
       }
+      res.set('Cache-Control', 'public, max-age=604800, immutable');
       return res.sendFile(absPath);
     } catch (err) {
       return res.status(400).json({ message: err.message, type: 'config' });

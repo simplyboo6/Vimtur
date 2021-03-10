@@ -1,0 +1,52 @@
+.form-padded-input {
+  margin-top: 1rem;
+}
+
+.input-component {
+  margin-top: 1rem;
+}
+
+.align {
+  align-items: center;
+  display: flex;
+}
+
+.preview-column {
+  display: flex;
+  justify-content: center;
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+.thumbnail {
+  height: 120px;
+  opacity: 0.4;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.card {
+  margin: 0;
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+}
+
+.container-lg {
+  // Blank space so drop-down doesn't extend the page.
+  margin-bottom: 5rem;
+}
+
+.actions-row {
+  & > * {
+    flex: 0;
+    white-space: nowrap;
+  }
+  & > :first-child {
+    flex: 1;
+  }
+
+  height: 100%;
+  margin: auto 0;
+}

@@ -1,4 +1,5 @@
 <div
+  appResized
   (resized)="onResized()"
   (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
   [class.hidden]="!media || media.type !== 'video'"
@@ -72,7 +73,7 @@
       >
       </app-preview>
 
-      <span
+      <span class="small-response"
         >{{ formatTime(videoPlayerState.navigationTime || videoPlayerState.currentTime) }} /
         {{ formatTime(videoPlayerState.duration) }}</span
       >
@@ -109,7 +110,7 @@
         (touchstart)="updateVolume($event)"
         (touchmove)="updateVolume($event)"
         (touchend)="updateVolume($event)"
-        class="pointer volume"
+        class="pointer volume small-response"
       >
       </progress>
 
@@ -129,7 +130,7 @@
     (canplay)="videoPlayerState.loading = false"
     (seeking)="onSeeking()"
     (volumechange)="syncVolume()"
-    [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
+    [poster]="media && media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
     loop
     muted
     preload="none"

@@ -1,0 +1,78 @@
+.align {
+  align-items: center;
+  display: flex;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-0 {
+  flex: 0;
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+}
+
+h4.align {
+  margin: 0;
+}
+
+.preview-column {
+  display: flex;
+  justify-content: center;
+}
+
+.drag-handle {
+  width: 2rem;
+  cursor: pointer;
+}
+
+.thumbnail {
+  height: 120px;
+  opacity: 0.4;
+}
+
+.img-thumbnail {
+  margin-left: 1rem;
+  margin-right: 1rem;
+  width: 100%;
+  // If it's too wide.
+  overflow: hidden;
+
+  & > img {
+    width: auto;
+    height: 100%;
+    height: 120px;
+  }
+}
+
+.height-100 {
+  height: 100%;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.back-icon {
+  width: 2rem;
+}
+
+.card {
+  margin: 0;
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+}
+
+.container-lg {
+  // Blank space so drop-down doesn't extend the page.
+  margin-bottom: 5rem;
+}
+
+.flex-end {
+  justify-content: flex-end;
+}

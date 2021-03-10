@@ -1,11 +1,11 @@
-import { HttpClient, HttpResponse, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import * as IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
 import { QueuedTask, ListedTask, Scanner } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
-import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ListModalComponent } from 'app/components/list-modal/list-modal.component';
 
 const HTTP_OPTIONS = {
@@ -47,13 +47,13 @@ export class TasksService {
       this.reloadScanResults();
     });
 
-    this.socket.on('task-queue', queue => {
+    this.socket.on('task-queue', (queue: QueuedTask[]) => {
       console.debug('Task Queue', queue);
       this.completeTasks = queue.filter(task => task.complete);
       this.queue.next(queue);
     });
 
-    this.socket.on('task-start', data => {
+    this.socket.on('task-start', (data: QueuedTask) => {
       if (this.configService.config && this.configService.config.user.showTaskNotifications) {
         this.alertService.show({
           type: 'info',
@@ -63,7 +63,7 @@ export class TasksService {
       }
     });
 
-    this.socket.on('task-end', data => {
+    this.socket.on('task-end', (data: QueuedTask) => {
       if (data.error && !data.aborted) {
         this.alertService.show({
           type: 'warning',

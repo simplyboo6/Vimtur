@@ -7,3 +7,4 @@ export * from './src/scanner';
 export * from './src/insights';
 export * from './src/bulk';
 export * from './src/task';
+export * from './src/playlist';

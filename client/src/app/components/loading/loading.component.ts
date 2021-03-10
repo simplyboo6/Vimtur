@@ -11,8 +11,8 @@ import { CollectionService } from 'app/services/collection.service';
 export class LoadingComponent implements OnInit, OnDestroy {
   @Input() public title?: string;
   public collection?: string[];
+  public collectionService: CollectionService;
 
-  private collectionService: CollectionService;
   private subscriptions: Subscription[] = [];
 
   public constructor(collectionService: CollectionService) {
@@ -22,7 +22,7 @@ export class LoadingComponent implements OnInit, OnDestroy {
   public ngOnInit() {
     this.subscriptions.push(
       this.collectionService.getMetadata().subscribe(metadata => {
-        this.collection = metadata.collection;
+        this.collection = metadata && metadata.collection;
       }),
     );
   }

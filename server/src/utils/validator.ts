@@ -12,7 +12,7 @@ if (!require.main) {
 }
 
 const ROOT_DIR = Path.dirname(require.main.filename);
-const SCHEMA_PATH = `${ROOT_DIR}/schemas`;
+const SCHEMA_PATH = process.env['SCHEMA_PATH'] || `${ROOT_DIR}/schemas`;
 
 export class Validator {
   private validator: ValidateFunction;

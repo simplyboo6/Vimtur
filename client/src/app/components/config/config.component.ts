@@ -4,11 +4,9 @@ import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
-import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { Configuration, Scanner, QueuedTask, ListedTask } from '@vimtur/common';
-import { AlertService } from 'app/services/alert.service';
 import { TasksService } from 'app/services/tasks.service';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 
 @Component({
@@ -21,9 +19,6 @@ export class ConfigComponent implements OnInit, OnDestroy {
   private tagService: TagService;
   private actorService: ActorService;
   private confirmationService: ConfirmationService;
-  private alertService: AlertService;
-  private modalService: NgbModal;
-  private modalRef?: NgbModalRef;
 
   private subscriptions: Subscription[] = [];
 
@@ -45,6 +40,28 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public deleteActorModel?: string;
   public task?: ListedTask;
 
+  // This is awful but the actual type isn't exposed and isn't partial.
+  public readonly cacheQualitySettings: any = {
+    text: '+ Quality',
+    enableCheckAll: false,
+    enableSearchFilter: false,
+    addNewItemOnFilter: false,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly streamingQualitySettings: any = {
+    text: '+ Quality',
+    enableCheckAll: false,
+    enableSearchFilter: false,
+    addNewItemOnFilter: false,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly minTranscodeQualitySettings: any = {
+    text: 'Minimum Quality',
+    singleSelection: true,
+  };
+
   public readonly qualityList: ListItem<number>[] = [
     { id: 144, itemName: '144p' },
     { id: 240, itemName: '240p' },
@@ -59,24 +76,18 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public constructor(
     configService: ConfigService,
     tagService: TagService,
-    modalService: NgbModal,
     confirmationService: ConfirmationService,
-    alertService: AlertService,
     actorService: ActorService,
     tasksService: TasksService,
   ) {
     this.configService = configService;
     this.tagService = tagService;
-    this.modalService = modalService;
     this.confirmationService = confirmationService;
-    this.alertService = alertService;
     this.actorService = actorService;
     this.tasksService = tasksService;
   }
 
   public ngOnInit() {
-    console.debug('config.component ngOnInit');
-
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
@@ -162,6 +173,10 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public addQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
     console.log('addQuality', field, quality);
+    if (!this.config) {
+      return;
+    }
+
     if (!this.config.transcoder[field].includes(quality.id)) {
       this.config.transcoder[field].push(quality.id);
       this[field] = this.fromQualitiesToList(this.config.transcoder[field]);
@@ -173,6 +188,10 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public removeQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
     console.log('removeQuality', field, quality);
+    if (!this.config) {
+      return;
+    }
+
     const index = this.config.transcoder[field].indexOf(quality.id);
     if (index >= 0) {
       this.config.transcoder[field].splice(index, 1);
@@ -191,16 +210,23 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public addTag() {
     console.debug('addTag', this.addTagModel);
+    if (!this.addTagModel) {
+      return;
+    }
     this.tagService.addTag(this.addTagModel);
   }
 
   public deleteTag() {
+    const tag = this.deleteTagModel;
+    if (!tag) {
+      return;
+    }
     this.confirmationService
-      .confirm(`Are you sure you want to delete '${this.deleteTagModel}'?`)
+      .confirm(`Are you sure you want to delete '${tag}'?`)
       .then(result => {
         if (result) {
-          console.log('deleteTag', this.deleteTagModel);
-          this.tagService.deleteTag(this.deleteTagModel);
+          console.log('deleteTag', tag);
+          this.tagService.deleteTag(tag);
         }
       })
       .catch(err => console.warn('Tag deletion confirmation error', err));
@@ -208,16 +234,23 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public addActor() {
     console.debug('addActor', this.addActorModel);
+    if (!this.addActorModel) {
+      return;
+    }
     this.actorService.addActor(this.addActorModel);
   }
 
   public deleteActor() {
+    const actor = this.deleteActorModel;
+    if (!actor) {
+      return;
+    }
     this.confirmationService
-      .confirm(`Are you sure you want to delete '${this.deleteActorModel}'?`)
+      .confirm(`Are you sure you want to delete '${actor}'?`)
       .then(result => {
         if (result) {
-          console.log('deleteActor', this.deleteActorModel);
-          this.actorService.deleteActor(this.deleteActorModel);
+          console.log('deleteActor', actor);
+          this.actorService.deleteActor(actor);
         }
       })
       .catch(err => console.warn('Actor deletion confirmation error', err));
@@ -228,17 +261,17 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public updateConfig(field: string, value: string | number | boolean) {
-    const root: Configuration.Partial = {};
+    const root: Record<string, unknown> = {};
 
     // Convert the field.name syntax into a partial configuration object
-    let obj: object = root;
+    let obj: Record<string, unknown> = root;
     const fields = field.split('.');
     for (let i = 0; i < fields.length - 1; i++) {
       obj[fields[i]] = {};
-      obj = obj[fields[i]];
+      obj = (obj[fields[i]] as unknown) as Record<string, unknown>;
     }
     obj[fields[fields.length - 1]] = value;
 
-    this.configService.updateConfiguration(root);
+    this.configService.updateConfiguration((root as unknown) as Configuration.Partial);
   }
 }

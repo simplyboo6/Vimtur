@@ -2,8 +2,8 @@ import { Injectable, EventEmitter } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { Media } from '@vimtur/common';
 import { MediaService } from './media.service';
-import { CollectionService } from './collection.service';
 import { ConfigService } from './config.service';
+import { CollectionService, CollectionMetadata } from 'app/services/collection.service';
 
 export interface Page {
   current: number;
@@ -19,52 +19,23 @@ export class GalleryService {
   public readonly media: ReplaySubject<Media[] | undefined> = new ReplaySubject(1);
 
   private mediaService: MediaService;
-  private collectionService: CollectionService;
   private configService: ConfigService;
-  private pageNumber: number;
-  private pageCount: number;
+  private pageNumber = 0;
+  private pageCount = 0;
   private collection?: string[];
   private active = false;
   private updateRequired = false;
 
   public constructor(
     mediaService: MediaService,
-    collectionService: CollectionService,
     configService: ConfigService,
+    collectionService: CollectionService,
   ) {
     this.mediaService = mediaService;
-    this.collectionService = collectionService;
     this.configService = configService;
 
-    this.pageNumber = 0;
-    this.pageCount = 0;
-
-    this.collectionService.getMetadata().subscribe(metadata => {
-      if (!this.configService.config) {
-        console.warn('Cannot calculate pagination before config loaded');
-        return;
-      }
-      const pageSize = this.configService.config.user.galleryImageCount;
-
-      if (metadata.collection) {
-        const pageNumber = Math.floor(pageSize ? metadata.index / pageSize : 0);
-        const pageCount = Math.ceil(pageSize ? metadata.collection.length / pageSize : 1);
-
-        this.updateRequired =
-          this.updateRequired ||
-          this.pageNumber !== pageNumber ||
-          this.pageCount !== pageCount ||
-          this.collection !== metadata.collection;
-
-        this.collection = metadata.collection;
-        this.pageNumber = pageNumber;
-        this.pageCount = pageCount;
-      } else {
-        this.collection = undefined;
-        this.media.next(undefined);
-      }
-
-      this.update();
+    collectionService.getMetadata().subscribe(metadata => {
+      this.setMetadata(metadata);
     });
   }
 
@@ -114,6 +85,34 @@ export class GalleryService {
       this.pageNumber = 0;
     }
     this.updateRequired = true;
+    this.update();
+  }
+
+  private setMetadata(metadata?: CollectionMetadata): void {
+    if (!this.configService.config) {
+      console.warn('Cannot calculate pagination before config loaded');
+      return;
+    }
+    const pageSize = this.configService.config.user.galleryImageCount;
+
+    if (metadata && metadata.collection) {
+      const pageNumber = Math.floor(pageSize ? metadata.index / pageSize : 0);
+      const pageCount = Math.ceil(pageSize ? metadata.collection.length / pageSize : 1);
+
+      this.updateRequired =
+        this.updateRequired ||
+        this.pageNumber !== pageNumber ||
+        this.pageCount !== pageCount ||
+        this.collection !== metadata.collection;
+
+      this.collection = metadata.collection;
+      this.pageNumber = pageNumber;
+      this.pageCount = pageCount;
+    } else {
+      this.collection = undefined;
+      this.media.next(undefined);
+    }
+
     this.update();
   }
 }

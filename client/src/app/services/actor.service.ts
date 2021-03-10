@@ -1,7 +1,6 @@
-import { HttpClient, HttpResponse, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
-import { Media } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 
 const HTTP_OPTIONS = {

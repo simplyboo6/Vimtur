@@ -1,4 +1,3 @@
-import Args from 'args';
 import DeepMerge from 'deepmerge';
 import FS from 'fs';
 import Path from 'path';
@@ -7,10 +6,6 @@ import StripJsonComments from 'strip-json-comments';
 
 import { Configuration } from './types';
 import { Validator } from './utils/validator';
-
-Args.option('config', 'The config file to to overlay')
-  .option('file', 'The json file to import or export to')
-  .option('stdin', 'Use this option to read the JSON file from stdin');
 
 function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
   if (process.env[env]) {
@@ -100,6 +95,7 @@ const DEFAULTS: any = {
     quickTagShowTitle: true,
     quickTagShowPeople: true,
     quickTagShowPath: true,
+    quickTagShowPlaylists: true,
 
     showTaskNotifications: false,
     autoClearCompletedTasks: true,
@@ -142,8 +138,7 @@ class Config {
   }
 
   private static getUserLayer(): Configuration.Partial {
-    const flags = Args.parse(process.argv);
-    const path = flags.config || process.env['CONFIG_PATH'];
+    const path = process.env['CONFIG_PATH'];
     if (!path) {
       // The user layer is optional.
       return {};

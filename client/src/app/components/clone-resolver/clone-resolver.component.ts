@@ -4,6 +4,7 @@ import { AlertService } from 'services/alert.service';
 import { CollectionService } from 'services/collection.service';
 import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
+import { getTitle, getSubtitle } from 'app/shared/media-formatting';
 
 interface CloneMedia extends Media {
   isClone?: boolean;
@@ -15,6 +16,8 @@ interface CloneMedia extends Media {
   styleUrls: ['./clone-resolver.component.scss'],
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {
+  public readonly getTitle = getTitle;
+  public readonly getSubtitle = getSubtitle;
   public media?: Media;
   public clones?: CloneMedia[];
   public collectionService: CollectionService;
@@ -63,6 +66,9 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
 
     // Merge them and organise them by resolution greater to smallest
     const all = [...this.clones, this.media].sort((a, b) => {
+      if (!b.metadata || !a.metadata) {
+        return 0;
+      }
       return b.metadata.width * b.metadata.height - a.metadata.width * a.metadata.height;
     });
     console.debug('Autoresolve: highest resolution', all[0]);
@@ -82,7 +88,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
     const ratingList = all
       .map(m => m.rating)
       .filter(r => Boolean(r))
-      .sort((a, b) => b - a);
+      .sort((a, b) => (b || 0) - (a || 0));
     const rating = ratingList[0];
     console.debug('Autoresolve: rating', rating);
 
@@ -172,36 +178,6 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
         console.error('Failed to load clones', err);
       },
     );
-  }
-
-  private padTime(length: number): string {
-    return length < 10 ? `0${length}` : `${length}`;
-  }
-
-  private formatLength(length: number): string {
-    const hours = Math.floor(length / 3600);
-    length -= hours * 3600;
-    const minutes = Math.floor(length / 60);
-    length -= minutes * 60;
-    const seconds = Math.floor(length);
-    return `${this.padTime(hours)}:${this.padTime(minutes)}:${this.padTime(seconds)}`;
-  }
-
-  public getTitle(media: Media): string {
-    const titles: string[] = [];
-    if (media.metadata.album) {
-      titles.push(media.metadata.album);
-    }
-    if (media.metadata.title) {
-      titles.push(media.metadata.title);
-    }
-    const title = titles.join(' - ');
-    return title || media.path.split('/').slice(-1)[0];
-  }
-
-  public getSubtitle(media: Media): string {
-    const rating = media.rating ? media.rating + ' / 5' : 'Unrated';
-    return `${media.tags.length} tags | ${media.actors.length} people | ${media.metadata.width}x${media.metadata.height} | ${rating}`;
   }
 
   public getHoverText(media: Media): string {

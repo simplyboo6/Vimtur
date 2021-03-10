@@ -7,6 +7,9 @@ steps:
     privileged: true
     settings:
       build_type: docker
+      release_type: manual
+      release_package_master: false
+      docker_squash: true
       docker_auth:
         from_secret: hub_auth
 

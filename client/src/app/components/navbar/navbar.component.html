@@ -4,7 +4,7 @@
 >
   <div
     class="btn-group btn-group-toggle nav-button-group d-none d-md-block"
-    *ngIf="getRoute() === '/viewer'"
+    *ngIf="getRoute() === '/viewer'; else emptyNav"
     title="Toggle Tags"
   >
     <label class="btn-primary" ngbButtonLabel>
@@ -32,7 +32,10 @@
     </label>
   </div>
   <!-- Empty button group to keep the hamburger menu on the right on mobile -->
-  <div class="btn-group"></div>
+  <ng-template #emptyNav>
+    <div class="btn-group"></div>
+  </ng-template>
+
   <ng-container
     *ngIf="
       getRoute() === '/viewer' ||
@@ -216,6 +219,9 @@
       <li class="nav-item" [class.active]="isActive('/search')">
         <a class="nav-link" routerLink="/search" (click)="isExpanded = false">Search</a>
       </li>
+      <li class="nav-item" [class.active]="isActive('/playlists')">
+        <a class="nav-link" routerLink="/playlists" (click)="isExpanded = false">Playlists</a>
+      </li>
       <li class="nav-item" [class.active]="isActive('/config')">
         <a class="nav-link" routerLink="/config" (click)="isExpanded = false">Config</a>
       </li>
@@ -224,7 +230,7 @@
       </li>
     </ul>
 
-    <form class="form-inline my-2 my-lg-0" (ngSubmit)="search()">
+    <form [class.xxl-response]="!isExpanded" class="form-inline my-2 my-lg-0" (ngSubmit)="search()">
       <input
         class="form-control mr-sm-2"
         type="text"

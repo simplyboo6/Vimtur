@@ -5,8 +5,6 @@ import { ConfigService } from 'services/config.service';
 import { Subscription } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 
-declare const Hls;
-
 @Component({
   selector: 'app-viewer',
   templateUrl: './viewer.component.html',
