@@ -15,7 +15,7 @@
   </ng-template>
 
   <ng-template #showMediaCloneCount>
-    <ng-container *ngIf="media.clones.length === 0; else showLoadingClones">
+    <ng-container *ngIf="media.clones?.length === 0; else showLoadingClones">
       <div class="right-panel">
         This media doesn't have any clones.
       </div>

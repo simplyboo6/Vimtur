@@ -130,7 +130,7 @@
     (canplay)="videoPlayerState.loading = false"
     (seeking)="onSeeking()"
     (volumechange)="syncVolume()"
-    [poster]="media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
+    [poster]="media && media.type === 'video' ? '/cache/thumbnails/' + media.hash + '.png' : '#'"
     loop
     muted
     preload="none"

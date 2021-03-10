@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
-import { ArrayFilter, SubsetConstraints, StringFilter } from '@vimtur/common';
+import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
 import { ListItem, fromListItems } from 'app/shared/types';
 
 export interface SearchArrayFilter {
@@ -10,8 +10,8 @@ export interface SearchArrayFilter {
 }
 
 export interface SearchStringFilter {
-  like?: string;
-  notLike?: string;
+  like: string;
+  notLike: string;
 }
 
 export interface SearchModel {
@@ -34,19 +34,22 @@ export interface SearchModel {
   tags: SearchArrayFilter;
   actors: SearchArrayFilter;
 
-  artist?: SearchStringFilter;
-  album?: SearchStringFilter;
-  title?: SearchStringFilter;
-  path?: SearchStringFilter;
-  dir?: SearchStringFilter;
+  artist: SearchStringFilter;
+  album: SearchStringFilter;
+  title: SearchStringFilter;
+  path: SearchStringFilter;
+  dir: SearchStringFilter;
 
   playlist?: string;
 }
 
-type FilterFieldType = 'tags' | 'actors' | 'artist' | 'album' | 'title' | 'path' | 'dir';
+export interface ArrayFilterField {
+  field: 'tags' | 'actors';
+  name: string;
+}
 
-export interface FilterField {
-  field: FilterFieldType;
+export interface StringFilterField {
+  field: 'artist' | 'album' | 'title' | 'path' | 'dir';
   name: string;
 }
 
@@ -72,6 +75,13 @@ function createBlankArrayFilter(): SearchArrayFilter {
   };
 }
 
+function createBlankStringFilter(): SearchStringFilter {
+  return {
+    like: '',
+    notLike: '',
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -80,12 +90,12 @@ export class UiService {
   // This is in here to allow the search parameters to persist after leaving the search page.
   public searchModel: SearchModel;
 
-  public readonly arrayFields: FilterField[] = [
+  public readonly arrayFields: ArrayFilterField[] = [
     { field: 'tags', name: 'Tags' },
     { field: 'actors', name: 'Actors' },
   ];
 
-  public readonly stringFields: FilterField[] = [
+  public readonly stringFields: StringFilterField[] = [
     { field: 'artist', name: 'Artist' },
     { field: 'album', name: 'Album' },
     { field: 'title', name: 'Title' },
@@ -109,10 +119,12 @@ export class UiService {
     this.searchModel = {
       tags: createBlankArrayFilter(),
       actors: createBlankArrayFilter(),
+      artist: createBlankStringFilter(),
+      album: createBlankStringFilter(),
+      title: createBlankStringFilter(),
+      path: createBlankStringFilter(),
+      dir: createBlankStringFilter(),
     };
-    for (const field of this.stringFields) {
-      (this.searchModel[field.field] as StringFilter | undefined) = {};
-    }
     return this.searchModel;
   }
 
@@ -171,7 +183,7 @@ export class UiService {
     }
 
     for (const field of this.arrayFields) {
-      const res = toArrayFilter(this.searchModel[field.field] as SearchArrayFilter);
+      const res = toArrayFilter(this.searchModel[field.field]);
       if (res) {
         constraints[field.field] = res;
       }
@@ -190,7 +202,7 @@ export class UiService {
     }
 
     for (const field of this.stringFields) {
-      const filter = this.searchModel[field.field] as SearchStringFilter | undefined;
+      const filter = this.searchModel[field.field];
       if (filter) {
         if (filter.like) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {

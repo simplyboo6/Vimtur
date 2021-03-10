@@ -28,10 +28,10 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
   public playlists?: PreviewPlaylist[];
   public currentPlaylist?: PreviewPlaylist;
   public addPlaylistModel?: string;
+  public uiService: UiService;
 
   private confirmationService: ConfirmationService;
   private mediaService: MediaService;
-  private uiService: UiService;
   private collectionService: CollectionService;
   private playlistService: PlaylistService;
   private subscriptions: Subscription[] = [];

@@ -108,7 +108,7 @@
           <div class="form-group">
             <label>Sort By</label>
             <select
-              [disabled]="searchModel.playlist"
+              [disabled]="!!searchModel.playlist"
               class="custom-select"
               [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy"
             >
@@ -220,13 +220,11 @@
             <h3>{{ field.name }}</h3>
             <div class="form-group">
               <label>All</label>
+              <!-- Shouldn't ever actually be evaluated as an empty array because
+              it's checked above. The compiler has trouble spotting that though. -->
               <angular2-multiselect
-                [data]="this[field.field]"
-                [settings]="{
-                  enableCheckAll: true,
-                  enableSearchFilter: true,
-                  enableFilterSelectAll: true
-                }"
+                [data]="this[field.field] || []"
+                [settings]="tagSettings"
                 [(ngModel)]="searchModel[field.field].equalsAll"
                 (onDeSelectAll)="searchModel[field.field].equalsAll = []"
               >
@@ -236,12 +234,8 @@
             <div class="form-group">
               <label>Any</label>
               <angular2-multiselect
-                [data]="this[field.field]"
-                [settings]="{
-                  enableCheckAll: true,
-                  enableSearchFilter: true,
-                  enableFilterSelectAll: true
-                }"
+                [data]="this[field.field] || []"
+                [settings]="tagSettings"
                 [(ngModel)]="searchModel[field.field].equalsAny"
                 (onDeSelectAll)="searchModel[field.field].equalsAny = []"
               >
@@ -251,12 +245,8 @@
             <div class="form-group">
               <label>None</label>
               <angular2-multiselect
-                [data]="this[field.field]"
-                [settings]="{
-                  enableCheckAll: true,
-                  enableSearchFilter: true,
-                  enableFilterSelectAll: true
-                }"
+                [data]="this[field.field] || []"
+                [settings]="tagSettings"
                 [(ngModel)]="searchModel[field.field].equalsNone"
                 (onDeSelectAll)="searchModel[field.field].equalsNone = []"
               >

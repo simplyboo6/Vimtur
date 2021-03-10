@@ -40,6 +40,28 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public deleteActorModel?: string;
   public task?: ListedTask;
 
+  // This is awful but the actual type isn't exposed and isn't partial.
+  public readonly cacheQualitySettings: any = {
+    text: '+ Quality',
+    enableCheckAll: false,
+    enableSearchFilter: false,
+    addNewItemOnFilter: false,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly streamingQualitySettings: any = {
+    text: '+ Quality',
+    enableCheckAll: false,
+    enableSearchFilter: false,
+    addNewItemOnFilter: false,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly minTranscodeQualitySettings: any = {
+    text: 'Minimum Quality',
+    singleSelection: true,
+  };
+
   public readonly qualityList: ListItem<number>[] = [
     { id: 144, itemName: '144p' },
     { id: 240, itemName: '240p' },
@@ -66,8 +88,6 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit() {
-    console.debug('config.component ngOnInit');
-
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;

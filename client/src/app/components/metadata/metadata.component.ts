@@ -4,7 +4,7 @@ import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { UiService } from 'services/ui.service';
 import { Subscription } from 'rxjs';
-import { Media, UpdateMedia, Playlist } from '@vimtur/common';
+import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
 
@@ -12,6 +12,13 @@ interface MediaModel extends UpdateMedia {
   tags?: ListItem[];
   actors?: ListItem[];
   playlists?: ListItem[];
+  metadata: UpdateMetadata;
+  rating: number;
+}
+
+interface MetadataField {
+  name: 'artist' | 'album' | 'title';
+  text: string;
 }
 
 @Component({
@@ -31,11 +38,36 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public playlistService: PlaylistService;
   public currentPlaylist?: Playlist;
 
-  public readonly metadataFields = [
+  public readonly metadataFields: MetadataField[] = [
     { name: 'artist', text: 'Artist' },
     { name: 'album', text: 'Album' },
     { name: 'title', text: 'Title' },
   ];
+
+  // angular2 multiselect doesn't export types and they're not partial
+  public readonly tagsSettings: any = {
+    text: '+ Tag',
+    enableCheckAll: false,
+    enableSearchFilter: true,
+    addNewItemOnFilter: true,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly actorsSettings: any = {
+    text: '+ Actor',
+    enableCheckAll: false,
+    enableSearchFilter: true,
+    addNewItemOnFilter: true,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly playlistsSettings: any = {
+    text: '+ Playlist',
+    enableCheckAll: false,
+    enableSearchFilter: true,
+    addNewItemOnFilter: true,
+    enableFilterSelectAll: false,
+  };
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private uiService: UiService;
@@ -61,7 +93,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.media = media;
         this.mediaModel = this.media
           ? {
-              rating: media.rating,
+              rating: media.rating || 0,
               tags: toListItems(media.tags),
               actors: toListItems(media.actors),
               playlists: this.updatePlaylistsModel(),
@@ -71,7 +103,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
                 title: media.metadata?.title || '',
               },
             }
-          : {};
+          : undefined;
       }),
     );
 

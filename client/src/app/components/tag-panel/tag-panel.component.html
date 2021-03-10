@@ -1,7 +1,10 @@
 <div class="main-panel">
   <div class="card tag-panel margin-bottom">
     <div class="card-header card-small tag-header">Tags</div>
-    <div *ngIf="tagsModel && media; else loading" class="card-body card-small tag-list">
+    <div
+      *ngIf="tagsModel && media && columnIndexes && columnTags; else loading"
+      class="card-body card-small tag-list"
+    >
       <div class="tag-list-column" *ngFor="let i of columnIndexes">
         <div
           class="tag custom-control custom-checkbox input-component"
@@ -35,7 +38,7 @@
           [(rate)]="ratingModel"
           (rateChange)="mediaService.setRating(ratingModel)"
           [readonly]="!media"
-          max="5"
+          [max]="5"
           [tabindex]="-1"
           #ratingElement
         ></ngb-rating>
@@ -45,7 +48,7 @@
       </ng-template>
     </div>
 
-    <div *ngIf="config.user.quickTagShowArtist" class="card margin-bottom">
+    <div *ngIf="config.user.quickTagShowArtist && mediaMetadataUpdate" class="card margin-bottom">
       <div class="card-header card-small">Artist</div>
       <div class="card-body card-small">
         <input
@@ -59,14 +62,16 @@
         <button
           (click)="saveMetadata('artist')"
           class="btn btn-primary btn-block"
-          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.artist === media.metadata.artist"
+          [disabled]="
+            !mediaMetadataUpdate || mediaMetadataUpdate.artist === (media.metadata?.artist || '')
+          "
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
       </div>
     </div>
 
-    <div *ngIf="config.user.quickTagShowAlbum" class="card margin-bottom">
+    <div *ngIf="config.user.quickTagShowAlbum && mediaMetadataUpdate" class="card margin-bottom">
       <div class="card-header card-small">Album</div>
       <div class="card-body card-small">
         <input
@@ -80,14 +85,16 @@
         <button
           (click)="saveMetadata('album')"
           class="btn btn-primary btn-block"
-          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.album === media.metadata.album"
+          [disabled]="
+            !mediaMetadataUpdate || mediaMetadataUpdate.album === (media.metadata?.album || '')
+          "
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
       </div>
     </div>
 
-    <div *ngIf="config.user.quickTagShowTitle" class="card margin-bottom">
+    <div *ngIf="config.user.quickTagShowTitle && mediaMetadataUpdate" class="card margin-bottom">
       <div class="card-header card-small">Title</div>
       <div class="card-body card-small">
         <input
@@ -101,7 +108,9 @@
         <button
           (click)="saveMetadata('title')"
           class="btn btn-primary btn-block"
-          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.title === media.metadata.title"
+          [disabled]="
+            !mediaMetadataUpdate || mediaMetadataUpdate.title === (media.metadata?.title || '')
+          "
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
@@ -114,13 +123,7 @@
         <angular2-multiselect
           *ngIf="actors"
           [data]="actors"
-          [settings]="{
-            text: '+ People',
-            enableCheckAll: false,
-            enableSearchFilter: true,
-            addNewItemOnFilter: false,
-            enableFilterSelectAll: false
-          }"
+          [settings]="actorsSettings"
           [ngModel]="actorsModel"
           (onAddFilterNewItem)="actorService.addActor($event)"
           (onSelect)="mediaService.addActor($event.id)"
@@ -136,13 +139,7 @@
         <angular2-multiselect
           *ngIf="playlists"
           [data]="playlists"
-          [settings]="{
-            text: '+ Playlists',
-            enableCheckAll: false,
-            enableSearchFilter: true,
-            addNewItemOnFilter: true,
-            enableFilterSelectAll: false
-          }"
+          [settings]="playlistsSettings"
           [ngModel]="playlistsModel"
           (onAddFilterNewItem)="playlistService.addPlaylist({ name: $event, hashes: [media.hash] })"
           (onSelect)="playlistService.addMediaToPlaylist($event.id, media.hash)"

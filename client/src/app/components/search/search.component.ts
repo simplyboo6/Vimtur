@@ -14,18 +14,24 @@ import { ListItem, toListItems } from 'app/shared/types';
   styleUrls: ['./search.component.scss'],
 })
 export class SearchComponent implements OnInit, OnDestroy {
-  private tagService: TagService;
-  private actorService: ActorService;
-  private collectionService: CollectionService;
-  private playlistService: PlaylistService;
+  private readonly tagService: TagService;
+  private readonly actorService: ActorService;
+  private readonly playlistService: PlaylistService;
 
   private subscriptions: Subscription[] = [];
 
+  public readonly collectionService: CollectionService;
   public tags?: ListItem[];
   public actors?: ListItem[];
   public playlists?: Playlist[];
   public searchModel: SearchModel;
   public uiService: UiService;
+
+  public readonly tagSettings: any = {
+    enableCheckAll: true,
+    enableSearchFilter: true,
+    enableFilterSelectAll: true,
+  };
 
   public constructor(
     tagService: TagService,

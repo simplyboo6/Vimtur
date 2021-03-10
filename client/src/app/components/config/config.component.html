@@ -456,13 +456,7 @@
       <angular2-multiselect
         id="config-transcoder-cache-qualities"
         [data]="qualityList"
-        [settings]="{
-          text: '+ Quality',
-          enableCheckAll: false,
-          enableSearchFilter: false,
-          addNewItemOnFilter: false,
-          enableFilterSelectAll: false
-        }"
+        [settings]="cacheQualitySettings"
         [ngModel]="cacheQualities"
         (onSelect)="addQuality('cacheQualities', $event)"
         (onDeSelect)="removeQuality('cacheQualities', $event)"
@@ -480,13 +474,7 @@
       <angular2-multiselect
         id="config-transcoder-stream-qualities"
         [data]="qualityList"
-        [settings]="{
-          text: '+ Quality',
-          enableCheckAll: false,
-          enableSearchFilter: false,
-          addNewItemOnFilter: false,
-          enableFilterSelectAll: false
-        }"
+        [settings]="streamingQualitySettings"
         [ngModel]="streamQualities"
         (onSelect)="addQuality('streamQualities', $event)"
         (onDeSelect)="removeQuality('streamQualities', $event)"
@@ -505,10 +493,7 @@
       <angular2-multiselect
         id="config-transcoder-min-quality"
         [data]="qualityList"
-        [settings]="{
-          text: 'Minimum Quality',
-          singleSelection: true
-        }"
+        [settings]="minTranscodeQualitySettings"
         [ngModel]="minQuality"
         (onSelect)="updateConfig('transcoder.minQuality', $event.id)"
       >

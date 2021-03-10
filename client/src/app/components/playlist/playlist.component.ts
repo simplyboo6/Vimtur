@@ -117,8 +117,8 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       lazyMedia.subscription = lazyMedia.getter().subscribe(media => {
         lazyMedia.media = media;
         lazyMedia.loadedAt = Date.now();
-        const index = this.media?.findIndex(m => m === lazyMedia) || -1;
-        if (index >= 0 && this.titles) {
+        const index = this.media?.findIndex(m => m === lazyMedia);
+        if (index !== undefined && index >= 0 && this.titles) {
           this.titles[index] = {
             title: getTitle(media),
             subtitle: getSubtitle(media),

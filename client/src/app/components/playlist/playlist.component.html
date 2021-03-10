@@ -30,8 +30,8 @@
               <div class="col align overflow-hidden">
                 <div class="flex-column">
                   <ng-container *ngIf="titles && titles[index]; else loadingMedia">
-                    <strong>{{ titles[index].title }}</strong>
-                    <span class="subtitle">{{ titles[index].subtitle }}</span>
+                    <strong>{{ titles[index]?.title }}</strong>
+                    <span class="subtitle">{{ titles[index]?.subtitle }}</span>
                   </ng-container>
                   <ng-template #loadingMedia>
                     <strong>Loading...</strong>

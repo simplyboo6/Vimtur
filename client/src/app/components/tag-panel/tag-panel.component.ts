@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, AfterViewChecked } from '@angular/core';
-import { Media, Configuration, UpdateMetadata, Playlist } from '@vimtur/common';
+import { Media, Configuration, Playlist } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
 import { PlaylistService } from 'services/playlist.service';
@@ -10,6 +10,12 @@ import { ListItem, toListItems } from 'app/shared/types';
 
 const DEFAULT_COLUMN_COUNT = 1;
 
+interface MetadataModel {
+  artist: string;
+  album: string;
+  title: string;
+}
+
 @Component({
   selector: 'app-tag-panel',
   templateUrl: './tag-panel.component.html',
@@ -17,7 +23,7 @@ const DEFAULT_COLUMN_COUNT = 1;
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public tagsModel?: Record<string, boolean>;
-  public ratingModel?: number;
+  public ratingModel = 0;
   public actorsModel?: ListItem[];
   public playlistsModel?: ListItem[];
   public media?: Media;
@@ -28,12 +34,29 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public visible = false;
   public mediaService: MediaService;
   public config?: Configuration.Main;
-  public mediaMetadataUpdate?: UpdateMetadata;
+  public mediaMetadataUpdate?: MetadataModel;
   public actorService: ActorService;
   public playlistService: PlaylistService;
   public currentPlaylist?: Playlist;
   public columnIndexes?: number[];
   public columnTags?: string[][];
+
+  // angular2 multiselect doesn't export types and they're not partial
+  public readonly actorsSettings: any = {
+    text: '+ Actor',
+    enableCheckAll: false,
+    enableSearchFilter: true,
+    addNewItemOnFilter: true,
+    enableFilterSelectAll: false,
+  };
+
+  public readonly playlistsSettings: any = {
+    text: '+ Playlist',
+    enableCheckAll: false,
+    enableSearchFilter: true,
+    addNewItemOnFilter: true,
+    enableFilterSelectAll: false,
+  };
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
@@ -67,24 +90,25 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.media = media;
         this.tagsModel = undefined;
         this.actorsModel = undefined;
-        this.ratingModel = undefined;
+        this.ratingModel = 0;
         this.playlistsModel = undefined;
 
         if (this.media) {
           // Map undefined to empty strings to better do change detection.
+          this.mediaMetadataUpdate = {
+            artist: media.metadata?.artist || '',
+            album: media.metadata?.album || '',
+            title: media.metadata?.title || '',
+          };
           if (media.metadata) {
-            media.metadata.artist = media.metadata.artist || '';
-            media.metadata.album = media.metadata.album || '';
-            media.metadata.title = media.metadata.title || '';
+            media.metadata = { ...media.metadata, ...this.mediaMetadataUpdate };
           }
-
-          this.mediaMetadataUpdate = { ...media.metadata };
 
           this.tagsModel = {};
           for (const tag of media.tags) {
             this.tagsModel[tag] = true;
           }
-          this.ratingModel = media.rating;
+          this.ratingModel = media.rating || 0;
           // Copy it since it'll be modified.
           this.actorsModel = toListItems(media.actors);
 
