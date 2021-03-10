@@ -25,7 +25,7 @@
     "proper-job": "^1.4.6",
     "rimraf": "^3.0.0",
     "saslprep": "^1.0.3",
-    "socket.io": "~2.2.0",
+    "socket.io": "2.4.1",
     "strip-json-comments": "^3.0.1",
     "walk": "^2.3.9",
     "wrappy": "^1.0.2"
@@ -51,7 +51,7 @@
     "@types/mongodb": "^3.2.3",
     "@types/path-is-inside": "^1.0.0",
     "@types/rimraf": "^2.0.2",
-    "@types/socket.io": "2.1.2",
+    "@types/socket.io": "^2.1.13",
     "@types/walk": "^2.3.0",
     "@typescript-eslint/eslint-plugin": "^2.0.0",
     "@typescript-eslint/parser": "^2.0.0",
