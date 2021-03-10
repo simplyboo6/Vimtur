@@ -7,9 +7,7 @@ COPY ./ /app/
 RUN echo "$VERSION_NAME" > /app/version
 
 ## Build server
-RUN cd /usr/lib/node_modules/phash2 && yarn link
 RUN cd /app/server && \
-    yarn link phash2 && \
     yarn --frozen-lockfile && \
     yarn lint && yarn build
 

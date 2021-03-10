@@ -11,7 +11,6 @@ FROM alpine:20200122
 RUN apk add --no-cache tini imagemagick jpeg libpng tiff libx11 ffmpeg nodejs yarn jq
 
 COPY --from=base /usr/local/lib/libpHash.so.1.0.0 /usr/local/lib/libpHash.so /usr/local/lib/
-COPY --from=base /usr/lib/node_modules /usr/lib/node_modules
 
 COPY --from=build /app /app
 WORKDIR /app
