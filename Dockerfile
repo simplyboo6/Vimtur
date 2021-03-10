@@ -17,6 +17,6 @@ COPY --from=build /app /app
 WORKDIR /app
 
 # Yarn doesn't have prune
-RUN (cd node_modules && rm -r $(cat ../package.json | jq -r '.devDependencies | keys | join(" ")'))
+RUN (cd server/node_modules && rm -r $(cat ../package.json | jq -r '.devDependencies | keys | join(" ")'))
 
 ENTRYPOINT [ "/sbin/tini", "--", "node", "/app/server/dist/index.js" ]
