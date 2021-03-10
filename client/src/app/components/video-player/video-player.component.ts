@@ -13,8 +13,7 @@ import { ConfigService } from 'services/config.service';
 import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
-
-declare const Hls: any;
+import Hls from 'hls.js';
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;

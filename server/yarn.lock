@@ -2511,7 +2511,7 @@ progress@^2.0.0:
   resolved "https://registry.yarnpkg.com/progress/-/progress-2.0.3.tgz#7e8cf8d8f5b8f239c1bc68beb4eb78567d572ef8"
   integrity sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==
 
-proper-job@^1.2.1:
+proper-job@^1.4.6:
   version "1.4.6"
   resolved "https://registry.yarnpkg.com/proper-job/-/proper-job-1.4.6.tgz#c11738bd4aef58c7c1c6a998ff0cb265519d7af8"
   integrity sha512-KgTaxTBuEBtevRU+hLATcdyydLcEzMUR8wUUaLe5UAPMf+GCY9NtGoRnjVRYXy8lbUKEQ6p/Nzs7F44NGmIlBA==
