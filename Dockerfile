@@ -2,18 +2,13 @@
 ARG PRE_IMAGE
 FROM $PRE_IMAGE as build
 
-# Get the base image with phash in.
-FROM simplyboo6/vimtur-base@sha256:f30cc178f6c9676449e08b0aee59e31c120eb5c467cb435c33fd2bedb230f593 as base
-
 # Build the resultant image.
-FROM alpine:20200122
+FROM simplyboo6/vimtur-base@sha256:b3576d012e192fa39b97f0f5845cda875cef94d64a39dc97747fa32d035e14bd
 
-RUN apk add --no-cache tini imagemagick jpeg libpng tiff libx11 ffmpeg nodejs yarn jq
-
-COPY --from=base /usr/local/lib/libpHash.so.1.0.0 /usr/local/lib/libpHash.so /usr/local/lib/
-COPY --from=base /usr/lib/node_modules /usr/lib/node_modules
+RUN apk add --no-cache jq
 
 COPY --from=build /app /app
+
 WORKDIR /app
 
 # Yarn doesn't have prune

@@ -1,13 +1,14 @@
-FROM simplyboo6/vimtur-base@sha256:f30cc178f6c9676449e08b0aee59e31c120eb5c467cb435c33fd2bedb230f593
+FROM simplyboo6/vimtur-base@sha256:b3576d012e192fa39b97f0f5845cda875cef94d64a39dc97747fa32d035e14bd
 
 ARG VERSION_NAME=dev
+
+RUN apk add -U g++ make python3
 
 ## Copy in source
 COPY ./ /app/
 RUN echo "$VERSION_NAME" > /app/version
 
 ## Build server
-RUN cd /usr/lib/node_modules/phash2 && yarn link
 RUN cd /app/server && \
     yarn link phash2 && \
     yarn --frozen-lockfile && \
