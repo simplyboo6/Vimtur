@@ -1,5 +1,5 @@
 import { Database, RouterTask, TaskRunnerCallback } from '../../types';
-import { IMAGENET_MODELS, loadClasses } from './imagenet';
+import { IMAGENET_MODELS, loadClasses, loadModel } from './imagenet';
 import { Transcoder } from '../../cache/transcoder';
 import { execute } from 'proper-job';
 import { loadImageFileCommon } from './common';
@@ -25,7 +25,7 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            const model = await TensorFlow.loadGraphModel(modelDefinition.url, { fromTFHub: true });
+            const model = await loadModel(modelDefinition);
 
             updateStatus(0, hashes.length);
             return {
