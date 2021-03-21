@@ -42,6 +42,7 @@ This will start an instance of the program listening on (http://localhost:3523)[
 - When doing the keyword search there's a limit of 1200 results.
 - All code is TypeScript and the UI framework is Angular.
 - TensorFlow will run on the CPU. If you have AVX support on your CPU it uses native code and depending on the model and your CPU classifies in the range of 45ms. If your CPU does not support AVX it uses the JS only library and each classification will take in the range of 5s.
+- TensorFlow currently requires internet connectivity. It fetches the list of ImageNet classes and the selected pre-trained model when it starts. Media is all classified locally.
 
 ### Github Sponsors
 
