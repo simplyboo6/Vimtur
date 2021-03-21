@@ -61,6 +61,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Stop events from bubbling up from the text entry.
+  public stopPropagation(event: any): void {
+    event.stopPropagation();
+  }
+
   public search() {
     if (!this.searchText) {
       return;

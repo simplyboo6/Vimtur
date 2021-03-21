@@ -7,6 +7,7 @@
 - Web-based mobile-friendly interface
 - Video, gif and image support
 - Tagging media
+- Auto-Tagging of images using TensorFlow
 - Various forms of searching (weighted keyword, tag selection, etc)
 - Metadata support for Artist/Album/Title/[People/Actors]
 - Auto-scraped metadata from files where possible

@@ -529,6 +529,15 @@ export class MongoConnector extends Database {
     console.log(`resetClones: ${result.matchedCount} reset`);
   }
 
+  public async resetAutoTags(): Promise<void> {
+    const collection = this.db.collection<BaseMedia>('media');
+    const result = await collection.updateMany(
+      { autoTags: { $exists: true } },
+      { $unset: { autoTags: '' } },
+    );
+    console.log(`resetAutoTags: ${result.matchedCount} cleared`);
+  }
+
   public async saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number> {
     console.log('Save Bulk', constraints, media);
 
@@ -761,6 +770,7 @@ export class MongoConnector extends Database {
     }
 
     filters.push(createArrayFilter('tags', constraints.tags));
+    filters.push(createArrayFilter('autoTags', constraints.autoTags));
     filters.push(createArrayFilter('actors', constraints.actors));
     filters.push(createArrayFilter('type', constraints.type));
 

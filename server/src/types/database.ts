@@ -68,4 +68,5 @@ export abstract class Database {
   // Utility
   public abstract close(): Promise<void>;
   public abstract resetClones(age: number): Promise<void>;
+  public abstract resetAutoTags(): Promise<void>;
 }

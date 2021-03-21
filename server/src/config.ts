@@ -50,6 +50,7 @@ const DEFAULTS: any = {
   port: 3523,
   // Enabled pHash generation during auto-import.
   enablePhash: false,
+  enableTensorFlow: true,
   maxCloneAge: 4 * 7 * 24 * 60 * 60, // 4 weeks.
   transcoder: {
     // Copy data to speedup setup.
@@ -84,8 +85,9 @@ const DEFAULTS: any = {
     lowQualityOnLoadEnabled: false,
     // True because it may be over slower WiFi.
     lowQualityOnLoadEnabledForMobile: true,
-    // Limit to loading 1000 items on initial UI load.
-    initialLoadLimit: 1000,
+    // Limit to loading 750 items on initial UI load.
+    // 750 to give 50 pages.
+    initialLoadLimit: 750,
     galleryImageCount: 15,
 
     // Quick tag panel visibility options.
@@ -96,6 +98,7 @@ const DEFAULTS: any = {
     quickTagShowPeople: true,
     quickTagShowPath: true,
     quickTagShowPlaylists: true,
+    quickTagShowAutoTags: true,
 
     showTaskNotifications: false,
     autoClearCompletedTasks: true,

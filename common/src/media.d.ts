@@ -39,6 +39,7 @@ export interface BaseMedia {
   rotation?: number;
   type: MediaType;
   tags: string[];
+  autoTags?: string[];
   actors: string[];
   hashDate: number;
   metadata?: Metadata;
@@ -93,6 +94,7 @@ export interface UpdateMedia {
   duplicateOf?: string;
   // Update only field. Will only add as unrelated.
   unrelated?: string[];
+  autoTags?: string[];
 }
 
 export interface MediaResolution {

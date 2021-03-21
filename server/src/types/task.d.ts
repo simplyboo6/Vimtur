@@ -5,6 +5,7 @@ export type TaskRunnerCallback = (current: number, max: number) => void;
 export type TaskRunner = (callback: TaskRunnerCallback) => ExecutorPromise<any>;
 
 export interface Task {
+  id: string;
   runner: TaskRunner;
   description: string;
 }

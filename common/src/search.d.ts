@@ -29,6 +29,7 @@ export interface SubsetConstraints {
   tags?: ArrayFilter;
   actors?: ArrayFilter;
   type?: ArrayFilter;
+  autoTags?: ArrayFilter;
 
   // Strings
   hash?: StringFilter;

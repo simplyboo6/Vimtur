@@ -388,6 +388,19 @@
           >Show path above media?</label
         >
       </div>
+      <!-- Auto Tags -->
+      <div class="custom-control custom-checkbox input-component tag-config">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          id="config-quick-tag-auto-tag"
+          [(ngModel)]="config.user.quickTagShowAutoTags"
+          (ngModelChange)="updateConfig('user.quickTagShowAutoTags', $event)"
+        />
+        <label class="custom-control-label" for="config-quick-tag-auto-tag"
+          >Show auto-generated tags below media?</label
+        >
+      </div>
     </div>
   </div>
 
@@ -581,13 +594,35 @@
         (ngModelChange)="updateConfig('enablePhash', $event)"
       />
       <label class="custom-control-label" for="config-enable-phash-generation"
-        >Enable pHash generation?</label
+        >Enable pHash generation during import?</label
       >
       <div>
         <span class="text-muted">
           pHash's generate a fingerprint of videos or still images based on what it looks like. This
           allows locating scaled duplicates or similiar images. Enabling this causes pHash's to be
           generated as part of the auto-import process. It an always be triggered manually.
+        </span>
+      </div>
+    </div>
+    <!-- enableTensorFlow -->
+    <div class="custom-control custom-checkbox input-component">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-enable-tensorflow"
+        [(ngModel)]="config.enableTensorFlow"
+        (ngModelChange)="updateConfig('enableTensorFlow', $event)"
+      />
+      <label class="custom-control-label" for="config-enable-tensorflow"
+        >Enable TensorFlow image classification using MobileNet V2 during import?</label
+      >
+      <div>
+        <span class="text-muted">
+          Enabling this setting will use TensorFlow's MobileNet V2 model to auto-generate tags for
+          all images during the import process. These are vague and while can be seen they can only
+          be used during a keyword search and have a low weighting. Even if it is disabled here it
+          can still be triggered manually from the tasks dropdown. Note: If you have an old CPU that
+          does not support AVX instructions (see startup log) then this setting will do nothing.
         </span>
       </div>
     </div>

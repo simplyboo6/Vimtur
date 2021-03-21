@@ -15,69 +15,6 @@ type FilterResults = Types.Scanner.FilterResults;
 export class Scanner {
   public static results?: FilterResults;
 
-  public static getTask(db: Database): RouterTask {
-    const router = Router();
-    router.get(
-      '/results',
-      wrap(async () => {
-        return {
-          data: Scanner.results
-            ? {
-                newPaths: Scanner.results.newPaths.length,
-                missingPaths: Scanner.results.missingPaths.length,
-              }
-            : {
-                newPaths: 0,
-                missingPaths: 0,
-              },
-        };
-      }),
-    );
-
-    router.get(
-      '/results/missing',
-      wrap(async () => {
-        return {
-          data: Scanner.results ? Scanner.results.missingPaths : [],
-        };
-      }),
-    );
-
-    router.get(
-      '/results/new',
-      wrap(async () => {
-        return {
-          data: Scanner.results ? Scanner.results.newPaths : [],
-        };
-      }),
-    );
-
-    return {
-      description: 'Scan for new files',
-      router,
-      runner: () => {
-        // There's no nice way to parallelise this one at a glance.
-        // So just do it all in the init.
-        return execute(
-          async () => {
-            const files = await Scanner.getFileList();
-            const mediaList = await db.subsetFields({}, { path: 1 });
-            const normalisedPaths: string[] = [];
-            for (const media of mediaList) {
-              normalisedPaths.push(media.path);
-            }
-            // Not an outdated value of only one task runs at a time.
-            // eslint-disable-next-line require-atomic-updates
-            Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
-
-            return [];
-          },
-          () => Promise.resolve(),
-        );
-      },
-    };
-  }
-
   public static async getFileList(): Promise<string[]> {
     const dir = Config.get().libraryPath;
     const options = {
@@ -147,4 +84,68 @@ export class Scanner {
     }
     return result;
   }
+}
+
+export function getTask(db: Database): RouterTask {
+  const router = Router();
+  router.get(
+    '/results',
+    wrap(async () => {
+      return {
+        data: Scanner.results
+          ? {
+              newPaths: Scanner.results.newPaths.length,
+              missingPaths: Scanner.results.missingPaths.length,
+            }
+          : {
+              newPaths: 0,
+              missingPaths: 0,
+            },
+      };
+    }),
+  );
+
+  router.get(
+    '/results/missing',
+    wrap(async () => {
+      return {
+        data: Scanner.results ? Scanner.results.missingPaths : [],
+      };
+    }),
+  );
+
+  router.get(
+    '/results/new',
+    wrap(async () => {
+      return {
+        data: Scanner.results ? Scanner.results.newPaths : [],
+      };
+    }),
+  );
+
+  return {
+    id: 'SCAN',
+    description: 'Scan for new files',
+    router,
+    runner: () => {
+      // There's no nice way to parallelise this one at a glance.
+      // So just do it all in the init.
+      return execute(
+        async () => {
+          const files = await Scanner.getFileList();
+          const mediaList = await db.subsetFields({}, { path: 1 });
+          const normalisedPaths: string[] = [];
+          for (const media of mediaList) {
+            normalisedPaths.push(media.path);
+          }
+          // Not an outdated value of only one task runs at a time.
+          // eslint-disable-next-line require-atomic-updates
+          Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
+
+          return [];
+        },
+        () => Promise.resolve(),
+      );
+    },
+  };
 }

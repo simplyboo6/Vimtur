@@ -60,6 +60,7 @@ export namespace Configuration {
     quickTagShowPeople?: boolean;
     quickTagShowPath?: boolean;
     quickTagShowPlaylists?: boolean;
+    quickTagShowAutoTags?: boolean;
 
     showTaskNotifications?: boolean;
     autoClearCompletedTasks?: boolean;
@@ -79,6 +80,9 @@ export namespace Configuration {
     transcoder: Transcoder;
     // Enable pHash generation for stills as part of import.
     enablePhash: boolean;
+    // Enable TensorFlow classification of stills as part of import.
+    // Note this uses the default MobileNet V2 model.
+    enableTensorFlow: boolean;
     // Maximum age of clone map before counting it as expired in seconds.
     maxCloneAge: number;
     user: User;

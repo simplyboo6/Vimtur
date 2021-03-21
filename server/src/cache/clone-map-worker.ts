@@ -1,6 +1,6 @@
 import { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
 import { parentPort, workerData } from 'worker_threads';
-import PHash from 'phash2';
+import PHash from '../phash';
 
 if (!parentPort || !workerData) {
   throw new Error('Worker missing fields');
@@ -16,6 +16,10 @@ function postResult(result: JobResult): void {
 
 parentPort.on('message', (imageA: MediaPhash) => {
   try {
+    if (!PHash) {
+      throw new Error('pHash not loaded');
+    }
+
     const clones: MediaClone[] = [];
     // Compare it to every file in the set that isn't itself.
     for (const imageB of job.data) {

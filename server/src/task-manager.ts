@@ -99,6 +99,10 @@ export class TaskManager extends EventEmitter {
     }));
   }
 
+  public hasTask(id: string): boolean {
+    return Boolean(this.tasks[id]);
+  }
+
   private execute(): void {
     const taskQueue = this.taskQueue.filter(task => !task.error && !task.complete);
     if (taskQueue.length === 0 || taskQueue[0].running) {

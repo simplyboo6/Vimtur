@@ -6,6 +6,12 @@
     <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath" class="text-overlay">
       {{ media.path }}
     </div>
+    <div
+      *ngIf="media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags"
+      class="text-overlay bottom"
+    >
+      May contain: {{ media.autoTags | formatArray }}
+    </div>
     <ng-container *ngIf="media; else loading">
       <app-video-player
         class="video-player"

@@ -1,5 +1,4 @@
 import { Collection, Db } from 'mongodb';
-import { Validator } from '../../utils/validator';
 import Util from 'util';
 
 export class Updater {
@@ -15,40 +14,28 @@ export class Updater {
         { name: 1 },
         { unique: true },
       );
-
-      await Updater.saveUpdate(updatesCollection, '014_add-playlists');
+      await Updater.saveUpdate(updatesCollection, '015_remove-validator');
     }
 
     await Updater.createCollections(db);
 
-    if (!(await Updater.hasRun(updatesCollection, '014_add-playlists'))) {
-      console.log('Applying update 014_add-playlists...');
-      const mediaSchema = Updater.loadMediaSchema('3bcc3bd6');
-      await Updater.recreateMediaCollection(db, mediaSchema);
-      await Updater.saveUpdate(updatesCollection, '014_add-playlists');
-    }
-  }
-
-  private static async recreateMediaCollection(db: Db, mediaSchema: object): Promise<void> {
-    try {
-      await db.collection('media_update').drop();
-    } catch (err) {
-      // Assume it doesn't exist.
-    }
-    console.log('Creating media_update collection...');
-    await Updater.createMediaCollection(db, mediaSchema, 'media_update');
-
-    console.log('Copying media to new collection (this may take some time)...');
-    const cursor = db.collection('media').find({});
-    while (await cursor.hasNext()) {
-      await db.collection('media_update').insertOne(await cursor.next());
+    // Remove the validator. Good experiment in strictness but updating it
+    // was just mad. Rebuilding the DB for every change.
+    if (!(await Updater.hasRun(updatesCollection, '015_remove-validator'))) {
+      await db.command({
+        collMod: 'media',
+        validator: {},
+        validationLevel: 'off',
+      });
+      await Updater.saveUpdate(updatesCollection, '015_remove-validator');
     }
 
-    console.log('Renaming collections...');
-    await db.collection('media').rename('media_old');
-    await db.collection('media_update').rename('media');
-    console.log('Dropping original...');
-    await db.collection('media_old').drop();
+    if (!(await Updater.hasRun(updatesCollection, '016_auto-tag-text-index'))) {
+      const collection = db.collection('media');
+      await collection.dropIndex('keyword_index');
+      await Updater.createMediaCollectionTextIndex(db, 'media');
+      await Updater.saveUpdate(updatesCollection, '016_auto-tag-text-index');
+    }
   }
 
   private static async collectionExists(db: Db, name: string): Promise<boolean> {
@@ -64,15 +51,7 @@ export class Updater {
     await updatesCollection.insertOne({ name });
   }
 
-  private static async createMediaCollection(
-    db: Db,
-    mediaSchema: object,
-    name: string,
-  ): Promise<void> {
-    await db.createCollection(name, {
-      validator: { $jsonSchema: mediaSchema },
-    });
-
+  private static async createMediaCollectionTextIndex(db: Db, name: string): Promise<void> {
     const mediaCollection = db.collection(name);
     // Bloody thing doesn't return a promise.
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
@@ -80,6 +59,7 @@ export class Updater {
         'path': 'text',
         'type': 'text',
         'tags': 'text',
+        'autoTags': 'text',
         'actors': 'text',
         'metadata.artist': 'text',
         'metadata.album': 'text',
@@ -88,16 +68,30 @@ export class Updater {
       {
         name: 'keyword_index',
         weights: {
+          // Least important to most
           'path': 1,
-          'type': 4,
-          'tags': 2,
-          'actors': 3,
-          'metadata.artist': 2,
-          'metadata.album': 3,
-          'metadata.title': 3,
+          'autoTags': 1,
+
+          'tags': 3,
+          'metadata.artist': 5,
+
+          'metadata.album': 7,
+          'metadata.title': 7,
+
+          'actors': 8,
+
+          'type': 10,
         },
       },
     ); // Bug with weights not being recognised.
+  }
+
+  private static async createMediaCollection(db: Db, name: string): Promise<void> {
+    await db.createCollection(name);
+
+    await Updater.createMediaCollectionTextIndex(db, name);
+
+    const mediaCollection = db.collection(name);
 
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
       { hash: 1 },
@@ -139,7 +133,7 @@ export class Updater {
 
   private static async createCollections(db: Db): Promise<void> {
     if (!(await Updater.collectionExists(db, 'media'))) {
-      await Updater.createMediaCollection(db, await Updater.loadMediaSchema(), 'media');
+      await Updater.createMediaCollection(db, 'media');
     }
 
     if (!(await Updater.collectionExists(db, 'config'))) {
@@ -172,31 +166,5 @@ export class Updater {
         { unique: true },
       );
     }
-  }
-
-  private static loadMediaSchema(version?: string): any {
-    const mediaSchema = Validator.loadSchema('BaseMedia', version);
-    // The $schema element isn't supported by Mongo.
-    if (mediaSchema['$schema']) {
-      delete mediaSchema['$schema'];
-    }
-    // Patch in the _id
-    mediaSchema.properties['_id'] = {};
-
-    // If playlists exists then match id with _id.
-    if (mediaSchema.properties['playlists']) {
-      delete mediaSchema.properties['playlists'].items.properties.id;
-      const index = mediaSchema.properties['playlists'].items.required.indexOf('id');
-      if (index >= 0) {
-        mediaSchema.properties['playlists'].items.required.splice(index, 1);
-      }
-      mediaSchema.properties['playlists'].items.properties['_id'] = {};
-      mediaSchema.properties['playlists'].items.required.push('_id');
-
-      delete mediaSchema.properties.playlist;
-      delete mediaSchema.properties.order;
-    }
-
-    return mediaSchema;
   }
 }

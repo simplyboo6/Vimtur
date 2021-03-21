@@ -6,36 +6,25 @@ import { wrap } from '../express-async';
 import Config from '../config';
 import SocketIO from 'socket.io';
 
-import {
-  AddCreateTimes,
-  CacheGenerator,
-  CloneMapGenerator,
-  Indexer,
-  KeyframeGenerator,
-  MissingDeleter,
-  PhashGenerator,
-  PreviewGenerator,
-  PreviewVerifier,
-  RehashTask,
-  Scanner,
-  ThumbnailGenerator,
-  ThumbnailVerifier,
-  Uncorrupter,
-  VideoCacheVerifier,
-} from '../tasks';
+import { getTasks } from '../tasks';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
   const router = Router();
 
-  const addTask = (id: string, task: RouterTask): void => {
-    taskManager.addTask(id, task);
+  const addTask = (task: RouterTask): void => {
+    taskManager.addTask(task.id, task);
     if (task.router) {
-      router.use(`/${id}`, task.router);
+      router.use(`/${task.id}`, task.router);
     }
   };
 
-  addTask('AUTO-IMPORT', {
+  for (const task of getTasks(db)) {
+    addTask(task);
+  }
+
+  addTask({
+    id: 'AUTO-IMPORT',
     description: '(Meta-task) Automatically import and cache new files',
     runner: () => {
       return execute(
@@ -43,17 +32,23 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
           taskManager.start('SCAN');
           taskManager.start('INDEX');
           taskManager.start('GENERATE-THUMBNAILS');
+          if (Config.get().transcoder.enablePrecachingKeyframes) {
+            taskManager.start('GENERATE-KEYFRAMES');
+          }
           if (Config.get().transcoder.enableVideoPreviews) {
             taskManager.start('GENERATE-PREVIEWS');
           }
           if (Config.get().transcoder.enableVideoCaching) {
             taskManager.start('GENERATE-CACHE');
           }
-          if (Config.get().transcoder.enablePrecachingKeyframes) {
-            taskManager.start('GENERATE-KEYFRAMES');
-          }
-          if (Config.get().enablePhash) {
+          if (Config.get().enablePhash && taskManager.hasTask('GENERATE-PHASHES')) {
             taskManager.start('GENERATE-PHASHES');
+          }
+          if (
+            Config.get().enableTensorFlow &&
+            taskManager.hasTask('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140')
+          ) {
+            taskManager.start('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140');
           }
           return Promise.resolve([]);
         },
@@ -62,7 +57,8 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     },
   });
 
-  addTask('VERIFY-CACHE', {
+  addTask({
+    id: 'VERIFY-CACHE',
     description: '(Meta-task) Verify and fix cache',
     runner: () => {
       return execute(
@@ -86,22 +82,6 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     },
   });
 
-  addTask('SCAN', Scanner.getTask(db));
-  addTask('INDEX', Indexer.getTask(db));
-  addTask('GENERATE-THUMBNAILS', ThumbnailGenerator.getTask(db));
-  addTask('GENERATE-KEYFRAMES', KeyframeGenerator.getTask(db));
-  addTask('GENERATE-PHASHES', PhashGenerator.getTask(db));
-  addTask('GENERATE-CACHE', CacheGenerator.getTask(db));
-  addTask('GENERATE-PREVIEWS', PreviewGenerator.getTask(db));
-  addTask('REHASH', RehashTask.getTask(db));
-  addTask('VERIFY-THUMBNAILS', ThumbnailVerifier.getTask(db));
-  addTask('VERIFY-PREVIEWS', PreviewVerifier.getTask(db));
-  addTask('VERIFY-VIDEO-CACHE', VideoCacheVerifier.getTask(db));
-  addTask('UNCORRUPT', Uncorrupter.getTask(db));
-  addTask('DELETE-MISSING', MissingDeleter.getTask(db));
-  addTask('ADD-CREATE-TIMES', AddCreateTimes.getTask(db));
-  addTask('GENERATE-CLONE-MAP', CloneMapGenerator.getTask(db));
-
   io.on('connection', socket => {
     socket.emit('task-queue', taskManager.getQueue());
   });
@@ -122,7 +102,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/',
     wrap(async () => {
       return {
-        data: taskManager.getTasks(),
+        data: taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)),
       };
     }),
   );

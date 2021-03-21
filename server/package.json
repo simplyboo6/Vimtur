@@ -8,6 +8,8 @@
     "url": "https://github.com/simplyboo6/Vimtur"
   },
   "dependencies": {
+    "@tensorflow-models/mobilenet": "^2.1.0",
+    "@tensorflow/tfjs-node": "^3.3.0",
     "ajv": "^6.10.2",
     "better-ajv-errors": "^0.6.1",
     "body-parser": "^1.18.3",
@@ -19,9 +21,10 @@
     "http-auth": "~3.2.3",
     "inflight": "^1.0.6",
     "mongodb": "^3.3.0",
+    "node-fetch": "^2.6.1",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
-    "phash2": "^1.0.3",
+    "phash2": "1.0.3",
     "proper-job": "^1.4.6",
     "rimraf": "^3.0.0",
     "saslprep": "^1.0.3",
@@ -32,7 +35,7 @@
   },
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc -p . && ./create-schemas.sh && cp -R schemas dist",
+    "build": "tsc -p . && ./create-schemas.sh",
     "clean": "rm -rf dist/* *.tsbuildinfo ./.schema-build-info",
     "lint": "./node_modules/@luvies/config/scripts/lint.sh",
     "fix": "./node_modules/@luvies/config/scripts/lint.sh fix",
@@ -49,6 +52,7 @@
     "@types/gm": "^1.18.3",
     "@types/mocha": "^7.0.2",
     "@types/mongodb": "^3.2.3",
+    "@types/node-fetch": "^2.5.8",
     "@types/path-is-inside": "^1.0.0",
     "@types/rimraf": "^2.0.2",
     "@types/socket.io": "^2.1.13",

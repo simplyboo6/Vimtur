@@ -33,6 +33,7 @@ import { PlaylistsComponent } from './components/playlists/playlists.component';
 import { ActionsComponent } from './components/actions/actions.component';
 import { LazyComponent } from './components/lazy/lazy.component';
 import { ResizedDirective } from './shared/resized.directive';
+import { FormatArrayPipe } from './shared/format-array.pipe';
 
 @NgModule({
   declarations: [
@@ -59,6 +60,7 @@ import { ResizedDirective } from './shared/resized.directive';
     ActionsComponent,
     LazyComponent,
     ResizedDirective,
+    FormatArrayPipe,
   ],
   imports: [
     NgbModule,

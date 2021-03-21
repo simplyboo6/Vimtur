@@ -18,6 +18,8 @@
         <div *ngIf="media.metadata && media.metadata.createdAt">
           Created: {{ timestampAsDate(media.metadata.createdAt) | date }}
         </div>
+
+        <div *ngIf="media.autoTags">May contain: {{ media.autoTags | formatArray }}</div>
       </div>
     </div>
   </div>

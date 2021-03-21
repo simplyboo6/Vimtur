@@ -6,7 +6,8 @@
     "outDir": "dist",
     "target": "es2018",
     "importHelpers": false,
-    "incremental": false
+    "incremental": false,
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "types/*.ts"]
 }

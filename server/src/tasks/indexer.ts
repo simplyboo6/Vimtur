@@ -13,16 +13,6 @@ import Config from '../config';
 export class Indexer {
   private database: Database;
 
-  public static getTask(db: Database): RouterTask {
-    return {
-      description: 'Index new files found during a scan',
-      runner: (callback: TaskRunnerCallback) => {
-        const indexer = new Indexer(db);
-        return indexer.indexFiles(callback);
-      },
-    };
-  }
-
   public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
     // The ffprobe typings are broken with promisify.
     const data = await Util.promisify(FFMpeg.ffprobe as any)(absolutePath);
@@ -133,4 +123,15 @@ export class Indexer {
       },
     );
   }
+}
+
+export function getTask(db: Database): RouterTask {
+  return {
+    id: 'INDEX',
+    description: 'Index new files found during a scan',
+    runner: (callback: TaskRunnerCallback) => {
+      const indexer = new Indexer(db);
+      return indexer.indexFiles(callback);
+    },
+  };
 }
