@@ -63,13 +63,13 @@ if (isAvxSupported()) {
   function decodeImage(buffer: Buffer): TFJS.Tensor3D {
     const decoded = PNG.sync.read(buffer);
     const rgbaPixels = decoded.data;
-    const rgbPixels: number[] = Array(decoded.width * decoded.height * 3);
+    const rgbPixels = new Int32Array(decoded.width * decoded.height * 3);
     for (let i = 0; i < decoded.width * decoded.height; i++) {
       for (let channel = 0; channel < 3; channel++) {
         rgbPixels[i * 3 + channel] = rgbaPixels[i * 4 + channel];
       }
     }
-    return tfjs.tensor3d(rgbPixels, [decoded.width, decoded.height, 3]);
+    return tfjs.tensor3d(rgbPixels, [decoded.height, decoded.width, 3], 'int32');
   }
   module.exports = {
     ...tfjs,
