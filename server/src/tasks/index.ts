@@ -2,34 +2,6 @@ import { Database, RouterTask } from '../types';
 import FS from 'fs';
 import Path from 'path';
 
-function isAvxSupported(): boolean {
-  try {
-    const cpuInfo = FS.readFileSync('/proc/cpuinfo').toString();
-    const rawKeyValues = cpuInfo.split('\n').map(line => line.split(':'));
-    const trimmedKeyValues = rawKeyValues.map(arr => arr.map(el => el.trim()));
-    const rawFlags = trimmedKeyValues.find(([key]) => key === 'flags');
-    if (!rawFlags) {
-      console.warn('Unable to find flags in CPU info. AVX tasks disabled.');
-      return false;
-    }
-    const flags = rawFlags[1]?.split(' ').map(el => el.trim());
-    if (!flags) {
-      console.warn('Unable to extract flags value from key in CPU info. AVX tasks disabled.');
-      return false;
-    }
-
-    if (!flags.includes('avx')) {
-      console.warn('CPU does not support avx instructions. AVX tasks disabled.');
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.warn('Unable to load CPU info. AVX tasks disabled.', err.message);
-    return false;
-  }
-}
-
 interface TaskLoader {
   getTask: (database: Database) => RouterTask | RouterTask[] | undefined;
 }
@@ -56,10 +28,7 @@ function getTaskLoaders(dir: string): TaskLoader[] {
     .filter(loader => loader !== undefined) as TaskLoader[];
 }
 
-const taskLoaders = [
-  ...getTaskLoaders(__dirname),
-  ...(isAvxSupported() ? getTaskLoaders(`${__dirname}/avx`) : []),
-];
+const taskLoaders = [...getTaskLoaders(__dirname), ...getTaskLoaders(`${__dirname}/tensorflow`)];
 
 export function getTasks(database: Database): RouterTask[] {
   return (

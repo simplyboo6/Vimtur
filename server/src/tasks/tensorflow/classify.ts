@@ -1,9 +1,9 @@
-import * as TensorFlow from '@tensorflow/tfjs';
 import { Database, RouterTask, TaskRunnerCallback } from '../../types';
 import { IMAGENET_MODELS, loadClasses } from './imagenet';
 import { Transcoder } from '../../cache/transcoder';
 import { execute } from 'proper-job';
 import { loadImageFileCommon } from './common';
+import TensorFlow from './tensorflow';
 
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);

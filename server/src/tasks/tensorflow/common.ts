@@ -1,8 +1,7 @@
-import * as TensorFlow from '@tensorflow/tfjs';
-import * as TensorFlowNode from '@tensorflow/tfjs-node';
 import { Database } from '../../types';
 import { Transcoder } from '../../cache/transcoder';
 import FS from 'fs';
+import TensorFlow from './tensorflow';
 
 export const MODEL_WIDTH = 224;
 export const MODEL_HEIGHT = 224;
@@ -34,8 +33,7 @@ export async function loadImageFileVgg16(
 ): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
   const raw = await loadFile(absolutePath);
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlowNode.node
-      .decodeImage(raw, 3)
+    const common = TensorFlow.decodeImage(raw)
       .resizeNearestNeighbor([MODEL_WIDTH, MODEL_HEIGHT])
       .toFloat();
     // expandDims adds the batch size of 1.
@@ -56,8 +54,7 @@ export async function loadImageFileMobileNet(
 ): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
   const raw = await loadFile(absolutePath);
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlowNode.node
-      .decodeImage(raw, 3)
+    const common = TensorFlow.decodeImage(raw)
       .resizeNearestNeighbor([width, height])
       .toFloat();
     return common
@@ -77,9 +74,9 @@ export async function loadImageFileCommon(
   height = MODEL_HEIGHT,
 ): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
   const raw = await loadFile(absolutePath);
+
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlowNode.node
-      .decodeImage(raw, 3)
+    const common = TensorFlow.decodeImage(raw)
       .resizeNearestNeighbor([width, height])
       .toFloat();
     return (
@@ -116,25 +113,4 @@ export function createDatasetMapper(database: Database, tags: string[]): Dataset
       ys: reshapedLabelTensor,
     };
   };
-}
-
-export async function loadImageFileOriginal(
-  absolutePath: string,
-): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
-  const raw = await loadFile(absolutePath);
-  const decoded = TensorFlowNode.node.decodeImage(raw, 3);
-  const resized = TensorFlow.image.resizeBilinear(decoded, [MODEL_WIDTH, MODEL_HEIGHT]);
-  const resizedData = await resized.data();
-  // Most models have the data normalised 0 - 1 rather than 0 - 255. The 1 before the model width is the batch size and the 3 specifies 3 color channels.
-  const mapped = TensorFlow.tensor(
-    resizedData.map((val: number) => val / 255),
-    [1, MODEL_WIDTH, MODEL_HEIGHT, 3],
-    'float32',
-  );
-  // It's important to dispose of any intermediate tensors to avoid memory leaks.
-  // Strangely it doesn't seem to make proper use of nodes cleanup functions.
-  TensorFlow.dispose(decoded);
-  TensorFlow.dispose(resized);
-  TensorFlow.dispose(resizedData);
-  return mapped as TensorFlow.Tensor3D | TensorFlow.Tensor4D;
 }
