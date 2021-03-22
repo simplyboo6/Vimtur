@@ -8,7 +8,6 @@
     "url": "https://github.com/simplyboo6/Vimtur"
   },
   "dependencies": {
-    "@tensorflow-models/mobilenet": "^2.1.0",
     "@tensorflow/tfjs-node": "^3.3.0",
     "ajv": "^6.10.2",
     "better-ajv-errors": "^0.6.1",

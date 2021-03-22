@@ -35,11 +35,6 @@
   resolved "https://registry.yarnpkg.com/@luvies/config/-/config-1.6.3.tgz#7b2eb3194d5128faf93e4f57233731c4b14899ff"
   integrity sha512-TcpVf0On4udsuDZSaXbCWNDELImyPdX2BmIsGXuM2iVm4f5rU3Se7zmg/e5gocT0KeQ9RWiIrzjHvYLwCPYmCA==
 
-"@tensorflow-models/mobilenet@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@tensorflow-models/mobilenet/-/mobilenet-2.1.0.tgz#58583f0793a7091eda370aa441d09d94b808aeb1"
-  integrity sha512-JjqT9ijHDFA2FEpUGWg7H2lQ0GrMuE2VmiCRBYmUew6b4JKht8LXDjG5HxZh95YH6c/25sZWTpGeHbquloH+hw==
-
 "@tensorflow/tfjs-backend-cpu@3.3.0":
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/@tensorflow/tfjs-backend-cpu/-/tfjs-backend-cpu-3.3.0.tgz#aa0a3ed2c6237a6e0c169678c5bd4b5a88766b1c"
