@@ -32,6 +32,7 @@ function isAvxSupported(): boolean {
 
 declare module '@tensorflow/tfjs' {
   export function decodeImage(buffer: Buffer): TFJS.Tensor3D;
+  export function isNative(): boolean;
 }
 
 export default TFJS;
@@ -49,6 +50,7 @@ if (isAvxSupported()) {
   module.exports = {
     ...tfjs,
     decodeImage,
+    isNative: () => true,
   };
 } else {
   console.warn(
@@ -74,5 +76,6 @@ if (isAvxSupported()) {
   module.exports = {
     ...tfjs,
     decodeImage,
+    isNative: () => false,
   };
 }

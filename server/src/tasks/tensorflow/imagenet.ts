@@ -8,7 +8,7 @@ import TensorFlow from './tensorflow';
 // loaded on non-AVX CPUs.
 import { NodeFileSystem } from '@tensorflow/tfjs-node/dist/io/file_system';
 
-interface TensorFlowHubModel {
+export interface TensorFlowHubModel {
   id: string;
   name: string;
   url: string;
@@ -77,9 +77,7 @@ export async function loadModel(
   await ImportUtils.mkdir(MODELS_DIR);
   try {
     const io = new NodeFileSystem(Path.resolve(MODELS_DIR, modelDefinition.id, 'model.json'));
-    console.log(`Load model: ${modelDefinition.id}`);
     const model = await TensorFlow.loadGraphModel(io);
-    console.log(`Model loaded: ${modelDefinition.id}`);
     return model;
   } catch (err) {
     console.error(err);

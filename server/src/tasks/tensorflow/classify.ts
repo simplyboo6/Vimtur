@@ -1,9 +1,15 @@
+import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 import { Database, RouterTask, TaskRunnerCallback } from '../../types';
 import { IMAGENET_MODELS, loadClasses, loadModel } from './imagenet';
+import { ScalingConnectionPool, execute } from 'proper-job';
 import { Transcoder } from '../../cache/transcoder';
-import { execute } from 'proper-job';
-import { loadImageFileCommon } from './common';
+import OS from 'os';
 import TensorFlow from './tensorflow';
+
+// Two if native because it doesn't quite achieve 100% multi-core use,
+// likely due to not feeding it data enough.
+// One per core if JS only since it's single threaded.
+const parallel = TensorFlow.isNative() ? 2 : OS.cpus().length;
 
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);
@@ -25,16 +31,29 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            const model = await loadModel(modelDefinition);
-
             updateStatus(0, hashes.length);
+
+            // This pre-downloads the classes and model so that the runners
+            // don't each attempt parallel downloads.
+            await loadClasses();
+            await loadModel(modelDefinition);
+
+            // Only begin creating runners when the pool completes.
+            const pool = new ScalingConnectionPool(
+              () => {
+                return new ClassifierWorkerWrapper();
+              },
+              {
+                maxInstances: parallel,
+              },
+            );
+
             return {
               iterable: hashes,
               init: {
-                model,
-                classes: await loadClasses(),
                 current: 0,
                 max: hashes.length,
+                pool,
               },
             };
           },
@@ -47,35 +66,20 @@ export function getTask(database: Database): RouterTask[] {
               throw new Error(`Couldn't find media to generate preview: ${hash}`);
             }
 
-            const tensor = await loadImageFileCommon(
-              transcoder.getThumbnailPath(media),
-              modelDefinition.width,
-              modelDefinition.height,
-            );
             try {
-              const classified = init.model.predict(tensor) as TensorFlow.Tensor<TensorFlow.Rank>;
-              try {
-                const classificationNestedArray = (await classified.array()) as number[][];
-                const classificationArray = classificationNestedArray[0];
-
-                const probabilities = classificationArray
-                  .map((probability, index) => {
-                    return {
-                      probability,
-                      label: init.classes[index],
-                    };
-                  })
-                  .sort((a, b) => b.probability - a.probability);
-                const topFive = probabilities.slice(0, 5);
-                await database.saveMedia(hash, { autoTags: topFive.map(output => output.label) });
-              } finally {
-                classified.dispose();
-              }
+              const results = await init.pool.run(instance =>
+                instance.classify({
+                  definition: modelDefinition,
+                  absolutePath: transcoder.getThumbnailPath(media),
+                }),
+              );
+              await database.saveMedia(hash, { autoTags: results.probabilities });
             } finally {
-              tensor.dispose();
               updateStatus(init.current++, init.max);
             }
           },
+          { parallel, continueOnError: true },
+          init => init?.pool?.quit(),
         );
       },
     };

@@ -11,7 +11,7 @@ if (!require.main) {
   throw new Error('require.main missing');
 }
 
-const ROOT_DIR = Path.dirname(require.main.filename);
+const ROOT_DIR = Path.resolve(__dirname, '..');
 const SCHEMA_PATH = process.env['SCHEMA_PATH'] || `${ROOT_DIR}/schemas`;
 
 export class Validator {
