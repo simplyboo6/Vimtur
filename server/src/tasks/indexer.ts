@@ -1,10 +1,7 @@
 import { ExecutorPromise, execute } from 'proper-job';
-import FFMpeg from 'fluent-ffmpeg';
-import GM from 'gm';
 import Path from 'path';
-import Util from 'util';
 
-import { Database, Media, Metadata, RouterTask, TaskRunnerCallback } from '../types';
+import { Database, Media, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Scanner } from './scanner';
 import { createHash } from '../cache/hash';
@@ -12,53 +9,6 @@ import Config from '../config';
 
 export class Indexer {
   private database: Database;
-
-  public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
-    // The ffprobe typings are broken with promisify.
-    const data = await Util.promisify(FFMpeg.ffprobe as any)(absolutePath);
-
-    const mediaData = data.streams.find((stream: any) => stream.codec_type === 'video');
-    if (!mediaData) {
-      throw new Error('No video streams found to extract metadata from');
-    }
-
-    const metadata: Metadata = {
-      length: Math.ceil(data.format.duration),
-      qualityCache: [],
-      width: mediaData.width || mediaData.coded_width,
-      height: mediaData.height || mediaData.coded_height,
-      codec: mediaData.codec_name,
-      ...(data.format.tags
-        ? {
-            artist: data.format.tags.artist || data.format.tags.album_artist,
-            album: data.format.tags.album,
-            title: data.format.tags.title,
-          }
-        : {}),
-    };
-
-    // Delete them so they're not passed around as undefined.
-    if (!metadata.artist) {
-      delete metadata.artist;
-    }
-    if (!metadata.artist) {
-      delete metadata.album;
-    }
-    if (!metadata.artist) {
-      delete metadata.title;
-    }
-
-    return metadata;
-  }
-
-  private static async getImageMetadata(absolutePath: string): Promise<Metadata> {
-    const gm = GM.subClass({ imageMagick: true })(absolutePath);
-    const size: Record<string, number> = (await Util.promisify(gm.size.bind(gm))()) as any;
-    return {
-      width: size.width,
-      height: size.height,
-    };
-  }
 
   public constructor(database: Database) {
     this.database = database;
@@ -72,8 +22,8 @@ export class Indexer {
       hash: await createHash(absolutePath),
       metadata: {
         ...(type === 'video'
-          ? await Indexer.getVideoMetadata(absolutePath)
-          : await Indexer.getImageMetadata(absolutePath)),
+          ? await ImportUtils.getVideoMetadata(absolutePath)
+          : await ImportUtils.getImageMetadata(absolutePath)),
         createdAt: await ImportUtils.getFileCreationTime(absolutePath),
       },
       path: file,

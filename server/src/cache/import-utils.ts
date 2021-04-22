@@ -1,4 +1,5 @@
 import ChildProcess from 'child_process';
+import FFMpeg from 'fluent-ffmpeg';
 import FS from 'fs';
 import GM from 'gm';
 import Path from 'path';
@@ -6,7 +7,7 @@ import Rimraf from 'rimraf';
 import Stream from 'stream';
 import Util from 'util';
 
-import { BaseMedia, Media, MediaType, SegmentMetadata } from '../types';
+import { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '../types';
 import Config from '../config';
 
 export interface Quality {
@@ -34,6 +35,53 @@ export class ImportUtils {
     }
 
     return Math.round(creationDate.getTime() / 1000);
+  }
+
+  public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
+    // The ffprobe typings are broken with promisify.
+    const data = await Util.promisify(FFMpeg.ffprobe as any)(absolutePath);
+
+    const mediaData = data.streams.find((stream: any) => stream.codec_type === 'video');
+    if (!mediaData) {
+      throw new Error('No video streams found to extract metadata from');
+    }
+
+    const metadata: Metadata = {
+      length: Math.ceil(data.format.duration),
+      qualityCache: [],
+      width: mediaData.width || mediaData.coded_width,
+      height: mediaData.height || mediaData.coded_height,
+      codec: mediaData.codec_name,
+      ...(data.format.tags
+        ? {
+            artist: data.format.tags.artist || data.format.tags.album_artist,
+            album: data.format.tags.album,
+            title: data.format.tags.title,
+          }
+        : {}),
+    };
+
+    // Delete them so they're not passed around as undefined.
+    if (!metadata.artist) {
+      delete metadata.artist;
+    }
+    if (!metadata.album) {
+      delete metadata.album;
+    }
+    if (!metadata.title) {
+      delete metadata.title;
+    }
+
+    return metadata;
+  }
+
+  public static async getImageMetadata(absolutePath: string): Promise<Metadata> {
+    const gm = GM.subClass({ imageMagick: true })(absolutePath);
+    const size: Record<string, number> = (await Util.promisify(gm.size.bind(gm))()) as any;
+    return {
+      width: size.width,
+      height: size.height,
+    };
   }
 
   public static getType(filename: string): MediaType {

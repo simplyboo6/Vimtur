@@ -5,7 +5,6 @@ import Util from 'util';
 
 import { BaseMedia, Database, DumpFile } from '../types';
 import { ImportUtils } from '../cache/import-utils';
-import { Indexer } from '../tasks/indexer';
 import { createHash } from '../cache/hash';
 import { setup as setupDb } from '../database';
 import Config from '../config';
@@ -59,7 +58,7 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
     if (media.type === 'video') {
       // In older versions, maxCopy was the default.
       media.metadata.maxCopy = true;
-      const metadata = await Indexer.getVideoMetadata(Path.resolve(libraryDir, media.path));
+      const metadata = await ImportUtils.getVideoMetadata(Path.resolve(libraryDir, media.path));
       // Some videos in older versions didn't correctly get the width/height.
       media.metadata.width = metadata.width;
       media.metadata.height = metadata.height;
