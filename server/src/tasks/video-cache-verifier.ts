@@ -1,13 +1,13 @@
 import { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
+import { Transcoder } from '../cache/transcoder';
 import { execute } from 'proper-job';
 import Config from '../config';
-import FS from 'fs';
-import Util from 'util';
 
 const BATCH_SIZE = 8;
 
 export function getTask(database: Database): RouterTask {
+  const transcoder = new Transcoder(database);
   return {
     id: 'VERIFY-VIDEO-CACHE',
     description: 'Verify video caches exist',
@@ -38,15 +38,8 @@ export function getTask(database: Database): RouterTask {
           let allValid = true;
           for (const quality of media.metadata.qualityCache) {
             const base = `${Config.get().cachePath}/${media.hash}/${quality}p`;
-            const indexExists = await ImportUtils.exists(`${base}/index.m3u8`);
-            if (!indexExists) {
-              console.warn(`Missing index for ${base}`);
-              allValid = false;
-              break;
-            }
-
-            const rawIndex = await Util.promisify(FS.readFile)(`${base}/index.m3u8`);
-            const index = rawIndex.toString();
+            // Returns the legacy cache or the newer version.
+            const index = await transcoder.getStreamPlaylist(media, quality);
             const dataFiles = index.split('\n').filter(line => !line.startsWith('#'));
             let allExist = true;
             for (const file of dataFiles) {

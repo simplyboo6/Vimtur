@@ -21,7 +21,7 @@ export type Extractor<A> = (args: ExpressArgs) => A;
 const empty = {};
 const noOpExtractor: Extractor<{}> = () => empty;
 
-export type WrapHandler<A> = Handler<RestResult | undefined | void, A>;
+export type WrapHandler<A> = Handler<any, A>;
 
 export function jsonReviver(_: any, value: any): any {
   if (typeof value === 'object' && value.type === 'Buffer' && value.data) {
@@ -69,7 +69,11 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
   }
 }
 
-export function wrapHandler<A>(handler: WrapHandler<A>, extractor: Extractor<A>): RequestHandler {
+export function wrapHandler<A>(
+  handler: WrapHandler<A>,
+  extractor: Extractor<A>,
+  sendResult: boolean,
+): RequestHandler {
   return async (req, res, next) => {
     try {
       const express: ExpressArgs = { req, res, next };
@@ -78,10 +82,12 @@ export function wrapHandler<A>(handler: WrapHandler<A>, extractor: Extractor<A>)
         ...extractor(express),
       });
 
-      if (result) {
-        sendResponse(req, res, result.status || 200, result.data);
-      } else {
-        res.sendStatus(204);
+      if (sendResult) {
+        if (result) {
+          sendResponse(req, res, result.status || 200, result.data);
+        } else {
+          res.sendStatus(204);
+        }
       }
     } catch (err) {
       if (err.message.startsWith('Unexpected content type')) {
@@ -107,6 +113,6 @@ export function wrapHandler<A>(handler: WrapHandler<A>, extractor: Extractor<A>)
   };
 }
 
-export function wrap(handler: WrapHandler<{}>): RequestHandler {
-  return wrapHandler(handler, noOpExtractor);
+export function wrap(handler: WrapHandler<{}>, sendResult = true): RequestHandler {
+  return wrapHandler(handler, noOpExtractor, sendResult);
 }

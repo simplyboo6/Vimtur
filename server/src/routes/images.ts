@@ -270,104 +270,90 @@ export async function create(db: Database): Promise<Router> {
     }),
   );
 
-  router.get('/:hash/stream/index.m3u8', (req: Request, res: Response) => {
-    db.getMedia(req.params.hash)
-      .then(media => {
-        if (media) {
-          const master = ImportUtils.generateStreamMasterPlaylist(media);
-          res.set('Content-Type', 'application/vnd.apple.mpegurl');
-          res.end(Buffer.from(master));
+  router.get(
+    '/:hash/stream/index.m3u8',
+    wrap(async ({ req, res }) => {
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        throw new NotFound('media not found');
+      }
+
+      const masterPlaylist = ImportUtils.generateStreamMasterPlaylist(media);
+      res.set('Content-Type', 'application/vnd.apple.mpegurl');
+      res.end(Buffer.from(masterPlaylist));
+    }, false),
+  );
+
+  router.get(
+    '/:hash/stream/:quality/index.m3u8',
+    wrap(async ({ req, res }) => {
+      const quality = Number(req.params.quality);
+      if (isNaN(quality)) {
+        throw new BadRequest('quality must be a number');
+      }
+
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        throw new NotFound('media not found');
+      }
+
+      const playlist = await transcoder.getStreamPlaylist(media, quality);
+      res.set('Content-Type', 'application/vnd.apple.mpegurl');
+      res.end(Buffer.from(playlist));
+    }, false),
+  );
+
+  router.get(
+    '/:hash/stream/:quality/:file',
+    wrap(async ({ req, res }) => {
+      const file = req.params.file;
+      const quality = Number(req.params.quality);
+      if (isNaN(quality)) {
+        throw new BadRequest('quality must be a number');
+      }
+
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        throw new NotFound('media not found');
+      }
+
+      // data.ts is the newer cache/streaming method.
+      if (file === 'data.ts') {
+        const start = Number(req.query.start);
+        const end = Number(req.query.end);
+
+        if (isNaN(start) || isNaN(end)) {
+          throw new BadRequest('start and end must be set to numbers');
+        }
+
+        res.set('Cache-Control', 'public, max-age=604800, immutable');
+        res.set('Content-Type', 'video/mp2t');
+
+        // This is the new cache method.
+        if (media.metadata?.qualityCache?.includes(quality)) {
+          res.sendFile(
+            `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`,
+          );
         } else {
-          res.status(404).json({
-            message: `No media found with hash: ${req.params.hash}`,
+          transcoder.streamMedia(media, start, end, res, quality, true).catch(err => {
+            console.error('Error streaming media', err);
+            // Can't send headers
+            res.end();
           });
         }
-      })
-      .catch(err => {
-        res.status(503).json({ message: err.message });
-      });
-  });
-
-  router.get('/:hash/stream/:quality/index.m3u8', (req: Request, res: Response) => {
-    const quality = Number(req.params.quality);
-    if (isNaN(quality)) {
-      res.status(400).json({ message: 'Quality must be a number' });
-      return;
-    }
-
-    db.getMedia(req.params.hash)
-      .then(media => {
-        if (media) {
-          res.set('Content-Type', 'application/vnd.apple.mpegurl');
-          transcoder
-            .getStreamPlaylist(media, quality)
-            .then(pl => {
-              res.end(Buffer.from(pl));
-            })
-            .catch(err => {
-              // Nothing to be done here because it was probably cancelled during streaming.
-              console.warn(err);
-            });
-        } else {
-          res.status(404).json({
-            message: `No media found with hash: ${req.params.hash}`,
-          });
+      } else {
+        // This is support for the old cache method.
+        if (!file.startsWith('index') || !file.endsWith('.ts')) {
+          throw new BadRequest('Invalid filename to fetch from cache');
         }
-      })
-      .catch(err => {
-        res.status(503).json({ message: err.message });
-      });
-  });
-
-  router.get('/:hash/stream/:quality/:file', (req: Request, res: Response) => {
-    const file = req.params.file;
-    const quality = Number(req.params.quality);
-    if (isNaN(quality)) {
-      res.status(400).json({ message: 'Quality must be a number' });
-      return;
-    }
-
-    if (file === 'data.ts') {
-      const start = Number(req.query.start);
-      const end = Number(req.query.end);
-
-      if (isNaN(start) || isNaN(end)) {
-        res.status(400).json({ message: 'Start and end must be set to numbers' });
-        return;
+        const absPath = Path.resolve(Config.get().cachePath, req.params.hash, `${quality}p`, file);
+        if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
+          throw new BadRequest('Requested file not inside cache');
+        }
+        res.sendFile(absPath);
       }
-
-      db.getMedia(req.params.hash)
-        .then(media => {
-          if (media) {
-            res.set('Cache-Control', 'public, max-age=604800, immutable');
-            res.set('Content-Type', 'video/mp2t');
-            transcoder.streamMedia(media, start, end, res, quality).catch(err => {
-              console.error('Error streaming media', err);
-              // Can't send headers
-              res.end();
-            });
-          } else {
-            res.status(404).json({
-              message: `No media found with hash: ${req.params.hash}`,
-            });
-          }
-        })
-        .catch(err => {
-          res.status(503).json({ message: err.message });
-        });
-    } else {
-      if (!file.startsWith('index') || !file.endsWith('.ts')) {
-        res.status(400).json({ message: 'Invalid filename to fetch from cache' });
-        return;
-      }
-      const absPath = Path.resolve(Config.get().cachePath, req.params.hash, `${quality}p`, file);
-      if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
-        res.status(400).json({ message: 'Requested file not inside cache' });
-        return;
-      }
-      res.sendFile(absPath);
-    }
-  });
+    }, false),
+  );
 
   return router;
 }

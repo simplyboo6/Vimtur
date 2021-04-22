@@ -4,6 +4,8 @@ import { Transcoder } from '../cache/transcoder';
 import { execute } from 'proper-job';
 import Config from '../config';
 
+const BATCH_SIZE = 2;
+
 export function getTask(database: Database): RouterTask {
   return {
     id: 'GENERATE-CACHE',
@@ -45,7 +47,7 @@ export function getTask(database: Database): RouterTask {
           updateStatus(complete++, max || 0);
         },
         {
-          parallel: 1,
+          parallel: BATCH_SIZE,
         },
       );
     },

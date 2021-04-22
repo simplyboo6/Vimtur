@@ -5,7 +5,7 @@ import Rimraf from 'rimraf';
 import Stream from 'stream';
 import Util from 'util';
 
-import { Database, Media } from '../types';
+import { Database, Media, SegmentMetadata } from '../types';
 import { ImportUtils, Quality } from './import-utils';
 import Config from '../config';
 
@@ -106,7 +106,8 @@ export class Transcoder {
     start: number,
     end: number,
     stream: Stream.Writable,
-    targetHeight?: number,
+    targetHeight: number,
+    realtime: boolean,
   ): Promise<void> {
     if (!media.metadata || !media.metadata.length) {
       throw new Error(`Can't transcode media without metadata`);
@@ -147,10 +148,9 @@ export class Transcoder {
           'h264_mp4toannexb',
           '-tune',
           'film',
-          '-quality',
-          'realtime',
-          '-preset',
-          'ultrafast',
+          ...(realtime
+            ? ['-quality', 'realtime', '-preset', 'ultrafast']
+            : ['-quality', 'good', '-preset', 'medium']),
           '-maxrate',
           quality,
           '-bufsize',
@@ -221,16 +221,29 @@ export class Transcoder {
     }
 
     // If it's cached then return the cached index.
+    // This block copes with legacy caches.
     if (media.metadata.qualityCache && media.metadata.qualityCache.includes(quality)) {
-      const cached = await Util.promisify(FS.readFile)(
-        Path.resolve(Config.get().cachePath, media.hash, `${quality}p`, 'index.m3u8'),
+      const indexPath = Path.resolve(
+        Config.get().cachePath,
+        media.hash,
+        `${quality}p`,
+        'index.m3u8',
       );
-      return cached.toString();
+      if (await ImportUtils.exists(indexPath)) {
+        const cached = await Util.promisify(FS.readFile)(indexPath);
+        return cached.toString();
+      }
     }
 
-    const segments = media.metadata.segments || (await ImportUtils.generateSegments(media));
+    const segments = await this.getStreamSegments(media);
 
-    if (Config.get().transcoder.enableCachingKeyframes && !media.metadata.segments) {
+    return ImportUtils.generateStreamPlaylist(media, segments);
+  }
+
+  public async getStreamSegments(media: Media): Promise<SegmentMetadata> {
+    const segments = media.metadata?.segments || (await ImportUtils.generateSegments(media));
+
+    if (Config.get().transcoder.enableCachingKeyframes && !media.metadata?.segments) {
       await this.database.saveMedia(media.hash, {
         metadata: {
           segments,
@@ -238,7 +251,7 @@ export class Transcoder {
       });
     }
 
-    return ImportUtils.generateStreamPlaylist(media, segments);
+    return segments;
   }
 
   private async transcodeMediaToQuality(media: Media, requestedQuality: Quality): Promise<void> {
@@ -259,53 +272,23 @@ export class Transcoder {
 
     media.metadata.qualityCache.push(targetHeight);
 
-    const audioCodec = ['-acodec', 'aac', '-ac', '1', '-strict', '-2'];
-    let scale: string[] = [];
-
-    if (targetHeight !== media.metadata.height) {
-      scale = ['-vf', `scale=-2:${targetHeight}`];
-    }
-
-    const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
-      targetHeight || media.metadata.height,
-      media,
-      true,
-    );
-    // Although these are the same target qualities as streaming, without the time restrictions this
-    // produces a higher quality output the same size as the streamed version.
-    const quality = `${Math.ceil(qualityRaw / 1000000)}M`;
-    const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
-
-    const args = [
-      '-y',
-      ...audioCodec,
-      ...scale,
-      '-vcodec',
-      'libx264',
-      '-tune',
-      'film',
-      '-vbsf',
-      'h264_mp4toannexb',
-      '-maxrate',
-      quality,
-      '-bufsize',
-      qualityBuffer,
-      '-f',
-      'hls',
-      '-hls_time',
-      '10',
-      '-hls_list_size',
-      '0',
-      '-start_number',
-      '0',
-    ];
-
+    await ImportUtils.deleteFolder(`${Config.get().cachePath}/${media.hash}/${targetHeight}p`);
     await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}/${targetHeight}p`);
-    await ImportUtils.transcode(
-      media.absolutePath,
-      `${Config.get().cachePath}/${media.hash}/${targetHeight}p/index.m3u8`,
-      args,
-    );
+
+    const segmentMetadata = await this.getStreamSegments(media);
+    for (const segment of segmentMetadata.standard) {
+      const filename = `${Config.get().cachePath}/${media.hash}/${targetHeight}p/data.ts?start=${
+        segment.start
+      }&end=${segment.end}`;
+      await this.streamMedia(
+        media,
+        segment.start,
+        segment.end,
+        FS.createWriteStream(filename),
+        requestedQuality.quality,
+        false,
+      );
+    }
 
     console.log(`Saving metadata for ${media.absolutePath}`);
     // This try block is to avoid it being marked as corrupted if it fails schema validation.
