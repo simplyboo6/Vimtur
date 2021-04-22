@@ -2,6 +2,8 @@ FROM simplyboo6/vimtur-base@sha256:b3576d012e192fa39b97f0f5845cda875cef94d64a39d
 
 ARG VERSION_NAME=dev
 
+RUN ifconfig
+
 RUN apk add -U g++ make python3
 
 ## Copy in source
