@@ -4,6 +4,7 @@ name: default
 steps:
   - name: build
     image: hub.t3s.uk/builder:latest
+    network_mode: host
     privileged: true
     settings:
       build_type: docker
