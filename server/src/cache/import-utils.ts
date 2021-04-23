@@ -23,6 +23,14 @@ export interface LoadedImage {
 // Nice level for low priority tasks
 const LOW_PRIORITY = 15;
 
+export interface TranscoderOptions {
+  input: string;
+  output: string | Stream.Writable;
+  outputOptions: string[];
+  inputOptions?: string[];
+  important?: boolean;
+}
+
 export class ImportUtils {
   public static async getFileCreationTime(path: string): Promise<number> {
     const stat = await Util.promisify(FS.stat)(path);
@@ -181,29 +189,24 @@ export class ImportUtils {
   // You would think we'd just use fluent-ffmpeg's streaming functionality.
   // However, there appears to be a bug in streaming I can't track down
   // that corrupts that output stream even if piped to a file.
-  public static async transcode(
-    input: string,
-    output: string | Stream.Writable,
-    outputOptions: string[],
-    inputOptions?: string[],
-  ): Promise<void> {
+  public static async transcode(options: TranscoderOptions): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const args = [];
-      if (inputOptions) {
-        args.push(...inputOptions);
+      if (options.inputOptions) {
+        args.push(...options.inputOptions);
       }
-      args.push(...['-i', input]);
-      args.push(...outputOptions);
+      args.push(...['-i', options.input]);
+      args.push(...options.outputOptions);
 
-      if (typeof output === 'string') {
-        args.push(output);
+      if (typeof options.output === 'string') {
+        args.push(options.output);
       } else {
         args.push('pipe:1');
       }
 
       const proc = ChildProcess.spawn('ffmpeg', args);
 
-      if (typeof output === 'string') {
+      if (!options.important) {
         ImportUtils.setNice(proc.pid, LOW_PRIORITY);
       }
 
@@ -229,15 +232,15 @@ export class ImportUtils {
         }
       });
 
-      if (typeof output !== 'string') {
-        output.on('close', () => {
+      if (typeof options.output !== 'string') {
+        options.output.on('close', () => {
           // Wait slightly to avoid race condition under load.
           setTimeout(() => {
             proc.kill('SIGKILL');
           }, 20);
         });
 
-        proc.stdout.pipe(output, { end: true });
+        proc.stdout.pipe(options.output, { end: true });
       }
     });
   }

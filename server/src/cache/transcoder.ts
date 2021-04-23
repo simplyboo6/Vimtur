@@ -37,7 +37,12 @@ export class Transcoder {
       inputOptions.push('-ss');
       inputOptions.push(`00:00:${offset >= 60 ? 59 : offset.toFixed(2)}`);
     }
-    await ImportUtils.transcode(media.absolutePath, path, args, inputOptions);
+    await ImportUtils.transcode({
+      input: media.absolutePath,
+      output: path,
+      outputOptions: args,
+      inputOptions,
+    });
   }
 
   public async createVideoPreview(media: Media): Promise<void> {
@@ -69,7 +74,11 @@ export class Transcoder {
       '1',
     ];
     const path = `${Config.get().cachePath}/previews/${media.hash}.png`;
-    await ImportUtils.transcode(media.absolutePath, path, args);
+    await ImportUtils.transcode({
+      input: media.absolutePath,
+      output: path,
+      outputOptions: args,
+    });
   }
 
   public getThumbnailPath(media: Media): string {
@@ -169,7 +178,14 @@ export class Transcoder {
 
     const args = ['-y', ...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
 
-    await ImportUtils.transcode(media.absolutePath, stream, args, inputOptions);
+    // If not realtime then transcode as low priority.
+    await ImportUtils.transcode({
+      input: media.absolutePath,
+      output: stream,
+      outputOptions: args,
+      inputOptions,
+      important: realtime,
+    });
   }
 
   public async transcodeMedia(media: Media): Promise<void> {
