@@ -616,6 +616,9 @@ export class MongoConnector extends Database {
       }
     }
 
+    if (media) {
+      await this.db.collection<BaseMedia>('media.deleted').insertOne(media);
+    }
     await mediaCollection.deleteOne({ hash });
   }
 

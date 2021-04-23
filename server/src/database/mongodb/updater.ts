@@ -136,6 +136,15 @@ export class Updater {
       await Updater.createMediaCollection(db, 'media');
     }
 
+    if (!(await Updater.collectionExists(db, 'media.deleted'))) {
+      await Updater.createMediaCollection(db, 'media.deleted');
+      const deletedCollection = db.collection('media.deleted');
+      await Util.promisify((deletedCollection.createIndex as any).bind(deletedCollection))(
+        { hash: 1 },
+        { unique: true },
+      );
+    }
+
     if (!(await Updater.collectionExists(db, 'config'))) {
       await db.createCollection('config');
     }
