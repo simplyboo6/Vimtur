@@ -25,11 +25,11 @@
     "@ng-bootstrap/ng-bootstrap": "^9.0.2",
     "angular2-multiselect-dropdown": "4.6.6",
     "bootstrap-css-only": "^4.4.1",
-    "hls.js": "^0.14.17",
+    "hls.js": "^1.0.7",
     "is-mobile": "^2.2.2",
     "resize-observer-polyfill": "^1.5.1",
     "rxjs": "^6.6.6",
-    "socket.io-client": "^2.4.0",
+    "socket.io-client": "4.1.2",
     "tslib": "^2.0.0",
     "zone.js": "^0.11.4"
   },

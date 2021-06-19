@@ -1,6 +1,7 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
-import { Transcoder } from '../cache/transcoder';
 import { execute } from 'proper-job';
+
+import { Transcoder } from '../cache/transcoder';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 const PREVIEW_BATCH_SIZE = 8;
 

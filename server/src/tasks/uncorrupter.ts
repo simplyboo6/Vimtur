@@ -1,5 +1,6 @@
-import { Database, RouterTask } from '../types';
 import { execute } from 'proper-job';
+
+import type { Database, RouterTask } from '../types';
 
 export function getTask(database: Database): RouterTask {
   return {

@@ -1,9 +1,11 @@
-import { BadRequest } from './errors';
 import { EventEmitter } from 'events';
+
 import { ExecutorError, ExecutorPromise } from 'proper-job';
-import { ListedTask, QueuedTask } from '@vimtur/common';
-import { Task } from './types';
+import type { ListedTask, QueuedTask } from '@vimtur/common';
+
+import { BadRequest } from './errors';
 import Config from './config';
+import type { Task } from './types';
 
 const MAX_TASK_QUEUE_SIZE = 30;
 const EMIT_TIME = 1000;
@@ -30,7 +32,7 @@ export class TaskManager extends EventEmitter {
 
     let freeId: number | undefined = undefined;
     for (let i = 0; i < MAX_TASK_QUEUE_SIZE; i++) {
-      const el = this.taskQueue.find(queuedTask => queuedTask.id.endsWith(`-${i}`));
+      const el = this.taskQueue.find((queuedTask) => queuedTask.id.endsWith(`-${i}`));
       if (!el) {
         freeId = i;
         break;
@@ -63,7 +65,7 @@ export class TaskManager extends EventEmitter {
   }
 
   public cancel(id: string): void {
-    const index = this.taskQueue.findIndex(task => task.id === id);
+    const index = this.taskQueue.findIndex((task) => task.id === id);
     if (index >= 0) {
       const task = this.taskQueue[index];
       if (task.running) {
@@ -93,7 +95,7 @@ export class TaskManager extends EventEmitter {
   }
 
   public getTasks(): ListedTask[] {
-    return Object.keys(this.tasks).map(id => ({
+    return Object.keys(this.tasks).map((id) => ({
       id,
       description: this.tasks[id].description,
     }));
@@ -104,7 +106,7 @@ export class TaskManager extends EventEmitter {
   }
 
   private execute(): void {
-    const taskQueue = this.taskQueue.filter(task => !task.error && !task.complete);
+    const taskQueue = this.taskQueue.filter((task) => !task.error && !task.complete);
     if (taskQueue.length === 0 || taskQueue[0].running) {
       return;
     }
@@ -136,14 +138,14 @@ export class TaskManager extends EventEmitter {
     // ESLint being stupid. This whole mess handles the promise.
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     queuedTask.promise
-      .then(result => {
+      .then((result) => {
         if (queuedTask.aborted) {
           console.log(`Task finished (aborted): ${queuedTask.id}`);
           queuedTask.error = `Aborted. ${result.fulfilled} complete. ${result.errors.length} errors.`;
         } else {
           console.log(`Task completed successfully: ${queuedTask.id}`);
           if (Config.get().user.autoClearCompletedTasks) {
-            const index = this.taskQueue.findIndex(t => t.id === queuedTask.id);
+            const index = this.taskQueue.findIndex((t) => t.id === queuedTask.id);
             if (index >= 0) {
               this.taskQueue.splice(index, 1);
             }
@@ -151,11 +153,11 @@ export class TaskManager extends EventEmitter {
           }
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(`Task failed: ${queuedTask.id}`, err);
         if (err instanceof ExecutorError) {
           if (err.result.errors.length < MAX_FORMATTED_ERRORS) {
-            queuedTask.error = err.result.errors.map(error => error.message).join('. ');
+            queuedTask.error = err.result.errors.map((error) => error.message).join('. ');
           } else {
             queuedTask.error = err.message;
           }

@@ -1,6 +1,8 @@
-import { Database, Media, RouterTask, TaskRunnerCallback } from '../types';
 import { execute } from 'proper-job';
+
 import PHash from '../phash';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+import type { Media } from '@vimtur/common';
 
 // Really tends to block up the worker threads if higher.
 const MH_HASH_BATCH_SIZE = 2;

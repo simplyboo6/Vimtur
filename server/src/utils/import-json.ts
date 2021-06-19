@@ -3,11 +3,12 @@ import FS from 'fs';
 import Path from 'path';
 import Util from 'util';
 
-import { BaseMedia, Database, DumpFile } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { createHash } from '../cache/hash';
 import { setup as setupDb } from '../database';
 import Config from '../config';
+import type { BaseMedia } from '@vimtur/common';
+import type { Database, DumpFile } from '../types';
 
 async function importMedia(db: Database, media: BaseMedia, version?: number): Promise<void> {
   if (!media.hash) {
@@ -121,13 +122,13 @@ async function main(): Promise<void> {
     const stdin = process.stdin;
     stdin.setEncoding('utf8');
 
-    stdin.on('data', data => {
+    stdin.on('data', (data) => {
       input += data;
     });
 
     stdin.resume();
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       stdin.on('end', resolve);
     });
   } else {
@@ -184,7 +185,7 @@ async function main(): Promise<void> {
   await db.close();
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 
 import { BadRequest } from '../errors';
-import { Database } from '../types';
 import { wrap } from '../express-async';
+import type { Database } from '../types';
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();

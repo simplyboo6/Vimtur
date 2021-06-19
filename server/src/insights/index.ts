@@ -1,6 +1,7 @@
-import { CalculatedAverage, SortedAverage } from '@vimtur/common';
-import { Database } from '../types';
+import type { CalculatedAverage, SortedAverage } from '@vimtur/common';
+
 import { setup as setupDb } from '../database';
+import type { Database } from '../types';
 
 interface TrackedAverage {
   total: number;
@@ -63,7 +64,7 @@ export class Insights {
 
     while (hashes.length > 0) {
       await Promise.all(
-        hashes.splice(0, BATCH_SIZE).map(async hash => {
+        hashes.splice(0, BATCH_SIZE).map(async (hash) => {
           const media = await this.db.getMedia(hash);
           if (!media || !media.rating) {
             return;
@@ -87,7 +88,7 @@ export class Insights {
     }
 
     // Filter out artists that are also actors.
-    data.artists = filterObject(data.artists, artist => {
+    data.artists = filterObject(data.artists, (artist) => {
       const artistLower = artist.toLowerCase();
       for (const actor of Object.keys(data.actors)) {
         if (artistLower.includes(actor.toLowerCase())) {
@@ -112,7 +113,7 @@ export class Insights {
 
     while (hashes.length > 0) {
       await Promise.all(
-        hashes.splice(0, BATCH_SIZE).map(async hash => {
+        hashes.splice(0, BATCH_SIZE).map(async (hash) => {
           const media = await this.db.getMedia(hash);
           if (!media) {
             return;
@@ -240,7 +241,7 @@ async function main(): Promise<void> {
 }
 
 if (require.main === module) {
-  main().catch(err => {
+  main().catch((err) => {
     console.error(err);
     process.exit(1);
   });

@@ -1,6 +1,7 @@
+import type { NextFunction, Request, RequestHandler, Response } from 'express';
+
 import { BadRequest } from './errors';
 import { BaseRequestError } from './errors/base';
-import { NextFunction, Request, RequestHandler, Response } from 'express';
 
 const DEFAULT_FORMAT = 'application/json';
 
@@ -36,7 +37,7 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
     return;
   }
 
-  let type = req.header('accept') || req.header('content-type') || DEFAULT_FORMAT;
+  let type = req.header('accept') ?? req.header('content-type') ?? DEFAULT_FORMAT;
   // To cope with type being a list of things.
   if (type.includes(',')) {
     if (type.includes('application/json')) {

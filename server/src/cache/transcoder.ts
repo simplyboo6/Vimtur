@@ -1,13 +1,16 @@
 import FS from 'fs';
-import GM from 'gm';
 import Path from 'path';
-import Rimraf from 'rimraf';
-import Stream from 'stream';
 import Util from 'util';
+import type Stream from 'stream';
 
-import { Database, Media, SegmentMetadata } from '../types';
-import { ImportUtils, Quality } from './import-utils';
+import GM from 'gm';
+import Rimraf from 'rimraf';
+
 import Config from '../config';
+import type { Database } from '../types';
+import type { Media, SegmentMetadata } from '@vimtur/common';
+
+import { ImportUtils, Quality } from './import-utils';
 
 export class Transcoder {
   private database: Database;
@@ -100,7 +103,7 @@ export class Transcoder {
       .autoOrient()
       .resize(200, 200);
     await new Promise<void>((resolve, reject) => {
-      gm.write(output, err => {
+      gm.write(output, (err) => {
         if (err) {
           reject(err);
         } else {
@@ -197,10 +200,10 @@ export class Transcoder {
       media,
       Config.get().transcoder.cacheQualities,
     );
-    const actualCaches = media.metadata.qualityCache || [];
+    const actualCaches = media.metadata.qualityCache ?? [];
     const missingQualities: Quality[] = [];
     for (const quality of desiredCaches) {
-      if (!actualCaches.find(el => quality.quality === el)) {
+      if (!actualCaches.find((el) => quality.quality === el)) {
         missingQualities.push(quality);
       }
     }
@@ -257,7 +260,7 @@ export class Transcoder {
   }
 
   public async getStreamSegments(media: Media): Promise<SegmentMetadata> {
-    const segments = media.metadata?.segments || (await ImportUtils.generateSegments(media));
+    const segments = media.metadata?.segments ?? (await ImportUtils.generateSegments(media));
 
     if (Config.get().transcoder.enableCachingKeyframes && !media.metadata?.segments) {
       await this.database.saveMedia(media.hash, {
@@ -279,7 +282,7 @@ export class Transcoder {
       `${media.hash}: ${media.path} (source ${media.metadata.height}p) - Transcoding to ${targetHeight}p...`,
     );
 
-    media.metadata.qualityCache = media.metadata.qualityCache || [];
+    media.metadata.qualityCache = media.metadata.qualityCache ?? [];
 
     if (media.metadata.qualityCache.includes(targetHeight)) {
       console.log(`${media.hash}: Already cached at ${targetHeight}p.`);

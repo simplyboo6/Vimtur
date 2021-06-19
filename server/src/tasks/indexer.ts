@@ -1,11 +1,14 @@
-import { ExecutorPromise, execute } from 'proper-job';
 import Path from 'path';
 
-import { Database, Media, RouterTask, TaskRunnerCallback } from '../types';
+import { ExecutorPromise, execute } from 'proper-job';
+
 import { ImportUtils } from '../cache/import-utils';
-import { Scanner } from './scanner';
 import { createHash } from '../cache/hash';
 import Config from '../config';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+import type { Media } from '@vimtur/common';
+
+import { Scanner } from './scanner';
 
 export class Indexer {
   private database: Database;
@@ -48,7 +51,7 @@ export class Indexer {
 
     return execute(
       files,
-      async file => {
+      async (file) => {
         try {
           const media = await this.generateMediaFromFile(file);
           const existingMedia = await this.database.getMedia(media.hash);

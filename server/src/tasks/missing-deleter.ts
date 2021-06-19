@@ -1,7 +1,9 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
-import { Scanner } from './scanner';
-import { deleteMedia } from '../utils';
 import { execute } from 'proper-job';
+
+import { deleteMedia } from '../utils';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+
+import { Scanner } from './scanner';
 
 export function getTask(database: Database): RouterTask {
   return {
@@ -17,7 +19,7 @@ export function getTask(database: Database): RouterTask {
       let current = 0;
       return execute(
         results,
-        async path => {
+        async (path) => {
           const possibilities = await database.subset({ path: { likeAll: [path] } });
           if (possibilities.length === 0) {
             throw new Error(`Unable to find hash matching path: ${path}`);

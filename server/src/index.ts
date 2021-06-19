@@ -1,16 +1,15 @@
 // Modules
+import Http, { Server } from 'http';
+import Path from 'path';
+
 import BodyParser from 'body-parser';
 import Compression from 'compression';
 import DeepMerge from 'deepmerge';
 import Express, { Request, Response } from 'express';
-import Http, { Server } from 'http';
 import IO from 'socket.io';
-import Path from 'path';
 import PathIsInside from 'path-is-inside';
 
 // Local
-import * as Utils from './utils';
-import { Database } from './types';
 import { setup as setupDb } from './database';
 import { wrap } from './express-async';
 import Config, { VERSION_NAME } from './config';
@@ -22,11 +21,13 @@ import * as InsightsRouter from './routes/insights';
 import * as PlaylistRouter from './routes/playlists';
 import * as TagRouter from './routes/tags';
 import * as TasksRouter from './routes/tasks';
+import * as Utils from './utils';
+import type { Database } from './types';
 
 async function createServer(db: Database): Promise<Server> {
   const app = Express();
   const server = Http.createServer(app);
-  const io = IO.listen(server);
+  const io = new IO.Server(server);
 
   app.use(Compression({ level: 9 }));
   app.use(BodyParser.json());
@@ -47,7 +48,7 @@ async function createServer(db: Database): Promise<Server> {
     throw new Error('require.main undefned');
   }
   const webRoot = Path.resolve(Path.dirname(require.main.filename), '..', '..', 'client');
-  app.use('/web/:file(*)', (req, res) => {
+  app.use<{ file: string }>('/web/:file(*)', (req, res) => {
     if (
       req.params.file.endsWith('.js') ||
       req.params.file.endsWith('.map') ||
@@ -129,7 +130,7 @@ async function setup(): Promise<void> {
   console.log(`Setting up HTTP server on ${Config.get().port}`);
   const server = await createServer(db);
 
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     try {
       server.listen(Config.get().port, resolve);
     } catch (err) {
@@ -138,11 +139,11 @@ async function setup(): Promise<void> {
   });
 }
 
-setup().catch(err => {
+setup().catch((err) => {
   console.error(err);
   process.exit(1);
 });
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
   console.log('unhandledRejection', error);
 });

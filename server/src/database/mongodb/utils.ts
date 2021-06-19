@@ -1,10 +1,10 @@
-import {
+import type {
   ArrayFilter,
   BooleanFilter,
   NumberFilter,
   StringFilter,
   StringFilterCommon,
-} from '../../types';
+} from '@vimtur/common';
 
 function createStringFilterCommon(field: string, options?: StringFilterCommon): object {
   if (!options || Object.keys(options).length === 0) {
@@ -63,7 +63,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
   if (options) {
     if (options.likeAny && options.likeAny.length > 0) {
       likeFilters.push({
-        $or: options.likeAny.map(value => {
+        $or: options.likeAny.map((value) => {
           return {
             [field]: { $regex: `\\Q${value}\\E`, $options: 'i' },
           };
@@ -73,7 +73,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
 
     if (options.likeAll && options.likeAll.length > 0) {
       likeFilters.push({
-        $and: options.likeAll.map(value => {
+        $and: options.likeAll.map((value) => {
           return {
             [field]: { $regex: `\\Q${value}\\E`, $options: 'i' },
           };
@@ -83,7 +83,7 @@ export function createStringFilter(field: string, options?: StringFilter): objec
 
     if (options.likeNone && options.likeNone.length > 0) {
       likeFilters.push({
-        $and: options.likeNone.map(value => {
+        $and: options.likeNone.map((value) => {
           return {
             [field]: { $not: { $regex: `\\Q${value}\\E`, $options: 'i' } },
           };
@@ -108,12 +108,12 @@ export function createStringFilter(field: string, options?: StringFilter): objec
 export function createArrayFilter(field: string, options?: ArrayFilter): object {
   const stringFilter = options ? { ...options } : undefined;
   if (stringFilter) {
-    delete stringFilter['exists'];
+    delete stringFilter.exists;
   }
 
   const base = createStringFilterCommon(field, stringFilter);
 
-  if (options && options.exists !== undefined) {
+  if (options?.exists !== undefined) {
     Object.assign(base, {
       [`${field}.0`]: { $exists: options.exists },
     });

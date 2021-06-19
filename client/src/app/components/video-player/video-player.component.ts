@@ -427,7 +427,6 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.hls = new Hls({
       autoStartLoad: false,
       capLevelToPlayerSize: true,
-      maxSeekHole: 5,
       maxBufferHole: 5,
       maxBufferLength: 20,
       startLevel: lowQualityOnSeek ? 0 : -1,

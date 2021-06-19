@@ -1,8 +1,9 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { execute } from 'proper-job';
+
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
-import { execute } from 'proper-job';
 import Config from '../config';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 const BATCH_SIZE = 8;
 
@@ -40,7 +41,7 @@ export function getTask(database: Database): RouterTask {
             const base = `${Config.get().cachePath}/${media.hash}/${quality}p`;
             // Returns the legacy cache or the newer version.
             const index = await transcoder.getStreamPlaylist(media, quality);
-            const dataFiles = index.split('\n').filter(line => !line.startsWith('#'));
+            const dataFiles = index.split('\n').filter((line) => !line.startsWith('#'));
             let allExist = true;
             for (const file of dataFiles) {
               const filePath = `${base}/${file}`;

@@ -1,6 +1,7 @@
 import { SHARE_ENV, Worker } from 'worker_threads';
-import { TensorFlowHubModel } from '../imagenet';
 import Path from 'path';
+
+import type { TensorFlowHubModel } from '../imagenet';
 
 export interface ClassifierWorkerRequest {
   definition: TensorFlowHubModel;

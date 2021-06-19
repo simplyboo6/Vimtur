@@ -1,12 +1,16 @@
+import FS from 'fs';
+import Path from 'path';
+
+import { NodeFileSystem } from '@tensorflow/tfjs-node/dist/io/file_system';
+import Fetch from 'node-fetch';
+
 import { ImportUtils } from '../../cache/import-utils';
 import Config from '../../config';
-import FS from 'fs';
-import Fetch from 'node-fetch';
-import Path from 'path';
+
 import TensorFlow from './tensorflow';
+
 // Explicitly import from the sub-directory so the TFJS node backend isn't
 // loaded on non-AVX CPUs.
-import { NodeFileSystem } from '@tensorflow/tfjs-node/dist/io/file_system';
 
 export interface TensorFlowHubModel {
   id: string;
@@ -42,7 +46,7 @@ async function loadClassesRemote(): Promise<string> {
 
 function saveClasses(classes: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    FS.writeFile(Path.resolve(MODELS_DIR, 'ImageNetLabels.txt'), classes, err => {
+    FS.writeFile(Path.resolve(MODELS_DIR, 'ImageNetLabels.txt'), classes, (err) => {
       if (err) {
         reject(err);
       } else {
@@ -68,7 +72,7 @@ async function loadClassesRaw(): Promise<string> {
 export async function loadClasses(): Promise<string[]> {
   await ImportUtils.mkdir(MODELS_DIR);
   const raw = await loadClassesRaw();
-  return raw.split('\n').map(line => line.trim());
+  return raw.split('\n').map((line) => line.trim());
 }
 
 export async function loadModel(
@@ -96,16 +100,14 @@ export const IMAGENET_MODELS: TensorFlowHubModel[] = [
   {
     id: 'MOBILE-NET-V2-140',
     name: 'MobileNet V2 140 [Default]',
-    url:
-      'https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_140_224/classification/3/default/1',
+    url: 'https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_140_224/classification/3/default/1',
     width: 224,
     height: 224,
   },
   {
     id: 'INCEPTION-RESNET-V2',
     name: 'Inception ResNet V2',
-    url:
-      'https://tfhub.dev/google/tfjs-model/imagenet/inception_resnet_v2/classification/3/default/1',
+    url: 'https://tfhub.dev/google/tfjs-model/imagenet/inception_resnet_v2/classification/3/default/1',
     width: 299,
     height: 299,
   },

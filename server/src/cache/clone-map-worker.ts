@@ -1,6 +1,8 @@
-import { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
 import { parentPort, workerData } from 'worker_threads';
+
 import PHash from '../phash';
+
+import type { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
 
 if (!parentPort || !workerData) {
   throw new Error('Worker missing fields');

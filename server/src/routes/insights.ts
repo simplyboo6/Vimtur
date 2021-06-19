@@ -1,9 +1,9 @@
 import { Router } from 'express';
+import type { InsightsResponse } from '@vimtur/common';
 
-import { Database } from '../types';
 import { Insights, convertToArray } from '../insights';
-import { InsightsResponse } from '@vimtur/common';
 import { wrap } from '../express-async';
+import type { Database } from '../types';
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();

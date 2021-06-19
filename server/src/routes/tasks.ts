@@ -1,12 +1,12 @@
-import { Database, RouterTask } from '../types';
 import { Router } from 'express';
-import { TaskManager } from '../task-manager';
 import { execute } from 'proper-job';
+import type SocketIO from 'socket.io';
+
+import { TaskManager } from '../task-manager';
+import { getTasks } from '../tasks';
 import { wrap } from '../express-async';
 import Config from '../config';
-import SocketIO from 'socket.io';
-
-import { getTasks } from '../tasks';
+import type { Database, RouterTask } from '../types';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -82,19 +82,19 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     },
   });
 
-  io.on('connection', socket => {
+  io.on('connection', (socket) => {
     socket.emit('task-queue', taskManager.getQueue());
   });
 
-  taskManager.on('start', data => {
+  taskManager.on('start', (data) => {
     io.sockets.emit('task-start', data);
   });
 
-  taskManager.on('end', data => {
+  taskManager.on('end', (data) => {
     io.sockets.emit('task-end', data);
   });
 
-  taskManager.on('queue', data => {
+  taskManager.on('queue', (data) => {
     io.sockets.emit('task-queue', data);
   });
 

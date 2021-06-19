@@ -43,8 +43,8 @@ if (require.main === module) {
 
   console.log(`Hashing ${file}...`);
   createHash(file)
-    .then(hash => console.log(hash))
-    .catch(err => {
+    .then((hash) => console.log(hash))
+    .catch((err) => {
       console.error(err);
       process.exit(1);
     });

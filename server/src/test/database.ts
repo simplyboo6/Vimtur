@@ -1,11 +1,11 @@
 import { Db, MongoClient } from 'mongodb';
-import { Media, Playlist } from '@vimtur/common';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+import type { Media, Playlist } from '@vimtur/common';
 
-import { Database } from '../types/database';
 import { MongoConnector } from '../database/mongodb';
 import Config from '../config';
+import type { Database } from '../types/database';
 
 describe('Database Tests', () => {
   let database: Database;
@@ -16,11 +16,14 @@ describe('Database Tests', () => {
     database = await MongoConnector.init();
 
     const config = Config.get().database;
+    if (!config) {
+      throw new Error('missing database config');
+    }
     connection = await MongoClient.connect(config.uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    const dbName = Config.get().database.db;
+    const dbName = config.db;
     mongo = connection.db(dbName);
   });
 
@@ -91,9 +94,9 @@ describe('Database Tests', () => {
 
       const playlists = await database.getPlaylists();
       expect(playlists.length).to.equal(3);
-      expect(playlists.find(playlist => playlist.id === playlistA.id)).to.be.an('object');
-      expect(playlists.find(playlist => playlist.id === playlistB.id)).to.be.an('object');
-      expect(playlists.find(playlist => playlist.id === playlistC.id)).to.be.an('object');
+      expect(playlists.find((playlist) => playlist.id === playlistA.id)).to.be.an('object');
+      expect(playlists.find((playlist) => playlist.id === playlistB.id)).to.be.an('object');
+      expect(playlists.find((playlist) => playlist.id === playlistC.id)).to.be.an('object');
     });
 
     it('Ensure correct item is removed', async () => {
@@ -114,9 +117,9 @@ describe('Database Tests', () => {
       const playlistsPost = await database.getPlaylists();
 
       expect(playlistsPost.length).to.equal(2);
-      expect(playlistsPost.find(playlist => playlist.id === playlistA.id)).to.be.an('object');
-      expect(playlistsPost.find(playlist => playlist.id === playlistB.id)).to.equal(undefined);
-      expect(playlistsPost.find(playlist => playlist.id === playlistC.id)).to.be.an('object');
+      expect(playlistsPost.find((playlist) => playlist.id === playlistA.id)).to.be.an('object');
+      expect(playlistsPost.find((playlist) => playlist.id === playlistB.id)).to.equal(undefined);
+      expect(playlistsPost.find((playlist) => playlist.id === playlistC.id)).to.be.an('object');
     });
 
     afterEach(async () => {

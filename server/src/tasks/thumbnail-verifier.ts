@@ -1,7 +1,8 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { execute } from 'proper-job';
+
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
-import { execute } from 'proper-job';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 const THUMBNAIL_BATCH_SIZE = 8;
 

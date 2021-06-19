@@ -1,9 +1,11 @@
-import { Database } from '../types';
-import { ExecutorPromise, execute } from 'proper-job';
 import { Worker } from 'worker_threads';
-import Config from '../config';
 import OS from 'os';
 import Path from 'path';
+
+import { ExecutorPromise, execute } from 'proper-job';
+
+import Config from '../config';
+import type { Database } from '../types';
 
 const WORKER_COUNT = OS.cpus().length;
 const MH_THRESHOLD = 0.1;
@@ -50,7 +52,7 @@ export function generateImageCloneMap(
         { phash: 1, hash: 1, clones: 1 },
       );
 
-      const images: MediaPhash[] = imagesRaw.map(image => {
+      const images: MediaPhash[] = imagesRaw.map((image) => {
         return {
           hash: image.hash,
           phash: Buffer.from(image.phash!, 'base64'),
@@ -69,14 +71,14 @@ export function generateImageCloneMap(
           },
         });
 
-        worker.on('exit', code => {
+        worker.on('exit', (code) => {
           // If it's an error code, log it.
           if (code !== 0) {
             console.error('Worker exited with code', code);
           }
         });
 
-        worker.on('error', err => {
+        worker.on('error', (err) => {
           console.error('Worker failed', err);
         });
 
@@ -94,7 +96,7 @@ export function generateImageCloneMap(
           return Promise.resolve();
         }
 
-        const workerWrapper = workers.find(it => it.idle);
+        const workerWrapper = workers.find((it) => it.idle);
         if (!workerWrapper) {
           throw new Error('No available worker');
         }
@@ -110,7 +112,7 @@ export function generateImageCloneMap(
             } else if (data.clones) {
               database
                 .saveMedia(data.hash, {
-                  clones: data.clones.map(c => c.hash),
+                  clones: data.clones.map((c) => c.hash),
                   cloneDate: Math.floor(Date.now() / 1000),
                 })
                 .then(() => {
@@ -119,7 +121,7 @@ export function generateImageCloneMap(
                   }
                   resolve();
                 })
-                .catch(err => reject(err));
+                .catch((err) => reject(err));
             }
           });
 
@@ -127,7 +129,7 @@ export function generateImageCloneMap(
         });
       };
 
-      const filteredImages = images.filter(i => i.clones === undefined);
+      const filteredImages = images.filter((i) => i.clones === undefined);
 
       return {
         init: {
@@ -147,12 +149,12 @@ export function generateImageCloneMap(
       updateStatus(init.complete++, init.max);
     },
     { parallel: WORKER_COUNT },
-    async init => {
+    async (init) => {
       if (!init) {
         throw new Error('init not set in teardown');
       }
       console.log(`Terminating ${init.workers.length} worker threads`);
-      const terminations = init.workers.map(workerWrapper => workerWrapper.worker.terminate());
+      const terminations = init.workers.map((workerWrapper) => workerWrapper.worker.terminate());
       for (const termination of terminations) {
         await termination;
       }

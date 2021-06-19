@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import * as IO from 'socket.io-client';
+import IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
 import { QueuedTask, ListedTask, Scanner } from '@vimtur/common';

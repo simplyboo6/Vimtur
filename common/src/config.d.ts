@@ -76,7 +76,7 @@ export namespace Configuration {
     port: number; // The listen port.
     libraryPath: string; // Path to the source library.
     cachePath: string; // Path to store thumbnails and cached media.
-    database: Mongo;
+    database?: Mongo; // Not passed back to the APIs.
     transcoder: Transcoder;
     // Enable pHash generation for stills as part of import.
     enablePhash: boolean;

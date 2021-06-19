@@ -1,12 +1,12 @@
-import { Db, MongoClient, ObjectId } from 'mongodb';
 import Path from 'path';
 import Util from 'util';
+
+import { Db, MongoClient, ObjectId } from 'mongodb';
 
 import { BadRequest, NotFound } from '../../errors';
 import {
   BaseMedia,
   Configuration,
-  Database,
   Media,
   MediaPlaylist,
   Playlist,
@@ -16,17 +16,19 @@ import {
   SubsetConstraints,
   SubsetFields,
   UpdateMedia,
-} from '../../types';
+} from '@vimtur/common';
+import { Database } from '../../types';
 import { Insights } from '../../insights';
-import { Updater } from './updater';
 import { Validator } from '../../utils/validator';
+import Config from '../../config';
+
+import { Updater } from './updater';
 import {
   createArrayFilter,
   createBooleanFilter,
   createNumberFilter,
   createStringFilter,
 } from './utils';
-import Config from '../../config';
 
 interface Actor {
   name: string;
@@ -54,7 +56,9 @@ export class MongoConnector extends Database {
 
   private static async connect(): Promise<MongoClient> {
     const config = Config.get().database;
-    console.log(config.uri);
+    if (!config) {
+      throw new Error('database config missing');
+    }
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -66,7 +70,7 @@ export class MongoConnector extends Database {
         break;
       } catch (err) {
         console.warn('Failed to connect to database, retrying in 10 seconds', err.message);
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise((resolve) => setTimeout(resolve, 10000));
       }
     }
   }
@@ -74,7 +78,10 @@ export class MongoConnector extends Database {
   private constructor(server: MongoClient) {
     super();
     this.server = server;
-    const dbName = Config.get().database.db;
+    const dbName = Config.get().database?.db;
+    if (!dbName) {
+      throw new Error('missing database config');
+    }
     console.log(`Using database: ${dbName}`);
     this.db = this.server.db(dbName);
   }
@@ -87,7 +94,7 @@ export class MongoConnector extends Database {
     }
     // The projection doesn't seem to remove _id so do it manually.
 
-    delete row['_id'];
+    delete row._id;
     return row;
   }
 
@@ -99,7 +106,7 @@ export class MongoConnector extends Database {
   public async getTags(): Promise<string[]> {
     const tags = this.db.collection<Tag>('tags');
     const rows = await tags.find({}).toArray();
-    return rows.map(el => el.name).sort();
+    return rows.map((el) => el.name).sort();
   }
 
   public async addTag(tag: string): Promise<void> {
@@ -126,7 +133,7 @@ export class MongoConnector extends Database {
   public async getActors(): Promise<string[]> {
     const actors = this.db.collection<Actor>('actors');
     const rows = await actors.find({}).toArray();
-    return rows.map(el => el.name).sort();
+    return rows.map((el) => el.name).sort();
   }
 
   public async addActor(actor: string): Promise<void> {
@@ -234,7 +241,7 @@ export class MongoConnector extends Database {
     }
 
     const existingEntry =
-      media.playlists && media.playlists.find(playlist => playlist.id === playlistId);
+      media.playlists && media.playlists.find((playlist) => playlist.id === playlistId);
     if (existingEntry) {
       // If already in the playlist, then ignore.
       return existingEntry;
@@ -509,7 +516,7 @@ export class MongoConnector extends Database {
         absolutePath: Path.resolve(Config.get().libraryPath, result.path),
         ...(result.playlists
           ? {
-              playlists: result.playlists.map(playlist => ({
+              playlists: result.playlists.map((playlist) => ({
                 id: (playlist as any)._id.toHexString(),
                 order: playlist.order,
               })),
@@ -610,7 +617,7 @@ export class MongoConnector extends Database {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
     const media = await this.getMedia(hash);
-    if (media && media.playlists) {
+    if (media?.playlists) {
       for (const playlist of media.playlists) {
         await this.removeMediaFromPlaylist(hash, playlist.id);
       }
@@ -726,7 +733,7 @@ export class MongoConnector extends Database {
     }
 
     pipeline.push({
-      $project: fields || {
+      $project: fields ?? {
         hash: 1,
       },
     });
@@ -736,7 +743,7 @@ export class MongoConnector extends Database {
 
   public async subset(constraints: SubsetConstraints): Promise<string[]> {
     const result = await this.subsetFields(constraints);
-    const mapped = result.map(media => media.hash);
+    const mapped = result.map((media) => media.hash);
 
     if (constraints.sortBy === 'recommended') {
       const insights = new Insights(this);
@@ -746,7 +753,7 @@ export class MongoConnector extends Database {
       console.time('Scoring and sorting recommendations');
       const scored = await insights.getRecommendations(mapped, metadata);
       console.timeEnd('Scoring and sorting recommendations');
-      return scored.map(el => el.hash);
+      return scored.map((el) => el.hash);
     } else {
       return mapped;
     }
@@ -817,7 +824,7 @@ export class MongoConnector extends Database {
       filters.push({ 'clones.0': { $exists: constraints.hasClones } });
     }
 
-    const filteredFilters = filters.filter(filter => Object.keys(filter).length > 0);
+    const filteredFilters = filters.filter((filter) => Object.keys(filter).length > 0);
 
     if (filteredFilters.length === 0) {
       return {};

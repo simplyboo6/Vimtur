@@ -1,11 +1,12 @@
-import { execute } from 'proper-job';
 import FS from 'fs';
 import Path from 'path';
 import Util from 'util';
 
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { execute } from 'proper-job';
+
 import { createHash } from '../cache/hash';
 import Config from '../config';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 export function getTask(database: Database): RouterTask {
   return {

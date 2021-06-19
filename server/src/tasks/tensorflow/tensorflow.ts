@@ -1,18 +1,19 @@
-import { PNG } from 'pngjs';
 import FS from 'fs';
+
+import { PNG } from 'pngjs';
 import TFJS from '@tensorflow/tfjs';
 
 function isAvxSupported(): boolean {
   try {
     const cpuInfo = FS.readFileSync('/proc/cpuinfo').toString();
-    const rawKeyValues = cpuInfo.split('\n').map(line => line.split(':'));
-    const trimmedKeyValues = rawKeyValues.map(arr => arr.map(el => el.trim()));
+    const rawKeyValues = cpuInfo.split('\n').map((line) => line.split(':'));
+    const trimmedKeyValues = rawKeyValues.map((arr) => arr.map((el) => el.trim()));
     const rawFlags = trimmedKeyValues.find(([key]) => key === 'flags');
     if (!rawFlags) {
       console.warn('Unable to find flags in CPU info.');
       return false;
     }
-    const flags = rawFlags[1]?.split(' ').map(el => el.trim());
+    const flags = rawFlags[1]?.split(' ').map((el) => el.trim());
     if (!flags) {
       console.warn('Unable to extract flags value from key in CPU info.');
       return false;

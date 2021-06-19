@@ -1,9 +1,12 @@
-import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
-import { Database, RouterTask, TaskRunnerCallback } from '../../types';
-import { IMAGENET_MODELS, loadClasses, loadModel } from './imagenet';
-import { ScalingConnectionPool, execute } from 'proper-job';
-import { Transcoder } from '../../cache/transcoder';
 import OS from 'os';
+
+import { ScalingConnectionPool, execute } from 'proper-job';
+
+import { Transcoder } from '../../cache/transcoder';
+import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
+
+import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
+import { IMAGENET_MODELS, loadClasses, loadModel } from './imagenet';
 import TensorFlow from './tensorflow';
 
 // Two if native because it doesn't quite achieve 100% multi-core use,
@@ -14,7 +17,7 @@ const parallel = TensorFlow.isNative() ? 2 : OS.cpus().length;
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);
 
-  return IMAGENET_MODELS.map(modelDefinition => {
+  return IMAGENET_MODELS.map((modelDefinition) => {
     return {
       id: `TENSORFLOW-CLASSIFY-${modelDefinition.id}`,
       description: `Auto-Tag - Classify images using TensorFlow (${modelDefinition.name})`,
@@ -67,7 +70,7 @@ export function getTask(database: Database): RouterTask[] {
             }
 
             try {
-              const results = await init.pool.run(instance =>
+              const results = await init.pool.run((instance) =>
                 instance.classify({
                   definition: modelDefinition,
                   absolutePath: transcoder.getThumbnailPath(media),
@@ -79,7 +82,7 @@ export function getTask(database: Database): RouterTask[] {
             }
           },
           { parallel, continueOnError: true },
-          init => init?.pool?.quit(),
+          (init) => init?.pool?.quit(),
         );
       },
     };

@@ -1,8 +1,9 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { execute } from 'proper-job';
+
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
-import { execute } from 'proper-job';
 import Config from '../config';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 const BATCH_SIZE = 2;
 
@@ -44,7 +45,7 @@ export function getTask(database: Database): RouterTask {
             await database.saveMedia(media.hash, { corrupted: true });
           }
 
-          updateStatus(complete++, max || 0);
+          updateStatus(complete++, max ?? 0);
         },
         {
           parallel: BATCH_SIZE,

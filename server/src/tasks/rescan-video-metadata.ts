@@ -1,7 +1,7 @@
 import { execute } from 'proper-job';
 
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { ImportUtils } from '../cache/import-utils';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 const BATCH_SIZE = 4;
 

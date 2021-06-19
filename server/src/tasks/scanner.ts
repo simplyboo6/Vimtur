@@ -1,14 +1,15 @@
+import Path from 'path';
+
 import { Router } from 'express';
 import { execute } from 'proper-job';
-import Path from 'path';
-import Types from '@vimtur/common';
 import Walk from 'walk';
+import type Types from '@vimtur/common';
 
 // Local
-import { Database, RouterTask } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { wrap } from '../express-async';
 import Config from '../config';
+import type { Database, RouterTask } from '../types';
 
 type FilterResults = Types.Scanner.FilterResults;
 
@@ -34,7 +35,7 @@ export class Scanner {
       }
     });
 
-    return new Promise<string[]>(resolve => {
+    return new Promise<string[]>((resolve) => {
       walker.on('end', () => {
         resolve(files);
       });

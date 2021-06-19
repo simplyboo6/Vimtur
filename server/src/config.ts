@@ -1,11 +1,12 @@
-import DeepMerge from 'deepmerge';
 import FS from 'fs';
 import Path from 'path';
+
+import DeepMerge from 'deepmerge';
 import PathIsInside from 'path-is-inside';
 import StripJsonComments from 'strip-json-comments';
 
-import { Configuration } from './types';
 import { Validator } from './utils/validator';
+import type { Configuration } from '@vimtur/common';
 
 function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
   if (process.env[env]) {
@@ -33,9 +34,7 @@ function readJsonSync(file: string): Configuration.Main {
 
 function getVersion(): string {
   try {
-    const version = FS.readFileSync('./version')
-      .toString()
-      .trim();
+    const version = FS.readFileSync('./version').toString().trim();
     console.log(`Version file found: ${version}`);
     return version;
   } catch (_err) {
@@ -185,7 +184,7 @@ class Config {
     const validationResult = this.validator.validate(merged);
     if (!validationResult.success) {
       throw new Error(
-        validationResult.errorText || 'Merged configuration schema failed to validate.',
+        validationResult.errorText ?? 'Merged configuration schema failed to validate.',
       );
     }
 

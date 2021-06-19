@@ -1,14 +1,15 @@
 import ChildProcess from 'child_process';
-import FFMpeg from 'fluent-ffmpeg';
 import FS from 'fs';
-import GM from 'gm';
 import Path from 'path';
-import Rimraf from 'rimraf';
-import Stream from 'stream';
 import Util from 'util';
+import type Stream from 'stream';
 
-import { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '../types';
+import FFMpeg from 'fluent-ffmpeg';
+import GM from 'gm';
+import Rimraf from 'rimraf';
+
 import Config from '../config';
+import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vimtur/common';
 
 export interface Quality {
   quality: number;
@@ -160,7 +161,7 @@ export class ImportUtils {
 
     const output: Quality[] = [];
     for (const quality of intermediate) {
-      if (!output.find(el => el.quality === quality)) {
+      if (!output.find((el) => el.quality === quality)) {
         output.push({
           quality: quality,
           copy: quality === sourceHeight && maxCopy,
@@ -207,15 +208,19 @@ export class ImportUtils {
       const proc = ChildProcess.spawn('ffmpeg', args);
 
       if (!options.important) {
-        ImportUtils.setNice(proc.pid, LOW_PRIORITY);
+        if (proc.pid === undefined) {
+          console.warn('Failed to set transcode process to low priority. Missing PID.');
+        } else {
+          ImportUtils.setNice(proc.pid, LOW_PRIORITY);
+        }
       }
 
       let err = '';
-      proc.stderr.on('data', data => {
+      proc.stderr.on('data', (data) => {
         err += data;
       });
 
-      proc.on('exit', code => {
+      proc.on('exit', (code) => {
         if (code === 0 || code === 255) {
           resolve();
         } else {
@@ -302,13 +307,13 @@ export class ImportUtils {
     const mediaQuality =
       media.metadata.width > media.metadata.height ? media.metadata.height : media.metadata.width;
 
-    const streamQualities = Config.get().transcoder.streamQualities.filter(quality => {
+    const streamQualities = Config.get().transcoder.streamQualities.filter((quality) => {
       return quality <= mediaQuality;
     });
 
     // Explicitly include qualities the medias cached at.
     const qualities = Array.from(
-      new Set([...streamQualities, ...(media.metadata.qualityCache || [])]),
+      new Set([...streamQualities, ...(media.metadata.qualityCache ?? [])]),
     ).sort();
 
     // If it's less than the minimum stream quality and not cached.
@@ -401,7 +406,7 @@ export class ImportUtils {
     desiredCachesInput: Quality[],
     actualCaches: number[],
   ): number[] {
-    const desiredCaches = desiredCachesInput.map(el => {
+    const desiredCaches = desiredCachesInput.map((el) => {
       return el.quality;
     });
     const redundant: number[] = [];
@@ -414,7 +419,7 @@ export class ImportUtils {
   }
 
   public static async wait(): Promise<void> {
-    return new Promise<void>(resolve => setTimeout(resolve, 0));
+    return new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
 
   public static async isExifRotated(path: string): Promise<boolean> {
@@ -460,7 +465,7 @@ export class ImportUtils {
     );
     return results.stdout
       .split('\n')
-      .filter(line => Boolean(line))
-      .map(line => Number(line));
+      .filter((line) => Boolean(line))
+      .map((line) => Number(line));
   }
 }

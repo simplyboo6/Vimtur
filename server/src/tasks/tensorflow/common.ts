@@ -1,6 +1,8 @@
-import { Database } from '../../types';
-import { Transcoder } from '../../cache/transcoder';
 import FS from 'fs';
+
+import { Transcoder } from '../../cache/transcoder';
+import type { Database } from '../../types';
+
 import TensorFlow from './tensorflow';
 
 export const MODEL_WIDTH = 224;
@@ -37,10 +39,7 @@ export async function loadImageFileVgg16(
       .resizeNearestNeighbor([MODEL_WIDTH, MODEL_HEIGHT])
       .toFloat();
     // expandDims adds the batch size of 1.
-    return common
-      .sub(IMAGE_NET_RGB)
-      .reverse(2)
-      .expandDims();
+    return common.sub(IMAGE_NET_RGB).reverse(2).expandDims();
   });
   return res as TensorFlow.Tensor3D | TensorFlow.Tensor4D;
 }
@@ -54,13 +53,8 @@ export async function loadImageFileMobileNet(
 ): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
   const raw = await loadFile(absolutePath);
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlow.decodeImage(raw)
-      .resizeNearestNeighbor([width, height])
-      .toFloat();
-    return common
-      .sub(MOBILENET_SCALAR)
-      .div(MOBILENET_SCALAR)
-      .expandDims();
+    const common = TensorFlow.decodeImage(raw).resizeNearestNeighbor([width, height]).toFloat();
+    return common.sub(MOBILENET_SCALAR).div(MOBILENET_SCALAR).expandDims();
   });
   return res as TensorFlow.Tensor3D | TensorFlow.Tensor4D;
 }
@@ -76,9 +70,7 @@ export async function loadImageFileCommon(
   const raw = await loadFile(absolutePath);
 
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlow.decodeImage(raw)
-      .resizeNearestNeighbor([width, height])
-      .toFloat();
+    const common = TensorFlow.decodeImage(raw).resizeNearestNeighbor([width, height]).toFloat();
     return (
       common
         .sub(MOBILENET_SCALAR)
@@ -102,7 +94,7 @@ export function createDatasetMapper(database: Database, tags: string[]): Dataset
     // This maps the array of tags being trained on to an array of 0's and 1's where it's 1 if the image
     // has the given tag.
     const labelTensor = TensorFlow.tensor1d(
-      tags.map(tag => (media.tags.includes(tag) ? 1 : 0)),
+      tags.map((tag) => (media.tags.includes(tag) ? 1 : 0)),
       'int32',
     );
     // 1 here is the batch size.

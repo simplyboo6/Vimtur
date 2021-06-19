@@ -1,16 +1,18 @@
+import Path from 'path';
+
 import { Request, Response, Router } from 'express';
 import { execute } from 'proper-job';
-import Path from 'path';
 import PathIsInside from 'path-is-inside';
 
 import { BadRequest, NotFound } from '../errors';
-import { BulkUpdate, Database, MediaResolution, SubsetConstraints } from '../types';
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
 import { Validator } from '../utils/validator';
 import { deleteCache, deleteMedia } from '../utils';
 import { wrap } from '../express-async';
 import Config from '../config';
+import type { BulkUpdate, MediaResolution, SubsetConstraints } from '@vimtur/common';
+import type { Database } from '../types';
 
 const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
 const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
@@ -70,7 +72,7 @@ export async function create(db: Database): Promise<Router> {
 
       await execute(
         subset,
-        async hash => {
+        async (hash) => {
           await db.removeMediaFromPlaylist(hash, req.params.playlistId);
         },
         { parallel: 8 },
@@ -247,7 +249,7 @@ export async function create(db: Database): Promise<Router> {
       // Verify that aliases + unrelated contains everything in clones.
       const allRequested = [...request.aliases, ...request.unrelated];
       // If we can find a clone that isn't in the request body...
-      if (media.clones.find(c => !allRequested.includes(c))) {
+      if (media.clones.find((c) => !allRequested.includes(c))) {
         throw new BadRequest('Resolver body does not resolve all clones');
       }
 
@@ -335,7 +337,7 @@ export async function create(db: Database): Promise<Router> {
             `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`,
           );
         } else {
-          transcoder.streamMedia(media, start, end, res, quality, true).catch(err => {
+          transcoder.streamMedia(media, start, end, res, quality, true).catch((err) => {
             console.error('Error streaming media', err);
             // Can't send headers
             res.end();

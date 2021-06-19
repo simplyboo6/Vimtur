@@ -1,12 +1,14 @@
-import {
+import { parentPort } from 'worker_threads';
+
+import { TensorFlowHubModel, loadClasses, loadModel } from '../imagenet';
+import { loadImageFileCommon } from '../common';
+import type TensorFlow from '../tensorflow';
+
+import type {
   ClassifierWorkerRequest,
   ClassifierWorkerResponse,
   ClassifierWorkerSuccess,
 } from './classifier-worker-wrapper';
-import { TensorFlowHubModel, loadClasses, loadModel } from '../imagenet';
-import { loadImageFileCommon } from '../common';
-import { parentPort } from 'worker_threads';
-import TensorFlow from '../tensorflow';
 
 if (!parentPort) {
   throw new Error('Worker missing fields');
@@ -56,7 +58,7 @@ async function onMessage(message: ClassifierWorkerRequest): Promise<ClassifierWo
         })
         .sort((a, b) => b.probability - a.probability);
       const topFive = probabilities.slice(0, 5);
-      return { probabilities: topFive.map(output => output.label) };
+      return { probabilities: topFive.map((output) => output.label) };
     } finally {
       classified.dispose();
     }
@@ -73,10 +75,10 @@ function postResult(result: ClassifierWorkerResponse): void {
 parentPort.on('message', (message: ClassifierWorkerRequest) => {
   try {
     onMessage(message)
-      .then(result => {
+      .then((result) => {
         postResult(result);
       })
-      .catch(err => {
+      .catch((err) => {
         postResult({ err: err.message });
       });
   } catch (err) {

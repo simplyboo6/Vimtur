@@ -1,6 +1,7 @@
-import { Database, RouterTask, TaskRunnerCallback } from '../types';
-import { ImportUtils } from '../cache/import-utils';
 import { execute } from 'proper-job';
+
+import { ImportUtils } from '../cache/import-utils';
+import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
 export function getTask(db: Database): RouterTask {
   return {
@@ -35,7 +36,7 @@ export function getTask(db: Database): RouterTask {
 
           const createdAt = await ImportUtils.getFileCreationTime(media.absolutePath);
           await db.saveMedia(hash, { metadata: { createdAt } });
-          updateStatus(complete++, max || 0);
+          updateStatus(complete++, max ?? 0);
         },
         {
           parallel: 8,

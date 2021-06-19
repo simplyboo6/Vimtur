@@ -1,11 +1,12 @@
-import * as Express from 'express';
-import Auth from 'http-auth';
 import FS from 'fs';
-import RimRaf from 'rimraf';
 import Util from 'util';
 
-import { Media } from '../types';
+import Auth from 'http-auth';
+import RimRaf from 'rimraf';
+import type Express from 'express';
+
 import Config from '../config';
+import type { Media } from '@vimtur/common';
 
 export function authConnector(
   req: Express.Request,

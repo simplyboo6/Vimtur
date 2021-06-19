@@ -1,5 +1,6 @@
-import { Collection, Db } from 'mongodb';
 import Util from 'util';
+
+import type { Collection, Db } from 'mongodb';
 
 export class Updater {
   public static async apply(db: Db): Promise<void> {
