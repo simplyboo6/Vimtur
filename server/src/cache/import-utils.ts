@@ -179,9 +179,7 @@ export class ImportUtils {
   public static setNice(pid: number, priority: number): void {
     const renice = ChildProcess.spawn('renice', [`${priority}`, `${pid}`]);
     renice.on('exit', (code: number) => {
-      if (code === 0) {
-        console.debug(`Set nice level of ${pid} to ${priority}`);
-      } else {
+      if (code !== 0) {
         console.debug(`Failed to set nice level of ${pid} to ${priority}: Exit code ${code}`);
       }
     });
