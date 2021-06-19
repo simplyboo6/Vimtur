@@ -260,6 +260,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/http-auth@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@types/http-auth/-/http-auth-4.1.0.tgz#59a2fd5fe6e74711c481dafc294f5648c49adb3a"
+  integrity sha512-z9g4wh4RD5BabDAun3nWglJirtoNBn4L0K8ayFNww9agMUivg3NKx50mY19u7D/mF6NvovWxvM3NtsqEqSgGTA==
+  dependencies:
+    "@types/node" "*"
+
 "@types/json-schema@^7.0.3", "@types/json-schema@^7.0.7":
   version "7.0.7"
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.7.tgz#98a993516c859eb0d5c4c8f098317a9ea68db9ad"

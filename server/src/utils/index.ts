@@ -20,7 +20,7 @@ export function authConnector(
         callback(username === Config.get().username && password === Config.get().password);
       },
     );
-    return Auth.connect(basicAuth)(req, res, next);
+    return basicAuth.check(next)(req, res);
   }
   next();
 }
