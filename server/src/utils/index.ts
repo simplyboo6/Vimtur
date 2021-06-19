@@ -20,9 +20,10 @@ export function authConnector(
         callback(username === Config.get().username && password === Config.get().password);
       },
     );
-    return basicAuth.check(next)(req, res);
+    basicAuth.check(() => next())(req, res);
+  } else {
+    next();
   }
-  next();
 }
 
 export async function deleteCache(hash: string): Promise<void> {
