@@ -1,4 +1,4 @@
-FROM simplyboo6/vimtur-base@sha256:d0220607bc0236ee689edf3ee8fe69c02987c16180c3a6ed9fa8f7bdc11ed86b
+FROM simplyboo6/vimtur-base@sha256:0256633d65dfead310f45d8d4b352c4e416d1a17889f0653eea6398c1bef161c
 
 ARG VERSION_NAME=dev
 
