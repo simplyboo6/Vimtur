@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
+import { isMobile } from 'is-mobile';
 
 interface MediaModel extends UpdateMedia {
   tags?: ListItem[];
@@ -20,6 +21,15 @@ interface MetadataField {
   name: 'artist' | 'album' | 'title';
   text: string;
 }
+
+const BASE_MULTISELECT_CONFIG = {
+  // On mobile the auto-focus brings up a keyboard.
+  // This is mostly just very annoying.
+  enableSearchFilter: !isMobile(),
+  enableFilterSelectAll: !isMobile(),
+  enableCheckAll: false,
+  addNewItemOnFilter: true,
+};
 
 @Component({
   selector: 'app-metadata',
@@ -46,27 +56,18 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // angular2 multiselect doesn't export types and they're not partial
   public readonly tagsSettings: any = {
+    ...BASE_MULTISELECT_CONFIG,
     text: '+ Tag',
-    enableCheckAll: false,
-    enableSearchFilter: true,
-    addNewItemOnFilter: true,
-    enableFilterSelectAll: false,
   };
 
   public readonly actorsSettings: any = {
+    ...BASE_MULTISELECT_CONFIG,
     text: '+ Actor',
-    enableCheckAll: false,
-    enableSearchFilter: true,
-    addNewItemOnFilter: true,
-    enableFilterSelectAll: false,
   };
 
   public readonly playlistsSettings: any = {
+    ...BASE_MULTISELECT_CONFIG,
     text: '+ Playlist',
-    enableCheckAll: false,
-    enableSearchFilter: true,
-    addNewItemOnFilter: true,
-    enableFilterSelectAll: false,
   };
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;

@@ -7,6 +7,7 @@ import { PlaylistService } from 'services/playlist.service';
 import { Subscription } from 'rxjs';
 import { Playlist } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
+import { isMobile } from 'is-mobile';
 
 @Component({
   selector: 'app-search',
@@ -29,8 +30,10 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   public readonly tagSettings: any = {
     enableCheckAll: true,
-    enableSearchFilter: true,
-    enableFilterSelectAll: true,
+    // On mobile the auto-focus brings up a keyboard.
+    // This is mostly just very annoying.
+    enableSearchFilter: !isMobile(),
+    enableFilterSelectAll: !isMobile(),
   };
 
   public constructor(

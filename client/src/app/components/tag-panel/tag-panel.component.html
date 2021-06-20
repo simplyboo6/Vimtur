@@ -1,6 +1,9 @@
 <div class="main-panel">
   <div class="card tag-panel margin-bottom">
-    <div class="card-header card-small tag-header">Tags</div>
+    <div class="card-header card-small tag-header">
+      Tags
+      <a *ngIf="media" [href]="'/api/images/' + media.hash + '/file?download=true'">Download</a>
+    </div>
     <div
       *ngIf="tagsModel && media && columnIndexes && columnTags; else loading"
       class="card-body card-small tag-list"

@@ -22,6 +22,10 @@
   flex-direction: row;
 }
 
+.card-header > a {
+  margin-left: auto;
+}
+
 .btn {
   padding: 0;
   margin-left: 0.25rem;
