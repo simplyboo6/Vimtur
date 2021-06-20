@@ -201,13 +201,19 @@ export async function create(db: Database): Promise<Router> {
   );
 
   router.get('/:hash/file', async (req: Request, res: Response) => {
+    const media = await db.getMedia(req.params.hash);
+    if (!media) {
+      return res.status(404).json({
+        message: `No media found with hash: ${req.params.hash}`,
+      });
+    }
+
+    if (req.query.download) {
+      const filename = media.path.split('/').pop();
+      res.set('Content-Disposition', `attachment; filename="${filename}"`);
+    }
+
     try {
-      const media = await db.getMedia(req.params.hash);
-      if (!media) {
-        return res.status(404).json({
-          message: `No media found with hash: ${req.params.hash}`,
-        });
-      }
       const absPath = Path.resolve(Config.get().libraryPath, media.path);
       if (media.type === 'gif' || media.type === 'still') {
         const isRotated = await ImportUtils.isExifRotated(absPath);
