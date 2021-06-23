@@ -77,7 +77,6 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         this.intersectionService.intersectionEmitter.subscribe(entries => {
           const found = entries.get(this.ref.nativeElement);
           if (found) {
-            console.log('found', found);
             if (found.isIntersecting) {
               this.beginSlideshow(false);
             } else {
