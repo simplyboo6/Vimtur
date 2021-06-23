@@ -7,10 +7,13 @@ import {
   SimpleChanges,
   ChangeDetectorRef,
   ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { Subscription, interval } from 'rxjs';
 import { ConfigService } from 'app/services/config.service';
 import { Configuration, Media } from '@vimtur/common';
+import { isMobile } from 'is-mobile';
+import { IntersectionService } from 'services/intersection.service';
 
 const SLIDE_INTERVAL = 500;
 
@@ -40,10 +43,19 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   private index = 0;
   private slideshowSubscription?: Subscription;
   private rendered = false;
+  private intersectionService: IntersectionService;
+  private ref: ElementRef;
 
-  public constructor(configService: ConfigService, changeDetector: ChangeDetectorRef) {
+  public constructor(
+    configService: ConfigService,
+    changeDetector: ChangeDetectorRef,
+    intersectionService: IntersectionService,
+    ref: ElementRef,
+  ) {
     this.configService = configService;
     this.changeDetector = changeDetector;
+    this.intersectionService = intersectionService;
+    this.ref = ref;
   }
 
   public ngOnInit() {
@@ -59,17 +71,39 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
       );
     }
+
+    if (isMobile()) {
+      this.subscriptions.push(
+        this.intersectionService.intersectionEmitter.subscribe(entries => {
+          const found = entries.get(this.ref.nativeElement);
+          if (found) {
+            console.log('found', found);
+            if (found.isIntersecting) {
+              this.beginSlideshow(false);
+            } else {
+              this.endSlideshow(false);
+            }
+          }
+        }),
+      );
+      this.intersectionService.observe(this.ref, true);
+    }
   }
 
-  public beginSlideshow() {
-    this.endSlideshow();
+  public beginSlideshow(mouse: boolean): void {
+    // Only begin the slideshow if there's no offset manually specified.
+    if (this.offset !== undefined) {
+      return;
+    }
+
+    // If it's mouse enter then ignore for mobile.
+    if (mouse && isMobile()) {
+      return;
+    }
+    this.endSlideshow(mouse);
 
     this.slideshowSubscription = interval(SLIDE_INTERVAL).subscribe(() => {
-      if (!this.config || !this.media || !this.media.metadata) {
-        return;
-      }
-      // Return early if there's no preview.
-      if (!this.image) {
+      if (!this.config || !this.media || !this.media.metadata || !this.image) {
         return;
       }
       this.index++;
@@ -83,14 +117,18 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     this.render();
   }
 
-  public endSlideshow(render = true) {
+  public endSlideshow(mouse: boolean) {
+    if (this.offset !== undefined) {
+      return;
+    }
+    if (mouse && isMobile()) {
+      return;
+    }
     if (this.slideshowSubscription) {
       this.slideshowSubscription.unsubscribe();
       this.slideshowSubscription = undefined;
     }
-    if (render) {
-      this.render();
-    }
+    this.render();
   }
 
   public ngOnChanges(changes: SimpleChanges) {
@@ -145,7 +183,8 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
 
     const canvas = this.canvasElement.nativeElement.getContext('2d');
 
-    if (this.thumbnail && !this.image) {
+    // If the thumbnails loaded and either the preview isn't loaded or the slideshow isn't in progress.
+    if (this.thumbnail && (!this.image || this.index === undefined)) {
       canvas.drawImage(
         this.thumbnail,
         0,
@@ -203,7 +242,11 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     for (const subscription of this.subscriptions) {
       subscription.unsubscribe();
     }
+    if (this.slideshowSubscription) {
+      this.slideshowSubscription.unsubscribe();
+      this.slideshowSubscription = undefined;
+    }
     this.subscriptions = [];
-    this.endSlideshow(false);
+    this.intersectionService.unobserve(this.ref);
   }
 }

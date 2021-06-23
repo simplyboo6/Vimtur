@@ -1,15 +1,10 @@
-<img class="hidden" *ngIf="imageSrc" [src]="imageSrc" (load)="onImageLoaded($event)" />
-<img
-  *ngIf="slideshow && thumbnailSrc"
-  class="hidden"
-  [src]="thumbnailSrc"
-  (load)="onThumbnailLoaded($event)"
-/>
+<img class="hidden" *ngIf="thumbnail && imageSrc" [src]="imageSrc" (load)="onImageLoaded($event)" />
+<img *ngIf="thumbnailSrc" class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
 <canvas
   [width]="canvasWidth"
   [height]="canvasHeight"
-  (mouseenter)="beginSlideshow()"
-  (mouseleave)="endSlideshow()"
+  (mouseenter)="beginSlideshow(true)"
+  (mouseleave)="endSlideshow(true)"
   #canvasElement
 >
 </canvas>
