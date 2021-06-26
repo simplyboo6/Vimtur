@@ -39,7 +39,7 @@ export function getTask(database: Database): RouterTask {
           const exists = await ImportUtils.exists(path);
           if (!exists) {
             console.warn(`${media.absolutePath} missing thumbnail`);
-            await database.saveMedia(media.hash, { thumbnail: false });
+            await database.saveMedia(media.hash, { thumbnail: false, thumbnailOptimised: false });
           }
 
           updateStatus(init.current++, init.max);

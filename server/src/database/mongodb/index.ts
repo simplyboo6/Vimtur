@@ -798,7 +798,9 @@ export class MongoConnector extends Database {
 
     filters.push(createBooleanFilter('corrupted', constraints.corrupted));
     filters.push(createBooleanFilter('thumbnail', constraints.thumbnail));
+    filters.push(createBooleanFilter('thumbnailOptimised', constraints.thumbnailOptimised));
     filters.push(createBooleanFilter('preview', constraints.preview));
+    filters.push(createBooleanFilter('previewOptimised', constraints.previewOptimised));
 
     if (constraints.phashed !== undefined) {
       filters.push({ phash: { $exists: constraints.phashed } });

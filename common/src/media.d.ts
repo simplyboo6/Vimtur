@@ -45,7 +45,9 @@ export interface BaseMedia {
   metadata?: Metadata;
   corrupted?: boolean;
   thumbnail?: boolean;
+  thumbnailOptimised?: boolean;
   preview?: boolean;
+  previewOptimised?: boolean;
   rating?: number;
   // Base64 Buffer
   phash?: string;
@@ -85,7 +87,9 @@ export interface UpdateMedia {
   metadata?: UpdateMetadata;
   corrupted?: boolean;
   thumbnail?: boolean;
+  thumbnailOptimised?: boolean;
   preview?: boolean;
+  previewOptimised?: boolean;
   rating?: number;
   // Base64 Buffer
   phash?: string;

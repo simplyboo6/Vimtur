@@ -40,7 +40,7 @@ export function getTask(database: Database): RouterTask {
           const exists = await ImportUtils.exists(path);
           if (!exists) {
             console.warn(`${media.absolutePath} missing preview`);
-            await database.saveMedia(media.hash, { preview: false });
+            await database.saveMedia(media.hash, { preview: false, previewOptimised: false });
           }
 
           updateStatus(init.current++, init.max);

@@ -3,10 +3,10 @@ import Path from 'path';
 import Util from 'util';
 import type Stream from 'stream';
 
+import ChildProcess from 'child_process';
+import Config from '../config';
 import GM from 'gm';
 import Rimraf from 'rimraf';
-
-import Config from '../config';
 import type { Database } from '../types';
 import type { Media, SegmentMetadata } from '@vimtur/common';
 
@@ -76,7 +76,7 @@ export class Transcoder {
       '-frames:v',
       '1',
     ];
-    const path = `${Config.get().cachePath}/previews/${media.hash}.png`;
+    const path = this.getPreviewPath(media);
     await ImportUtils.transcode({
       input: media.absolutePath,
       output: path,
@@ -84,8 +84,19 @@ export class Transcoder {
     });
   }
 
+  public async optimisePng(path: string): Promise<void> {
+    await Util.promisify(ChildProcess.exec)(
+      `pngquant --speed 8 --force ${path} -o ${path}.optimised`,
+    );
+    await Util.promisify(ChildProcess.exec)(`mv ${path}.optimised ${path}`);
+  }
+
   public getThumbnailPath(media: Media): string {
     return `${Config.get().cachePath}/thumbnails/${media.hash}.png`;
+  }
+
+  public getPreviewPath(media: Media): string {
+    return `${Config.get().cachePath}/previews/${media.hash}.png`;
   }
 
   public async createImageThumbnail(media: Media): Promise<void> {

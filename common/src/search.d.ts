@@ -48,7 +48,9 @@ export interface SubsetConstraints {
   // Booleans
   corrupted?: BooleanFilter;
   thumbnail?: BooleanFilter;
+  thumbnailOptimised?: BooleanFilter;
   preview?: BooleanFilter;
+  previewOptimised?: BooleanFilter;
 
   // Special cases
   keywordSearch?: string;
