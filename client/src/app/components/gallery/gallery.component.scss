@@ -1,8 +1,16 @@
+@import '../../../helpers.scss';
+
 .gallery-img {
   object-fit: contain;
   width: calc(380px - 0.2rem);
   height: 244px;
   margin: auto;
+
+  @include small {
+    width: 380px;
+    // Override .card-small with !important.
+    padding: 0 !important;
+  }
 }
 
 app-preview {
@@ -11,6 +19,9 @@ app-preview {
 
 .image-container {
   padding: 0.1rem;
+  @include small {
+    padding: 0;
+  }
   justify-content: center;
   display: flex;
   flex: 1;

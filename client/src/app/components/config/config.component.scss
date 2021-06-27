@@ -1,3 +1,5 @@
+@import '../../../helpers.scss';
+
 h4:not(:first-child) {
   margin-top: 1rem;
 }
@@ -34,9 +36,18 @@ h5 {
 .card {
   margin: 0.2rem;
   padding: 1rem;
+
+  @include small {
+    margin: 0.2rem 0;
+  }
 }
 
 .container {
   padding-left: 0.1rem;
   padding-right: 0.1rem;
+
+  @include small {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }

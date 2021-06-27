@@ -17,3 +17,9 @@
 @mixin color($name, $val...) {
   @include v(color-#{$name}, $val);
 }
+
+@mixin small() {
+  @media only screen and (max-width: 576px) {
+    @content;
+  }
+}

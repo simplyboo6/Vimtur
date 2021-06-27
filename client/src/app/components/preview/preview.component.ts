@@ -27,6 +27,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @Input() public media?: Media;
   @Input() public offset?: number;
   @Input() public height?: number;
+  @Input() public canvasStyleWidth?: string;
   @Input() public slideshow = false;
 
   public imageSrc?: string;

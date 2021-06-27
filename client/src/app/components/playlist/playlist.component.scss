@@ -1,3 +1,5 @@
+@import '../../../helpers.scss';
+
 .align {
   align-items: center;
   display: flex;
@@ -71,6 +73,11 @@ h4.align {
 .container-lg {
   // Blank space so drop-down doesn't extend the page.
   margin-bottom: 5rem;
+
+  @include small {
+    padding-right: 0;
+    padding-left: 0;
+  }
 }
 
 .flex-end {

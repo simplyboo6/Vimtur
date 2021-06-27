@@ -17,7 +17,8 @@
     [style.height.px]="videoPlayerState.height"
     [style.top.px]="videoPlayerState.top"
   >
-    <app-preview [media]="media" [offset]="videoPlayerState.previewTime"> </app-preview>
+    <app-preview [media]="media" [offset]="videoPlayerState.previewTime" canvasStyleWidth="100%">
+    </app-preview>
   </div>
 
   <div

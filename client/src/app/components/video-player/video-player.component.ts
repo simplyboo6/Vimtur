@@ -429,7 +429,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       autoStartLoad: false,
       capLevelToPlayerSize: true,
       maxBufferHole: 5,
-      maxBufferLength: 20,
+      maxBufferLength: 15,
       startLevel: lowQualityOnSeek ? 0 : -1,
     });
 
