@@ -32,6 +32,19 @@
   }
 }
 
+.overlay-preview {
+  position: absolute;
+  display: flex;
+  & > app-preview {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    display: flex;
+    position: absolute;
+    justify-content: center;
+  }
+}
+
 .player {
   position: absolute;
   display: flex;

@@ -35,12 +35,13 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   public canvasHeight?: number;
   public image?: any;
   public thumbnail?: any;
+  public imageRequested = false;
 
   private configService: ConfigService;
   private changeDetector: ChangeDetectorRef;
   private config?: Configuration.Main;
   private subscriptions: Subscription[] = [];
-  private index = 0;
+  private index?: number;
   private slideshowSubscription?: Subscription;
   private rendered = false;
   private intersectionService: IntersectionService;
@@ -95,6 +96,8 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
+    this.imageRequested = true;
+
     // If it's mouse enter then ignore for mobile.
     if (mouse && isMobile()) {
       return;
@@ -102,24 +105,36 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     this.endSlideshow(mouse);
 
     this.slideshowSubscription = interval(SLIDE_INTERVAL).subscribe(() => {
-      if (!this.config || !this.media || !this.media.metadata || !this.image) {
+      if (!this.config || !this.media || !this.media.metadata) {
         return;
       }
-      this.index++;
+      // Set to zero if undefined to trigger preview rendering.
+      if (this.index === undefined) {
+        this.index = 0;
+      } else if (this.image) {
+        // Only bump the index if the preview has loaded.
+        this.index++;
+      }
+
       const offset = this.index * this.config.transcoder.videoPreviewFps;
       if (!this.media.metadata.length || offset > this.media.metadata.length) {
         this.index = 0;
       }
-      this.rendered = false;
-      this.render();
+      if (this.image) {
+        this.rendered = false;
+        this.render();
+      }
     });
+
     this.render();
   }
 
   public endSlideshow(mouse: boolean) {
+    // Don't end the slideshow if it's manually being controlled.
     if (this.offset !== undefined) {
       return;
     }
+
     if (mouse && isMobile()) {
       return;
     }
@@ -127,6 +142,8 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       this.slideshowSubscription.unsubscribe();
       this.slideshowSubscription = undefined;
     }
+    this.rendered = false;
+    this.index = undefined;
     this.render();
   }
 
@@ -135,7 +152,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       const media = changes.media.currentValue;
       this.image = undefined;
       this.thumbnail = undefined;
-      this.index = 0;
+      this.index = undefined;
       this.rendered = false;
       if (media.metadata) {
         if (media.type === 'video' && media.preview) {
@@ -145,7 +162,9 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
-    if (changes.offset && this.image && this.config) {
+    if (changes.offset && this.config) {
+      this.imageRequested = true;
+
       const index = Math.floor(
         (changes.offset.currentValue || 0) / this.config.transcoder.videoPreviewFps,
       );
@@ -183,43 +202,47 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     const canvas = this.canvasElement.nativeElement.getContext('2d');
 
     // If the thumbnails loaded and either the preview isn't loaded or the slideshow isn't in progress.
-    if (this.thumbnail && (!this.image || this.index === undefined)) {
-      canvas.drawImage(
-        this.thumbnail,
-        0,
-        0,
-        this.thumbnail.width,
-        this.thumbnail.height,
-        0,
-        0,
-        this.canvasWidth,
-        this.canvasHeight,
-      );
-    } else if (this.image) {
-      const mediaHeight = this.config.transcoder.videoPreviewHeight;
-      const mediaWidth = Math.ceil(
-        (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
-      );
+    if (this.index === undefined) {
+      if (this.thumbnail) {
+        canvas.drawImage(
+          this.thumbnail,
+          0,
+          0,
+          this.thumbnail.width,
+          this.thumbnail.height,
+          0,
+          0,
+          this.canvasWidth,
+          this.canvasHeight,
+        );
+      }
+    } else {
+      if (this.image) {
+        const mediaHeight = this.config.transcoder.videoPreviewHeight;
+        const mediaWidth = Math.ceil(
+          (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
+        );
 
-      const columns = Math.ceil(this.image.naturalWidth / mediaWidth);
+        const columns = Math.ceil(this.image.naturalWidth / mediaWidth);
 
-      const column = this.index % columns;
-      const row = (this.index - column) / columns;
+        const column = this.index % columns;
+        const row = (this.index - column) / columns;
 
-      const offsetX = column * mediaWidth;
-      const offsetY = row * mediaHeight;
+        const offsetX = column * mediaWidth;
+        const offsetY = row * mediaHeight;
 
-      canvas.drawImage(
-        this.image,
-        offsetX,
-        offsetY,
-        mediaWidth,
-        mediaHeight,
-        0,
-        0,
-        this.canvasWidth,
-        this.canvasHeight,
-      );
+        canvas.drawImage(
+          this.image,
+          offsetX,
+          offsetY,
+          mediaWidth,
+          mediaHeight,
+          0,
+          0,
+          this.canvasWidth,
+          this.canvasHeight,
+        );
+      }
     }
   }
 
@@ -227,6 +250,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     console.log('Preview loaded', this.imageSrc);
     this.image = event.target;
     this.changeDetector.detectChanges();
+    this.rendered = false;
     this.render();
   }
 
@@ -234,6 +258,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     console.log('Thumbnail loaded', this.thumbnailSrc);
     this.thumbnail = event.target;
     this.changeDetector.detectChanges();
+    this.rendered = false;
     this.render();
   }
 

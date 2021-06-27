@@ -7,6 +7,20 @@
   #videoPlayer
 >
   <div
+    *ngIf="
+      isMobile &&
+      videoPlayerState.previewTime !== undefined &&
+      videoPlayerState.duration !== undefined
+    "
+    class="overlay-preview"
+    [style.width.px]="videoPlayerState.width"
+    [style.height.px]="videoPlayerState.height"
+    [style.top.px]="videoPlayerState.top"
+  >
+    <app-preview [media]="media" [offset]="videoPlayerState.previewTime"> </app-preview>
+  </div>
+
+  <div
     *ngIf="videoPlayerState.width"
     class="player"
     [style.width.px]="videoPlayerState.width"
@@ -61,7 +75,9 @@
       </progress>
       <app-preview
         *ngIf="
-          videoPlayerState.previewTime !== undefined && videoPlayerState.duration !== undefined
+          !isMobile &&
+          videoPlayerState.previewTime !== undefined &&
+          videoPlayerState.duration !== undefined
         "
         class="preview"
         [media]="media"

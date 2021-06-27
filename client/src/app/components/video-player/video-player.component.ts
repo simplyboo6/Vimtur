@@ -60,6 +60,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     muted: true,
   };
   public qualitySelectorOpen = false;
+  public readonly isMobile = isMobile();
 
   private configService: ConfigService;
   private subscriptions: Subscription[] = [];
@@ -143,7 +144,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   public onSeeking() {
     const lowQualityOnSeek =
       this.config &&
-      (isMobile()
+      (this.isMobile
         ? this.config.user.lowQualityOnLoadEnabledForMobile
         : this.config.user.lowQualityOnLoadEnabled);
 
@@ -156,7 +157,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
 
   public onPlay() {
     if (this.hls) {
-      const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
+      const autoPlay = !this.isMobile && this.config && this.config.user.autoplayEnabled;
       if (!autoPlay) {
         this.hls.startLoad();
       }
@@ -313,7 +314,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   }
 
   public updatePlayerActivity(move = false) {
-    if (move && isMobile()) {
+    if (move && this.isMobile) {
       return;
     }
     if (this.videoPlayerState.active) {
@@ -416,10 +417,10 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       this.initialised = true;
     }
 
-    const autoPlay = !isMobile() && this.config && this.config.user.autoplayEnabled;
+    const autoPlay = !this.isMobile && this.config && this.config.user.autoplayEnabled;
     const lowQualityOnSeek =
       this.config &&
-      (isMobile()
+      (this.isMobile
         ? this.config.user.lowQualityOnLoadEnabledForMobile
         : this.config.user.lowQualityOnLoadEnabled);
     console.debug('playing video', media.hash, lowQualityOnSeek, autoPlay);

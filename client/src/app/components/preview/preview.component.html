@@ -1,4 +1,9 @@
-<img class="hidden" *ngIf="thumbnail && imageSrc" [src]="imageSrc" (load)="onImageLoaded($event)" />
+<img
+  class="hidden"
+  *ngIf="thumbnail && imageSrc && imageRequested"
+  [src]="imageSrc"
+  (load)="onImageLoaded($event)"
+/>
 <img *ngIf="thumbnailSrc" class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
 <canvas
   [width]="canvasWidth"
