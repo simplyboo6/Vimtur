@@ -17,7 +17,12 @@
     [style.height.px]="videoPlayerState.height"
     [style.top.px]="videoPlayerState.top"
   >
-    <app-preview [media]="media" [offset]="videoPlayerState.previewTime" canvasStyleWidth="100%">
+    <app-preview
+      [preloadPreview]="true"
+      [media]="media"
+      [offset]="videoPlayerState.previewTime"
+      canvasStyleWidth="100%"
+    >
     </app-preview>
   </div>
 
@@ -81,6 +86,7 @@
           videoPlayerState.duration !== undefined
         "
         class="preview"
+        [preloadPreview]="true"
         [media]="media"
         [offset]="videoPlayerState.previewTime"
         [style.left.px]="

@@ -25,18 +25,24 @@ const SLIDE_INTERVAL = 500;
 export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('canvasElement', { static: false }) public canvasElement: any;
   @Input() public media?: Media;
+  // Manually offset in seconds along the preview.
+  // Must be unset if in slideshow mode.
   @Input() public offset?: number;
   @Input() public height?: number;
   @Input() public canvasStyleWidth?: string;
+  // Set to true to enable slideshow on mouster enter/exit.
   @Input() public slideshow = false;
+  // Set to true to load the preview before a slideshow or offset
+  // has been set.
+  @Input() public preloadPreview?: boolean;
 
-  public imageSrc?: string;
+  public previewSrc?: string;
   public thumbnailSrc?: string;
   public canvasWidth?: number;
   public canvasHeight?: number;
-  public image?: any;
+  public preview?: any;
   public thumbnail?: any;
-  public imageRequested = false;
+  public previewRequested = false;
 
   private configService: ConfigService;
   private changeDetector: ChangeDetectorRef;
@@ -93,11 +99,12 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
 
   public beginSlideshow(mouse: boolean): void {
     // Only begin the slideshow if there's no offset manually specified.
-    if (this.offset !== undefined) {
+    // Also it must be in slideshow mode.
+    if (this.offset !== undefined || !this.slideshow) {
       return;
     }
 
-    this.imageRequested = true;
+    this.previewRequested = true;
 
     // If it's mouse enter then ignore for mobile.
     if (mouse && isMobile()) {
@@ -112,7 +119,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       // Set to zero if undefined to trigger preview rendering.
       if (this.index === undefined) {
         this.index = 0;
-      } else if (this.image) {
+      } else if (this.preview) {
         // Only bump the index if the preview has loaded.
         this.index++;
       }
@@ -121,7 +128,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
       if (!this.media.metadata.length || offset > this.media.metadata.length) {
         this.index = 0;
       }
-      if (this.image) {
+      if (this.preview) {
         this.rendered = false;
         this.render();
       }
@@ -151,20 +158,20 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   public ngOnChanges(changes: SimpleChanges) {
     if (changes.media && changes.media.currentValue) {
       const media = changes.media.currentValue;
-      this.image = undefined;
+      this.preview = undefined;
       this.thumbnail = undefined;
       this.index = undefined;
       this.rendered = false;
       if (media.metadata) {
         if (media.type === 'video' && media.preview) {
-          this.imageSrc = `/cache/previews/${media.hash}.png`;
+          this.previewSrc = `/cache/previews/${media.hash}.png`;
         }
         this.thumbnailSrc = `/cache/thumbnails/${media.hash}.png`;
       }
     }
 
     if (changes.offset && this.config) {
-      this.imageRequested = true;
+      this.previewRequested = true;
 
       const index = Math.floor(
         (changes.offset.currentValue || 0) / this.config.transcoder.videoPreviewFps,
@@ -184,7 +191,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     // If nothing to render, leave early
-    if (!this.image && !this.thumbnail) {
+    if (!this.preview && !this.thumbnail) {
       return;
     }
 
@@ -218,13 +225,13 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         );
       }
     } else {
-      if (this.image) {
+      if (this.preview) {
         const mediaHeight = this.config.transcoder.videoPreviewHeight;
         const mediaWidth = Math.ceil(
           (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
         );
 
-        const columns = Math.ceil(this.image.naturalWidth / mediaWidth);
+        const columns = Math.ceil(this.preview.naturalWidth / mediaWidth);
 
         const column = this.index % columns;
         const row = (this.index - column) / columns;
@@ -233,7 +240,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         const offsetY = row * mediaHeight;
 
         canvas.drawImage(
-          this.image,
+          this.preview,
           offsetX,
           offsetY,
           mediaWidth,
@@ -247,9 +254,9 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  public onImageLoaded(event: any) {
-    console.log('Preview loaded', this.imageSrc);
-    this.image = event.target;
+  public onPreviewLoaded(event: any) {
+    console.log('Preview loaded', this.previewSrc);
+    this.preview = event.target;
     this.changeDetector.detectChanges();
     this.rendered = false;
     this.render();
