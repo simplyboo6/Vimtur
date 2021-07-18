@@ -1,30 +1,15 @@
-import { Db, MongoClient } from 'mongodb';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+import type { Database } from '../types/database';
 import type { Media, Playlist } from '@vimtur/common';
 
-import { MongoConnector } from '../database/mongodb';
-import Config from '../config';
-import type { Database } from '../types/database';
-
-describe('Database Tests', () => {
+export function createDatabaseTests(databasePromise: Promise<Database>): void {
   let database: Database;
-  let connection: MongoClient;
-  let mongo: Db;
-
   before(async () => {
-    database = await MongoConnector.init();
-
-    const config = Config.get().database;
-    if (!config) {
-      throw new Error('missing database config');
-    }
-    connection = await MongoClient.connect(config.uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    const dbName = config.db;
-    mongo = connection.db(dbName);
+    database = await databasePromise;
+  });
+  after(async () => {
+    await database.close();
   });
 
   describe('Basic playlist tests', () => {
@@ -121,10 +106,6 @@ describe('Database Tests', () => {
       expect(playlistsPost.find((playlist) => playlist.id === playlistB.id)).to.equal(undefined);
       expect(playlistsPost.find((playlist) => playlist.id === playlistC.id)).to.be.an('object');
     });
-
-    afterEach(async () => {
-      await mongo.collection('playlists').deleteMany({});
-    });
   });
 
   describe('Playlist content manipulation', () => {
@@ -155,11 +136,6 @@ describe('Database Tests', () => {
           }),
         );
       }
-    });
-
-    afterEach(async () => {
-      await mongo.collection('playlists').deleteMany({});
-      await mongo.collection('media').deleteMany({});
     });
 
     it('Add media to playlist', async () => {
@@ -310,14 +286,14 @@ describe('Database Tests', () => {
         ]) {
           const fetchedMedia = await database.getMedia(hash);
           expect(fetchedMedia).to.be.an('object');
-          expect(fetchedMedia!.playlists).to.be.an('array');
 
           if (order !== undefined) {
+            expect(fetchedMedia!.playlists).to.be.an('array');
             expect(fetchedMedia!.playlists!.length).to.equal(1);
             expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
             expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
           } else {
-            expect(fetchedMedia!.playlists!.length).to.equal(0);
+            expect(fetchedMedia!.playlists).to.equal(undefined);
           }
         }
       });
@@ -338,14 +314,14 @@ describe('Database Tests', () => {
         ]) {
           const fetchedMedia = await database.getMedia(hash);
           expect(fetchedMedia).to.be.an('object');
-          expect(fetchedMedia!.playlists).to.be.an('array');
 
           if (order !== undefined) {
+            expect(fetchedMedia!.playlists).to.be.an('array');
             expect(fetchedMedia!.playlists!.length).to.equal(1);
             expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
             expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
           } else {
-            expect(fetchedMedia!.playlists!.length).to.equal(0);
+            expect(fetchedMedia!.playlists).to.equal(undefined);
           }
         }
       });
@@ -366,14 +342,14 @@ describe('Database Tests', () => {
         ]) {
           const fetchedMedia = await database.getMedia(hash);
           expect(fetchedMedia).to.be.an('object');
-          expect(fetchedMedia!.playlists).to.be.an('array');
 
           if (order !== undefined) {
+            expect(fetchedMedia!.playlists).to.be.an('array');
             expect(fetchedMedia!.playlists!.length).to.equal(1);
             expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
             expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
           } else {
-            expect(fetchedMedia!.playlists!.length).to.equal(0);
+            expect(fetchedMedia!.playlists).to.equal(undefined);
           }
         }
       });
@@ -431,9 +407,4 @@ describe('Database Tests', () => {
       });
     });
   });
-
-  after(async () => {
-    await database.close();
-    await connection.close();
-  });
-});
+}

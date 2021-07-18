@@ -11,6 +11,7 @@
     "@tensorflow/tfjs-node": "^3.3.0",
     "ajv": "^8.6.0",
     "better-ajv-errors": "^0.7.0",
+    "better-sqlite3": "^7.4.1",
     "body-parser": "^1.18.3",
     "compression": "^1.7.1",
     "deepmerge": "^4.0.0",
@@ -35,7 +36,7 @@
   },
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc -p . && ./create-schemas.sh",
+    "build": "tsc -p . && ./create-schemas.sh && ./copy-files.sh",
     "clean": "rm -rf dist/* *.tsbuildinfo ./.schema-build-info",
     "lint": "./node_modules/@luvies/config/scripts/lint.sh",
     "fix": "./node_modules/@luvies/config/scripts/lint.sh fix",
@@ -45,6 +46,7 @@
   "license": "MIT",
   "devDependencies": {
     "@luvies/config": "^1.6.3",
+    "@types/better-sqlite3": "^5.4.2",
     "@types/chai": "^4.2.11",
     "@types/compression": "^1.0.1",
     "@types/express": "^4.17.1",
