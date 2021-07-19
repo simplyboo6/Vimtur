@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RouteReuseStrategy } from '@angular/router';
@@ -34,6 +33,8 @@ import { ActionsComponent } from './components/actions/actions.component';
 import { LazyComponent } from './components/lazy/lazy.component';
 import { ResizedDirective } from './shared/resized.directive';
 import { FormatArrayPipe } from './shared/format-array.pipe';
+import { SelectOptionComponent } from './components/select-option/select-option.component';
+import { SelectComponent } from './components/select/select.component';
 
 @NgModule({
   declarations: [
@@ -61,6 +62,8 @@ import { FormatArrayPipe } from './shared/format-array.pipe';
     LazyComponent,
     ResizedDirective,
     FormatArrayPipe,
+    SelectOptionComponent,
+    SelectComponent,
   ],
   imports: [
     NgbModule,
@@ -69,7 +72,6 @@ import { FormatArrayPipe } from './shared/format-array.pipe';
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
-    AngularMultiSelectModule,
     BrowserAnimationsModule,
     DragDropModule,
   ],

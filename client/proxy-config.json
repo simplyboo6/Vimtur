@@ -1,0 +1,11 @@
+{
+  "/api/*": {
+    "target": "http://localhost:8444",
+    "secure": false,
+    "ws": true
+  },
+  "/cache/*": {
+    "target": "http://localhost:8444",
+    "secure": false
+  }
+}

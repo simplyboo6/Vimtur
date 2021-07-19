@@ -7,6 +7,7 @@
     "build": "ng build --output-path dist",
     "build:watch": "ng build --watch --output-path dist",
     "build:prod": "ng build --prod --output-path dist",
+    "serve": "ng serve --disable-host-check  --base-href /web/ --watch --proxy-config ./proxy-config.json --port 8455",
     "watch": "ng build --watch --output-path dist",
     "lint": "ng lint && prettier --check '**/*.{ts,js,json,md,tsx,html,scss,css,yaml,yml}'",
     "fix": "ng lint --fix && prettier --check --write '**/*.{ts,js,json,md,tsx,html,scss,css,yaml,yml}'"
@@ -23,7 +24,6 @@
     "@angular/platform-browser-dynamic": "^11.2.4",
     "@angular/router": "^11.2.4",
     "@ng-bootstrap/ng-bootstrap": "^9.0.2",
-    "angular2-multiselect-dropdown": "4.6.6",
     "bootstrap-css-only": "^4.4.1",
     "hls.js": "^1.0.7",
     "is-mobile": "^2.2.2",

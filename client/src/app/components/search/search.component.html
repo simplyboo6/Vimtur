@@ -220,37 +220,29 @@
             <h3>{{ field.name }}</h3>
             <div class="form-group">
               <label>All</label>
-              <!-- Shouldn't ever actually be evaluated as an empty array because
-              it's checked above. The compiler has trouble spotting that though. -->
-              <angular2-multiselect
-                [data]="this[field.field] || []"
-                [settings]="tagSettings"
-                [(ngModel)]="searchModel[field.field].equalsAll"
-                (onDeSelectAll)="searchModel[field.field].equalsAll = []"
-              >
-              </angular2-multiselect>
+              <app-select [(value)]="searchModel[field.field].equalsAll">
+                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                  {{ item.itemName }}
+                </app-select-option>
+              </app-select>
             </div>
 
             <div class="form-group">
               <label>Any</label>
-              <angular2-multiselect
-                [data]="this[field.field] || []"
-                [settings]="tagSettings"
-                [(ngModel)]="searchModel[field.field].equalsAny"
-                (onDeSelectAll)="searchModel[field.field].equalsAny = []"
-              >
-              </angular2-multiselect>
+              <app-select [(value)]="searchModel[field.field].equalsAny">
+                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                  {{ item.itemName }}
+                </app-select-option>
+              </app-select>
             </div>
 
             <div class="form-group">
               <label>None</label>
-              <angular2-multiselect
-                [data]="this[field.field] || []"
-                [settings]="tagSettings"
-                [(ngModel)]="searchModel[field.field].equalsNone"
-                (onDeSelectAll)="searchModel[field.field].equalsNone = []"
-              >
-              </angular2-multiselect>
+              <app-select [(value)]="searchModel[field.field].equalsNone">
+                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                  {{ item.itemName }}
+                </app-select-option>
+              </app-select>
             </div>
           </div>
         </div>

@@ -120,35 +120,35 @@
       </div>
     </div>
 
-    <div *ngIf="config.user.quickTagShowPeople" class="card">
+    <div *ngIf="config.user.quickTagShowPeople && actors && actorsModel" class="card">
       <div class="card-header card-small">People</div>
       <div class="card-body card-small ui-fluid">
-        <angular2-multiselect
-          *ngIf="actors"
-          [data]="actors"
-          [settings]="actorsSettings"
-          [ngModel]="actorsModel"
-          (onAddFilterNewItem)="actorService.addActor($event)"
-          (onSelect)="mediaService.addActor($event.id)"
-          (onDeSelect)="mediaService.removeActor($event.id)"
+        <app-select
+          [(value)]="actorsModel"
+          (selected)="mediaService.addActor($event)"
+          (deselected)="mediaService.removeActor($event)"
+          placeholder="+ People"
         >
-        </angular2-multiselect>
+          <app-select-option *ngFor="let actor of actors" [value]="actor.id">
+            {{ actor.itemName }}
+          </app-select-option>
+        </app-select>
       </div>
     </div>
 
-    <div *ngIf="config.user.quickTagShowPlaylists" class="card">
+    <div *ngIf="config.user.quickTagShowPlaylists && playlists && playlistsModel" class="card">
       <div class="card-header card-small">Playlists</div>
       <div class="card-body card-small ui-fluid">
-        <angular2-multiselect
-          *ngIf="playlists"
-          [data]="playlists"
-          [settings]="playlistsSettings"
-          [ngModel]="playlistsModel"
-          (onAddFilterNewItem)="playlistService.addPlaylist({ name: $event, hashes: [media.hash] })"
-          (onSelect)="playlistService.addMediaToPlaylist($event.id, media.hash)"
-          (onDeSelect)="playlistService.removeMediaFromPlaylist($event.id, media.hash)"
+        <app-select
+          [(value)]="playlistsModel"
+          (selected)="playlistService.addMediaToPlaylist($event, media.hash)"
+          (deselected)="playlistService.removeMediaFromPlaylist($event, media.hash)"
+          placeholder="+ Playlists"
         >
-        </angular2-multiselect>
+          <app-select-option *ngFor="let playlist of playlists" [value]="playlist.id">
+            {{ playlist.itemName }}
+          </app-select-option>
+        </app-select>
       </div>
     </div>
   </ng-container>
