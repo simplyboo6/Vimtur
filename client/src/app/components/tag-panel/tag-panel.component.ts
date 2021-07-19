@@ -24,8 +24,8 @@ interface MetadataModel {
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public tagsModel?: Record<string, boolean>;
   public ratingModel = 0;
-  public actorsModel?: ListItem[];
-  public playlistsModel?: ListItem[];
+  public actorsModel?: string[];
+  public playlistsModel?: string[];
   public media?: Media;
   public tags?: string[];
   public actors?: ListItem[];
@@ -40,23 +40,6 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public currentPlaylist?: Playlist;
   public columnIndexes?: number[];
   public columnTags?: string[][];
-
-  // angular2 multiselect doesn't export types and they're not partial
-  public readonly actorsSettings: any = {
-    text: '+ Actor',
-    enableCheckAll: false,
-    enableSearchFilter: true,
-    addNewItemOnFilter: true,
-    enableFilterSelectAll: false,
-  };
-
-  public readonly playlistsSettings: any = {
-    text: '+ Playlist',
-    enableCheckAll: false,
-    enableSearchFilter: true,
-    addNewItemOnFilter: true,
-    enableFilterSelectAll: false,
-  };
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
@@ -109,8 +92,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.tagsModel[tag] = true;
           }
           this.ratingModel = media.rating || 0;
-          // Copy it since it'll be modified.
-          this.actorsModel = toListItems(media.actors);
+          this.actorsModel = media.actors;
 
           this.updatePlaylistsModel();
         }
@@ -239,11 +221,6 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    this.playlistsModel = this.media.playlists.map(playlist => {
-      return {
-        id: playlist.id,
-        itemName: this.playlists?.find(list => list.id === playlist.id)?.itemName || playlist.id,
-      };
-    });
+    this.playlistsModel = this.media.playlists.map(playlist => playlist.id);
   }
 }

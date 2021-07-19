@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
-import { ListItem, fromListItems } from 'app/shared/types';
 
 export interface SearchArrayFilter {
-  equalsAny: ListItem[];
-  equalsAll: ListItem[];
-  equalsNone: ListItem[];
+  equalsAny: string[];
+  equalsAll: string[];
+  equalsNone: string[];
 }
 
 export interface SearchStringFilter {
@@ -55,10 +54,22 @@ export interface StringFilterField {
 
 function toArrayFilter(filter: SearchArrayFilter): ArrayFilter | undefined {
   const output: ArrayFilter = {
-    equalsAny: fromListItems(filter.equalsAny),
-    equalsAll: fromListItems(filter.equalsAll),
-    equalsNone: fromListItems(filter.equalsNone),
+    equalsAny: filter.equalsAny,
+    equalsAll: filter.equalsAll,
+    equalsNone: filter.equalsNone,
   };
+
+  if (output.equalsAny?.length === 0) {
+    delete output.equalsAny;
+  }
+
+  if (output.equalsAll?.length === 0) {
+    delete output.equalsAll;
+  }
+
+  if (output.equalsNone?.length === 0) {
+    delete output.equalsNone;
+  }
 
   if (!output.equalsAny && !output.equalsAll && !output.equalsNone) {
     return undefined;

@@ -7,12 +7,11 @@ import { Subscription } from 'rxjs';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
-import { isMobile } from 'is-mobile';
 
 interface MediaModel extends UpdateMedia {
-  tags?: ListItem[];
-  actors?: ListItem[];
-  playlists?: ListItem[];
+  tags?: string[];
+  actors?: string[];
+  playlists?: string[];
   metadata: UpdateMetadata;
   rating: number;
 }
@@ -21,15 +20,6 @@ interface MetadataField {
   name: 'artist' | 'album' | 'title';
   text: string;
 }
-
-const BASE_MULTISELECT_CONFIG = {
-  // On mobile the auto-focus brings up a keyboard.
-  // This is mostly just very annoying.
-  enableSearchFilter: !isMobile(),
-  enableFilterSelectAll: !isMobile(),
-  enableCheckAll: false,
-  addNewItemOnFilter: true,
-};
 
 @Component({
   selector: 'app-metadata',
@@ -53,22 +43,6 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     { name: 'album', text: 'Album' },
     { name: 'title', text: 'Title' },
   ];
-
-  // angular2 multiselect doesn't export types and they're not partial
-  public readonly tagsSettings: any = {
-    ...BASE_MULTISELECT_CONFIG,
-    text: '+ Tag',
-  };
-
-  public readonly actorsSettings: any = {
-    ...BASE_MULTISELECT_CONFIG,
-    text: '+ Actor',
-  };
-
-  public readonly playlistsSettings: any = {
-    ...BASE_MULTISELECT_CONFIG,
-    text: '+ Playlist',
-  };
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private uiService: UiService;
@@ -95,8 +69,8 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.mediaModel = this.media
           ? {
               rating: media.rating || 0,
-              tags: toListItems(media.tags),
-              actors: toListItems(media.actors),
+              tags: media.tags,
+              actors: media.actors,
               playlists: this.updatePlaylistsModel(),
               metadata: {
                 artist: media.metadata?.artist || '',
@@ -105,6 +79,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
               },
             }
           : undefined;
+        console.log('mediaModel', this.mediaModel);
       }),
     );
 
@@ -208,20 +183,14 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  private updatePlaylistsModel(): ListItem[] {
-    if (!this.media || !this.playlists || !this.mediaModel) {
+  private updatePlaylistsModel(): string[] {
+    if (!this.media) {
       return [];
     }
-    this.mediaModel.playlists = [];
-    if (this.media.playlists) {
-      this.mediaModel.playlists = this.media.playlists.map(playlist => {
-        return {
-          id: playlist.id,
-          itemName: this.playlists?.find(list => list.id === playlist.id)?.itemName || playlist.id,
-        };
-      });
+    const playlists = (this.media.playlists || []).map(playlist => playlist.id);
+    if (this.mediaModel) {
+      this.mediaModel.playlists = playlists;
     }
-
-    return this.mediaModel.playlists || [];
+    return playlists;
   }
 }

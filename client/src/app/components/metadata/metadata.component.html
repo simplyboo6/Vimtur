@@ -71,45 +71,45 @@
     </div>
 
     <h5 class="form-padded-input">Tags</h5>
-    <div class="row">
-      <angular2-multiselect
-        *ngIf="mediaModel.tags && tags"
-        [data]="tags"
-        [settings]="tagsSettings"
-        [ngModel]="mediaModel.tags"
-        (onAddFilterNewItem)="tagService.addTag($event)"
-        (onSelect)="mediaService.addTag($event.id)"
-        (onDeSelect)="mediaService.removeTag($event.id)"
+    <div *ngIf="mediaModel && mediaModel.tags && tags" class="row">
+      <app-select
+        [(value)]="mediaModel.tags"
+        (selected)="mediaService.addTag($event)"
+        (deselected)="mediaService.removeTag($event)"
+        placeholder="+ Tags"
       >
-      </angular2-multiselect>
+        <app-select-option *ngFor="let tag of tags" [value]="tag.id">
+          {{ tag.itemName }}
+        </app-select-option>
+      </app-select>
     </div>
 
     <h5 class="form-padded-input">Actors</h5>
-    <div class="row">
-      <angular2-multiselect
-        *ngIf="mediaModel.actors && actors"
-        [data]="actors"
-        [settings]="actorsSettings"
-        [ngModel]="mediaModel.actors"
-        (onAddFilterNewItem)="actorService.addActor($event)"
-        (onSelect)="mediaService.addActor($event.id)"
-        (onDeSelect)="mediaService.removeActor($event.id)"
+    <div *ngIf="mediaModel && mediaModel.actors && actors" class="row">
+      <app-select
+        [(value)]="mediaModel.actors"
+        (selected)="mediaService.addActor($event)"
+        (deselected)="mediaService.removeActor($event)"
+        placeholder="+ People"
       >
-      </angular2-multiselect>
+        <app-select-option *ngFor="let actor of actors" [value]="actor.id">
+          {{ actor.itemName }}
+        </app-select-option>
+      </app-select>
     </div>
 
     <h5 class="form-padded-input">Playlists</h5>
-    <div class="row">
-      <angular2-multiselect
-        *ngIf="mediaModel.playlists && playlists"
-        [data]="playlists"
-        [settings]="playlistsSettings"
-        [ngModel]="mediaModel.playlists"
-        (onAddFilterNewItem)="playlistService.addPlaylist({ name: $event, hashes: [media.hash] })"
-        (onSelect)="playlistService.addMediaToPlaylist($event.id, media.hash)"
-        (onDeSelect)="playlistService.removeMediaFromPlaylist($event.id, media.hash)"
+    <div *ngIf="mediaModel && mediaModel.playlists && playlists" class="row">
+      <app-select
+        [(value)]="mediaModel.playlists"
+        (selected)="playlistService.addMediaToPlaylist($event, media.hash)"
+        (deselected)="playlistService.removeMediaFromPlaylist($event, media.hash)"
+        placeholder="+ Playlists"
       >
-      </angular2-multiselect>
+        <app-select-option *ngFor="let playlist of playlists" [value]="playlist.id">
+          {{ playlist.itemName }}
+        </app-select-option>
+      </app-select>
     </div>
   </div>
 </div>

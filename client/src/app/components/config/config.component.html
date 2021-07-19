@@ -466,15 +466,16 @@
     <!-- transcoder.cacheQualities -->
     <div class="custom-control custom-checkbox input-component">
       <label for="config-transcoder-cache-qualities">Video caching qualities</label>
-      <angular2-multiselect
-        id="config-transcoder-cache-qualities"
-        [data]="qualityList"
-        [settings]="cacheQualitySettings"
-        [ngModel]="cacheQualities"
-        (onSelect)="addQuality('cacheQualities', $event)"
-        (onDeSelect)="removeQuality('cacheQualities', $event)"
+      <app-select
+        [value]="config.transcoder.cacheQualities"
+        (selected)="addQuality('cacheQualities', $event)"
+        (deselected)="removeQuality('cacheQualities', $event)"
+        placeholder="+ Quality"
       >
-      </angular2-multiselect>
+        <app-select-option *ngFor="let quality of qualityList" [value]="quality.id">
+          {{ quality.itemName }}
+        </app-select-option>
+      </app-select>
       <div>
         <span class="text-muted">
           When importing/caching videos will be pre-transcoded to these qualities.
@@ -484,15 +485,16 @@
     <!-- transcoder.streamQualities -->
     <div class="custom-control custom-checkbox input-component">
       <label for="config-transcoder-stream-qualities">Video streaming qualities</label>
-      <angular2-multiselect
-        id="config-transcoder-stream-qualities"
-        [data]="qualityList"
-        [settings]="streamingQualitySettings"
-        [ngModel]="streamQualities"
-        (onSelect)="addQuality('streamQualities', $event)"
-        (onDeSelect)="removeQuality('streamQualities', $event)"
+      <app-select
+        [value]="config.transcoder.streamQualities"
+        (selected)="addQuality('streamQualities', $event)"
+        (deselected)="removeQuality('streamQualities', $event)"
+        placeholder="+ Quality"
       >
-      </angular2-multiselect>
+        <app-select-option *ngFor="let quality of qualityList" [value]="quality.id">
+          {{ quality.itemName }}
+        </app-select-option>
+      </app-select>
       <div>
         <span class="text-muted">
           When streaming a video these will be the resolutions available to stream at. To stream
@@ -503,14 +505,15 @@
     <!-- transcoder.minQuality -->
     <div class="custom-control custom-checkbox input-component">
       <label for="config-transcoder-min-quality">Minimum transcode quality</label>
-      <angular2-multiselect
-        id="config-transcoder-min-quality"
-        [data]="qualityList"
-        [settings]="minTranscodeQualitySettings"
-        [ngModel]="minQuality"
-        (onSelect)="updateConfig('transcoder.minQuality', $event.id)"
+      <select
+        class="custom-select d-block w-100"
+        [ngModel]="config.transcoder.minQuality"
+        (ngModelChange)="updateConfig('transcoder.minQuality', $event)"
       >
-      </angular2-multiselect>
+        <option *ngFor="let quality of qualityList" [value]="quality.id">{{
+          quality.itemName
+        }}</option>
+      </select>
       <div>
         <span class="text-muted">
           If the source quality is less than or equal to the above then it will use the source

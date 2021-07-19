@@ -28,9 +28,6 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public actors?: string[];
   public tasks?: ListedTask[];
   public queue?: QueuedTask[];
-  public cacheQualities: ListItem<number>[] = [];
-  public streamQualities: ListItem<number>[] = [];
-  public minQuality: ListItem<number>[] = [];
   public scanResults?: Scanner.Summary;
   public version?: string;
 
@@ -39,28 +36,6 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public addActorModel?: string;
   public deleteActorModel?: string;
   public task?: ListedTask;
-
-  // This is awful but the actual type isn't exposed and isn't partial.
-  public readonly cacheQualitySettings: any = {
-    text: '+ Quality',
-    enableCheckAll: false,
-    enableSearchFilter: false,
-    addNewItemOnFilter: false,
-    enableFilterSelectAll: false,
-  };
-
-  public readonly streamingQualitySettings: any = {
-    text: '+ Quality',
-    enableCheckAll: false,
-    enableSearchFilter: false,
-    addNewItemOnFilter: false,
-    enableFilterSelectAll: false,
-  };
-
-  public readonly minTranscodeQualitySettings: any = {
-    text: 'Minimum Quality',
-    singleSelection: true,
-  };
 
   public readonly qualityList: ListItem<number>[] = [
     { id: 144, itemName: '144p' },
@@ -91,9 +66,6 @@ export class ConfigComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
-        this.cacheQualities = this.fromQualitiesToList(config.transcoder.cacheQualities);
-        this.streamQualities = this.fromQualitiesToList(config.transcoder.streamQualities);
-        this.minQuality = this.fromQualitiesToList([config.transcoder.minQuality]);
       }),
     );
 
@@ -171,31 +143,29 @@ export class ConfigComponent implements OnInit, OnDestroy {
     }
   }
 
-  public addQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
+  public addQuality(field: 'cacheQualities' | 'streamQualities', quality: number) {
     console.log('addQuality', field, quality);
     if (!this.config) {
       return;
     }
 
-    if (!this.config.transcoder[field].includes(quality.id)) {
-      this.config.transcoder[field].push(quality.id);
-      this[field] = this.fromQualitiesToList(this.config.transcoder[field]);
+    if (!this.config.transcoder[field].includes(quality)) {
+      this.config.transcoder[field].push(quality);
       this.configService.updateConfiguration({
         transcoder: { [field]: this.config.transcoder[field] },
       });
     }
   }
 
-  public removeQuality(field: 'cacheQualities' | 'streamQualities', quality: ListItem<number>) {
+  public removeQuality(field: 'cacheQualities' | 'streamQualities', quality: number) {
     console.log('removeQuality', field, quality);
     if (!this.config) {
       return;
     }
 
-    const index = this.config.transcoder[field].indexOf(quality.id);
+    const index = this.config.transcoder[field].indexOf(quality);
     if (index >= 0) {
       this.config.transcoder[field].splice(index, 1);
-      this[field] = this.fromQualitiesToList(this.config.transcoder[field]);
       this.configService.updateConfiguration({
         transcoder: { [field]: this.config.transcoder[field] },
       });
