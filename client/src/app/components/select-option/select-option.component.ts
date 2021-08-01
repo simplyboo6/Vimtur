@@ -12,6 +12,7 @@ export class SelectOptionComponent {
   @Input() public selected = false;
   @Input() public highlighted?: boolean;
   @Output() public selectedChange = new EventEmitter<boolean>();
+  @Output() public highlightedEvent = new EventEmitter<void>();
 
   private elementRef: ElementRef;
 

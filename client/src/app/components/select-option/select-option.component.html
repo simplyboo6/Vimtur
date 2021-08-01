@@ -3,6 +3,7 @@
   class="custom-control custom-checkbox input-component"
   [class.not-highlighted]="highlighted === false"
   [class.highlighted]="highlighted"
+  (mousemove)="highlightedEvent.emit()"
 >
   <input
     [ngModel]="selected"

@@ -51,6 +51,8 @@ export namespace Configuration {
     initialLoadLimit?: number;
     // Number of images to show per-page in the gallery. 0 means all.
     galleryImageCount?: number;
+    // Whether to use a native multi-select element on mobile.
+    useNativeSelectOnMobile?: boolean;
 
     // Quick tag panel visibility options.
     quickTagShowRating?: boolean;

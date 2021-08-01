@@ -13,9 +13,11 @@ import {
   NgZone,
 } from '@angular/core';
 import { SelectOptionComponent } from '../select-option/select-option.component';
-import { Subscription, timer } from 'rxjs';
+import { Subscription, timer, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { isMobile } from 'is-mobile';
+import { ConfigService } from 'services/config.service';
 
 interface BasicSelectOption {
   name: string;
@@ -40,11 +42,10 @@ export class SelectComponent
   @Input() public disabled?: boolean;
   public open = false;
   public text?: string;
-  // TODO Make this a config option
-  public readonly useNative = isMobile();
   public dropdownMaxHeight?: string;
   public dropBottom?: string;
   public basicOptions?: BasicSelectOption[];
+  public readonly useNativeObservable: Observable<boolean>;
 
   @ContentChildren(SelectOptionComponent)
   public set options(optionsRaw: QueryList<SelectOptionComponent>) {
@@ -59,7 +60,8 @@ export class SelectComponent
     this.selectedOptions = [];
 
     this.basicOptions = [];
-    for (const option of options) {
+    for (let i = 0; i < options.length; i++) {
+      const option = options[i];
       this.basicOptions.push({ name: option.text, value: option.value });
       // Set the selected state of each option.
       option.selected = this.valueInternal.includes(option.value);
@@ -87,6 +89,12 @@ export class SelectComponent
               this.deselected.emit(option.value);
             }
           }
+        }),
+      );
+
+      this.subscriptions.push(
+        option.highlightedEvent.subscribe(() => {
+          this.updateHighlighted(i);
         }),
       );
     }
@@ -129,14 +137,20 @@ export class SelectComponent
   private zone: NgZone;
   private lastTop?: number;
   private timeout?: any;
+  private writeValueTimeout?: any;
   private highlightIndex?: number;
   private searchStrings?: string[];
   private searchSubscription?: Subscription;
   private searchString?: string;
 
-  public constructor(selfRef: ElementRef, zone: NgZone) {
+  public constructor(selfRef: ElementRef, zone: NgZone, configService: ConfigService) {
     this.selfRef = selfRef;
     this.zone = zone;
+    this.useNativeObservable = configService.getConfiguration().pipe(
+      map(config => {
+        return (config.user.useNativeSelectOnMobile && isMobile()) || false;
+      }),
+    );
   }
 
   public ngAfterContentInit(): void {
@@ -169,6 +183,11 @@ export class SelectComponent
     if (this.timeout !== undefined) {
       clearTimeout(this.timeout);
       this.timeout = undefined;
+    }
+
+    if (this.writeValueTimeout !== undefined) {
+      clearTimeout(this.writeValueTimeout);
+      this.writeValueTimeout = undefined;
     }
   }
 
@@ -276,24 +295,31 @@ export class SelectComponent
   }
 
   public writeValue(newValue: any[] | null | undefined): void {
-    if (newValue === null || newValue === undefined || !Array.isArray(newValue)) {
-      newValue = [];
+    if (this.writeValueTimeout !== undefined) {
+      clearTimeout(this.writeValueTimeout);
     }
-    if (newValue !== this.valueInternal) {
-      this.valueInternal = newValue;
-      this.selectedOptions = [];
-      if (this.optionsInternal) {
-        for (const option of Array.from(this.optionsInternal)) {
-          option.selected = this.valueInternal.includes(option.value);
-          if (option.selected) {
-            this.selectedOptions.push(option);
-          }
+    this.writeValueTimeout = setTimeout(() => {
+      this.zone.run(() => {
+        if (newValue === null || newValue === undefined || !Array.isArray(newValue)) {
+          newValue = [];
         }
-        this.sortSelected();
-      }
-      this.touched = false;
-      this.updateText();
-    }
+        if (newValue !== this.valueInternal) {
+          this.valueInternal = newValue;
+          this.selectedOptions = [];
+          if (this.optionsInternal) {
+            for (const option of Array.from(this.optionsInternal)) {
+              option.selected = this.valueInternal.includes(option.value);
+              if (option.selected) {
+                this.selectedOptions.push(option);
+              }
+            }
+            this.sortSelected();
+          }
+          this.touched = false;
+          this.updateText();
+        }
+      });
+    }, 0);
   }
 
   public registerOnChange(fn: any): void {
