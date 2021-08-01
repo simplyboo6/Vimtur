@@ -10,15 +10,11 @@ import Rimraf from 'rimraf';
 
 import Config from '../config';
 import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vimtur/common';
+import type { Response } from 'express';
 
 export interface Quality {
   quality: number;
   copy: boolean;
-}
-
-export interface LoadedImage {
-  buffer: Buffer;
-  contentType: string;
 }
 
 // Nice level for low priority tasks
@@ -437,21 +433,18 @@ export class ImportUtils {
     }
   }
 
-  public static async loadImageAutoOrient(path: string): Promise<LoadedImage> {
-    const gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(path).autoOrient();
+  public static loadImageAutoOrient(
+    path: string,
+    response: Response,
+    scale?: { width: number; height: number },
+  ): void {
+    let gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(path).autoOrient();
+    if (scale) {
+      gm = gm.scale(scale.width * 1.5, scale.height * 1.5).resize(scale.width, scale.height);
+    }
     const format = path.toLowerCase().endsWith('gif') ? 'GIF' : 'PNG';
-    return new Promise<LoadedImage>((resolve, reject) => {
-      gm.toBuffer(format, (err, buffer) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({
-            buffer,
-            contentType: `image/${format.toLowerCase()}`,
-          });
-        }
-      });
-    });
+    response.set('Content-Type', `image/${format.toLowerCase()}`);
+    gm.stream(format).pipe(response);
   }
 
   private static async getKeyframes(media: Media): Promise<number[]> {

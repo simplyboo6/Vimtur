@@ -216,12 +216,20 @@ export async function create(db: Database): Promise<Router> {
     try {
       const absPath = Path.resolve(Config.get().libraryPath, media.path);
       if (media.type === 'gif' || media.type === 'still') {
-        const isRotated = await ImportUtils.isExifRotated(absPath);
-        if (isRotated) {
+        const maxWidth = req.query.maxWidth ? Number(req.query.maxWidth) : undefined;
+        const resize = maxWidth && media.metadata && media.metadata.width > maxWidth;
+        const manipulate = resize || (await ImportUtils.isExifRotated(absPath));
+        if (manipulate) {
+          const scale =
+            resize && media.metadata && maxWidth
+              ? {
+                  width: maxWidth,
+                  height: (media.metadata.height / media.metadata.width) * maxWidth,
+                }
+              : undefined;
           try {
-            const image = await ImportUtils.loadImageAutoOrient(absPath);
-            res.set('Content-Type', image.contentType);
-            return res.end(image.buffer, 'binary');
+            ImportUtils.loadImageAutoOrient(absPath, res, scale);
+            return;
           } catch (err) {
             console.error('Failed to send rotated image', absPath, err);
           }

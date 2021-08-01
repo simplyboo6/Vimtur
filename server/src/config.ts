@@ -99,6 +99,7 @@ const DEFAULTS: any = {
     quickTagShowPlaylists: true,
     quickTagShowAutoTags: true,
     useNativeSelectOnMobile: true,
+    scaleToScreenWidthOnMobile: true,
 
     showTaskNotifications: false,
     autoClearCompletedTasks: true,

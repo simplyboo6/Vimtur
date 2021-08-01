@@ -1,4 +1,4 @@
-<div class="main-body">
+<div class="main-body" *ngIf="maxWidthObservable | async as maxWidth">
   <div class="left-panel full-height" *ngIf="tagsOpen">
     <app-tag-panel></app-tag-panel>
   </div>
@@ -22,7 +22,7 @@
       <ng-container *ngIf="media.type !== 'video'">
         <img
           *ngFor="let hash of [media.hash]"
-          [src]="'/api/images/' + hash + '/file'"
+          [src]="'/api/images/' + hash + '/file' + maxWidth"
           class="image-viewer"
         />
       </ng-container>

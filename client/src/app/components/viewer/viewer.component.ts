@@ -4,6 +4,9 @@ import { MediaService } from 'services/media.service';
 import { ConfigService } from 'services/config.service';
 import { Subscription } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { isMobile } from 'is-mobile';
 
 @Component({
   selector: 'app-viewer',
@@ -14,6 +17,7 @@ export class ViewerComponent implements OnInit, OnDestroy {
   public tagsOpen = false;
   public media?: Media;
   public config?: Configuration.Main;
+  public maxWidthObservable: Observable<string>;
 
   private uiService: UiService;
   private mediaService: MediaService;
@@ -28,6 +32,16 @@ export class ViewerComponent implements OnInit, OnDestroy {
     this.uiService = uiService;
     this.mediaService = mediaService;
     this.configService = configService;
+
+    this.maxWidthObservable = this.configService.getConfiguration().pipe(
+      map(config => {
+        if (config.user.scaleToScreenWidthOnMobile && isMobile()) {
+          return `?maxWidth=${window.innerWidth}`;
+        } else {
+          return '';
+        }
+      }),
+    );
   }
 
   public ngOnInit() {

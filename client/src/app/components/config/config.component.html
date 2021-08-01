@@ -275,6 +275,19 @@
         >
       </div>
     </div>
+    <!-- user.scaleToScreenWidthOnMobile -->
+    <div class="custom-control custom-checkbox input-component">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-max-width-on-load-mobile"
+        [(ngModel)]="config.user.scaleToScreenWidthOnMobile"
+        (ngModelChange)="updateConfig('user.scaleToScreenWidthOnMobile', $event)"
+      />
+      <label class="custom-control-label" for="config-max-width-on-load-mobile"
+        >Scale image widths when it exceeds the screens width on mobile?</label
+      >
+    </div>
     <!-- user.tagColumnCount -->
     <div class="custom-control input-component">
       <label for="config-tag-column-count">Tag panel column count</label>

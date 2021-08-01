@@ -53,6 +53,8 @@ export namespace Configuration {
     galleryImageCount?: number;
     // Whether to use a native multi-select element on mobile.
     useNativeSelectOnMobile?: boolean;
+    // Limit image sizes to the screen width on mobile devices.
+    scaleToScreenWidthOnMobile?: boolean;
 
     // Quick tag panel visibility options.
     quickTagShowRating?: boolean;
