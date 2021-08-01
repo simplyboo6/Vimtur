@@ -1,4 +1,9 @@
-<div (click)="inputRef.click()" class="custom-control custom-checkbox input-component">
+<div
+  (click)="inputRef.click()"
+  class="custom-control custom-checkbox input-component"
+  [class.not-highlighted]="highlighted === false"
+  [class.highlighted]="highlighted"
+>
   <input
     [ngModel]="selected"
     (ngModelChange)="onValueChange($event)"

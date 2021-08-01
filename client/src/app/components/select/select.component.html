@@ -25,6 +25,7 @@
     (mousedown)="
       $event.preventDefault(); $event.button === 0 && (open = !open); selectRef.focus(); onResize()
     "
+    (keydown)="onKeydown('select', $event)"
     (focusout)="onFocusOut()"
     #selectRef
   >
@@ -43,7 +44,9 @@
     [class.closed]="!open"
     (mouseenter)="inContent = true"
     (mouseleave)="inContent = false"
+    (mousemove)="clearHighlighted()"
     (focusout)="onFocusOut()"
+    (keydown)="onKeydown('div', $event)"
     #dropdownRef
   >
     <ng-content></ng-content>

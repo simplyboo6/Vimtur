@@ -13,7 +13,7 @@ import {
   NgZone,
 } from '@angular/core';
 import { SelectOptionComponent } from '../select-option/select-option.component';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { isMobile } from 'is-mobile';
 
@@ -52,7 +52,10 @@ export class SelectComponent
     this.resetSubscriptions();
 
     const options = Array.from(optionsRaw);
+    this.clearHighlighted(true);
     this.optionsInternal = options;
+    this.searchStrings = options.map(option => option.text.toLowerCase());
+    this.clearHighlighted(true);
     this.selectedOptions = [];
 
     this.basicOptions = [];
@@ -125,6 +128,11 @@ export class SelectComponent
   private selfRef: ElementRef;
   private zone: NgZone;
   private lastTop?: number;
+  private timeout?: any;
+  private highlightIndex?: number;
+  private searchStrings?: string[];
+  private searchSubscription?: Subscription;
+  private searchString?: string;
 
   public constructor(selfRef: ElementRef, zone: NgZone) {
     this.selfRef = selfRef;
@@ -157,6 +165,63 @@ export class SelectComponent
     this.onChange = undefined;
     this.onTouched = undefined;
     this.inContent = false;
+
+    if (this.timeout !== undefined) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
+    }
+  }
+
+  public onKeydown(source: string, event: any): void {
+    if (source === 'select' && !this.open && event.key === ' ') {
+      this.open = true;
+      event.preventDefault();
+    }
+    if (this.open && event.key === 'Escape') {
+      this.open = false;
+      this.clearHighlighted(true);
+      event.preventDefault();
+    }
+
+    if (!this.optionsInternal) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      let index = (this.highlightIndex === undefined ? -1 : this.highlightIndex) + 1;
+      if (index >= this.optionsInternal.length) {
+        index = 0;
+      }
+      this.updateHighlighted(index);
+    } else if (event.key === 'ArrowUp') {
+      let index =
+        (this.highlightIndex === undefined ? this.optionsInternal.length : this.highlightIndex) - 1;
+      if (index < 0) {
+        index = this.optionsInternal.length - 1;
+      }
+      this.updateHighlighted(index);
+    } else if (event.key === 'Enter') {
+      if (this.highlightIndex !== undefined) {
+        const option = this.optionsInternal[this.highlightIndex];
+        option.onValueChange(!option.selected);
+      }
+    } else if (this.searchStrings) {
+      const searchString = (this.searchString || '') + event.key.toLowerCase();
+      const startIndex = this.searchStrings.findIndex(str => str.startsWith(searchString));
+      const includeIndex = this.searchStrings.findIndex(str => str.includes(searchString));
+      const foundIndex = startIndex >= 0 ? startIndex : includeIndex;
+      if (foundIndex >= 0) {
+        this.updateHighlighted(foundIndex);
+      } else {
+        this.clearHighlighted();
+      }
+      this.searchString = searchString;
+
+      this.searchSubscription?.unsubscribe();
+      this.searchSubscription = timer(1000).subscribe(() => {
+        this.searchString = undefined;
+      });
+    }
   }
 
   private resetSubscriptions(): void {
@@ -164,11 +229,15 @@ export class SelectComponent
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+
+    this.searchSubscription?.unsubscribe();
+    this.searchSubscription = undefined;
   }
 
   public onFocusOut(): void {
     if (!this.inContent) {
       this.open = false;
+      this.clearHighlighted(true);
     }
   }
 
@@ -187,9 +256,23 @@ export class SelectComponent
     const spaceDropup = dropupStart - padding;
 
     const dropdown = spaceDropdown > spaceDropup;
-    const maxHeight = dropdown ? spaceDropdown : spaceDropup;
-    this.dropdownMaxHeight = `${maxHeight}px`;
-    this.dropBottom = dropdown ? undefined : `${height}px`;
+    const maxHeight = Math.floor(dropdown ? spaceDropdown : spaceDropup);
+
+    const dropdownMaxHeight = `${maxHeight}px`;
+    const dropBottom = dropdown ? undefined : `${Math.floor(height)}px`;
+
+    if (dropdownMaxHeight !== this.dropdownMaxHeight || dropBottom !== this.dropBottom) {
+      if (this.timeout !== undefined) {
+        clearTimeout(this.timeout);
+        this.timeout = undefined;
+      }
+      this.timeout = setTimeout(() => {
+        this.zone.run(() => {
+          this.dropdownMaxHeight = dropdownMaxHeight;
+          this.dropBottom = dropBottom;
+        });
+      }, 0);
+    }
   }
 
   public writeValue(newValue: any[] | null | undefined): void {
@@ -245,6 +328,46 @@ export class SelectComponent
     for (const val of removed) {
       this.deselected.emit(val);
     }
+  }
+
+  public clearHighlighted(force?: boolean): void {
+    if (this.highlightIndex !== undefined || force) {
+      this.updateHighlighted(undefined);
+    }
+  }
+
+  private updateHighlighted(index?: number): void {
+    if (!this.optionsInternal) {
+      return;
+    }
+
+    if (index === this.highlightIndex && index !== undefined) {
+      return;
+    }
+
+    if (index === undefined) {
+      this.highlightIndex = index;
+      for (const item of this.optionsInternal) {
+        item.highlighted = undefined;
+      }
+      return;
+    }
+
+    if (this.highlightIndex === undefined) {
+      for (let i = 0; i < this.optionsInternal.length; i++) {
+        this.optionsInternal[i].highlighted = index === i;
+        if (index === i) {
+          this.optionsInternal[i].scroll();
+        }
+      }
+      this.highlightIndex = index;
+      return;
+    }
+
+    this.optionsInternal[this.highlightIndex].highlighted = false;
+    this.optionsInternal[index].highlighted = true;
+    this.highlightIndex = index;
+    this.optionsInternal[this.highlightIndex].scroll();
   }
 
   private updateSelected(): void {

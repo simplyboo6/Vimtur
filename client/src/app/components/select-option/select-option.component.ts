@@ -10,6 +10,7 @@ export class SelectOptionComponent {
   public readonly uid = getUid();
   @Input() public value: any;
   @Input() public selected = false;
+  @Input() public highlighted?: boolean;
   @Output() public selectedChange = new EventEmitter<boolean>();
 
   private elementRef: ElementRef;
@@ -25,5 +26,9 @@ export class SelectOptionComponent {
   public onValueChange(newValue: boolean): void {
     this.selected = newValue;
     this.selectedChange.emit(newValue);
+  }
+
+  public scroll(): void {
+    this.elementRef.nativeElement.scrollIntoView({ block: 'nearest' });
   }
 }
