@@ -374,14 +374,14 @@ export class SelectComponent
     if (index === undefined) {
       this.highlightIndex = index;
       for (const item of this.optionsInternal) {
-        item.highlighted = undefined;
+        item.setHighlighted(false);
       }
       return;
     }
 
     if (this.highlightIndex === undefined) {
       for (let i = 0; i < this.optionsInternal.length; i++) {
-        this.optionsInternal[i].highlighted = index === i;
+        this.optionsInternal[i].setHighlighted(index === i);
         if (index === i) {
           this.optionsInternal[i].scroll();
         }
@@ -390,8 +390,8 @@ export class SelectComponent
       return;
     }
 
-    this.optionsInternal[this.highlightIndex].highlighted = false;
-    this.optionsInternal[index].highlighted = true;
+    this.optionsInternal[this.highlightIndex].setHighlighted(false);
+    this.optionsInternal[index].setHighlighted(true);
     this.highlightIndex = index;
     this.optionsInternal[this.highlightIndex].scroll();
   }
