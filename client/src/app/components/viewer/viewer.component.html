@@ -1,9 +1,12 @@
-<div class="main-body" *ngIf="maxWidthObservable | async as maxWidth">
+<div class="main-body">
   <div class="left-panel full-height" *ngIf="tagsOpen">
     <app-tag-panel></app-tag-panel>
   </div>
   <div class="right-panel full-height">
-    <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath" class="text-overlay">
+    <div
+      *ngIf="media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc"
+      class="text-overlay"
+    >
       {{ media.path }}
     </div>
     <div
@@ -20,11 +23,7 @@
       ></app-video-player>
       <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
       <ng-container *ngIf="media.type !== 'video'">
-        <img
-          *ngFor="let hash of [media.hash]"
-          [src]="'/api/images/' + hash + '/file' + maxWidth"
-          class="image-viewer"
-        />
+        <img *ngFor="let hash of [mediaSrc]" [src]="mediaSrc" class="image-viewer" />
       </ng-container>
     </ng-container>
   </div>
