@@ -256,6 +256,25 @@
         >
       </div>
     </div>
+    <!-- user.useNativeSelectOnMobile -->
+    <div class="custom-control custom-checkbox input-component">
+      <input
+        type="checkbox"
+        class="custom-control-input"
+        id="config-native-select-on-load-mobile"
+        [(ngModel)]="config.user.useNativeSelectOnMobile"
+        (ngModelChange)="updateConfig('user.useNativeSelectOnMobile', $event)"
+      />
+      <label class="custom-control-label" for="config-native-select-on-load-mobile"
+        >Use the native multi-select on mobile devices?</label
+      >
+      <div>
+        <span class="text-muted"
+          >Only recommended to disable if your device is incorrectly detected as mobile or doesn't
+          have a user-friendly multi-select.</span
+        >
+      </div>
+    </div>
     <!-- user.tagColumnCount -->
     <div class="custom-control input-component">
       <label for="config-tag-column-count">Tag panel column count</label>

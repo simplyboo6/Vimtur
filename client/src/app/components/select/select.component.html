@@ -1,4 +1,4 @@
-<ng-container *ngIf="useNative; else desktopTemplate">
+<ng-container *ngIf="useNativeObservable | async; else desktopTemplate">
   <select class="custom-select">
     <option *ngIf="text; else placeholderTemplate" selected>{{ text }}</option>
     <ng-template #placeholderTemplate>
@@ -44,7 +44,6 @@
     [class.closed]="!open"
     (mouseenter)="inContent = true"
     (mouseleave)="inContent = false"
-    (mousemove)="clearHighlighted()"
     (focusout)="onFocusOut()"
     (keydown)="onKeydown('div', $event)"
     #dropdownRef
