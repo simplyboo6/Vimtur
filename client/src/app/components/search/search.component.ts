@@ -4,7 +4,8 @@ import { ActorService } from 'services/actor.service';
 import { CollectionService } from 'services/collection.service';
 import { UiService, SearchModel } from 'services/ui.service';
 import { PlaylistService } from 'services/playlist.service';
-import { Subscription } from 'rxjs';
+import { Subscription, combineLatest, timer } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { Playlist } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 
@@ -44,15 +45,21 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   public ngOnInit() {
     this.subscriptions.push(
-      this.tagService.getTags().subscribe(tags => (this.tags = toListItems(tags))),
-    );
-
-    this.subscriptions.push(
-      this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
-    );
-
-    this.subscriptions.push(
-      this.playlistService.getPlaylists().subscribe(playlists => (this.playlists = playlists)),
+      timer(0)
+        .pipe(
+          switchMap(() =>
+            combineLatest([
+              this.tagService.getTags(),
+              this.actorService.getActors(),
+              this.playlistService.getPlaylists(),
+            ]),
+          ),
+        )
+        .subscribe(([tags, actors, playlists]) => {
+          this.tags = toListItems(tags);
+          this.actors = toListItems(actors);
+          this.playlists = playlists;
+        }),
     );
   }
 
@@ -71,5 +78,13 @@ export class SearchComponent implements OnInit, OnDestroy {
     const constraints = this.uiService.createSearch();
     console.debug('search', constraints);
     this.collectionService.search(constraints);
+  }
+
+  public playlistId(_: number, playlist: Playlist): string {
+    return playlist.id;
+  }
+
+  public listId(_: number, item: ListItem): string {
+    return item.id;
   }
 }

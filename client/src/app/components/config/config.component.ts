@@ -6,7 +6,8 @@ import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
 import { Configuration, Scanner, QueuedTask, ListedTask } from '@vimtur/common';
 import { TasksService } from 'app/services/tasks.service';
-import { Subscription } from 'rxjs';
+import { Subscription, timer, combineLatest } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { ListItem } from 'app/shared/types';
 
 @Component({
@@ -76,19 +77,20 @@ export class ConfigComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.push(
-      this.tagService.getTags().subscribe(tags => {
-        this.tags = tags;
-        this.addTagModel = undefined;
-        this.deleteTagModel = undefined;
-      }),
-    );
-
-    this.subscriptions.push(
-      this.actorService.getActors().subscribe(actors => {
-        this.actors = actors;
-        this.addActorModel = undefined;
-        this.deleteActorModel = undefined;
-      }),
+      timer(0)
+        .pipe(
+          switchMap(() =>
+            combineLatest([this.tagService.getTags(), this.actorService.getActors()]),
+          ),
+        )
+        .subscribe(([tags, actors]) => {
+          this.tags = tags;
+          this.actors = actors;
+          this.addTagModel = undefined;
+          this.deleteTagModel = undefined;
+          this.addActorModel = undefined;
+          this.deleteActorModel = undefined;
+        }),
     );
 
     this.subscriptions.push(

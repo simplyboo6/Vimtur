@@ -9,7 +9,7 @@ export class ReuseStrategy implements RouteReuseStrategy {
     if (!route.routeConfig?.path) {
       return false;
     }
-    return route.routeConfig.path === 'playlists';
+    return true;
   }
 
   public store(route: ActivatedRouteSnapshot, handle: DetachedRouteHandle): void {

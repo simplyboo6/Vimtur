@@ -3,7 +3,7 @@
   title="Searching"
 ></app-loading>
 <ng-template #content>
-  <div class="container-fluid">
+  <div *ngIf="tags && actors && playlists; else loadingSearch" class="container-fluid">
     <div class="row">
       <div class="col-md">
         <div class="card card-small">
@@ -99,7 +99,9 @@
             <select class="custom-select" [(ngModel)]="searchModel.playlist">
               <option selected="selected" [ngValue]="undefined">None</option>
               <ng-container *ngIf="playlists">
-                <option *ngFor="let playlist of playlists" [ngValue]="playlist.id"
+                <option
+                  *ngFor="let playlist of playlists; trackBy: playlistId"
+                  [ngValue]="playlist.id"
                   >{{ playlist.name }} ({{ playlist.size }})</option
                 >
               </ng-container>
@@ -221,7 +223,10 @@
             <div class="form-group">
               <label>All</label>
               <app-select [(value)]="searchModel[field.field].equalsAll">
-                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                <app-select-option
+                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                  [value]="item.id"
+                >
                   {{ item.itemName }}
                 </app-select-option>
               </app-select>
@@ -230,7 +235,10 @@
             <div class="form-group">
               <label>Any</label>
               <app-select [(value)]="searchModel[field.field].equalsAny">
-                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                <app-select-option
+                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                  [value]="item.id"
+                >
                   {{ item.itemName }}
                 </app-select-option>
               </app-select>
@@ -239,7 +247,10 @@
             <div class="form-group">
               <label>None</label>
               <app-select [(value)]="searchModel[field.field].equalsNone">
-                <app-select-option *ngFor="let item of (this[field.field] || [])" [value]="item.id">
+                <app-select-option
+                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                  [value]="item.id"
+                >
                   {{ item.itemName }}
                 </app-select-option>
               </app-select>
@@ -249,4 +260,8 @@
       </ng-container>
     </div>
   </div>
+</ng-template>
+
+<ng-template #loadingSearch>
+  <app-loading title="Loading Search"></app-loading>
 </ng-template>

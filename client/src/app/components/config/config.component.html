@@ -1,4 +1,4 @@
-<div class="container" *ngIf="config; else loading">
+<div class="container" *ngIf="config && tags && actors; else loading">
   <div class="card">
     <h4>Tasks</h4>
     <!-- Task Starting Options -->
@@ -671,7 +671,7 @@
   </div>
 </div>
 <ng-template #loading>
-  <h4>Loading...</h4>
+  <app-loading></app-loading>
 </ng-template>
 
 <ng-template #clearIcon>

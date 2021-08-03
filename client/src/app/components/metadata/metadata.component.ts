@@ -3,7 +3,8 @@ import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { UiService } from 'services/ui.service';
-import { Subscription } from 'rxjs';
+import { Subscription, timer, combineLatest } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
@@ -84,31 +85,35 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     );
 
     this.subscriptions.push(
-      this.tagService.getTags().subscribe(tags => (this.tags = toListItems(tags))),
-    );
+      timer(0)
+        .pipe(
+          switchMap(() =>
+            combineLatest([
+              this.tagService.getTags(),
+              this.actorService.getActors(),
+              this.playlistService.getPlaylists(),
+            ]),
+          ),
+        )
+        .subscribe(([tags, actors, playlists]) => {
+          this.tags = toListItems(tags);
+          this.actors = toListItems(actors);
+          this.playlists = playlists.map(playlist => {
+            return {
+              id: playlist.id,
+              itemName: playlist.name,
+            };
+          });
 
-    this.subscriptions.push(
-      this.actorService.getActors().subscribe(actors => (this.actors = toListItems(actors))),
+          this.updateDisabledPlaylists();
+          this.updatePlaylistsModel();
+        }),
     );
 
     this.subscriptions.push(
       this.playlistService.getCurrentPlaylist().subscribe(playlist => {
         this.currentPlaylist = playlist;
         this.updateDisabledPlaylists();
-      }),
-    );
-
-    this.subscriptions.push(
-      this.playlistService.getPlaylists().subscribe(playlists => {
-        this.playlists = playlists.map(playlist => {
-          return {
-            id: playlist.id,
-            itemName: playlist.name,
-          };
-        });
-
-        this.updateDisabledPlaylists();
-        this.updatePlaylistsModel();
       }),
     );
   }
