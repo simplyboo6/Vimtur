@@ -64,7 +64,7 @@ export class SelectComponent
       const option = options[i];
       this.basicOptions.push({ name: option.text, value: option.value });
       // Set the selected state of each option.
-      option.selected = this.valueInternal.includes(option.value);
+      option.setSelected(this.valueInternal.includes(option.value));
       if (option.selected) {
         this.selectedOptions.push(option);
       }
@@ -222,7 +222,7 @@ export class SelectComponent
     } else if (event.key === 'Enter') {
       if (this.highlightIndex !== undefined) {
         const option = this.optionsInternal[this.highlightIndex];
-        option.onValueChange(!option.selected);
+        option.setSelected(!option.selected);
       }
     } else if (this.searchStrings) {
       const searchString = (this.searchString || '') + event.key.toLowerCase();
@@ -308,7 +308,7 @@ export class SelectComponent
           this.selectedOptions = [];
           if (this.optionsInternal) {
             for (const option of Array.from(this.optionsInternal)) {
-              option.selected = this.valueInternal.includes(option.value);
+              option.setSelected(this.valueInternal.includes(option.value));
               if (option.selected) {
                 this.selectedOptions.push(option);
               }
@@ -343,7 +343,7 @@ export class SelectComponent
     const removed = this.valueInternal.filter(val => !values.includes(val));
 
     for (const option of this.optionsInternal) {
-      option.selected = values.includes(option.value);
+      option.setSelected(values.includes(option.value));
     }
     this.selectedOptions = this.optionsInternal.filter(opt => opt.selected);
 

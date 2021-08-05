@@ -42,8 +42,15 @@ export class SelectOptionComponent {
     }
   }
 
+  public setSelected(value: boolean): void {
+    if (value !== this.selected) {
+      this.selected = value;
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
   public onValueChange(newValue: boolean): void {
-    this.selected = newValue;
+    this.setSelected(newValue);
     this.selectedChange.emit(newValue);
   }
 
