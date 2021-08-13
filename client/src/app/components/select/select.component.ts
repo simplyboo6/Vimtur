@@ -222,7 +222,7 @@ export class SelectComponent
     } else if (event.key === 'Enter') {
       if (this.highlightIndex !== undefined) {
         const option = this.optionsInternal[this.highlightIndex];
-        option.setSelected(!option.selected);
+        option.onValueChange(!option.selected);
       }
     } else if (this.searchStrings) {
       const searchString = (this.searchString || '') + event.key.toLowerCase();
