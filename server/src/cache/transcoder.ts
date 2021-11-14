@@ -34,7 +34,7 @@ export class Transcoder {
       throw new Error(`Can't get thumbnail for video with no length`);
     }
 
-    const inputOptions: string[] = [];
+    const inputOptions: string[] = ['-hwaccel', 'auto'];
     if (media.metadata.length > 10) {
       const offset = Math.ceil(media.metadata.length / 4);
       inputOptions.push('-ss');
@@ -79,6 +79,7 @@ export class Transcoder {
     const path = this.getPreviewPath(media);
     await ImportUtils.transcode({
       input: media.absolutePath,
+      inputOptions: ['-hwaccel', 'auto'],
       output: path,
       outputOptions: args,
     });
@@ -140,7 +141,7 @@ export class Transcoder {
       throw new Error('Requested end after end of video');
     }
 
-    const inputOptions = ['-copyts'];
+    const inputOptions = ['-hwaccel', 'auto', '-copyts'];
     if (start) {
       inputOptions.push(...['-ss', String(start)]);
     }
