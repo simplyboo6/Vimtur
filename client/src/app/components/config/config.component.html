@@ -15,7 +15,12 @@
     </div>
     <div class="row">
       <div class="col-md-8 form-padded-input">
-        <select [disabled]="!tasks" [(ngModel)]="task" class="custom-select d-block w-100">
+        <select
+          [disabled]="!tasks"
+          [(ngModel)]="task"
+          (ngModelChange)="updateArgs()"
+          class="custom-select d-block w-100"
+        >
           <option *ngFor="let task of tasks" [ngValue]="task">{{ task.description }}</option>
         </select>
       </div>
@@ -27,6 +32,29 @@
         >
           Start
         </button>
+      </div>
+    </div>
+    <div class="row" *ngFor="let arg of (task && task.args) || []; let index = index">
+      <div class="col-md-12 form-padded-input">
+        <h5>{{ arg.name }}</h5>
+        <ng-container [ngSwitch]="arg.type">
+          <select
+            *ngSwitchCase="'select'"
+            [(ngModel)]="args[index]"
+            class="custom-select d-block w-100"
+          >
+            <option *ngFor="let value of getArgValues(arg)" [ngValue]="value.id">{{
+              value.name
+            }}</option>
+          </select>
+          <input
+            *ngSwitchCase="'string'"
+            (keydown.enter)="startAction()"
+            type="text"
+            [(ngModel)]="args[index]"
+            class="d-block w-100 form-control"
+          />
+        </ng-container>
       </div>
     </div>
 

@@ -59,9 +59,10 @@ export class ImportUtils {
       codec: mediaData.codec_name,
       ...(data.format.tags
         ? {
-            artist: data.format.tags.artist || data.format.tags.album_artist,
-            album: data.format.tags.album,
-            title: data.format.tags.title,
+            artist:
+              data.format.tags.artist || data.format.tags.album_artist || data.format.tags.ARTIST,
+            album: data.format.tags.album || data.format.tags.ALBUM,
+            title: data.format.tags.title || data.format.tags.TITLE,
           }
         : {}),
     };

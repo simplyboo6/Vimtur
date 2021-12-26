@@ -1,18 +1,18 @@
 import { EventEmitter } from 'events';
 
-import { ExecutorError, ExecutorPromise } from 'proper-job';
-import type { ListedTask, QueuedTask } from '@vimtur/common';
+import { ExecutorError, ExecutorPromise, ExecutorResults } from 'proper-job';
+import type { ListedTask, QueuedTask, TaskArgs } from '@vimtur/common';
 
 import { BadRequest } from './errors';
 import Config from './config';
 import type { Task } from './types';
 
-const MAX_TASK_QUEUE_SIZE = 30;
+const MAX_TASK_QUEUE_SIZE = 100;
 const EMIT_TIME = 1000;
 const MAX_FORMATTED_ERRORS = 10;
 
 interface ExecutorTask extends QueuedTask {
-  promise?: ExecutorPromise<any>;
+  promise?: ExecutorPromise<ExecutorResults<unknown>>;
 }
 
 export class TaskManager extends EventEmitter {
@@ -20,7 +20,7 @@ export class TaskManager extends EventEmitter {
   private taskQueue: ExecutorTask[] = [];
   private lastEmitTime = 0;
 
-  public start(id: string): string {
+  public start(id: string, args?: unknown): string {
     const task = this.tasks[id];
     if (!task) {
       throw new BadRequest(`No task with id: ${id}`);
@@ -53,6 +53,7 @@ export class TaskManager extends EventEmitter {
       running: false,
       aborted: false,
       complete: false,
+      args: args as undefined | TaskArgs,
     });
 
     if (!this.taskQueue[0].running) {
@@ -98,6 +99,7 @@ export class TaskManager extends EventEmitter {
     return Object.keys(this.tasks).map((id) => ({
       id,
       description: this.tasks[id].description,
+      args: this.tasks[id].args,
     }));
   }
 
@@ -119,9 +121,46 @@ export class TaskManager extends EventEmitter {
 
     // Has to be marked first because otherwise if it starts another task it'll re-trigger itself.
     queuedTask.running = true;
-    queuedTask.promise = task.runner((current, max) => {
+
+    if (task.args) {
+      try {
+        if (!queuedTask.args) {
+          throw new Error('missing args');
+        }
+        console.log('Task Args', queuedTask.args);
+        if (!Array.isArray(queuedTask.args)) {
+          throw new Error('args is not an array');
+        }
+        for (let i = 0; i < task.args.length; i++) {
+          if (queuedTask.args[i] === undefined) {
+            if (task.args[i].required) {
+              throw new Error(`missing args ${i} (${task.args[i].name})`);
+            } else {
+              continue;
+            }
+          }
+          switch (task.args[i].type) {
+            case 'string':
+              if (typeof queuedTask.args[i] !== 'string') {
+                throw new Error(`argument (${task.args[i].name}) must be a string`);
+              }
+          }
+        }
+      } catch (err) {
+        queuedTask.error = err.message;
+        queuedTask.running = false;
+        queuedTask.complete = true;
+        this.emit('end', queuedTask);
+        this.emit('queue', this.taskQueue);
+        this.execute();
+        return;
+      }
+    }
+
+    queuedTask.promise = task.runner((current, max, info) => {
       queuedTask.current = current;
       queuedTask.max = max;
+      queuedTask.description = info || queuedTask.description;
 
       const emit =
         current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
@@ -129,7 +168,7 @@ export class TaskManager extends EventEmitter {
         this.lastEmitTime = Date.now();
         this.emit('queue', this.taskQueue);
       }
-    });
+    }, queuedTask.args);
 
     console.log(`Task started: ${queuedTask.id}`);
     this.emit('start', queuedTask);

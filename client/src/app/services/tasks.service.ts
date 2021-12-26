@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
-import { QueuedTask, ListedTask, Scanner } from '@vimtur/common';
+import { QueuedTask, ListedTask, Scanner, TaskArgs } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -127,8 +127,8 @@ export class TasksService {
     }
   }
 
-  public startAction(id: string) {
-    this.httpClient.post<string>(`${ROOT_PATH}/queue/${id}`, {}, HTTP_OPTIONS).subscribe(
+  public startAction(id: string, args?: TaskArgs) {
+    this.httpClient.post<string>(`${ROOT_PATH}/queue/${id}`, args || {}, HTTP_OPTIONS).subscribe(
       res => {
         console.debug('Task started', res);
       },
@@ -136,7 +136,7 @@ export class TasksService {
         console.error(err);
         this.alertService.show({
           type: 'danger',
-          message: `Failed to start task`,
+          message: err.error?.message || `Failed to start task`,
         });
       },
     );

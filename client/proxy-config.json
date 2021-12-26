@@ -2,10 +2,19 @@
   "/api/*": {
     "target": "http://localhost:8444",
     "secure": false,
-    "ws": true
+    "ws": true,
+    "changeOrigin": true,
+    "headers": {
+      "Connection": "keep-alive"
+    }
   },
   "/cache/*": {
     "target": "http://localhost:8444",
     "secure": false
+  },
+  "/socket*": {
+    "target": "http://localhost:8444",
+    "secure": false,
+    "ws": true
   }
 }

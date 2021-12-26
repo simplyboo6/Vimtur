@@ -12,18 +12,21 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   const taskManager = new TaskManager();
   const router = Router();
 
-  const addTask = (task: RouterTask): void => {
+  const addTask = async (task: RouterTask): Promise<void> => {
     taskManager.addTask(task.id, task);
+    if (task.init) {
+      await task.init();
+    }
     if (task.router) {
       router.use(`/${task.id}`, task.router);
     }
   };
 
   for (const task of getTasks(db)) {
-    addTask(task);
+    await addTask(task);
   }
 
-  addTask({
+  await addTask({
     id: 'AUTO-IMPORT',
     description: '(Meta-task) Automatically import and cache new files',
     runner: () => {
@@ -57,7 +60,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     },
   });
 
-  addTask({
+  await addTask({
     id: 'VERIFY-CACHE',
     description: '(Meta-task) Verify and fix cache',
     runner: () => {
@@ -120,7 +123,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/queue/:id',
     wrap(async ({ req }) => {
       return {
-        data: taskManager.start(req.params.id),
+        data: taskManager.start(req.params.id, req.body),
       };
     }),
   );

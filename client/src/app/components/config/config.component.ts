@@ -4,7 +4,14 @@ import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
-import { Configuration, Scanner, QueuedTask, ListedTask } from '@vimtur/common';
+import {
+  Configuration,
+  Scanner,
+  QueuedTask,
+  ListedTask,
+  TaskArgs,
+  TaskArgDefinition,
+} from '@vimtur/common';
 import { TasksService } from 'app/services/tasks.service';
 import { Subscription, timer, combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -37,6 +44,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public addActorModel?: string;
   public deleteActorModel?: string;
   public task?: ListedTask;
+  public args: TaskArgs = [];
 
   public readonly qualityList: ListItem<number>[] = [
     { id: 144, itemName: '144p' },
@@ -120,16 +128,16 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public formatQueueState(task: QueuedTask): string {
+    if (task.aborted) {
+      return task.complete ? 'Aborted' : 'Aborting';
+    }
+
     if (task.complete) {
       return 'Complete';
     }
 
     if (!task.running) {
       return task.aborted ? 'Aborted' : 'No';
-    }
-
-    if (task.aborted) {
-      return 'Aborting';
     }
 
     if (task.max > 0) {
@@ -141,8 +149,27 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
   public startAction() {
     if (this.task) {
-      this.tasksService.startAction(this.task.id);
+      this.tasksService.startAction(this.task.id, this.task.args ? this.args : undefined);
     }
+  }
+
+  public updateArgs(): void {
+    this.args = [];
+    if (this.task?.args) {
+      this.args = this.task.args.map(arg => {
+        if (arg.type === 'select') {
+          return arg.values[0].id;
+        }
+        return undefined;
+      });
+    }
+  }
+
+  public getArgValues(arg: TaskArgDefinition): Array<{ id: string; name: string }> | undefined {
+    if (arg.type !== 'select') {
+      return undefined;
+    }
+    return arg.values;
   }
 
   public addQuality(field: 'cacheQualities' | 'streamQualities', quality: number) {
