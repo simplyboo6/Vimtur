@@ -144,6 +144,10 @@ export class ConfigComponent implements OnInit, OnDestroy {
       return formatPercent(task.current / task.max, 'en');
     }
 
+    if (task.current) {
+      return String(task.current);
+    }
+
     return 'Yes';
   }
 

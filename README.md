@@ -20,6 +20,7 @@
 - Media recommendations based upon your tags, actors and ratings.
 - Automatic image clone detection and viewer using perceuptual hashing.
 - Playlists
+- Download with gallery-dl or youtube-dlp
 
 ## Quick-Start
 
@@ -43,6 +44,7 @@ This will start an instance of the program listening on (http://localhost:3523)[
 - All code is TypeScript and the UI framework is Angular.
 - TensorFlow will run on the CPU. If you have AVX support on your CPU it uses native code and depending on the model and your CPU classifies in the range of 45ms. If your CPU does not support AVX it uses the JS only library and each classification will take in the range of 5s. However, it does use worker threads to make use of multi-core CPUs.
 - TensorFlow currently requires internet connectivity the first time a model is used. It fetches the list of ImageNet classes and the selected pre-trained model when it starts. Media is all classified locally. Further classifications with that model will use the cached download.
+- The downloaders can be found under the Download Files task under the Config tab.
 
 ### Github Sponsors
 

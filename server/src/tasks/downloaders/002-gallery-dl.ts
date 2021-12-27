@@ -1,39 +1,28 @@
-// Download using yt-dlp with command
-// yt-dlp --progress --quiet --add-metadata --restrict-filenames -P <data dir>/downloads/<path that includes sanitised url> <url>
 import { ExecutorPromise, ExecutorResults } from 'proper-job';
 import ChildProcess from 'child_process';
 import type { Downloader, DownloaderCallback } from '../../types';
 
 export function getDownloader(): Downloader {
   return {
-    id: 'YT-DLP',
-    name: 'youtube-dl (yt-dlp)',
+    id: 'GALLERY_DL',
+    name: 'gallery-dl',
     runner: (target: string, outputDir: string, updateStatus: DownloaderCallback) => {
       return new ExecutorPromise<ExecutorResults<void>>((resolve, reject) => {
-        const proc = ChildProcess.spawn('yt-dlp', [
-          '--progress',
-          '--newline',
-          '--quiet',
-          '--add-metadata',
-          '--restrict-filenames',
-          '-S',
-          // Prefer h264.
-          // TODO In future revisit this to support vp9, vp8 in UI and backend.
-          '+codec:h264',
-          '-P',
+        const proc = ChildProcess.spawn('gallery-dl', [
+          '--write-metadata',
+          '--dest',
           outputDir,
           target,
         ]);
 
         let aborted = false;
+        let fileCount = 0;
 
         proc.stdout.on('data', (data) => {
           const line = data.toString().trim();
-          if (line.startsWith('[download]') && !aborted) {
-            const progressString = line.split(' ').filter((seg: string) => Boolean(seg))[1];
-            if (progressString.endsWith('%')) {
-              updateStatus(Number(progressString.slice(0, -1)));
-            }
+          if (!line.startsWith('[') && !aborted) {
+            fileCount++;
+            updateStatus(fileCount, 0);
           }
         });
 

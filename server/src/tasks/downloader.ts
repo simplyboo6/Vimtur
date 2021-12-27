@@ -43,10 +43,10 @@ export function getTask(): Task {
 
       const downloadPath = Path.resolve(Config.get().libraryPath, 'vimtur-downloads');
       const downloadText = `${downloader.name}: ${target}`;
-      updateStatus(0, 100, downloadText);
+      updateStatus(0, 0, downloadText);
 
-      return downloader.runner(target, downloadPath, (progressPercent) => {
-        updateStatus(progressPercent, 100, downloadText);
+      return downloader.runner(target, downloadPath, (current, max) => {
+        updateStatus(current, max, downloadText);
       });
     },
   };

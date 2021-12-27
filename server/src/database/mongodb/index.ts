@@ -511,6 +511,7 @@ export class MongoConnector extends Database {
     const media = this.db.collection<BaseMedia>('media');
     const result = await media.findOne({ hash });
     if (result) {
+      delete (result as any)._id;
       return {
         ...result,
         absolutePath: Path.resolve(Config.get().libraryPath, result.path),
@@ -624,7 +625,9 @@ export class MongoConnector extends Database {
     }
 
     if (media) {
-      await this.db.collection<BaseMedia>('media.deleted').insertOne(media);
+      await this.db
+        .collection<BaseMedia>('media.deleted')
+        .update({ hash: media.hash }, media, { upsert: true });
     }
     await mediaCollection.deleteOne({ hash });
   }

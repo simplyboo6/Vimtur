@@ -42,6 +42,38 @@ export class ImportUtils {
     return Math.round(creationDate.getTime() / 1000);
   }
 
+  // Loads artist/album/title information from absolutePath.json if it exists and is a valid file.
+  // Useful for gallery-dl metadata that doesn't by default embed into images without exiftool.
+  public static async getFileExternalMetadata(
+    absolutePath: string,
+  ): Promise<Partial<Pick<Metadata, 'artist' | 'album' | 'title'>>> {
+    try {
+      const file = await new Promise<string>((resolve, reject) => {
+        FS.readFile(`${absolutePath}.json`, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(data.toString());
+          }
+        });
+      });
+      const json = JSON.parse(file) as Record<string, string | null>;
+      const metadata = {
+        artist: json.artist || json.author || undefined,
+        album: json.album || undefined,
+        title: json.title || undefined,
+      };
+      for (const key of ['artist', 'album', 'title'] as const) {
+        if (!metadata[key]) {
+          delete metadata[key];
+        }
+      }
+      return metadata;
+    } catch (err) {
+      return {};
+    }
+  }
+
   public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
     // The ffprobe typings are broken with promisify.
     const data = await Util.promisify(FFMpeg.ffprobe as any)(absolutePath);
@@ -51,6 +83,8 @@ export class ImportUtils {
       throw new Error('No video streams found to extract metadata from');
     }
 
+    const externalMetadata = await ImportUtils.getFileExternalMetadata(absolutePath);
+
     const metadata: Metadata = {
       length: Math.ceil(data.format.duration),
       qualityCache: [],
@@ -59,12 +93,13 @@ export class ImportUtils {
       codec: mediaData.codec_name,
       ...(data.format.tags
         ? {
+            ...externalMetadata,
             artist:
               data.format.tags.artist || data.format.tags.album_artist || data.format.tags.ARTIST,
             album: data.format.tags.album || data.format.tags.ALBUM,
             title: data.format.tags.title || data.format.tags.TITLE,
           }
-        : {}),
+        : externalMetadata),
     };
 
     // Delete them so they're not passed around as undefined.
@@ -84,7 +119,9 @@ export class ImportUtils {
   public static async getImageMetadata(absolutePath: string): Promise<Metadata> {
     const gm = GM.subClass({ imageMagick: true })(absolutePath);
     const size: Record<string, number> = (await Util.promisify(gm.size.bind(gm))()) as any;
+    const externalMetadata = await ImportUtils.getFileExternalMetadata(absolutePath);
     return {
+      ...externalMetadata,
       width: size.width,
       height: size.height,
     };
