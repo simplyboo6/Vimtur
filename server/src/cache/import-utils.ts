@@ -35,6 +35,7 @@ interface ExternalMetadata {
   artist?: StringOrNameObject;
   album?: StringOrNameObject;
   title?: StringOrNameObject;
+  content?: StringOrNameObject;
 }
 
 function getExternalMetadataField(
@@ -52,22 +53,6 @@ function getExternalMetadataField(
     default:
       return undefined;
   }
-}
-
-function getExternalMetadataTitle(obj: ExternalMetadata): string | undefined {
-  const topTitle = getExternalMetadataField(obj, 'title');
-  if (topTitle) {
-    return topTitle;
-  }
-
-  if (
-    typeof obj.author === 'object' &&
-    typeof (obj.author as MetadataNameObject).description === 'string'
-  ) {
-    return (obj.author as MetadataNameObject).description as string;
-  }
-
-  return undefined;
 }
 
 export class ImportUtils {
@@ -104,7 +89,7 @@ export class ImportUtils {
         artist:
           getExternalMetadataField(json, 'artist') || getExternalMetadataField(json, 'author'),
         album: getExternalMetadataField(json, 'album'),
-        title: getExternalMetadataTitle(json),
+        title: getExternalMetadataField(json, 'title') || getExternalMetadataField(json, 'content'),
       };
       for (const key of ['artist', 'album', 'title'] as const) {
         if (!metadata[key]) {
