@@ -28,6 +28,48 @@ export interface TranscoderOptions {
   important?: boolean;
 }
 
+type MetadataNameObject = { name?: string | null; description?: string | null };
+type StringOrNameObject = string | null | MetadataNameObject;
+interface ExternalMetadata {
+  author?: StringOrNameObject;
+  artist?: StringOrNameObject;
+  album?: StringOrNameObject;
+  title?: StringOrNameObject;
+}
+
+function getExternalMetadataField(
+  obj: ExternalMetadata,
+  field: keyof ExternalMetadata,
+): string | undefined {
+  switch (typeof obj[field]) {
+    case 'string':
+      return obj[field] as string;
+    case 'object':
+      if (typeof (obj[field] as MetadataNameObject).name === 'string') {
+        return (obj[field] as MetadataNameObject).name as string;
+      }
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+function getExternalMetadataTitle(obj: ExternalMetadata): string | undefined {
+  const topTitle = getExternalMetadataField(obj, 'title');
+  if (topTitle) {
+    return topTitle;
+  }
+
+  if (
+    typeof obj.author === 'object' &&
+    typeof (obj.author as MetadataNameObject).description === 'string'
+  ) {
+    return (obj.author as MetadataNameObject).description as string;
+  }
+
+  return undefined;
+}
+
 export class ImportUtils {
   public static async getFileCreationTime(path: string): Promise<number> {
     const stat = await Util.promisify(FS.stat)(path);
@@ -57,11 +99,12 @@ export class ImportUtils {
           }
         });
       });
-      const json = JSON.parse(file) as Record<string, string | null>;
+      const json = JSON.parse(file) as ExternalMetadata;
       const metadata = {
-        artist: json.artist || json.author || undefined,
-        album: json.album || undefined,
-        title: json.title || undefined,
+        artist:
+          getExternalMetadataField(json, 'artist') || getExternalMetadataField(json, 'author'),
+        album: getExternalMetadataField(json, 'album'),
+        title: getExternalMetadataTitle(json),
       };
       for (const key of ['artist', 'album', 'title'] as const) {
         if (!metadata[key]) {
