@@ -632,6 +632,12 @@ export class MongoConnector extends Database {
     await mediaCollection.deleteOne({ hash });
   }
 
+  public async isDeletedPath(path: string): Promise<boolean> {
+    const media = this.db.collection<BaseMedia>('media.deleted');
+    const result = await media.findOne({ path });
+    return Boolean(result);
+  }
+
   public async addMediaTag(hash: string, tag: string): Promise<void> {
     await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $addToSet: { tags: tag } });
   }

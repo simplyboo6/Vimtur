@@ -121,11 +121,13 @@ export class ImportUtils {
       codec: mediaData.codec_name,
       ...(data.format.tags
         ? {
-            ...externalMetadata,
             artist:
-              data.format.tags.artist || data.format.tags.album_artist || data.format.tags.ARTIST,
-            album: data.format.tags.album || data.format.tags.ALBUM,
-            title: data.format.tags.title || data.format.tags.TITLE,
+              data.format.tags.artist ||
+              data.format.tags.album_artist ||
+              data.format.tags.ARTIST ||
+              externalMetadata.artist,
+            album: data.format.tags.album || data.format.tags.ALBUM || externalMetadata.album,
+            title: data.format.tags.title || data.format.tags.TITLE || externalMetadata.title,
           }
         : externalMetadata),
     };

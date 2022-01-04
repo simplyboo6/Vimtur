@@ -45,6 +45,7 @@ export class Scanner {
   public static async filterNewAndMissing(
     databasePaths: string[],
     fileList: string[],
+    db: Database,
   ): Promise<FilterResults> {
     const results: FilterResults = {
       newPaths: [],
@@ -59,9 +60,15 @@ export class Scanner {
     // Throw some waits throughout here because this is quite intensive and blocking.
     await ImportUtils.wait();
 
+    // Add new paths to the new paths list if they're not in the database.
     for (const file of fileList) {
       if (!databasePathsMap[file]) {
-        results.newPaths.push(file);
+        const isDeleted = await db.isDeletedPath(file);
+        if (isDeleted) {
+          console.log(`Ignoring deleted path: ${file}`);
+        } else {
+          results.newPaths.push(file);
+        }
       }
     }
 
@@ -141,7 +148,7 @@ export function getTask(db: Database): RouterTask {
           }
           // Not an outdated value of only one task runs at a time.
           // eslint-disable-next-line require-atomic-updates
-          Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files);
+          Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files, db);
 
           return [];
         },
