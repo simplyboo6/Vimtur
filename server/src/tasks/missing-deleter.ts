@@ -34,7 +34,7 @@ export function getTask(database: Database): RouterTask {
           }
 
           await deleteMedia(media);
-          await database.removeMedia(hash);
+          await database.removeMedia(hash, false);
 
           console.log(`Removed ${hash} - ${path}`);
           updateStatus(current++, results.length);

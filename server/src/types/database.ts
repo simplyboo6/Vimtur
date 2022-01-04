@@ -20,7 +20,7 @@ export abstract class Database {
     constraints: SubsetConstraints,
     media: UpdateMedia,
   ): Promise<number>;
-  public abstract removeMedia(hash: string): Promise<void>;
+  public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;
   public abstract isDeletedPath(path: string): Promise<boolean>;
   // Media - tags
   public abstract addMediaTag(hash: string, tag: string): Promise<void>;

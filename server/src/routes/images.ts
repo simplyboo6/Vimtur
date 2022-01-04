@@ -120,7 +120,7 @@ export async function create(db: Database): Promise<Router> {
         throw new NotFound(`No media found with hash: ${req.params.hash}`);
       }
       await deleteMedia(media);
-      await db.removeMedia(req.params.hash);
+      await db.removeMedia(req.params.hash, true);
     }),
   );
 

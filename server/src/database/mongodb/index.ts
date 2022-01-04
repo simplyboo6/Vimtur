@@ -614,7 +614,7 @@ export class MongoConnector extends Database {
     return (await this.getMedia(hash))!;
   }
 
-  public async removeMedia(hash: string): Promise<void> {
+  public async removeMedia(hash: string, ignoreInImport: boolean): Promise<void> {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
     const media = await this.getMedia(hash);
@@ -624,7 +624,7 @@ export class MongoConnector extends Database {
       }
     }
 
-    if (media) {
+    if (media && ignoreInImport) {
       await this.db
         .collection<BaseMedia>('media.deleted')
         .update({ hash: media.hash }, media, { upsert: true });
