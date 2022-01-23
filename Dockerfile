@@ -3,7 +3,7 @@ ARG PRE_IMAGE
 FROM $PRE_IMAGE as build
 
 # Build the resultant image.
-FROM simplyboo6/vimtur-base@sha256:07ef3aaabc0c74d665ccfec7f5f39999693a67be1f6d151f15dabccbaa47ae82
+FROM simplyboo6/vimtur-base@sha256:71c4016340f175f1c4c113f794f0a6d994944d7ee943c720a3a5afb596560069
 
 RUN apk add --no-cache jq
 
