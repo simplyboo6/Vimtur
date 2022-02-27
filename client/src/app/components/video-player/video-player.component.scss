@@ -47,6 +47,9 @@
   position: absolute;
   display: flex;
   flex-direction: column;
+  // Needs to have a z-index with absolute positioning
+  // to get events in Chrome.
+  z-index: 10;
 
   & > .overlay {
     width: 100%;
