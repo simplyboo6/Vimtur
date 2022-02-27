@@ -20,7 +20,7 @@
     "http-auth": "~4.1.5",
     "inflight": "^1.0.6",
     "mongodb": "^3.3.0",
-    "node-fetch": "^3.1.1",
+    "node-fetch": "2.6.7",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
     "phash2": "1.1.0",
@@ -28,7 +28,7 @@
     "proper-job": "^1.4.6",
     "rimraf": "^3.0.0",
     "saslprep": "^1.0.3",
-    "socket.io": "4.1.2",
+    "socket.io": "^4.4.1",
     "strip-json-comments": "^3.0.1",
     "walk": "^2.3.9",
     "wrappy": "^1.0.2"

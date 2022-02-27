@@ -29,12 +29,12 @@
     "is-mobile": "^2.2.2",
     "resize-observer-polyfill": "^1.5.1",
     "rxjs": "^6.6.6",
-    "socket.io-client": "4.1.2",
+    "socket.io-client": "^4.4.1",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^13.1.2",
+    "@angular-devkit/build-angular": "^13.2.5",
     "@angular-eslint/builder": "13.0.1",
     "@angular-eslint/eslint-plugin": "13.0.1",
     "@angular-eslint/eslint-plugin-template": "13.0.1",
