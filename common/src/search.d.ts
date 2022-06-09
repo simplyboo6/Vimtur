@@ -56,7 +56,14 @@ export interface SubsetConstraints {
   keywordSearch?: string;
   // Object ID, if set can sort by order.
   playlist?: string;
-  sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt' | 'path' | 'order';
+  sortBy?:
+    | "hashDate"
+    | "recommended"
+    | "rating"
+    | "length"
+    | "createdAt"
+    | "path"
+    | "order";
   // Checks that metadata exists
   indexed?: boolean;
   // Checks that metadata.qualityCache.0 exists or type != video

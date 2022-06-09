@@ -32,52 +32,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let tag of insights.tags">
+            <tr *ngFor="let tag of insights">
               <td>{{ tag.name }}</td>
               <td>{{ (tag.average * 2 + 3).toFixed(2) }}</td>
               <td>{{ tag.count }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </ng-template>
-    </li>
-    <li ngbNavItem>
-      <a ngbNavLink>Actors</a>
-      <ng-template ngbNavContent>
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">Actor</th>
-              <th scope="col">Average Rating</th>
-              <th scope="col">Media Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let actor of insights.actors">
-              <td>{{ actor.name }}</td>
-              <td>{{ (actor.average * 2 + 3).toFixed(2) }}</td>
-              <td>{{ actor.count }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </ng-template>
-    </li>
-    <li ngbNavItem>
-      <a ngbNavLink>Artists</a>
-      <ng-template ngbNavContent>
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">Artist</th>
-              <th scope="col">Average Rating</th>
-              <th scope="col">Media Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let artist of insights.artists">
-              <td>{{ artist.name }}</td>
-              <td>{{ (artist.average * 2 + 3).toFixed(2) }}</td>
-              <td>{{ artist.count }}</td>
             </tr>
           </tbody>
         </table>

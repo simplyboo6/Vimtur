@@ -24,7 +24,7 @@ export interface Metadata extends MetadataBase {
   height: number;
 }
 
-export type MediaType = 'still' | 'gif' | 'video';
+export type MediaType = "still" | "gif" | "video";
 
 export interface MediaPlaylist {
   id: string;

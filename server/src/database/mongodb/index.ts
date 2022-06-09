@@ -658,7 +658,7 @@ export class MongoConnector extends Database {
 
   public async subsetFields(
     constraints: SubsetConstraints,
-    fields?: SubsetFields,
+    fields?: SubsetFields | 'all',
   ): Promise<BaseMedia[]> {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
@@ -741,11 +741,13 @@ export class MongoConnector extends Database {
       });
     }
 
-    pipeline.push({
-      $project: fields ?? {
-        hash: 1,
-      },
-    });
+    if (fields !== 'all') {
+      pipeline.push({
+        $project: fields ?? {
+          hash: 1,
+        },
+      });
+    }
 
     return mediaCollection.aggregate(pipeline).toArray();
   }
@@ -757,10 +759,10 @@ export class MongoConnector extends Database {
     if (constraints.sortBy === 'recommended') {
       const insights = new Insights(this);
       console.time('Generating analytics');
-      const metadata = await insights.analyse();
+      await insights.analyse();
       console.timeEnd('Generating analytics');
       console.time('Scoring and sorting recommendations');
-      const scored = await insights.getRecommendations(mapped, metadata);
+      const scored = insights.getRecommendations(mapped);
       console.timeEnd('Scoring and sorting recommendations');
       return scored.map((el) => el.hash);
     } else {

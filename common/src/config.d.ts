@@ -71,7 +71,7 @@ export namespace Configuration {
   }
 
   export interface Mongo {
-    provider: 'mongodb';
+    provider: "mongodb";
     uri: string;
     db: string;
   }

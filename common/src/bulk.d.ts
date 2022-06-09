@@ -1,5 +1,5 @@
-import { SubsetConstraints } from './search';
-import { UpdateMedia } from './media';
+import { UpdateMedia } from "./media";
+import { SubsetConstraints } from "./search";
 
 export interface BulkUpdate {
   constraints: SubsetConstraints;

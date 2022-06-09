@@ -42,7 +42,7 @@ export abstract class Database {
   public abstract subset(constraints: SubsetConstraints): Promise<string[]>;
   public abstract subsetFields(
     constraints: SubsetConstraints,
-    fields: SubsetFields,
+    fields: SubsetFields | 'all',
   ): Promise<BaseMedia[]>;
 
   // Actors

@@ -1,3 +1,4 @@
+import { SearchIndexer } from './tokens';
 import type { CalculatedAverage, SortedAverage } from '@vimtur/common';
 
 import { setup as setupDb } from '../database';
@@ -19,8 +20,7 @@ export interface ScoredMedia {
   score: number;
 }
 
-const MIN_COUNT_FOR_AVERAGE = 2;
-const BATCH_SIZE = 16;
+const MIN_COUNT_FOR_AVERAGE = 20;
 
 function filterObject<T>(
   obj: Record<string, T>,
@@ -48,109 +48,53 @@ function mapObject<T, K>(
 }
 
 export class Insights {
+  public scores: Record<string, CalculatedAverage> = {};
   private db: Database;
+  private indexer = new SearchIndexer();
 
   public constructor(db: Database) {
     this.db = db;
   }
 
-  public async analyse(): Promise<AverageData<CalculatedAverage>> {
-    const data: AverageData<TrackedAverage> = {
-      tags: {},
-      actors: {},
-      artists: {},
-    };
-    const hashes = await this.db.subset({ rating: { min: 1 } });
+  public async analyse(): Promise<void> {
+    const scores: Record<string, TrackedAverage> = {};
 
-    while (hashes.length > 0) {
-      await Promise.all(
-        hashes.splice(0, BATCH_SIZE).map(async (hash) => {
-          const media = await this.db.getMedia(hash);
-          if (!media || !media.rating) {
-            return;
-          }
-
-          if (media.tags) {
-            for (const tag of media.tags) {
-              this.updateRating(data.tags, tag, media.rating);
-            }
-          }
-          if (media.actors) {
-            for (const actor of media.actors) {
-              this.updateRating(data.actors, actor, media.rating);
-            }
-          }
-          if (media.metadata && media.metadata.artist) {
-            this.updateRating(data.artists, media.metadata.artist, media.rating);
-          }
-        }),
-      );
+    const allMedia = await this.db.subsetFields({}, 'all');
+    for (const media of allMedia) {
+      const tags = Object.keys(this.indexer.registerMedia(media));
+      if (!media.rating) {
+        continue;
+      }
+      for (const tag of tags) {
+        this.updateRating(scores, tag, media.rating);
+      }
     }
 
-    // Filter out artists that are also actors.
-    data.artists = filterObject(data.artists, (artist) => {
-      const artistLower = artist.toLowerCase();
-      for (const actor of Object.keys(data.actors)) {
-        if (artistLower.includes(actor.toLowerCase())) {
-          return false;
-        }
+    this.scores = this.calculateAverages(scores);
+    for (const key of Object.keys(this.scores)) {
+      if (Math.abs(this.scores[key].average) < 0.1) {
+        delete this.scores[key];
       }
-      return true;
-    });
-
-    return {
-      tags: this.calculateAverages(data.tags),
-      actors: this.calculateAverages(data.actors),
-      artists: this.calculateAverages(data.artists),
-    };
+    }
   }
 
-  public async getRecommendations(
-    hashes: string[],
-    insights: AverageData<CalculatedAverage>,
-  ): Promise<ScoredMedia[]> {
+  public getRecommendations(hashes?: string[]): ScoredMedia[] {
     const scored: ScoredMedia[] = [];
 
-    while (hashes.length > 0) {
-      await Promise.all(
-        hashes.splice(0, BATCH_SIZE).map(async (hash) => {
-          const media = await this.db.getMedia(hash);
-          if (!media) {
-            return;
-          }
-          const scoredMedia: ScoredMedia = {
-            hash,
-            score: 0,
-          };
-
-          if (media.tags) {
-            for (const tag of media.tags) {
-              const rating = insights.tags[tag];
-              if (rating) {
-                scoredMedia.score += rating.average;
-              }
-            }
-          }
-
-          if (media.actors) {
-            for (const actor of media.actors) {
-              const rating = insights.actors[actor];
-              if (rating) {
-                scoredMedia.score += rating.average;
-              }
-            }
-          }
-
-          if (media.metadata && media.metadata.artist) {
-            const rating = insights.artists[media.metadata.artist];
-            if (rating) {
-              scoredMedia.score += rating.average;
-            }
-          }
-
-          scored.push(scoredMedia);
-        }),
-      );
+    hashes = hashes || Array.from(this.indexer.indexed.keys());
+    for (const hash of hashes) {
+      const scores = this.indexer.getScores(hash);
+      const scoredMedia: ScoredMedia = {
+        hash,
+        score: 0,
+      };
+      for (const tag of Object.keys(scores)) {
+        const rating = this.scores[tag];
+        if (rating) {
+          scoredMedia.score += rating.average;
+        }
+      }
+      scored.push(scoredMedia);
     }
 
     return scored.sort((a, b) => b.score - a.score);
@@ -224,16 +168,13 @@ async function main(): Promise<void> {
   const db = await setupDb();
   const insights = new Insights(db);
   console.time('Time to analyse ratings');
-  const results = await insights.analyse();
+  await insights.analyse();
   console.timeEnd('Time to analyse ratings');
 
-  printAverages('Tags', results.tags);
-  printAverages('Actors', results.actors);
-  printAverages('Artists', results.artists);
+  printAverages('Averages', insights.scores);
 
   console.time('Time to build recommendations');
-  const hashes = await db.subset({ rating: { max: 0 }, tags: { exists: true } });
-  const rawRecommendations = await insights.getRecommendations(hashes, results);
+  const rawRecommendations = insights.getRecommendations();
   console.timeEnd('Time to build recommendations');
   await printRecommendations(db, rawRecommendations, 50);
 
