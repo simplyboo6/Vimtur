@@ -1,8 +1,8 @@
 import FS from 'fs';
 import Util from 'util';
 
-import { rimraf } from 'rimraf';
 import Auth from 'http-auth';
+import RimRaf from 'rimraf';
 import type Express from 'express';
 
 import Config from '../config';
@@ -49,7 +49,7 @@ export async function deleteCache(hash: string): Promise<void> {
 
   const cache = `${Config.get().cachePath}/${hash}/`;
   try {
-    await rimraf(cache);
+    await Util.promisify(RimRaf)(cache);
   } catch (err) {
     if (!err.message.startsWith('ENOENT')) {
       throw err;
