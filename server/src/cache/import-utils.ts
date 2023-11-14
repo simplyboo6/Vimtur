@@ -4,9 +4,9 @@ import Path from 'path';
 import Util from 'util';
 import type Stream from 'stream';
 
+import { rimraf } from 'rimraf';
 import FFMpeg from 'fluent-ffmpeg';
 import GM from 'gm';
-import Rimraf from 'rimraf';
 
 import Config from '../config';
 import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vimtur/common';
@@ -314,7 +314,7 @@ export class ImportUtils {
 
   public static async deleteFolder(path: string): Promise<void> {
     console.log(`Removing ${path}`);
-    return Util.promisify(Rimraf)(path);
+    await rimraf(path);
   }
 
   public static async exists(path: string): Promise<boolean> {

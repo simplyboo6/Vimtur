@@ -29,7 +29,8 @@ async function createServer(db: Database): Promise<Server> {
   const server = Http.createServer(app);
   const io = new IO.Server(server);
 
-  app.use(Compression({ level: 9 }));
+  // Oddity with typing means this has weird compatibility.
+  app.use(Compression({ level: 9 }) as any);
   app.use(BodyParser.json());
   app.use(Utils.authConnector);
 
