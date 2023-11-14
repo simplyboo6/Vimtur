@@ -14,7 +14,9 @@
     (ngModelChange)="onNativeSelectChange($event)"
     [ngModel]="valueInternal"
   >
-    <option *ngFor="let opt of basicOptions || []" [value]="opt.value">{{ opt.name }}</option>
+    <option *ngFor="let opt of basicOptions || []; trackBy: trackByFn" [value]="opt.value">{{
+      opt.name
+    }}</option>
   </select>
 </ng-container>
 

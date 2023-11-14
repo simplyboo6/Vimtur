@@ -44,4 +44,8 @@ export class GalleryComponent implements OnInit, OnDestroy {
     this.galleryService.end();
     this.media = undefined;
   }
+
+  public trackByHash(_: number, media: Media): string {
+    return media.hash;
+  }
 }

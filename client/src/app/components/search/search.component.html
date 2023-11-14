@@ -190,7 +190,10 @@
             </div>
           </div>
 
-          <div *ngFor="let field of uiService.stringFields" class="container">
+          <div
+            *ngFor="let field of uiService.stringFields; trackBy: stringFieldId"
+            class="container"
+          >
             <div class="row">
               <label>{{ field.name }}</label>
             </div>
@@ -216,7 +219,7 @@
         </div>
       </div>
 
-      <ng-container *ngFor="let field of uiService.arrayFields">
+      <ng-container *ngFor="let field of uiService.arrayFields; trackBy: arrayFieldId">
         <div *ngIf="this[field.field]" class="col-md">
           <div class="card card-small">
             <h3>{{ field.name }}</h3>

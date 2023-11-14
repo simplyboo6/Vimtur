@@ -427,4 +427,8 @@ export class SelectComponent
       this.text = this.selectedOptions.map(sel => sel.text).join(', ');
     }
   }
+
+  public trackByFn(_: number, selectOption: BasicSelectOption): any {
+    return selectOption.value;
+  }
 }

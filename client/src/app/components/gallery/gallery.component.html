@@ -1,5 +1,5 @@
 <div *ngIf="media; else loading" class="gallery full-height">
-  <div *ngFor="let m of media" class="image-container">
+  <div *ngFor="let m of media; trackBy: trackByHash" class="image-container">
     <a
       routerLink="/viewer"
       class="card"

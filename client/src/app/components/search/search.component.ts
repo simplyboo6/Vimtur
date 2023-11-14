@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { CollectionService } from 'services/collection.service';
-import { UiService, SearchModel } from 'services/ui.service';
+import { UiService, SearchModel, StringFilterField, ArrayFilterField } from 'services/ui.service';
 import { PlaylistService } from 'services/playlist.service';
 import { Subscription, combineLatest, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -86,5 +86,13 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   public listId(_: number, item: ListItem): string {
     return item.id;
+  }
+
+  public stringFieldId(_: number, item: StringFilterField): string {
+    return item.field;
+  }
+
+  public arrayFieldId(_: number, item: ArrayFilterField): string {
+    return item.field;
   }
 }
