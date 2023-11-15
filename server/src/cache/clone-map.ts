@@ -4,11 +4,10 @@ import Path from 'path';
 
 import { ExecutorPromise, execute } from 'proper-job';
 
-import Config from '../config';
 import type { Database } from '../types';
 
-const WORKER_COUNT = OS.cpus().length;
-const MH_THRESHOLD = 0.1;
+const WORKER_COUNT = Math.ceil(OS.cpus().length / 2);
+const HAMMING_DISTANCE_THRESHOLD = 2;
 
 export interface MediaClone {
   hash: string;
@@ -17,7 +16,7 @@ export interface MediaClone {
 
 export interface MediaPhash {
   hash: string;
-  phash: Buffer;
+  phash: string;
   clones?: string[];
 }
 
@@ -43,8 +42,8 @@ export function generateImageCloneMap(
 ): ExecutorPromise<any> {
   return execute(
     async () => {
-      // First expire any old ones.
-      await database.resetClones(Math.floor(Date.now() / 1000) - Config.get().maxCloneAge);
+      // First reset the clone map.
+      await database.resetClones();
 
       // Now find all phashed
       const imagesRaw = await database.subsetFields(
@@ -55,7 +54,7 @@ export function generateImageCloneMap(
       const images: MediaPhash[] = imagesRaw.map((image) => {
         return {
           hash: image.hash,
-          phash: Buffer.from(image.phash!, 'base64'),
+          phash: image.phash!,
           clones: image.clones,
         };
       });
@@ -67,7 +66,7 @@ export function generateImageCloneMap(
         const worker = new Worker(Path.resolve(__dirname, 'clone-map-worker.js'), {
           workerData: {
             data: images,
-            threshold: MH_THRESHOLD,
+            threshold: HAMMING_DISTANCE_THRESHOLD,
           },
         });
 

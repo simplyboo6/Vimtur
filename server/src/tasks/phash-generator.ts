@@ -1,33 +1,19 @@
 import { execute } from 'proper-job';
 
-import PHash from '../phash';
+import { BlockhashAsync } from '../utils/blockhash-async';
+import { Transcoder } from '../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
-import type { Media } from '@vimtur/common';
 
 // Really tends to block up the worker threads if higher.
-const MH_HASH_BATCH_SIZE = 2;
+const BATCH_SIZE = 2;
 
-function getPerceptualHash(media: Media): Promise<Buffer> {
-  if (!PHash) {
-    throw new Error('pHash not loaded');
-  }
-  switch (media.type) {
-    case 'still':
-      return PHash.getMhImageHash(media.absolutePath);
-    case 'video':
-      return PHash.getDctVideoHash(media.absolutePath);
-    default:
-      throw new Error(`Unsupported type for phash ${media.type}`);
-  }
-}
+export function getTask(database: Database): RouterTask {
+  const transcoder = new Transcoder(database);
+  const hasher = new BlockhashAsync();
 
-export function getTask(database: Database): RouterTask | undefined {
-  if (!PHash) {
-    return undefined;
-  }
   return {
     id: 'GENERATE-PHASHES',
-    description: 'Generate missing PHashes',
+    description: 'Generate missing perceptual hashes',
     runner: (updateStatus: TaskRunnerCallback) => {
       return execute(
         async () => {
@@ -38,6 +24,7 @@ export function getTask(database: Database): RouterTask | undefined {
             indexed: true,
             corrupted: false,
             phashed: false,
+            thumbnail: true,
           });
 
           return {
@@ -59,12 +46,13 @@ export function getTask(database: Database): RouterTask | undefined {
           }
 
           console.debug(`Generating pHash for ${media.hash} - ${media.absolutePath}`);
-          const hashBuffer = await getPerceptualHash(media);
-          await database.saveMedia(media.hash, { phash: hashBuffer.toString('base64') });
+          const path = transcoder.getThumbnailPath(media);
+          const hashString = await hasher.hash(path);
+          await database.saveMedia(media.hash, { phash: hashString });
 
           updateStatus(init.current++, init.max);
         },
-        { parallel: MH_HASH_BATCH_SIZE },
+        { parallel: BATCH_SIZE },
       );
     },
   };

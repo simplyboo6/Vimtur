@@ -50,7 +50,6 @@ const DEFAULTS: any = {
   // Enabled pHash generation during auto-import.
   enablePhash: false,
   enableTensorFlow: true,
-  maxCloneAge: 4 * 7 * 24 * 60 * 60, // 4 weeks.
   transcoder: {
     // Copy data to speedup setup.
     maxCopyEnabled: true,

@@ -37,6 +37,12 @@ export class Updater {
       await Updater.createMediaCollectionTextIndex(db, 'media');
       await Updater.saveUpdate(updatesCollection, '016_auto-tag-text-index');
     }
+
+    if (!(await Updater.hasRun(updatesCollection, '017_change-phash-method'))) {
+      const collection = db.collection('media');
+      await collection.updateMany({}, { $unset: { phash: 1 } });
+      await Updater.saveUpdate(updatesCollection, '017_change-phash-method');
+    }
   }
 
   private static async collectionExists(db: Db, name: string): Promise<boolean> {

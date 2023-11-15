@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 
-import PHash from '../phash';
+import { hammingDistance } from '../utils/blockhash';
 
 import type { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
 
@@ -16,26 +16,76 @@ function postResult(result: JobResult): void {
   parentPort!.postMessage(result);
 }
 
+const blockCount = 4;
+
+// Split a phash into a number of separate blocks.
+function createChunks(hash: string): string[] {
+  const blockSize = hash.length / blockCount;
+  const chunks: string[] = [];
+  for (let i = 0; i < blockCount; i++) {
+    chunks.push(hash.substring(i * blockSize, (i + 1) * blockSize));
+  }
+  return chunks;
+}
+
+// Create an index for each phash block that maps down to the image id/hash.
+const blockIndexes: Array<Map<string, Set<string>>> = [];
+for (let i = 0; i < blockCount; i++) {
+  blockIndexes.push(new Map());
+}
+const hashPhashMap = new Map<string, string>();
+
+for (const image of job.data) {
+  hashPhashMap.set(image.hash, image.phash);
+  const chunks = createChunks(image.phash);
+  for (let i = 0; i < blockCount; i++) {
+    if (!blockIndexes[i].has(chunks[i])) {
+      blockIndexes[i].set(chunks[i], new Set());
+    }
+    blockIndexes[i].get(chunks[i])!.add(image.hash);
+  }
+}
+
+// Put in a phash return a set of image IDs.
+// For each of the blocks check the indexes above and add any matches to a set.
+// For it not to match with at least one of the blocks it must be at least blockCount
+// bits different.
+function filterPotentialMatches(phash: string): Set<string> {
+  const results = new Set<string>();
+  const chunks = createChunks(phash);
+  for (let i = 0; i < blockCount; i++) {
+    const blockSet = blockIndexes[i].get(chunks[i]);
+    if (blockSet) {
+      for (const hash of blockSet) {
+        results.add(hash);
+      }
+    }
+  }
+  return results;
+}
+
 parentPort.on('message', (imageA: MediaPhash) => {
   try {
-    if (!PHash) {
-      throw new Error('pHash not loaded');
-    }
-
     const clones: MediaClone[] = [];
-    // Compare it to every file in the set that isn't itself.
-    for (const imageB of job.data) {
-      if (imageA.hash === imageB.hash) {
+    const potentialMatches = filterPotentialMatches(imageA.phash);
+    for (const potentialMatch of potentialMatches) {
+      if (potentialMatch === imageA.hash) {
         continue;
       }
-      const difference = PHash.getHammingDistance2(imageA.phash, imageB.phash);
+      const potentialPhash = hashPhashMap.get(potentialMatch);
+      if (!potentialPhash) {
+        console.warn('Unable to lookup phash for hash', potentialPhash);
+        continue;
+      }
+      const difference = hammingDistance(imageA.phash, potentialPhash);
       if (difference <= job.threshold) {
         clones.push({
-          hash: imageB.hash,
+          hash: potentialMatch,
           difference,
         });
       }
     }
+
     postResult({ hash: imageA.hash, clones });
   } catch (err) {
     console.error('CloneMapWorker Error', err);

@@ -528,13 +528,9 @@ export class MongoConnector extends Database {
     return undefined;
   }
 
-  public async resetClones(age: number): Promise<void> {
+  public async resetClones(): Promise<void> {
     const collection = this.db.collection<BaseMedia>('media');
-    const result = await collection.updateMany(
-      { cloneDate: { $lt: age } },
-      { $unset: { clones: '' } },
-    );
-    console.log(`resetClones: ${result.matchedCount} reset`);
+    await collection.updateMany({}, { $unset: { clones: '' } });
   }
 
   public async resetAutoTags(): Promise<void> {

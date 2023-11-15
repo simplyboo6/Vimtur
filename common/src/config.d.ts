@@ -87,8 +87,6 @@ export namespace Configuration {
     // Enable TensorFlow classification of stills as part of import.
     // Note this uses the default MobileNet V2 model.
     enableTensorFlow: boolean;
-    // Maximum age of clone map before counting it as expired in seconds.
-    maxCloneAge: number;
     user: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.
