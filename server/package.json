@@ -23,7 +23,6 @@
     "node-fetch": "2.6.7",
     "once": "^1.4.0",
     "path-is-inside": "^1.0.2",
-    "phash2": "1.1.0",
     "pngjs": "^6.0.0",
     "proper-job": "^1.4.6",
     "rimraf": "^3.0.0",

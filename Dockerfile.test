@@ -1,6 +1,0 @@
-ARG PRE_IMAGE
-FROM $PRE_IMAGE
-
-RUN apk add docker
-
-ENTRYPOINT ["/app/run-tests.sh"]
