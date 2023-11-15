@@ -520,7 +520,7 @@ export class ImportUtils {
       throw new Error('Cannot stream non-video type');
     }
     const results = await Util.promisify(ChildProcess.exec)(
-      `ffprobe -fflags +genpts -loglevel error -skip_frame nokey -select_streams v:0 -show_entries frame=pkt_pts_time -of csv=print_section=0 "${media.absolutePath}"`,
+      `ffprobe -fflags +genpts -loglevel error -skip_frame nokey -select_streams v:0 -show_entries frame=pkt_dts_time -of csv=print_section=0 "${media.absolutePath}"`,
     );
     return results.stdout
       .split('\n')
