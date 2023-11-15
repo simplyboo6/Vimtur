@@ -12,3 +12,7 @@ README.md
 **/.schema-build-info
 test*/*
 .git/
+client/dist
+client/.angular
+screenshots
+Dockerfile*
