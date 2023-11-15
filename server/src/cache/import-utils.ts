@@ -524,7 +524,8 @@ export class ImportUtils {
     );
     return results.stdout
       .split('\n')
-      .filter((line) => Boolean(line))
+      .map((line) => line.split(',')[0].trim())
+      .filter((line) => Boolean(line) && line !== 'N/A')
       .map((line) => Number(line));
   }
 }
