@@ -1,28 +1,31 @@
-FROM alpine:3.18 as build
+FROM node:18-alpine3.18 as build
 
 ARG VERSION_NAME=dev
 
-RUN apk add -U g++ make nodejs yarn gallery-dl yt-dlp npm && npm install -g node-gyp
+# python3, g++, make required for tensowflowjs build
+RUN apk add -U python3 g++ make && mkdir -p /app/server /app/client
+
+# Copy in files necessary to install node_modules first so this layer can be cached
+COPY ./common /app/common
+COPY ./server/package.json ./server/yarn.lock /app/server/
+COPY ./client/package.json ./client/yarn.lock /app/client/
+
+RUN cd /app/server && yarn --frozen-lockfile && \
+    cd /app/client && yarn --frozen-lockfile
 
 ## Copy in source
 COPY ./ /app/
+
+## Build
+RUN cd /app/server && yarn lint && yarn build && \
+    cd /app/client && yarn lint && yarn build:prod
+
 RUN echo "$VERSION_NAME" > /app/version
 
-## Build server
-RUN cd /app/server && \
-    yarn --frozen-lockfile && \
-    yarn lint && yarn build
-
-## Build client
-RUN cd /app/client && \
-    yarn --frozen-lockfile && \
-    yarn lint && yarn build:prod && \
-    rm -rf node_modules
-
 # Build the resultant image.
-FROM alpine:3.18
+FROM node:18-alpine3.18
 
-RUN apk add --no-cache tini imagemagick ffmpeg nodejs pngquant jq gallery-dl yt-dlp
+RUN apk add --no-cache tini imagemagick ffmpeg pngquant jq gallery-dl yt-dlp
 
 RUN yt-dlp --version && gallery-dl --version && ffmpeg -version && ffprobe -version && pngquant --version
 
