@@ -9,10 +9,17 @@
 </div>
 <div class="modal-footer row footer-padding">
   <div class="md-6">
-    <button type="button" class="btn btn-danger" (click)="modal?.close(false)">Cancel</button>
+    <button type="button" class="btn btn-danger col-12" (click)="modal?.close(false)">
+      Cancel
+    </button>
   </div>
   <div class="md-6">
-    <button *ngIf="constraints" type="button" class="btn btn-primary" (click)="modal?.close(true)">
+    <button
+      *ngIf="constraints"
+      type="button"
+      class="btn btn-primary col-12"
+      (click)="modal?.close(true)"
+    >
       Confirm
     </button>
   </div>

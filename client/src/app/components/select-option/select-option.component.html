@@ -1,6 +1,6 @@
 <div
   (click)="inputRef.click()"
-  class="custom-control custom-checkbox input-component"
+  class="form-check input-component"
   [class.not-highlighted]="highlighted === false"
   [class.highlighted]="highlighted"
   (mousemove)="highlightedEvent.emit()"
@@ -10,8 +10,8 @@
     (ngModelChange)="onValueChange($event)"
     [id]="uid"
     type="checkbox"
-    class="custom-control-input"
+    class="form-check-input"
     #inputRef
   />
-  <label [for]="uid" class="custom-control-label"><ng-content></ng-content></label>
+  <label [for]="uid" class="form-check-label"><ng-content></ng-content></label>
 </div>

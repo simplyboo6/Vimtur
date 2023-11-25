@@ -9,19 +9,16 @@
       class="card-body card-small tag-list"
     >
       <div class="tag-list-column" *ngFor="let i of columnIndexes">
-        <div
-          class="tag custom-control custom-checkbox input-component"
-          *ngFor="let tag of columnTags[i]"
-        >
+        <div class="tag form-check input-component" *ngFor="let tag of columnTags[i]">
           <input
             type="checkbox"
-            class="custom-control-input"
+            class="form-check-input"
             [disabled]="!media"
             [(ngModel)]="tagsModel[tag]"
             (ngModelChange)="updateTag(tag)"
             [id]="'tag-input-' + tag"
           />
-          <label class="tag-label custom-control-label" [for]="'tag-input-' + tag">
+          <label class="tag-label form-check-label" [for]="'tag-input-' + tag">
             {{ tag }}
           </label>
         </div>
@@ -64,7 +61,7 @@
         />
         <button
           (click)="saveMetadata('artist')"
-          class="btn btn-primary btn-block"
+          class="btn btn-primary"
           [disabled]="
             !mediaMetadataUpdate || mediaMetadataUpdate.artist === (media.metadata?.artist || '')
           "
@@ -87,7 +84,7 @@
         />
         <button
           (click)="saveMetadata('album')"
-          class="btn btn-primary btn-block"
+          class="btn btn-primary"
           [disabled]="
             !mediaMetadataUpdate || mediaMetadataUpdate.album === (media.metadata?.album || '')
           "
@@ -110,7 +107,7 @@
         />
         <button
           (click)="saveMetadata('title')"
-          class="btn btn-primary btn-block"
+          class="btn btn-primary"
           [disabled]="
             !mediaMetadataUpdate || mediaMetadataUpdate.title === (media.metadata?.title || '')
           "

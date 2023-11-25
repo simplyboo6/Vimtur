@@ -82,11 +82,5 @@ import { SelectComponent } from './components/select/select.component';
     },
   ],
   bootstrap: [AppComponent],
-  entryComponents: [
-    ConfirmationModalComponent,
-    PromptModalComponent,
-    ConfirmBulkUpdateComponent,
-    ListModalComponent,
-  ],
 })
 export class AppModule {}

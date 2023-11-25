@@ -5,7 +5,7 @@
   <div class="md-6">
     <button
       type="button"
-      class="btn"
+      class="btn col-12"
       [class.btn-danger]="!negative"
       [class.btn-primary]="negative"
       (click)="modal?.close(false)"
@@ -16,7 +16,7 @@
   <div class="md-6">
     <button
       type="button"
-      class="btn"
+      class="btn col-12"
       [class.btn-danger]="negative"
       [class.btn-primary]="!negative"
       (click)="modal?.close(true)"

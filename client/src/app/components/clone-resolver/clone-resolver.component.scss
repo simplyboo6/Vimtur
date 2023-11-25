@@ -20,14 +20,14 @@ img {
 
   & > svg {
     opacity: 0.4;
-    color: var(--secondary);
+    color: var(--bs-secondary);
   }
 }
 
 .check-circle.checked {
   & > svg {
     opacity: 1;
-    color: var(--primary);
+    color: var(--bs-primary);
   }
 }
 
@@ -51,7 +51,7 @@ img {
 }
 
 .image-container.checked {
-  outline: 0.2rem solid var(--primary);
+  outline: 0.2rem solid var(--bs-primary);
 }
 
 .padded-auto {

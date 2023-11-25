@@ -5,7 +5,7 @@
     <div class="row">
       <div class="col-md-12 form-padded-input">
         <button
-          class="btn btn-primary btn-block"
+          class="col-12 btn btn-primary col-12"
           [disabled]="!tasks"
           (click)="tasksService.startImport()"
         >
@@ -19,14 +19,14 @@
           [disabled]="!tasks"
           [(ngModel)]="task"
           (ngModelChange)="updateArgs()"
-          class="custom-select d-block w-100"
+          class="form-select w-100 form-select"
         >
           <option *ngFor="let task of tasks" [ngValue]="task">{{ task.description }}</option>
         </select>
       </div>
       <div class="col-md-4 form-padded-input">
         <button
-          class="btn btn-primary btn-block clear-button"
+          class="btn btn-primary col-12 clear-button"
           [disabled]="!task"
           (click)="startAction()"
         >
@@ -41,7 +41,7 @@
           <select
             *ngSwitchCase="'select'"
             [(ngModel)]="args[index]"
-            class="custom-select d-block w-100"
+            class="form-select d-block w-100 form-select"
           >
             <option *ngFor="let value of getArgValues(arg)" [ngValue]="value.id">{{
               value.name
@@ -65,10 +65,10 @@
         <table class="table table-striped">
           <thead>
             <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Description</th>
-              <th scope="col">Running</th>
-              <th scope="col">
+              <th scope="col-3">ID</th>
+              <th scope="col-3">Description</th>
+              <th scope="col-3">Running</th>
+              <th scope="col-3">
                 <button
                   class="btn btn-link clear-all-button"
                   (click)="tasksService.clearComplete()"
@@ -136,7 +136,7 @@
         />
       </div>
       <div class="col-md-4 form-padded-input">
-        <button class="btn btn-primary btn-block" [disabled]="!addTagModel" (click)="addTag()">
+        <button class="btn btn-primary col-12" [disabled]="!addTagModel" (click)="addTag()">
           Add
         </button>
       </div>
@@ -147,13 +147,13 @@
           [(ngModel)]="deleteTagModel"
           *ngIf="tags"
           id="config-tags"
-          class="custom-select d-block w-100"
+          class="form-select d-block w-100 form-select"
         >
           <option *ngFor="let tag of tags">{{ tag }}</option>
         </select>
       </div>
       <div class="col-md-4 form-padded-input">
-        <button class="btn btn-danger btn-block" [disabled]="!deleteTagModel" (click)="deleteTag()">
+        <button class="btn btn-danger col-12" [disabled]="!deleteTagModel" (click)="deleteTag()">
           Delete
         </button>
       </div>
@@ -173,7 +173,7 @@
         />
       </div>
       <div class="col-md-4 form-padded-input">
-        <button class="btn btn-primary btn-block" [disabled]="!addActorModel" (click)="addActor()">
+        <button class="btn btn-primary col-12" [disabled]="!addActorModel" (click)="addActor()">
           Add
         </button>
       </div>
@@ -184,14 +184,14 @@
           [(ngModel)]="deleteActorModel"
           *ngIf="actors"
           id="config-actors"
-          class="custom-select d-block w-100"
+          class="form-select d-block w-100 form-select"
         >
           <option *ngFor="let actor of actors">{{ actor }}</option>
         </select>
       </div>
       <div class="col-md-4 form-padded-input">
         <button
-          class="btn btn-danger btn-block"
+          class="btn btn-danger col-12"
           [disabled]="!deleteActorModel"
           (click)="deleteActor()"
         >
@@ -204,27 +204,27 @@
   <div class="card">
     <h4>UI Configuration</h4>
     <!-- user.autoplayEnabled -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-autoplay"
         [(ngModel)]="config.user.autoplayEnabled"
         (ngModelChange)="updateConfig('user.autoplayEnabled', $event)"
       />
-      <label class="custom-control-label" for="config-autoplay">Enable autoplay?</label>
+      <label class="form-check-label" for="config-autoplay">Enable autoplay?</label>
       <div><span class="text-muted">Videos will autoplay muted.</span></div>
     </div>
     <!-- user.showTaskNotifications -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-show-task-notifications"
         [(ngModel)]="config.user.showTaskNotifications"
         (ngModelChange)="updateConfig('user.showTaskNotifications', $event)"
       />
-      <label class="custom-control-label" for="config-show-task-notifications"
+      <label class="form-check-label" for="config-show-task-notifications"
         >Enable status notifications for tasks?</label
       >
       <div>
@@ -234,28 +234,28 @@
       </div>
     </div>
     <!-- user.autoClearCompletedTasks -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-auto-clear-completed-tasks"
         [(ngModel)]="config.user.autoClearCompletedTasks"
         (ngModelChange)="updateConfig('user.autoClearCompletedTasks', $event)"
       />
-      <label class="custom-control-label" for="config-auto-clear-completed-tasks"
+      <label class="form-check-label" for="config-auto-clear-completed-tasks"
         >Automatically clear completed tasks?</label
       >
     </div>
     <!-- user.lowQualityOnLoadEnabled -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-low-quality-on-load-desktop"
         [(ngModel)]="config.user.lowQualityOnLoadEnabled"
         (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabled', $event)"
       />
-      <label class="custom-control-label" for="config-low-quality-on-load-desktop"
+      <label class="form-check-label" for="config-low-quality-on-load-desktop"
         >Lower quality on load for desktop?</label
       >
       <div>
@@ -266,15 +266,15 @@
       </div>
     </div>
     <!-- user.lowQualityOnLoadEnabledForMobile -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-low-quality-on-load-mobile"
         [(ngModel)]="config.user.lowQualityOnLoadEnabledForMobile"
         (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabledForMobile', $event)"
       />
-      <label class="custom-control-label" for="config-low-quality-on-load-mobile"
+      <label class="form-check-label" for="config-low-quality-on-load-mobile"
         >Lower quality on load for mobile?</label
       >
       <div>
@@ -285,15 +285,15 @@
       </div>
     </div>
     <!-- user.useNativeSelectOnMobile -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-native-select-on-load-mobile"
         [(ngModel)]="config.user.useNativeSelectOnMobile"
         (ngModelChange)="updateConfig('user.useNativeSelectOnMobile', $event)"
       />
-      <label class="custom-control-label" for="config-native-select-on-load-mobile"
+      <label class="form-check-label" for="config-native-select-on-load-mobile"
         >Use the native multi-select on mobile devices?</label
       >
       <div>
@@ -304,20 +304,20 @@
       </div>
     </div>
     <!-- user.scaleToScreenWidthOnMobile -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-max-width-on-load-mobile"
         [(ngModel)]="config.user.scaleToScreenWidthOnMobile"
         (ngModelChange)="updateConfig('user.scaleToScreenWidthOnMobile', $event)"
       />
-      <label class="custom-control-label" for="config-max-width-on-load-mobile"
+      <label class="form-check-label" for="config-max-width-on-load-mobile"
         >Scale image widths when it exceeds the screens width on mobile?</label
       >
     </div>
     <!-- user.tagColumnCount -->
-    <div class="custom-control input-component">
+    <div class="input-component">
       <label for="config-tag-column-count">Tag panel column count</label>
       <input
         type="number"
@@ -332,7 +332,7 @@
       </div>
     </div>
     <!-- user.galleryImageCount -->
-    <div class="custom-control input-component">
+    <div class="input-component">
       <label for="config-gallery-image-count">Gallery image count</label>
       <input
         type="number"
@@ -349,7 +349,7 @@
       </div>
     </div>
     <!-- user.initialLoadLimit -->
-    <div class="custom-control input-component">
+    <div class="input-component">
       <label for="config-initial-load-limit">Initial search load limit</label>
       <input
         type="number"
@@ -367,97 +367,95 @@
       </div>
     </div>
 
-    <div class="custom-control input-component">
+    <div class="input-component">
       <h5>Quick Tag Panel Configuration</h5>
       <!-- Rating -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-rating"
           [(ngModel)]="config.user.quickTagShowRating"
           (ngModelChange)="updateConfig('user.quickTagShowRating', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-rating">Show rating?</label>
+        <label class="form-check-label" for="config-quick-tag-rating">Show rating?</label>
       </div>
       <!-- Artist -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-artist"
           [(ngModel)]="config.user.quickTagShowArtist"
           (ngModelChange)="updateConfig('user.quickTagShowArtist', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-artist">Show artist?</label>
+        <label class="form-check-label" for="config-quick-tag-artist">Show artist?</label>
       </div>
       <!-- Album -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-album"
           [(ngModel)]="config.user.quickTagShowAlbum"
           (ngModelChange)="updateConfig('user.quickTagShowAlbum', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-album">Show album?</label>
+        <label class="form-check-label" for="config-quick-tag-album">Show album?</label>
       </div>
       <!-- Title -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-title"
           [(ngModel)]="config.user.quickTagShowTitle"
           (ngModelChange)="updateConfig('user.quickTagShowTitle', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-title">Show title?</label>
+        <label class="form-check-label" for="config-quick-tag-title">Show title?</label>
       </div>
       <!-- People -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-people"
           [(ngModel)]="config.user.quickTagShowPeople"
           (ngModelChange)="updateConfig('user.quickTagShowPeople', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-people">Show people?</label>
+        <label class="form-check-label" for="config-quick-tag-people">Show people?</label>
       </div>
       <!-- Playlists -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-playlists"
           [(ngModel)]="config.user.quickTagShowPlaylists"
           (ngModelChange)="updateConfig('user.quickTagShowPlaylists', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-playlists">Show playlists?</label>
+        <label class="form-check-label" for="config-quick-tag-playlists">Show playlists?</label>
       </div>
       <!-- Path -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-path"
           [(ngModel)]="config.user.quickTagShowPath"
           (ngModelChange)="updateConfig('user.quickTagShowPath', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-path"
-          >Show path above media?</label
-        >
+        <label class="form-check-label" for="config-quick-tag-path">Show path above media?</label>
       </div>
       <!-- Auto Tags -->
-      <div class="custom-control custom-checkbox input-component tag-config">
+      <div class="form-check tag-config">
         <input
           type="checkbox"
-          class="custom-control-input"
+          class="form-check-input"
           id="config-quick-tag-auto-tag"
           [(ngModel)]="config.user.quickTagShowAutoTags"
           (ngModelChange)="updateConfig('user.quickTagShowAutoTags', $event)"
         />
-        <label class="custom-control-label" for="config-quick-tag-auto-tag"
+        <label class="form-check-label" for="config-quick-tag-auto-tag"
           >Show auto-generated tags below media?</label
         >
       </div>
@@ -467,15 +465,15 @@
   <div class="card">
     <h4>Transcoder Configuration</h4>
     <!-- transcoder.enableCachingKeyframes -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-caching-keyframes"
         [(ngModel)]="config.transcoder.enableCachingKeyframes"
         (ngModelChange)="updateConfig('transcoder.enableCachingKeyframes', $event)"
       />
-      <label class="custom-control-label" for="config-enable-caching-keyframes"
+      <label class="form-check-label" for="config-enable-caching-keyframes"
         >Enable caching for keyframe information on generation?</label
       >
       <div>
@@ -486,15 +484,15 @@
       </div>
     </div>
     <!-- transcoder.enablePrecachingKeyframes -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-precaching-keyframes"
         [(ngModel)]="config.transcoder.enablePrecachingKeyframes"
         (ngModelChange)="updateConfig('transcoder.enablePrecachingKeyframes', $event)"
       />
-      <label class="custom-control-label" for="config-enable-precaching-keyframes"
+      <label class="form-check-label" for="config-enable-precaching-keyframes"
         >Enable caching keyframe information during import?</label
       >
       <div>
@@ -505,15 +503,15 @@
       </div>
     </div>
     <!-- transcoder.enableVideoCaching -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-video-caching"
         [(ngModel)]="config.transcoder.enableVideoCaching"
         (ngModelChange)="updateConfig('transcoder.enableVideoCaching', $event)"
       />
-      <label class="custom-control-label" for="config-enable-video-caching"
+      <label class="form-check-label" for="config-enable-video-caching"
         >Enable caching for all videos?</label
       >
       <div>
@@ -524,7 +522,7 @@
       </div>
     </div>
     <!-- transcoder.cacheQualities -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="input-component">
       <label for="config-transcoder-cache-qualities">Video caching qualities</label>
       <app-select
         [value]="config.transcoder.cacheQualities"
@@ -543,7 +541,7 @@
       </div>
     </div>
     <!-- transcoder.streamQualities -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="input-component">
       <label for="config-transcoder-stream-qualities">Video streaming qualities</label>
       <app-select
         [value]="config.transcoder.streamQualities"
@@ -563,10 +561,10 @@
       </div>
     </div>
     <!-- transcoder.minQuality -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="input-component">
       <label for="config-transcoder-min-quality">Minimum transcode quality</label>
       <select
-        class="custom-select d-block w-100"
+        class="form-select d-block w-100 form-select"
         [ngModel]="config.transcoder.minQuality"
         (ngModelChange)="updateConfig('transcoder.minQuality', $event)"
       >
@@ -582,7 +580,7 @@
       </div>
     </div>
     <!-- transcoder.bitrateMultiplier -->
-    <div class="custom-control input-component">
+    <div class="input-component">
       <label for="config-transcoder-bitrate-multiplier"
         >Bitrate (quality) multiplier (Default 1.5)</label
       >
@@ -605,15 +603,15 @@
       </div>
     </div>
     <!-- transcoder.enableVideoPreviews -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check input-component">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-video-previews"
         [(ngModel)]="config.transcoder.enableVideoPreviews"
         (ngModelChange)="updateConfig('transcoder.enableVideoPreviews', $event)"
       />
-      <label class="custom-control-label" for="config-enable-video-previews"
+      <label class="form-check-label" for="config-enable-video-previews"
         >Enable generating video previews during import?</label
       >
       <div>
@@ -623,15 +621,15 @@
       </div>
     </div>
     <!-- transcoder.maxCopyEnabled -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-max-copy"
         [(ngModel)]="config.transcoder.maxCopyEnabled"
         (ngModelChange)="updateConfig('transcoder.maxCopyEnabled', $event)"
       />
-      <label class="custom-control-label" for="config-enable-max-copy"
+      <label class="form-check-label" for="config-enable-max-copy"
         >Copy video streams if possible?</label
       >
       <div>
@@ -648,15 +646,15 @@
   <div class="card">
     <h4>Misc Configuration</h4>
     <!-- enablePhash -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-phash-generation"
         [(ngModel)]="config.enablePhash"
         (ngModelChange)="updateConfig('enablePhash', $event)"
       />
-      <label class="custom-control-label" for="config-enable-phash-generation"
+      <label class="form-check-label" for="config-enable-phash-generation"
         >Enable pHash generation during import?</label
       >
       <div>
@@ -668,15 +666,15 @@
       </div>
     </div>
     <!-- enableTensorFlow -->
-    <div class="custom-control custom-checkbox input-component">
+    <div class="form-check">
       <input
         type="checkbox"
-        class="custom-control-input"
+        class="form-check-input"
         id="config-enable-tensorflow"
         [(ngModel)]="config.enableTensorFlow"
         (ngModelChange)="updateConfig('enableTensorFlow', $event)"
       />
-      <label class="custom-control-label" for="config-enable-tensorflow"
+      <label class="form-check-label" for="config-enable-tensorflow"
         >Enable TensorFlow image classification using MobileNet V2 during import?</label
       >
       <div>

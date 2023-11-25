@@ -79,17 +79,17 @@
 
       <div class="card">
         <div class="card-header card-small">Resolutions</div>
-        <div class="card-body card-small">
+        <div class="card-body card-small d-grid gap-1">
           <button
             (click)="autoResolve()"
-            class="btn btn-primary btn-block"
+            class="btn btn-primary"
             title="Picks the image with the highest resolution, merges the metadata and marks all as duplicates"
           >
             Auto-resolve (All Clones)
           </button>
           <button
             [disabled]="!anyClonesSelected(clones)"
-            class="btn btn-primary btn-block"
+            class="btn btn-primary"
             title="Mark the selected items as duplicates and the rest as not duplicates"
             (click)="resolveSelected()"
           >
@@ -98,7 +98,7 @@
 
           <button
             (click)="resolveAll()"
-            class="btn btn-primary btn-block"
+            class="btn btn-primary"
             title="Marks all of the items as clones"
           >
             Resolve (All Clones)
@@ -106,7 +106,7 @@
 
           <button
             (click)="resolveNone()"
-            class="btn btn-primary btn-block"
+            class="btn btn-primary"
             title="Marks all of the items as not duplicates"
           >
             Resolve (All Unrelated)

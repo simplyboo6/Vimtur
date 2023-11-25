@@ -1,5 +1,5 @@
 <ng-container *ngIf="useNativeObservable | async; else desktopTemplate">
-  <select class="custom-select">
+  <select class="form-select">
     <option *ngIf="text; else placeholderTemplate" selected>{{ text }}</option>
     <ng-template #placeholderTemplate>
       <option selected disabled>{{ placeholder || '' }}</option>
@@ -22,7 +22,7 @@
 
 <ng-template #desktopTemplate>
   <select
-    class="custom-select"
+    class="form-select"
     [class.focus]="open"
     (mousedown)="
       $event.preventDefault(); $event.button === 0 && (open = !open); selectRef.focus(); onResize()

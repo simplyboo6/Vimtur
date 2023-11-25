@@ -22,81 +22,79 @@
 
           <div class="form-group">
             <label>Type</label>
-            <div class="custom-control custom-checkbox input-component">
+            <div class="form-check input-component">
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-type-video"
                 [(ngModel)]="searchModel.typeVideo"
               />
-              <label class="custom-control-label" for="search-filter-type-video">Video</label>
+              <label class="form-check-label" for="search-filter-type-video">Video</label>
             </div>
-            <div class="custom-control custom-checkbox input-component">
+            <div class="form-check input-component">
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-type-gif"
                 [(ngModel)]="searchModel.typeGif"
               />
-              <label class="custom-control-label" for="search-filter-type-gif">Gif</label>
+              <label class="form-check-label" for="search-filter-type-gif">Gif</label>
             </div>
-            <div class="custom-control custom-checkbox input-component">
+            <div class="form-check input-component">
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-type-still"
                 [(ngModel)]="searchModel.typeStill"
               />
-              <label class="custom-control-label" for="search-filter-type-still">Still</label>
+              <label class="form-check-label" for="search-filter-type-still">Still</label>
             </div>
           </div>
           <div class="form-group">
             <label>Tag Status</label>
             <div
-              class="custom-control custom-checkbox input-component"
+              class="form-check input-component"
               title="Selecting this will select any media that has been tagged."
             >
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-tagged"
                 [(ngModel)]="searchModel.tagged"
               />
-              <label class="custom-control-label" for="search-filter-tagged">Tagged media</label>
+              <label class="form-check-label" for="search-filter-tagged">Tagged media</label>
             </div>
             <div
-              class="custom-control custom-checkbox input-component"
+              class="form-check input-component"
               title="Selected this will will display only untagged media."
             >
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-untagged"
                 [(ngModel)]="searchModel.untagged"
               />
-              <label class="custom-control-label" for="search-filter-untagged"
-                >Untagged media</label
-              >
+              <label class="form-check-label" for="search-filter-untagged">Untagged media</label>
             </div>
           </div>
           <div class="form-group">
             <label>Others</label>
             <div
-              class="custom-control custom-checkbox input-component"
+              class="form-check input-component"
               title="Selecting this will display only untagged media."
             >
               <input
                 type="checkbox"
-                class="custom-control-input"
+                class="form-check-input"
                 id="search-filter-has-clones"
                 [(ngModel)]="searchModel.hasClones"
               />
-              <label class="custom-control-label" for="search-filter-has-clones">Has Clones</label>
+              <label class="form-check-label" for="search-filter-has-clones">Has Clones</label>
             </div>
           </div>
           <div class="form-group">
             <label>Playlist</label>
-            <select class="custom-select" [(ngModel)]="searchModel.playlist">
+            <select class="form-select" [(ngModel)]="searchModel.playlist">
               <option selected="selected" [ngValue]="undefined">None</option>
               <ng-container *ngIf="playlists">
                 <option
@@ -111,7 +109,7 @@
             <label>Sort By</label>
             <select
               [disabled]="!!searchModel.playlist"
-              class="custom-select"
+              class="form-select"
               [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy"
             >
               <option selected="selected" [ngValue]="undefined">None</option>
@@ -131,9 +129,9 @@
         <div class="card card-small">
           <h3>Metadata</h3>
 
-          <div class="form-group">
-            <label>Minimum Resolution</label>
-            <select class="custom-select" [(ngModel)]="searchModel.minimumResolution">
+          <label>Minimum Resolution</label>
+          <div class="container">
+            <select class="form-select" [(ngModel)]="searchModel.minimumResolution">
               <option selected="selected" [value]="0">None</option>
               <option [value]="240">240p</option>
               <option [value]="360">360p</option>
@@ -143,14 +141,12 @@
             </select>
           </div>
 
+          <label>Rating</label>
           <div class="container">
-            <div class="row">
-              <label>Rating</label>
-            </div>
             <div class="row">
               <div class="form-group col">
                 <label>Minimum</label>
-                <select class="custom-select" [(ngModel)]="searchModel.ratingMin">
+                <select class="form-select" [(ngModel)]="searchModel.ratingMin">
                   <option selected="selected" [value]="-1">None</option>
                   <option [value]="1">1</option>
                   <option [value]="2">2</option>
@@ -161,7 +157,7 @@
               </div>
               <div class="form-group col">
                 <label>Maximum</label>
-                <select class="custom-select" [(ngModel)]="searchModel.ratingMax">
+                <select class="form-select" [(ngModel)]="searchModel.ratingMax">
                   <option selected="selected" [value]="-1">None</option>
                   <option [value]="0">Unrated</option>
                   <option [value]="1">1</option>
@@ -174,10 +170,8 @@
             </div>
           </div>
 
+          <label>Length (Minutes)</label>
           <div class="container">
-            <div class="row">
-              <label>Length (Minutes)</label>
-            </div>
             <div class="row">
               <div class="form-group col">
                 <label>Minimum</label>
@@ -190,32 +184,29 @@
             </div>
           </div>
 
-          <div
-            *ngFor="let field of uiService.stringFields; trackBy: stringFieldId"
-            class="container"
-          >
-            <div class="row">
-              <label>{{ field.name }}</label>
-            </div>
-            <div class="row">
-              <div class="form-group col">
-                <label>Like</label>
-                <input
-                  type="text"
-                  [(ngModel)]="searchModel[field.field].like"
-                  class="form-control"
-                />
-              </div>
-              <div class="form-group col">
-                <label>Not Like</label>
-                <input
-                  type="text"
-                  [(ngModel)]="searchModel[field.field].notLike"
-                  class="form-control"
-                />
+          <ng-container *ngFor="let field of uiService.stringFields; trackBy: stringFieldId">
+            <label>{{ field.name }}</label>
+            <div class="container">
+              <div class="row">
+                <div class="form-group col">
+                  <label>Like</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="searchModel[field.field].like"
+                    class="form-control"
+                  />
+                </div>
+                <div class="form-group col">
+                  <label>Not Like</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="searchModel[field.field].notLike"
+                    class="form-control"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </ng-container>
         </div>
       </div>
 

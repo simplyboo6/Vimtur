@@ -11,7 +11,12 @@
   </div>
 
   <div *ngIf="media; else loading" cdkDropList (cdkDropListDropped)="dragAndDrop($event)">
-    <div *ngFor="let lazyMedia of media; index as index" class="card" [cdkDragData]="media" cdkDrag>
+    <div
+      *ngFor="let lazyMedia of media; index as index"
+      class="card row"
+      [cdkDragData]="media"
+      cdkDrag
+    >
       <app-lazy (loadStateChange)="updateVisibility(lazyMedia, $event)">
         <div class="row">
           <div class="col-md-1 align btn-link lg-response" cdkDragHandle>

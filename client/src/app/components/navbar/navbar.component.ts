@@ -85,6 +85,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return (this.route.snapshot as any)._routerState.url as string;
   }
 
+  public toggleTagsOpen(): void {
+    this.tagsOpen = !this.tagsOpen;
+    this.updateTagPanelState();
+  }
+
   public updateTagPanelState() {
     this.uiService.setTagPanelState(this.tagsOpen);
   }

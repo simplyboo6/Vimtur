@@ -30,7 +30,7 @@
   }
 
   &:hover > svg {
-    color: var(--primary);
+    color: var(--bs-primary);
   }
 }
 
@@ -101,7 +101,7 @@
       width: 100%;
       height: 100%;
       background-color: transparent;
-      color: var(--primary);
+      color: var(--bs-primary);
       border-style: solid;
       border-color: rgba(0, 0, 0, 0.2);
       border-width: 0 1px;
@@ -146,12 +146,12 @@
       user-select: none;
       &:hover {
         background-color: rgba(0, 0, 0, 0.4);
-        color: var(--primary);
+        color: var(--bs-primary);
       }
     }
 
     & > button.selected {
-      color: var(--primary);
+      color: var(--bs-primary);
     }
   }
 }
