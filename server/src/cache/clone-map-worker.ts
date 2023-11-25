@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
 
+import { asError } from '../utils';
 import { hammingDistance } from '../utils/blockhash';
 
 import type { Job, JobResult, MediaClone, MediaPhash } from './clone-map';
@@ -87,7 +88,8 @@ parentPort.on('message', (imageA: MediaPhash) => {
     }
 
     postResult({ hash: imageA.hash, clones });
-  } catch (err) {
+  } catch (errUnknown: unknown) {
+    const err = asError(errUnknown);
     console.error('CloneMapWorker Error', err);
     postResult({ err: err.message, hash: imageA.hash });
   }

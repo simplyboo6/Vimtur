@@ -42,10 +42,7 @@ export function getTask(database: Database): RouterTask {
             // Rename the video cache folder, if it's a video.
             if (media.type === 'video') {
               try {
-                await Util.promisify(FS.rename)(
-                  Path.resolve(cachePath, media.hash),
-                  Path.resolve(cachePath, hash),
-                );
+                await Util.promisify(FS.rename)(Path.resolve(cachePath, media.hash), Path.resolve(cachePath, hash));
               } catch (err) {
                 console.warn('Failed to rename video', err);
                 await database.saveMedia(media.hash, { metadata: { qualityCache: [] } });

@@ -35,9 +35,7 @@ function loadClassesLocal(): Promise<string> {
 }
 
 async function loadClassesRemote(): Promise<string> {
-  const res = await Fetch(
-    'https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt',
-  );
+  const res = await Fetch('https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt');
   if (!res.ok) {
     throw new Error('Failed to fetch imagenet classes');
   }
@@ -75,9 +73,7 @@ export async function loadClasses(): Promise<string[]> {
   return raw.split('\n').map((line) => line.trim());
 }
 
-export async function loadModel(
-  modelDefinition: TensorFlowHubModel,
-): Promise<TensorFlow.GraphModel> {
+export async function loadModel(modelDefinition: TensorFlowHubModel): Promise<TensorFlow.GraphModel> {
   await ImportUtils.mkdir(MODELS_DIR);
   try {
     const io = new NodeFileSystem(Path.resolve(MODELS_DIR, modelDefinition.id, 'model.json'));

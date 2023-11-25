@@ -1,5 +1,5 @@
-import { ExecutorPromise, ExecutorResults } from 'proper-job';
 import ChildProcess from 'child_process';
+import { ExecutorPromise, ExecutorResults } from 'proper-job';
 import type { Downloader, DownloaderCallback } from '../../types';
 
 export function getDownloader(): Downloader {
@@ -8,12 +8,7 @@ export function getDownloader(): Downloader {
     name: 'gallery-dl',
     runner: (target: string, outputDir: string, updateStatus: DownloaderCallback) => {
       return new ExecutorPromise<ExecutorResults<void>>((resolve, reject) => {
-        const proc = ChildProcess.spawn('gallery-dl', [
-          '--write-metadata',
-          '--dest',
-          outputDir,
-          target,
-        ]);
+        const proc = ChildProcess.spawn('gallery-dl', ['--write-metadata', '--dest', outputDir, target]);
 
         let aborted = false;
         let fileCount = 0;

@@ -3,11 +3,11 @@ import FS from 'fs';
 import Path from 'path';
 import Util from 'util';
 
-import { ImportUtils } from '../cache/import-utils';
-import { createHash } from '../cache/hash';
-import { setup as setupDb } from '../database';
-import Config from '../config';
 import type { BaseMedia } from '@vimtur/common';
+import { createHash } from '../cache/hash';
+import { ImportUtils } from '../cache/import-utils';
+import Config from '../config';
+import { setup as setupDb } from '../database';
 import type { Database, DumpFile } from '../types';
 
 async function importMedia(db: Database, media: BaseMedia, version?: number): Promise<void> {
@@ -66,9 +66,7 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
       media.metadata.codec = metadata.codec;
 
       const mediaCache = Path.resolve(cacheDir, media.hash);
-      const cacheUpdated = await ImportUtils.exists(
-        Path.resolve(mediaCache, `${media.metadata.height}p`),
-      );
+      const cacheUpdated = await ImportUtils.exists(Path.resolve(mediaCache, `${media.metadata.height}p`));
       if (!cacheUpdated) {
         const files = await Util.promisify(FS.readdir)(mediaCache);
         await ImportUtils.mkdir(Path.resolve(mediaCache, `${media.metadata.height}p`));
@@ -81,10 +79,7 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
       }
 
       try {
-        await Util.promisify(FS.rename)(
-          Path.resolve(cacheDir, media.hash),
-          Path.resolve(cacheDir, hash),
-        );
+        await Util.promisify(FS.rename)(Path.resolve(cacheDir, media.hash), Path.resolve(cacheDir, hash));
       } catch (err) {
         console.warn('Failed to rename video', err);
         if (media.metadata) {
@@ -123,7 +118,7 @@ async function main(): Promise<void> {
     stdin.setEncoding('utf8');
 
     stdin.on('data', (data) => {
-      input += data;
+      input += Buffer.isBuffer(data) ? data.toString() : data;
     });
 
     stdin.resume();

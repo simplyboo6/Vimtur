@@ -1,9 +1,5 @@
 import Path from 'path';
-import Util from 'util';
 
-import { Db, MongoClient, ObjectId } from 'mongodb';
-
-import { BadRequest, NotFound } from '../../errors';
 import {
   BaseMedia,
   Configuration,
@@ -17,18 +13,17 @@ import {
   SubsetFields,
   UpdateMedia,
 } from '@vimtur/common';
-import { Database } from '../../types';
-import { Insights } from '../../insights';
-import { Validator } from '../../utils/validator';
+import { Db, MongoClient, ObjectId } from 'mongodb';
+
 import Config from '../../config';
+import { BadRequest, NotFound } from '../../errors';
+import { Insights } from '../../insights';
+import { Database } from '../../types';
+import { asError } from '../../utils';
+import { Validator } from '../../utils/validator';
 
 import { Updater } from './updater';
-import {
-  createArrayFilter,
-  createBooleanFilter,
-  createNumberFilter,
-  createStringFilter,
-} from './utils';
+import { createArrayFilter, createBooleanFilter, createNumberFilter, createStringFilter } from './utils';
 
 interface Actor {
   name: string;
@@ -68,7 +63,8 @@ export class MongoConnector extends Database {
           useUnifiedTopology: true,
         });
         break;
-      } catch (err) {
+      } catch (errUnknown: unknown) {
+        const err = asError(errUnknown);
         console.warn('Failed to connect to database, retrying in 10 seconds', err.message);
         await new Promise((resolve) => setTimeout(resolve, 10000));
       }
@@ -113,7 +109,8 @@ export class MongoConnector extends Database {
     const tags = this.db.collection<Tag>('tags');
     try {
       await tags.insertOne({ name: tag });
-    } catch (err) {
+    } catch (errUnknown: unknown) {
+      const err = asError(errUnknown);
       if (err.message.startsWith('E11000 duplicate key')) {
         throw new BadRequest('Tag already exists');
       } else {
@@ -140,7 +137,8 @@ export class MongoConnector extends Database {
     const actors = this.db.collection<Actor>('actors');
     try {
       await actors.insertOne({ name: actor });
-    } catch (err) {
+    } catch (errUnknown: unknown) {
+      const err = asError(errUnknown);
       if (err.message.startsWith('E11000 duplicate key')) {
         throw new BadRequest('Actor already exists');
       } else {
@@ -151,7 +149,7 @@ export class MongoConnector extends Database {
 
   public async removeActor(actor: string): Promise<void> {
     const media = this.db.collection<BaseMedia>('media');
-    await Util.promisify(media.updateMany.bind(media))({}, { $pull: { actors: actor } });
+    await media.updateMany({}, { $pull: { actors: actor } });
 
     const actors = this.db.collection<Actor>('actors');
     await actors.deleteOne({ name: actor });
@@ -240,8 +238,7 @@ export class MongoConnector extends Database {
       throw new NotFound(`Media not found: ${hash}`);
     }
 
-    const existingEntry =
-      media.playlists && media.playlists.find((playlist) => playlist.id === playlistId);
+    const existingEntry = media.playlists && media.playlists.find((playlist) => playlist.id === playlistId);
     if (existingEntry) {
       // If already in the playlist, then ignore.
       return existingEntry;
@@ -281,9 +278,7 @@ export class MongoConnector extends Database {
           },
         },
         {
-          arrayFilters: [
-            { 'playlist.order': { $gt: order }, 'playlist._id': new ObjectId(playlistId) },
-          ],
+          arrayFilters: [{ 'playlist.order': { $gt: order }, 'playlist._id': new ObjectId(playlistId) }],
         },
       );
 
@@ -333,7 +328,7 @@ export class MongoConnector extends Database {
         order,
         id: playlistId,
       };
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('Add to playlist failed', hash, playlistId, err);
       await updateRollback();
       throw err;
@@ -356,13 +351,9 @@ export class MongoConnector extends Database {
     );
 
     if (result.ok && result.value) {
-      const mediaPlaylist = result.value.playlists.find(
-        (pl: any) => pl._id.toHexString() === playlistId,
-      );
+      const mediaPlaylist = result.value.playlists.find((pl: any) => pl._id.toHexString() === playlistId);
       if (!mediaPlaylist) {
-        throw new Error(
-          `Media playlist fetched and updated with no matching playlist (${hash}/${playlistId})`,
-        );
+        throw new Error(`Media playlist fetched and updated with no matching playlist (${hash}/${playlistId})`);
       }
 
       await mediaCollection.updateMany(
@@ -409,11 +400,7 @@ export class MongoConnector extends Database {
     }
   }
 
-  public async updateMediaPlaylistOrder(
-    hash: string,
-    playlistId: string,
-    update: PlaylistEntryUpdate,
-  ): Promise<void> {
+  public async updateMediaPlaylistOrder(hash: string, playlistId: string, update: PlaylistEntryUpdate): Promise<void> {
     const mediaCollection = this.db.collection('media');
 
     const matchedMedia = await this.subsetFields(
@@ -435,9 +422,7 @@ export class MongoConnector extends Database {
     }
 
     if (update.order >= playlist.size) {
-      throw new BadRequest(
-        `Requested location (${update.order}) is >= playlist size (${playlist.size})`,
-      );
+      throw new BadRequest(`Requested location (${update.order}) is >= playlist size (${playlist.size})`);
     }
 
     const newLocation = update.order;
@@ -535,10 +520,7 @@ export class MongoConnector extends Database {
 
   public async resetAutoTags(): Promise<void> {
     const collection = this.db.collection<BaseMedia>('media');
-    const result = await collection.updateMany(
-      { autoTags: { $exists: true } },
-      { $unset: { autoTags: '' } },
-    );
+    const result = await collection.updateMany({ autoTags: { $exists: true } }, { $unset: { autoTags: '' } });
     console.log(`resetAutoTags: ${result.matchedCount} cleared`);
   }
 
@@ -621,9 +603,7 @@ export class MongoConnector extends Database {
     }
 
     if (media && ignoreInImport) {
-      await this.db
-        .collection<BaseMedia>('media.deleted')
-        .update({ hash: media.hash }, media, { upsert: true });
+      await this.db.collection<BaseMedia>('media.deleted').update({ hash: media.hash }, media, { upsert: true });
     }
     await mediaCollection.deleteOne({ hash });
   }
@@ -643,19 +623,14 @@ export class MongoConnector extends Database {
   }
 
   public async addMediaActor(hash: string, actor: string): Promise<void> {
-    await this.db
-      .collection<BaseMedia>('media')
-      .updateOne({ hash }, { $addToSet: { actors: actor } });
+    await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $addToSet: { actors: actor } });
   }
 
   public async removeMediaActor(hash: string, actor: string): Promise<void> {
     await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $pull: { actors: actor } });
   }
 
-  public async subsetFields(
-    constraints: SubsetConstraints,
-    fields?: SubsetFields | 'all',
-  ): Promise<BaseMedia[]> {
+  public async subsetFields(constraints: SubsetConstraints, fields?: SubsetFields | 'all'): Promise<BaseMedia[]> {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 
     const pipeline: object[] = [{ $match: this.buildMediaMatch(constraints) }];
@@ -716,8 +691,6 @@ export class MongoConnector extends Database {
           break;
         case 'recommended': // Skip, handled by subset wrapper.
           break;
-        default:
-          throw new Error(`Unknown sortBy - ${constraints.sortBy}`);
       }
     }
 

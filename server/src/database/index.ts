@@ -8,7 +8,7 @@ export async function setup(): Promise<Database> {
   if (!dbConfig) {
     throw new Error('db config missing');
   }
-  switch (dbConfig.provider) {
+  switch (dbConfig.provider as string) {
     case 'mongodb':
       return MongoConnector.init();
     default:

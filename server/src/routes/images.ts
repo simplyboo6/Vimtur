@@ -1,18 +1,18 @@
 import Path from 'path';
 
-import { Request, Response, Router } from 'express';
-import { execute } from 'proper-job';
+import type { BulkUpdate, MediaResolution, SubsetConstraints } from '@vimtur/common';
+import { Router } from 'express';
 import PathIsInside from 'path-is-inside';
+import { execute } from 'proper-job';
 
-import { BadRequest, NotFound } from '../errors';
 import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
-import { Validator } from '../utils/validator';
-import { deleteCache, deleteMedia } from '../utils';
-import { wrap } from '../express-async';
 import Config from '../config';
-import type { BulkUpdate, MediaResolution, SubsetConstraints } from '@vimtur/common';
+import { BadRequest, NotFound } from '../errors';
+import { wrap } from '../express-async';
 import type { Database } from '../types';
+import { asError, deleteCache, deleteMedia } from '../utils';
+import { Validator } from '../utils/validator';
 
 const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
 const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
@@ -200,47 +200,51 @@ export async function create(db: Database): Promise<Router> {
     }),
   );
 
-  router.get('/:hash/file', async (req: Request, res: Response) => {
-    const media = await db.getMedia(req.params.hash);
-    if (!media) {
-      return res.status(404).json({
-        message: `No media found with hash: ${req.params.hash}`,
-      });
-    }
+  router.get(
+    '/:hash/file',
+    wrap(async ({ req, res }) => {
+      const media = await db.getMedia(req.params.hash);
+      if (!media) {
+        return res.status(404).json({
+          message: `No media found with hash: ${req.params.hash}`,
+        });
+      }
 
-    if (req.query.download) {
-      const filename = media.path.split('/').pop();
-      res.set('Content-Disposition', `attachment; filename="${filename}"`);
-    }
+      if (req.query.download) {
+        const filename = media.path.split('/').pop();
+        res.set('Content-Disposition', `attachment; filename="${filename}"`);
+      }
 
-    try {
-      const absPath = Path.resolve(Config.get().libraryPath, media.path);
-      if (media.type === 'gif' || media.type === 'still') {
-        const maxWidth = req.query.maxWidth ? Number(req.query.maxWidth) : undefined;
-        const resize = maxWidth && media.metadata && media.metadata.width > maxWidth;
-        const manipulate = resize || (await ImportUtils.isExifRotated(absPath));
-        if (manipulate) {
-          const scale =
-            resize && media.metadata && maxWidth
-              ? {
-                  width: maxWidth,
-                  height: (media.metadata.height / media.metadata.width) * maxWidth,
-                }
-              : undefined;
-          try {
-            ImportUtils.loadImageAutoOrient(absPath, res, scale);
-            return;
-          } catch (err) {
-            console.error('Failed to send rotated image', absPath, err);
+      try {
+        const absPath = Path.resolve(Config.get().libraryPath, media.path);
+        if (media.type === 'gif' || media.type === 'still') {
+          const maxWidth = req.query.maxWidth ? Number(req.query.maxWidth) : undefined;
+          const resize = maxWidth && media.metadata && media.metadata.width > maxWidth;
+          const manipulate = resize || (await ImportUtils.isExifRotated(absPath));
+          if (manipulate) {
+            const scale =
+              resize && media.metadata && maxWidth
+                ? {
+                    width: maxWidth,
+                    height: (media.metadata.height / media.metadata.width) * maxWidth,
+                  }
+                : undefined;
+            try {
+              ImportUtils.loadImageAutoOrient(absPath, res, scale);
+              return;
+            } catch (err) {
+              console.error('Failed to send rotated image', absPath, err);
+            }
           }
         }
+        return res.sendFile(absPath);
+      } catch (errUnknown: unknown) {
+        const err = asError(errUnknown);
+        console.error('Error reading file', err);
+        return res.status(503).json({ message: err.message });
       }
-      return res.sendFile(absPath);
-    } catch (err) {
-      console.error('Error reading file', err);
-      return res.status(503).json({ message: err.message });
-    }
-  });
+    }),
+  );
 
   router.post(
     '/:hash/resolve',
@@ -347,9 +351,7 @@ export async function create(db: Database): Promise<Router> {
 
         // This is the new cache method.
         if (media.metadata?.qualityCache?.includes(quality)) {
-          res.sendFile(
-            `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`,
-          );
+          res.sendFile(`${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`);
         } else {
           transcoder.streamMedia(media, start, end, res, quality, true).catch((err) => {
             console.error('Error streaming media', err);

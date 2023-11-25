@@ -1,16 +1,16 @@
 import ChildProcess from 'child_process';
 import FS from 'fs';
 import Path from 'path';
-import Util from 'util';
 import type Stream from 'stream';
+import Util from 'util';
 
+import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vimtur/common';
+import type { Response } from 'express';
 import FFMpeg from 'fluent-ffmpeg';
 import GM from 'gm';
 import Rimraf from 'rimraf';
 
 import Config from '../config';
-import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vimtur/common';
-import type { Response } from 'express';
 
 export interface Quality {
   quality: number;
@@ -38,10 +38,7 @@ interface ExternalMetadata {
   content?: StringOrNameObject;
 }
 
-function getExternalMetadataField(
-  obj: ExternalMetadata,
-  field: keyof ExternalMetadata,
-): string | undefined {
+function getExternalMetadataField(obj: ExternalMetadata, field: keyof ExternalMetadata): string | undefined {
   switch (typeof obj[field]) {
     case 'string':
       return obj[field] as string;
@@ -86,8 +83,7 @@ export class ImportUtils {
       });
       const json = JSON.parse(file) as ExternalMetadata;
       const metadata = {
-        artist:
-          getExternalMetadataField(json, 'artist') || getExternalMetadataField(json, 'author'),
+        artist: getExternalMetadataField(json, 'artist') || getExternalMetadataField(json, 'author'),
         album: getExternalMetadataField(json, 'album'),
         title: getExternalMetadataField(json, 'title') || getExternalMetadataField(json, 'content'),
       };
@@ -191,12 +187,7 @@ export class ImportUtils {
   }
 
   public static getTranscodeQualities(): number[] {
-    return [
-      ...new Set([
-        ...Config.get().transcoder.cacheQualities,
-        ...Config.get().transcoder.streamQualities,
-      ]),
-    ];
+    return [...new Set([...Config.get().transcoder.cacheQualities, ...Config.get().transcoder.streamQualities])];
   }
 
   public static getMediaDesiredQualities(media: BaseMedia, qualities?: number[]): Quality[] {
@@ -288,9 +279,7 @@ export class ImportUtils {
         } else {
           // This happens if stdout/the pipe is closed. Which can happen
           // when a HTTP request is cancelled.
-          if (
-            err.includes('specified for output file #0 (pipe:1) has not been used for any stream')
-          ) {
+          if (err.includes('specified for output file #0 (pipe:1) has not been used for any stream')) {
             resolve();
           } else {
             console.error(`FFMPEG error: code (${code})`, err);
@@ -332,20 +321,20 @@ export class ImportUtils {
       console.log(`Making directory ${path}`);
       try {
         await Util.promisify(FS.mkdir)(path);
-      } catch (err) {
+      } catch (errUnknown: unknown) {
+        if (typeof errUnknown !== 'object') {
+          throw errUnknown;
+        }
+        const errRecord = errUnknown as Record<string, unknown>;
         // When done in parallel this gets a bit messy.
-        if (err.code !== 'EEXIST') {
-          throw err;
+        if (errRecord.code !== 'EEXIST') {
+          throw errUnknown;
         }
       }
     }
   }
 
-  public static calculateBandwidthFromQuality(
-    quality: number,
-    media: Media,
-    round: boolean,
-  ): number {
+  public static calculateBandwidthFromQuality(quality: number, media: Media, round: boolean): number {
     if (!media.metadata) {
       throw new Error(`Can't calculate bandwidth without metadata: ${media.hash}`);
     }
@@ -366,17 +355,14 @@ export class ImportUtils {
     if (!media.metadata) {
       throw new Error(`Cannot stream media that hasn't been indexed: ${media.hash}`);
     }
-    const mediaQuality =
-      media.metadata.width > media.metadata.height ? media.metadata.height : media.metadata.width;
+    const mediaQuality = media.metadata.width > media.metadata.height ? media.metadata.height : media.metadata.width;
 
     const streamQualities = Config.get().transcoder.streamQualities.filter((quality) => {
       return quality <= mediaQuality;
     });
 
     // Explicitly include qualities the medias cached at.
-    const qualities = Array.from(
-      new Set([...streamQualities, ...(media.metadata.qualityCache ?? [])]),
-    ).sort();
+    const qualities = Array.from(new Set([...streamQualities, ...(media.metadata.qualityCache ?? [])])).sort();
 
     // If it's less than the minimum stream quality and not cached.
     if (qualities.length === 0) {
@@ -432,10 +418,7 @@ export class ImportUtils {
     return segments;
   }
 
-  public static async generateStreamPlaylist(
-    media: Media,
-    segments: SegmentMetadata,
-  ): Promise<string> {
+  public static async generateStreamPlaylist(media: Media, segments: SegmentMetadata): Promise<string> {
     if (!media.metadata) {
       throw new Error('Cannot generate playlist for media without metadatata');
     }
@@ -464,10 +447,7 @@ export class ImportUtils {
     return `${header + data}#EXT-X-ENDLIST\n`;
   }
 
-  public static getRedundanctCaches(
-    desiredCachesInput: Quality[],
-    actualCaches: number[],
-  ): number[] {
+  public static getRedundanctCaches(desiredCachesInput: Quality[], actualCaches: number[]): number[] {
     const desiredCaches = desiredCachesInput.map((el) => {
       return el.quality;
     });
@@ -501,11 +481,7 @@ export class ImportUtils {
     }
   }
 
-  public static loadImageAutoOrient(
-    path: string,
-    response: Response,
-    scale?: { width: number; height: number },
-  ): void {
+  public static loadImageAutoOrient(path: string, response: Response, scale?: { width: number; height: number }): void {
     let gm = GM.subClass({ nativeAutoOrient: true, imageMagick: true })(path).autoOrient();
     if (scale) {
       gm = gm.scale(scale.width * 1.5, scale.height * 1.5).resize(scale.width, scale.height);

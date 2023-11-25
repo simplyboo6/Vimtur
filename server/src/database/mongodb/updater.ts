@@ -63,11 +63,11 @@ export class Updater {
     // Bloody thing doesn't return a promise.
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
       {
-        'path': 'text',
-        'type': 'text',
-        'tags': 'text',
-        'autoTags': 'text',
-        'actors': 'text',
+        path: 'text',
+        type: 'text',
+        tags: 'text',
+        autoTags: 'text',
+        actors: 'text',
         'metadata.artist': 'text',
         'metadata.album': 'text',
         'metadata.title': 'text',
@@ -76,18 +76,18 @@ export class Updater {
         name: 'keyword_index',
         weights: {
           // Least important to most
-          'path': 1,
-          'autoTags': 1,
+          path: 1,
+          autoTags: 1,
 
-          'tags': 3,
+          tags: 3,
           'metadata.artist': 5,
 
           'metadata.album': 7,
           'metadata.title': 7,
 
-          'actors': 8,
+          actors: 8,
 
-          'type': 10,
+          type: 10,
         },
       },
     ); // Bug with weights not being recognised.
@@ -100,28 +100,19 @@ export class Updater {
 
     const mediaCollection = db.collection(name);
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { hash: 1 },
-      { unique: true },
-    );
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ hash: 1 }, { unique: true });
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
       { hashDate: 1 },
       { unique: false },
     );
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { rating: 1 },
-      { unique: false },
-    );
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ rating: 1 }, { unique: false });
 
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
       { 'metadata.createdAt': 1 },
       { unique: false },
     );
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { path: 1 },
-      { unique: false },
-    );
+    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ path: 1 }, { unique: false });
 
     await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
       aliases: 1,
@@ -159,19 +150,13 @@ export class Updater {
     if (!(await Updater.collectionExists(db, 'actors'))) {
       await db.createCollection('actors');
       const actorsCollection = db.collection('actors');
-      await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))(
-        { name: 1 },
-        { unique: true },
-      );
+      await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))({ name: 1 }, { unique: true });
     }
 
     if (!(await Updater.collectionExists(db, 'tags'))) {
       await db.createCollection('tags');
       const tagsCollection = db.collection('tags');
-      await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))(
-        { name: 1 },
-        { unique: true },
-      );
+      await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))({ name: 1 }, { unique: true });
     }
 
     if (!(await Updater.collectionExists(db, 'playlists'))) {

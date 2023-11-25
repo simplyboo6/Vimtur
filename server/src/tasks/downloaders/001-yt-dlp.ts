@@ -1,9 +1,9 @@
 // Download using yt-dlp with command
 // yt-dlp --progress --quiet --add-metadata --restrict-filenames -P <data dir>/downloads/<path that includes sanitised url> <url>
-import { ExecutorPromise, ExecutorResults } from 'proper-job';
-import { URL } from 'url';
 import ChildProcess from 'child_process';
 import Path from 'path';
+import { URL } from 'url';
+import { ExecutorPromise, ExecutorResults } from 'proper-job';
 import type { Downloader, DownloaderCallback } from '../../types';
 
 export function getDownloader(): Downloader {

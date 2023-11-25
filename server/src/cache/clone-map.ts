@@ -1,8 +1,8 @@
-import { Worker } from 'worker_threads';
 import OS from 'os';
 import Path from 'path';
+import { Worker } from 'worker_threads';
 
-import { ExecutorPromise, execute } from 'proper-job';
+import { execute, ExecutorPromise } from 'proper-job';
 
 import type { Database } from '../types';
 

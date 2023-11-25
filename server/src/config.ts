@@ -1,12 +1,12 @@
 import FS from 'fs';
 import Path from 'path';
 
+import type { Configuration } from '@vimtur/common';
 import DeepMerge from 'deepmerge';
 import PathIsInside from 'path-is-inside';
 import StripJsonComments from 'strip-json-comments';
 
 import { Validator } from './utils/validator';
-import type { Configuration } from '@vimtur/common';
 
 function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
   if (process.env[env]) {
@@ -175,18 +175,12 @@ class Config {
       arrayMerge: (_, sourceArray) => sourceArray,
     }) as any;
     // Remove duplicate items in the qualities array.
-    merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort(
-      (a, b) => a - b,
-    );
-    merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort(
-      (a, b) => a - b,
-    );
+    merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort((a, b) => a - b);
+    merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort((a, b) => a - b);
 
     const validationResult = this.validator.validate(merged);
     if (!validationResult.success) {
-      throw new Error(
-        validationResult.errorText ?? 'Merged configuration schema failed to validate.',
-      );
+      throw new Error(validationResult.errorText ?? 'Merged configuration schema failed to validate.');
     }
 
     // On the first call store the layers as the write-once base layers.

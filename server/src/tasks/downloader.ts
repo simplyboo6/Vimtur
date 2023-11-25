@@ -1,9 +1,9 @@
-import { ImportUtils } from '../cache/import-utils';
-import { TaskArgs } from '@vimtur/common';
-import { getDownloaders } from './downloaders';
-import Config from '../config';
 import Path from 'path';
+import { TaskArgs } from '@vimtur/common';
+import { ImportUtils } from '../cache/import-utils';
+import Config from '../config';
 import type { Task, TaskRunnerCallback } from '../types';
+import { getDownloaders } from './downloaders';
 
 const downloaders = getDownloaders();
 

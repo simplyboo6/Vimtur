@@ -1,7 +1,8 @@
 import { parentPort } from 'worker_threads';
 
-import { TensorFlowHubModel, loadClasses, loadModel } from '../imagenet';
+import { asError } from '../../../utils';
 import { loadImageFileCommon } from '../common';
+import { loadClasses, loadModel, TensorFlowHubModel } from '../imagenet';
 import type TensorFlow from '../tensorflow';
 
 import type {
@@ -37,11 +38,7 @@ async function onMessage(message: ClassifierWorkerRequest): Promise<ClassifierWo
   const model = await modelInfo.model;
   const classes = await modelInfo.classes;
 
-  const tensor = await loadImageFileCommon(
-    message.absolutePath,
-    message.definition.width,
-    message.definition.height,
-  );
+  const tensor = await loadImageFileCommon(message.absolutePath, message.definition.width, message.definition.height);
 
   try {
     const classified = model.predict(tensor) as TensorFlow.Tensor<TensorFlow.Rank>;
@@ -78,10 +75,12 @@ parentPort.on('message', (message: ClassifierWorkerRequest) => {
       .then((result) => {
         postResult(result);
       })
-      .catch((err) => {
+      .catch((errUnknown: unknown) => {
+        const err = asError(errUnknown);
         postResult({ err: err.message });
       });
-  } catch (err) {
+  } catch (errUnknown: unknown) {
+    const err = asError(errUnknown);
     postResult({ err: err.message });
   }
 });

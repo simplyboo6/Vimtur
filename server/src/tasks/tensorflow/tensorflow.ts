@@ -1,7 +1,7 @@
 import FS from 'fs';
-
-import { PNG } from 'pngjs';
 import TFJS from '@tensorflow/tfjs';
+import { PNG } from 'pngjs';
+import { asError } from '../../utils';
 
 function isAvxSupported(): boolean {
   try {
@@ -25,7 +25,8 @@ function isAvxSupported(): boolean {
     }
 
     return true;
-  } catch (err) {
+  } catch (errUnknown: unknown) {
+    const err = asError(errUnknown);
     console.warn('Unable to load CPU info.', err.message);
     return false;
   }

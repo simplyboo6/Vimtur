@@ -16,10 +16,7 @@ export abstract class Database {
   // Media
   public abstract getMedia(hash: string): Promise<Media | undefined>;
   public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
-  public abstract saveBulkMedia(
-    constraints: SubsetConstraints,
-    media: UpdateMedia,
-  ): Promise<number>;
+  public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;
   public abstract isDeletedPath(path: string): Promise<boolean>;
   // Media - tags
@@ -40,10 +37,7 @@ export abstract class Database {
 
   // Searching
   public abstract subset(constraints: SubsetConstraints): Promise<string[]>;
-  public abstract subsetFields(
-    constraints: SubsetConstraints,
-    fields: SubsetFields | 'all',
-  ): Promise<BaseMedia[]>;
+  public abstract subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]>;
 
   // Actors
   public abstract addActor(name: string): Promise<void>;

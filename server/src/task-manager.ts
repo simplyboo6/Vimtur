@@ -1,11 +1,12 @@
 import { EventEmitter } from 'events';
 
-import { ExecutorError, ExecutorPromise, ExecutorResults } from 'proper-job';
 import type { ListedTask, QueuedTask, TaskArgs } from '@vimtur/common';
+import { ExecutorError, ExecutorPromise, ExecutorResults } from 'proper-job';
 
-import { BadRequest } from './errors';
 import Config from './config';
+import { BadRequest } from './errors';
 import type { Task } from './types';
+import { asError } from './utils';
 
 const MAX_TASK_QUEUE_SIZE = 100;
 const EMIT_TIME = 1000;
@@ -146,7 +147,8 @@ export class TaskManager extends EventEmitter {
               }
           }
         }
-      } catch (err) {
+      } catch (errUnknown: unknown) {
+        const err = asError(errUnknown);
         queuedTask.error = err.message;
         queuedTask.running = false;
         queuedTask.complete = true;
@@ -162,8 +164,7 @@ export class TaskManager extends EventEmitter {
       queuedTask.max = max;
       queuedTask.description = info || queuedTask.description;
 
-      const emit =
-        current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
+      const emit = current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
       if (emit) {
         this.lastEmitTime = Date.now();
         this.emit('queue', this.taskQueue);

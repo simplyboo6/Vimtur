@@ -30,14 +30,10 @@ export async function loadFile(absolutePath: string): Promise<Buffer> {
 // Model specific pre-processing from https://github.com/himanshu987/VGG16-with-TensorflowJs/blob/82ec4142d559d551a53aa72ea2c467d249280717/client/predict.js#L1081
 // TODO This doesn't seem to work well. Gets poor results while training.
 const IMAGE_NET_RGB = TensorFlow.tensor1d([123.68, 116.779, 103.939]);
-export async function loadImageFileVgg16(
-  absolutePath: string,
-): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
+export async function loadImageFileVgg16(absolutePath: string): Promise<TensorFlow.Tensor3D | TensorFlow.Tensor4D> {
   const raw = await loadFile(absolutePath);
   const res = TensorFlow.tidy(() => {
-    const common = TensorFlow.decodeImage(raw)
-      .resizeNearestNeighbor([MODEL_WIDTH, MODEL_HEIGHT])
-      .toFloat();
+    const common = TensorFlow.decodeImage(raw).resizeNearestNeighbor([MODEL_WIDTH, MODEL_HEIGHT]).toFloat();
     // expandDims adds the batch size of 1.
     return common.sub(IMAGE_NET_RGB).reverse(2).expandDims();
   });

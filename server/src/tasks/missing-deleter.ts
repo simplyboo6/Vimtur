@@ -1,7 +1,7 @@
 import { execute } from 'proper-job';
 
-import { deleteMedia } from '../utils';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { deleteMedia } from '../utils';
 
 import { Scanner } from './scanner';
 

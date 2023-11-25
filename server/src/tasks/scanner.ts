@@ -1,14 +1,14 @@
 import Path from 'path';
 
+import type Types from '@vimtur/common';
 import { Router } from 'express';
 import { execute } from 'proper-job';
 import Walk from 'walk';
-import type Types from '@vimtur/common';
 
 // Local
 import { ImportUtils } from '../cache/import-utils';
-import { wrap } from '../express-async';
 import Config from '../config';
+import { wrap } from '../express-async';
 import type { Database, RouterTask } from '../types';
 
 type FilterResults = Types.Scanner.FilterResults;

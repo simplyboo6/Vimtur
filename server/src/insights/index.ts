@@ -1,8 +1,8 @@
-import { SearchIndexer } from './tokens';
 import type { CalculatedAverage, SortedAverage } from '@vimtur/common';
 
 import { setup as setupDb } from '../database';
 import type { Database } from '../types';
+import { SearchIndexer } from './tokens';
 
 interface TrackedAverage {
   total: number;
@@ -22,10 +22,7 @@ export interface ScoredMedia {
 
 const MIN_COUNT_FOR_AVERAGE = 20;
 
-function filterObject<T>(
-  obj: Record<string, T>,
-  callback: (name: string, obj: T) => boolean,
-): Record<string, T> {
+function filterObject<T>(obj: Record<string, T>, callback: (name: string, obj: T) => boolean): Record<string, T> {
   const result: Record<string, T> = {};
   for (const key of Object.keys(obj)) {
     const value = obj[key];
@@ -36,10 +33,7 @@ function filterObject<T>(
   return result;
 }
 
-function mapObject<T, K>(
-  obj: Record<string, T>,
-  callback: (name: string, obj: T) => K,
-): Record<string, K> {
+function mapObject<T, K>(obj: Record<string, T>, callback: (name: string, obj: T) => K): Record<string, K> {
   const result: Record<string, K> = {};
   for (const key of Object.keys(obj)) {
     result[key] = callback(key, obj[key]);
@@ -100,13 +94,8 @@ export class Insights {
     return scored.sort((a, b) => b.score - a.score);
   }
 
-  private calculateAverages(
-    list: Record<string, TrackedAverage>,
-  ): Record<string, CalculatedAverage> {
-    const filtered = filterObject<TrackedAverage>(
-      list,
-      (_, avg) => avg.count >= MIN_COUNT_FOR_AVERAGE,
-    );
+  private calculateAverages(list: Record<string, TrackedAverage>): Record<string, CalculatedAverage> {
+    const filtered = filterObject<TrackedAverage>(list, (_, avg) => avg.count >= MIN_COUNT_FOR_AVERAGE);
     return mapObject<TrackedAverage, CalculatedAverage>(filtered, (name, el) => {
       return { name, average: el.total / el.count, count: el.count };
     });
@@ -148,11 +137,7 @@ export function printAverages(name: string, list: Record<string, CalculatedAvera
   console.log();
 }
 
-export async function printRecommendations(
-  db: Database,
-  recommended: ScoredMedia[],
-  limit: number,
-): Promise<void> {
+export async function printRecommendations(db: Database, recommended: ScoredMedia[], limit: number): Promise<void> {
   console.log('Recommended');
   for (let i = 0; i < recommended.length && i < limit; i++) {
     const media = await db.getMedia(recommended[i].hash);

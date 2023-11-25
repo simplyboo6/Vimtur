@@ -65,10 +65,7 @@ export function getTask(database: Database): RouterTask {
             console.log(`All qualities valid for ${media.hash} - ${media.path}`);
           } else {
             console.log(`Invalid quality detected for ${media.hash} - ${media.path}`);
-            console.log(
-              `Updating valid qualities for ${media.hash} - ${media.path}`,
-              validQualities,
-            );
+            console.log(`Updating valid qualities for ${media.hash} - ${media.path}`, validQualities);
             await database.saveMedia(media.hash, {
               metadata: { qualityCache: validQualities },
             });

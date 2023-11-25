@@ -1,7 +1,8 @@
+import FS from 'fs/promises';
+import { parentPort } from 'worker_threads';
 import { PNG } from 'pngjs';
 import { blockhash } from './blockhash';
-import { parentPort } from 'worker_threads';
-import FS from 'fs/promises';
+import { asError } from './index';
 
 export interface BlockhashJob {
   id: string;
@@ -43,10 +44,10 @@ parentPort.on('message', (job: BlockhashJob) => {
           hash,
         });
       })
-      .catch((err) => {
-        onError(job, err);
+      .catch((errUnknown: unknown) => {
+        onError(job, asError(errUnknown));
       });
-  } catch (err) {
-    onError(job, err);
+  } catch (errUnknown: unknown) {
+    onError(job, asError(errUnknown));
   }
 });

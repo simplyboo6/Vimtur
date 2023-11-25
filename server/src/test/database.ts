@@ -1,10 +1,10 @@
-import { Db, MongoClient } from 'mongodb';
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
 import type { Media, Playlist } from '@vimtur/common';
+import { expect } from 'chai';
+import { describe, it } from 'mocha';
+import { Db, MongoClient } from 'mongodb';
 
-import { MongoConnector } from '../database/mongodb';
 import Config from '../config';
+import { MongoConnector } from '../database/mongodb';
 import type { Database } from '../types/database';
 
 describe('Database Tests', () => {

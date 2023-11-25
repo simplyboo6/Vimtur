@@ -1,14 +1,14 @@
+import ChildProcess from 'child_process';
 import FS from 'fs';
 import Path from 'path';
-import Util from 'util';
 import type Stream from 'stream';
+import Util from 'util';
 
-import ChildProcess from 'child_process';
-import Config from '../config';
+import type { Media, SegmentMetadata } from '@vimtur/common';
 import GM from 'gm';
 import Rimraf from 'rimraf';
+import Config from '../config';
 import type { Database } from '../types';
-import type { Media, SegmentMetadata } from '@vimtur/common';
 
 import { ImportUtils, Quality } from './import-utils';
 
@@ -69,13 +69,7 @@ export class Transcoder {
       `Creating preview. Count (${count}), Columns (${columns}), Cells Per Column (${cellsPerColumn}) - ${media.path}`,
     );
 
-    const args = [
-      '-y',
-      '-vf',
-      `fps=1/${fps},scale=-1:${height},tile=${columns}x${cellsPerColumn}`,
-      '-frames:v',
-      '1',
-    ];
+    const args = ['-y', '-vf', `fps=1/${fps},scale=-1:${height},tile=${columns}x${cellsPerColumn}`, '-frames:v', '1'];
     const path = this.getPreviewPath(media);
     await ImportUtils.transcode({
       input: media.absolutePath,
@@ -86,9 +80,7 @@ export class Transcoder {
   }
 
   public async optimisePng(path: string): Promise<void> {
-    await Util.promisify(ChildProcess.exec)(
-      `pngquant --speed 8 --force ${path} -o ${path}.optimised`,
-    );
+    await Util.promisify(ChildProcess.exec)(`pngquant --speed 8 --force ${path} -o ${path}.optimised`);
     await Util.promisify(ChildProcess.exec)(`mv ${path}.optimised ${path}`);
   }
 
@@ -157,11 +149,7 @@ export class Transcoder {
     ) {
       videoCodec.push(...['copy']);
     } else {
-      const qualityRaw = ImportUtils.calculateBandwidthFromQuality(
-        targetHeight || media.metadata.height,
-        media,
-        true,
-      );
+      const qualityRaw = ImportUtils.calculateBandwidthFromQuality(targetHeight || media.metadata.height, media, true);
       const quality = `${Math.ceil(qualityRaw / 1000000)}M`;
       const qualityBuffer = `${Math.ceil((qualityRaw * 2) / 1000000)}M`;
 
@@ -172,9 +160,7 @@ export class Transcoder {
           'h264_mp4toannexb',
           '-tune',
           'film',
-          ...(realtime
-            ? ['-quality', 'realtime', '-preset', 'ultrafast']
-            : ['-quality', 'good', '-preset', 'medium']),
+          ...(realtime ? ['-quality', 'realtime', '-preset', 'ultrafast'] : ['-quality', 'good', '-preset', 'medium']),
           '-maxrate',
           quality,
           '-bufsize',
@@ -186,10 +172,7 @@ export class Transcoder {
     // To deal with strange overflows in corner cases.
     videoCodec.push(...['-max_muxing_queue_size', '9999']);
 
-    const scale =
-      targetHeight && targetHeight !== media.metadata.height
-        ? ['-vf', `scale=-2:${targetHeight}`]
-        : [];
+    const scale = targetHeight && targetHeight !== media.metadata.height ? ['-vf', `scale=-2:${targetHeight}`] : [];
 
     const args = ['-y', ...audioCodec, ...scale, ...videoCodec, '-f', 'mpegts', '-muxdelay', '0'];
 
@@ -208,10 +191,7 @@ export class Transcoder {
       throw new Error(`Can't transcode media set without metadata`);
     }
 
-    const desiredCaches = ImportUtils.getMediaDesiredQualities(
-      media,
-      Config.get().transcoder.cacheQualities,
-    );
+    const desiredCaches = ImportUtils.getMediaDesiredQualities(media, Config.get().transcoder.cacheQualities);
     const actualCaches = media.metadata.qualityCache ?? [];
     const missingQualities: Quality[] = [];
     for (const quality of desiredCaches) {
@@ -254,12 +234,7 @@ export class Transcoder {
     // If it's cached then return the cached index.
     // This block copes with legacy caches.
     if (media.metadata.qualityCache && media.metadata.qualityCache.includes(quality)) {
-      const indexPath = Path.resolve(
-        Config.get().cachePath,
-        media.hash,
-        `${quality}p`,
-        'index.m3u8',
-      );
+      const indexPath = Path.resolve(Config.get().cachePath, media.hash, `${quality}p`, 'index.m3u8');
       if (await ImportUtils.exists(indexPath)) {
         const cached = await Util.promisify(FS.readFile)(indexPath);
         return cached.toString();
@@ -290,9 +265,7 @@ export class Transcoder {
       throw new Error(`Can't transcode media without metadata`);
     }
     const targetHeight = requestedQuality.quality;
-    console.log(
-      `${media.hash}: ${media.path} (source ${media.metadata.height}p) - Transcoding to ${targetHeight}p...`,
-    );
+    console.log(`${media.hash}: ${media.path} (source ${media.metadata.height}p) - Transcoding to ${targetHeight}p...`);
 
     media.metadata.qualityCache = media.metadata.qualityCache ?? [];
 
@@ -308,9 +281,9 @@ export class Transcoder {
 
     const segmentMetadata = await this.getStreamSegments(media);
     for (const segment of segmentMetadata.standard) {
-      const filename = `${Config.get().cachePath}/${media.hash}/${targetHeight}p/data.ts?start=${
-        segment.start
-      }&end=${segment.end}`;
+      const filename = `${Config.get().cachePath}/${media.hash}/${targetHeight}p/data.ts?start=${segment.start}&end=${
+        segment.end
+      }`;
       await this.streamMedia(
         media,
         segment.start,

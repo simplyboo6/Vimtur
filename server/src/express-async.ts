@@ -2,6 +2,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
 import { BadRequest } from './errors';
 import { BaseRequestError } from './errors/base';
+import { asError } from './utils';
 
 const DEFAULT_FORMAT = 'application/json';
 
@@ -20,7 +21,7 @@ export type Handler<T, A> = (args: ExpressArgs & A) => Promise<T>;
 export type Extractor<A> = (args: ExpressArgs) => A;
 
 const empty = {};
-const noOpExtractor: Extractor<{}> = () => empty;
+const noOpExtractor: Extractor<Record<string, unknown>> = () => empty;
 
 export type WrapHandler<A> = Handler<any, A>;
 
@@ -70,13 +71,9 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
   }
 }
 
-export function wrapHandler<A>(
-  handler: WrapHandler<A>,
-  extractor: Extractor<A>,
-  sendResult: boolean,
-): RequestHandler {
-  return async (req, res, next) => {
-    try {
+export function wrapHandler<A>(handler: WrapHandler<A>, extractor: Extractor<A>, sendResult: boolean): RequestHandler {
+  return (req, res, next) => {
+    (async () => {
       const express: ExpressArgs = { req, res, next };
       const result = await handler({
         ...express,
@@ -90,12 +87,10 @@ export function wrapHandler<A>(
           res.sendStatus(204);
         }
       }
-    } catch (err) {
+    })().catch((errUnknown: unknown) => {
+      const err = asError(errUnknown);
       if (err.message.startsWith('Unexpected content type')) {
-        console.error(
-          'Unable to send error response because of unexpected content type',
-          req.header('content-type'),
-        );
+        console.error('Unable to send error response because of unexpected content type', req.header('content-type'));
         res.sendStatus(503);
         return;
       }
@@ -110,10 +105,10 @@ export function wrapHandler<A>(
       } catch (resErr) {
         console.error('Error sending error response', resErr);
       }
-    }
+    });
   };
 }
 
-export function wrap(handler: WrapHandler<{}>, sendResult = true): RequestHandler {
+export function wrap(handler: WrapHandler<Record<string, unknown>>, sendResult = true): RequestHandler {
   return wrapHandler(handler, noOpExtractor, sendResult);
 }

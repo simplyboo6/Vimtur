@@ -1,13 +1,13 @@
 import OS from 'os';
 
-import { ScalingConnectionPool, execute } from 'proper-job';
+import { execute, ScalingConnectionPool } from 'proper-job';
 
 import { Transcoder } from '../../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
 
-import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 import { IMAGENET_MODELS, loadClasses, loadModel } from './imagenet';
 import TensorFlow from './tensorflow';
+import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 
 // Two if native because it doesn't quite achieve 100% multi-core use,
 // likely due to not feeding it data enough.

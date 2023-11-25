@@ -19,13 +19,7 @@ export async function createHash(path: string): Promise<string> {
   if (endStart <= 0) {
     buffer.copy(buffer, startReadResult.bytesRead, 0);
   } else {
-    const endReadResult = await Util.promisify(FS.read)(
-      fd,
-      buffer,
-      startReadResult.bytesRead,
-      CHUNK_SIZE,
-      endStart,
-    );
+    const endReadResult = await Util.promisify(FS.read)(fd, buffer, startReadResult.bytesRead, CHUNK_SIZE, endStart);
     total += endReadResult.bytesRead;
   }
   await Util.promisify(FS.close)(fd);

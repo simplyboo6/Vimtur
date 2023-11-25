@@ -1,10 +1,4 @@
-import type {
-  ArrayFilter,
-  BooleanFilter,
-  NumberFilter,
-  StringFilter,
-  StringFilterCommon,
-} from '@vimtur/common';
+import type { ArrayFilter, BooleanFilter, NumberFilter, StringFilter, StringFilterCommon } from '@vimtur/common';
 
 function createStringFilterCommon(field: string, options?: StringFilterCommon): object {
   if (!options || Object.keys(options).length === 0) {

@@ -949,9 +949,7 @@ export class SearchIndexer {
     return results;
   }
 
-  public sort(
-    results: Array<{ hash: string; score: number }>,
-  ): Array<{ hash: string; score: number }> {
+  public sort(results: Array<{ hash: string; score: number }>): Array<{ hash: string; score: number }> {
     return results.sort((a, b) => {
       return b.score - a.score;
     });

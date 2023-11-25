@@ -1,12 +1,12 @@
 import Path from 'path';
 
-import { ExecutorPromise, execute } from 'proper-job';
+import type { Media } from '@vimtur/common';
+import { execute, ExecutorPromise } from 'proper-job';
 
-import { ImportUtils } from '../cache/import-utils';
 import { createHash } from '../cache/hash';
+import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
-import type { Media } from '@vimtur/common';
 
 import { Scanner } from './scanner';
 

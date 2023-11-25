@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
-import { Insights, convertToArray } from '../insights';
 import { wrap } from '../express-async';
+import { convertToArray, Insights } from '../insights';
 import type { Database } from '../types';
 
 export async function create(db: Database): Promise<Router> {

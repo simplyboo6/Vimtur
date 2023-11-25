@@ -1,5 +1,5 @@
-import { SHARE_ENV, Worker } from 'worker_threads';
 import Path from 'path';
+import { SHARE_ENV, Worker } from 'worker_threads';
 
 import type { TensorFlowHubModel } from '../imagenet';
 

@@ -1,5 +1,5 @@
-import { Worker } from 'worker_threads';
 import Path from 'path';
+import { Worker } from 'worker_threads';
 import type { BlockhashJob, BlockhashJobError, BlockhashJobResult } from './blockhash-worker';
 
 interface PendingJob {

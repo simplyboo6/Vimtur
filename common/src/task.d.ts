@@ -5,17 +5,15 @@ export interface TaskArgDefinitionBase {
 }
 
 export interface TaskArgDefinitionString extends TaskArgDefinitionBase {
-  type: "string";
+  type: 'string';
 }
 
 export interface TaskArgDefinitionSelect extends TaskArgDefinitionBase {
-  type: "select";
+  type: 'select';
   values: Array<{ id: string; name: string }>;
 }
 
-export type TaskArgDefinition =
-  | TaskArgDefinitionString
-  | TaskArgDefinitionSelect;
+export type TaskArgDefinition = TaskArgDefinitionString | TaskArgDefinitionSelect;
 export type TaskArgDefinitions = TaskArgDefinition[];
 export type TaskArg = string;
 export type TaskArgs = Array<TaskArg | undefined>;

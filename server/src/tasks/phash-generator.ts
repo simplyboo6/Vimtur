@@ -1,8 +1,8 @@
 import { execute } from 'proper-job';
 
-import { BlockhashAsync } from '../utils/blockhash-async';
 import { Transcoder } from '../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+import { BlockhashAsync } from '../utils/blockhash-async';
 
 // Really tends to block up the worker threads if higher.
 const BATCH_SIZE = 2;

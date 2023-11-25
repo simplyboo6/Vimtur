@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { execute } from 'proper-job';
 import type SocketIO from 'socket.io';
 
+import Config from '../config';
+import { wrap } from '../express-async';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
-import { wrap } from '../express-async';
-import Config from '../config';
 import type { Database, RouterTask } from '../types';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
@@ -47,10 +47,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
           if (Config.get().enablePhash && taskManager.hasTask('GENERATE-PHASHES')) {
             taskManager.start('GENERATE-PHASHES');
           }
-          if (
-            Config.get().enableTensorFlow &&
-            taskManager.hasTask('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140')
-          ) {
+          if (Config.get().enableTensorFlow && taskManager.hasTask('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140')) {
             taskManager.start('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140');
           }
           return Promise.resolve([]);

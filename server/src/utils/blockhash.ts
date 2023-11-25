@@ -214,11 +214,7 @@ export function hammingDistance(hash1: string, hash2: string): number {
   return d;
 }
 
-export function blockhash(
-  imgData: BlockhashImageData,
-  bits: number,
-  method: 'quick' | 'precise',
-): string {
+export function blockhash(imgData: BlockhashImageData, bits: number, method: 'quick' | 'precise'): string {
   let hash: string;
 
   if (method === 'quick') {

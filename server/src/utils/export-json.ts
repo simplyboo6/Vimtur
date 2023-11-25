@@ -1,8 +1,8 @@
 import FS from 'fs';
 import Util from 'util';
 
-import { setup as setupDb } from '../database';
 import Config from '../config';
+import { setup as setupDb } from '../database';
 import type { DumpFile } from '../types';
 
 async function main(): Promise<void> {

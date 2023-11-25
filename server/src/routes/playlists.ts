@@ -1,9 +1,9 @@
 import { Router } from 'express';
 
 import { BadRequest } from '../errors';
-import { Validator } from '../utils/validator';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
+import { Validator } from '../utils/validator';
 
 const PLAYLIST_CREATE_VALIDATOR = Validator.load('PlaylistCreate');
 const PLAYLIST_UPDATE_VALIDATOR = Validator.load('PlaylistUpdate');

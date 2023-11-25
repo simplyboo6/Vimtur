@@ -6,13 +6,13 @@ import BodyParser from 'body-parser';
 import Compression from 'compression';
 import DeepMerge from 'deepmerge';
 import Express, { Request, Response } from 'express';
-import IO from 'socket.io';
 import PathIsInside from 'path-is-inside';
+import IO from 'socket.io';
 
 // Local
+import Config, { VERSION_NAME } from './config';
 import { setup as setupDb } from './database';
 import { wrap } from './express-async';
-import Config, { VERSION_NAME } from './config';
 
 // Routes
 import * as ActorRouter from './routes/actors';
@@ -21,8 +21,9 @@ import * as InsightsRouter from './routes/insights';
 import * as PlaylistRouter from './routes/playlists';
 import * as TagRouter from './routes/tags';
 import * as TasksRouter from './routes/tasks';
-import * as Utils from './utils';
 import type { Database } from './types';
+import { asError } from './utils';
+import * as Utils from './utils';
 
 async function createServer(db: Database): Promise<Server> {
   const app = Express();
@@ -78,7 +79,8 @@ async function createServer(db: Database): Promise<Server> {
       }
       res.set('Cache-Control', 'public, max-age=604800, immutable');
       return res.sendFile(absPath);
-    } catch (err) {
+    } catch (errUnknown: unknown) {
+      const err = asError(errUnknown);
       return res.status(400).json({ message: err.message, type: 'config' });
     }
   });
