@@ -1,5 +1,5 @@
 <div
-  (click)="inputRef.click()"
+  (click)="onValueChange(!selected)"
   class="form-check input-component"
   [class.not-highlighted]="highlighted === false"
   [class.highlighted]="highlighted"
@@ -8,10 +8,13 @@
   <input
     [ngModel]="selected"
     (ngModelChange)="onValueChange($event)"
+    (click)="$event.stopPropagation()"
     [id]="uid"
     type="checkbox"
     class="form-check-input"
     #inputRef
   />
-  <label [for]="uid" class="form-check-label"><ng-content></ng-content></label>
+  <label (click)="$event.stopPropagation()" [for]="uid" class="form-check-label"
+    ><ng-content></ng-content
+  ></label>
 </div>
