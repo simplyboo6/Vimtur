@@ -159,8 +159,9 @@ export class PlaylistComponent implements OnInit, OnDestroy {
   }
 
   public unsetPlaylist(): void {
-    this.uiService.searchModel.playlist = undefined;
-    this.collectionService.search(this.uiService.createSearch(), { noRedirect: true });
+    const searchModel = { ...this.uiService.searchModel.value, playlist: undefined };
+    this.uiService.searchModel.next(searchModel);
+    this.collectionService.search(this.uiService.createSearch(searchModel), { noRedirect: true });
   }
 
   public updateMediaActions(): void {

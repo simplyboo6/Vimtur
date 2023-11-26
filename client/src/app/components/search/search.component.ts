@@ -39,7 +39,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     this.actorService = actorService;
     this.collectionService = collectionService;
     this.uiService = uiService;
-    this.searchModel = uiService.searchModel;
+    this.searchModel = uiService.searchModel.value;
     this.playlistService = playlistService;
   }
 
@@ -61,6 +61,12 @@ export class SearchComponent implements OnInit, OnDestroy {
           this.playlists = playlists;
         }),
     );
+
+    this.subscriptions.push(
+      this.uiService.searchModel.subscribe(searchModel => {
+        this.searchModel = searchModel;
+      }),
+    );
   }
 
   public ngOnDestroy() {
@@ -71,11 +77,12 @@ export class SearchComponent implements OnInit, OnDestroy {
   }
 
   public reset() {
-    this.searchModel = this.uiService.resetSearch();
+    this.uiService.resetSearch();
   }
 
   public search() {
-    const constraints = this.uiService.createSearch();
+    this.uiService.searchModel.next({ ...this.searchModel });
+    const constraints = this.uiService.createSearch(this.searchModel);
     console.debug('search', constraints);
     this.collectionService.search(constraints);
   }

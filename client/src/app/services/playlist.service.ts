@@ -150,7 +150,7 @@ export class PlaylistService {
   }
 
   public addAllCurrentToPlaylist(playlist: Playlist, constraints?: SubsetConstraints): void {
-    const subset = constraints || this.uiService.createSearch();
+    const subset = constraints || this.uiService.createSearch(this.uiService.searchModel.value);
 
     let prompt = `Are you sure you want to add ${
       this.collectionSize === undefined ? 'all' : this.collectionSize

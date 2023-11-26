@@ -128,7 +128,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
     // TODO Confirm with user and display current search set.
     // TODO Show a warning to the user if no filters are set.
-    this.mediaService.saveBulk(this.uiService.createSearch(), {
+    this.mediaService.saveBulk(this.uiService.createSearch(this.uiService.searchModel.value), {
       metadata: { [field]: this.mediaModel.metadata[field] },
     });
   }

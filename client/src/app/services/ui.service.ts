@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ReplaySubject } from 'rxjs';
+import { ReplaySubject, BehaviorSubject } from 'rxjs';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
 
 export interface SearchArrayFilter {
@@ -99,7 +99,7 @@ function createBlankStringFilter(): SearchStringFilter {
 export class UiService {
   private tagPanelState: ReplaySubject<boolean> = new ReplaySubject(1);
   // This is in here to allow the search parameters to persist after leaving the search page.
-  public searchModel: SearchModel;
+  public readonly searchModel = new BehaviorSubject<SearchModel>(this.createSearchModel());
 
   public readonly arrayFields: ArrayFilterField[] = [
     { field: 'tags', name: 'Tags' },
@@ -114,10 +114,6 @@ export class UiService {
     { field: 'dir', name: 'Dir' },
   ];
 
-  public constructor() {
-    this.searchModel = this.resetSearch();
-  }
-
   public getTagPanelState(): ReplaySubject<boolean> {
     return this.tagPanelState;
   }
@@ -126,94 +122,85 @@ export class UiService {
     this.tagPanelState.next(state);
   }
 
-  public resetSearch(): SearchModel {
-    this.searchModel = {
-      tags: createBlankArrayFilter(),
-      actors: createBlankArrayFilter(),
-      artist: createBlankStringFilter(),
-      album: createBlankStringFilter(),
-      title: createBlankStringFilter(),
-      path: createBlankStringFilter(),
-      dir: createBlankStringFilter(),
-    };
-    return this.searchModel;
+  public resetSearch(): void {
+    this.searchModel.next(this.createSearchModel());
   }
 
-  public createSearch(): SubsetConstraints {
+  public createSearch(searchModel: SearchModel): SubsetConstraints {
     const constraints: SubsetConstraints = {};
-    if (this.searchModel.keywords) {
-      constraints.keywordSearch = this.searchModel.keywords;
+    if (searchModel.keywords) {
+      constraints.keywordSearch = searchModel.keywords;
     }
 
-    if (this.searchModel.minimumResolution) {
+    if (searchModel.minimumResolution) {
       constraints.quality = {
-        min: Number(this.searchModel.minimumResolution),
+        min: Number(searchModel.minimumResolution),
       };
     }
 
-    if (this.searchModel.ratingMin !== undefined && this.searchModel.ratingMin >= 0) {
+    if (searchModel.ratingMin !== undefined && searchModel.ratingMin >= 0) {
       constraints.rating = constraints.rating || {};
-      constraints.rating.min = this.searchModel.ratingMin;
+      constraints.rating.min = searchModel.ratingMin;
     }
-    if (this.searchModel.ratingMax !== undefined && this.searchModel.ratingMax >= 0) {
+    if (searchModel.ratingMax !== undefined && searchModel.ratingMax >= 0) {
       constraints.rating = constraints.rating || {};
-      constraints.rating.max = this.searchModel.ratingMax;
+      constraints.rating.max = searchModel.ratingMax;
     }
 
     if (
-      this.searchModel.sortBy === 'hashDate' ||
-      this.searchModel.sortBy === 'recommended' ||
-      this.searchModel.sortBy === 'rating' ||
-      this.searchModel.sortBy === 'length' ||
-      this.searchModel.sortBy === 'createdAt' ||
-      this.searchModel.sortBy === 'path'
+      searchModel.sortBy === 'hashDate' ||
+      searchModel.sortBy === 'recommended' ||
+      searchModel.sortBy === 'rating' ||
+      searchModel.sortBy === 'length' ||
+      searchModel.sortBy === 'createdAt' ||
+      searchModel.sortBy === 'path'
     ) {
-      constraints.sortBy = this.searchModel.sortBy;
+      constraints.sortBy = searchModel.sortBy;
     }
 
     const types: string[] = [
-      ...(this.searchModel.typeVideo ? ['video'] : []),
-      ...(this.searchModel.typeGif ? ['gif'] : []),
-      ...(this.searchModel.typeStill ? ['still'] : []),
+      ...(searchModel.typeVideo ? ['video'] : []),
+      ...(searchModel.typeGif ? ['gif'] : []),
+      ...(searchModel.typeStill ? ['still'] : []),
     ];
     if (types.length) {
       constraints.type = { equalsAny: types };
     }
 
-    if (this.searchModel.lengthMin !== undefined) {
+    if (searchModel.lengthMin !== undefined) {
       constraints.length = Object.assign(constraints.length || {}, {
         // Convert from minutes to seconds
-        min: this.searchModel.lengthMin * 60,
+        min: searchModel.lengthMin * 60,
       });
     }
-    if (this.searchModel.lengthMax !== undefined) {
+    if (searchModel.lengthMax !== undefined) {
       constraints.length = Object.assign(constraints.length || {}, {
         // Convert from minutes to seconds
-        max: this.searchModel.lengthMax * 60,
+        max: searchModel.lengthMax * 60,
       });
     }
 
     for (const field of this.arrayFields) {
-      const res = toArrayFilter(this.searchModel[field.field]);
+      const res = toArrayFilter(searchModel[field.field]);
       if (res) {
         constraints[field.field] = res;
       }
     }
 
-    if (this.searchModel.tagged) {
+    if (searchModel.tagged) {
       constraints.tags = Object.assign(constraints.tags || {}, { exists: true });
     }
-    if (this.searchModel.untagged) {
+    if (searchModel.untagged) {
       constraints.tags = Object.assign(constraints.tags || {}, { exists: false });
     }
 
-    if (this.searchModel.playlist) {
-      constraints.playlist = this.searchModel.playlist;
+    if (searchModel.playlist) {
+      constraints.playlist = searchModel.playlist;
       constraints.sortBy = 'order';
     }
 
     for (const field of this.stringFields) {
-      const filter = this.searchModel[field.field];
+      const filter = searchModel[field.field];
       if (filter) {
         if (filter.like) {
           constraints[field.field] = Object.assign(constraints[field.field] || {}, {
@@ -228,10 +215,22 @@ export class UiService {
       }
     }
 
-    if (this.searchModel.hasClones) {
-      constraints.hasClones = this.searchModel.hasClones;
+    if (searchModel.hasClones) {
+      constraints.hasClones = searchModel.hasClones;
     }
 
     return constraints;
+  }
+
+  public createSearchModel(): SearchModel {
+    return {
+      tags: createBlankArrayFilter(),
+      actors: createBlankArrayFilter(),
+      artist: createBlankStringFilter(),
+      album: createBlankStringFilter(),
+      title: createBlankStringFilter(),
+      path: createBlankStringFilter(),
+      dir: createBlankStringFilter(),
+    };
   }
 }

@@ -29,6 +29,7 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
   public currentPlaylist?: PreviewPlaylist;
   public addPlaylistModel?: string;
   public uiService: UiService;
+  public searchPlaylist?: string;
 
   private confirmationService: ConfirmationService;
   private mediaService: MediaService;
@@ -48,6 +49,7 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
     this.mediaService = mediaService;
     this.uiService = uiService;
     this.collectionService = collectionService;
+    this.searchPlaylist = this.uiService.searchModel.value.playlist;
   }
 
   public ngOnInit() {
@@ -80,6 +82,12 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
         this.currentPlaylist = playlist;
       }),
     );
+
+    this.subscriptions.push(
+      this.uiService.searchModel.subscribe(searchModel => {
+        this.searchPlaylist = searchModel.playlist;
+      }),
+    );
   }
 
   public ngOnDestroy() {
@@ -95,9 +103,11 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
     }
 
     this.uiService.resetSearch();
-    this.uiService.searchModel.playlist = playlist.id;
+    const searchModel = this.uiService.createSearchModel();
+    searchModel.playlist = playlist.id;
 
-    this.collectionService.search(this.uiService.createSearch(), { noRedirect: true });
+    this.uiService.searchModel.next(searchModel);
+    this.collectionService.search(this.uiService.createSearch(searchModel), { noRedirect: true });
   }
 
   public getActions(playlist: Playlist): ListItem<Playlist>[] {

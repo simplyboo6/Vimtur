@@ -42,6 +42,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.updateTagPanelState();
 
     this.subscriptions.push(this.galleryService.page.subscribe(page => (this.page = page)));
+    this.subscriptions.push(
+      this.uiService.searchModel.subscribe(searchModel => {
+        this.searchText = searchModel.keywords;
+      }),
+    );
   }
 
   public ngOnDestroy() {
@@ -53,11 +58,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   public viewFolder() {
     if (this.mediaService.media) {
-      this.uiService.resetSearch();
-
-      this.uiService.searchModel.dir.like = this.mediaService.media.dir;
-      this.uiService.searchModel.sortBy = 'path';
-      this.collectionService.search(this.uiService.createSearch(), { preserve: true });
+      const searchModel = this.uiService.createSearchModel();
+      searchModel.dir.like = this.mediaService.media.dir;
+      searchModel.sortBy = 'path';
+      this.uiService.searchModel.next(searchModel);
+      this.collectionService.search(this.uiService.createSearch(searchModel), { preserve: true });
     }
   }
 
@@ -70,9 +75,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!this.searchText) {
       return;
     }
-    this.uiService.resetSearch();
-    this.uiService.searchModel.keywords = this.searchText;
-    this.collectionService.search(this.uiService.createSearch());
+    const searchModel = this.uiService.createSearchModel();
+    searchModel.keywords = this.searchText;
+    this.uiService.searchModel.next(searchModel);
+    this.collectionService.search(this.uiService.createSearch(searchModel));
 
     this.isExpanded = false;
   }

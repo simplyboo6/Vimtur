@@ -1,7 +1,4 @@
-<app-playlist
-  *ngIf="uiService.searchModel.playlist; else allPlaylists"
-  [playlist]="currentPlaylist"
-></app-playlist>
+<app-playlist *ngIf="searchPlaylist; else allPlaylists" [playlist]="currentPlaylist"></app-playlist>
 
 <ng-template #allPlaylists>
   <div class="container-lg" *ngIf="playlists; else loading">
