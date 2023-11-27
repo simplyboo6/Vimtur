@@ -1,8 +1,6 @@
 <div class="modal-header">
-  <h4 class="modal-title pull-left">{{ title }}</h4>
-  <button type="button" class="close pull-right" aria-label="Close" (click)="modal?.close(false)">
-    <span aria-hidden="true">&times;</span>
-  </button>
+  <h4 class="modal-title">{{ title }}</h4>
+  <button type="button" class="btn-close" aria-label="Close" (click)="modal?.close(false)"></button>
 </div>
 <div *ngIf="items" class="modal-body">
   <table class="table table-striped">
