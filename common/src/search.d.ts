@@ -17,6 +17,8 @@ export interface ArrayFilter extends StringFilterCommon {
 }
 
 export interface StringFilter extends ArrayFilter {
+  before?: string;
+  after?: string;
   likeAny?: string[];
   likeAll?: string[];
   likeNone?: string[];
@@ -57,6 +59,8 @@ export interface SubsetConstraints {
   // Object ID, if set can sort by order.
   playlist?: string;
   sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt' | 'path' | 'order';
+  // If not set defaults to whatever is sensible for the sortBy field.
+  sortDirection?: 'ASC' | 'DESC';
   // Checks that metadata exists
   indexed?: boolean;
   // Checks that metadata.qualityCache.0 exists or type != video
@@ -67,6 +71,8 @@ export interface SubsetConstraints {
   hasClones?: boolean;
   // Return a random set of this size.
   sample?: number;
+  // Return the first number of matches
+  limit?: number;
 }
 
 export interface SubsetFields {

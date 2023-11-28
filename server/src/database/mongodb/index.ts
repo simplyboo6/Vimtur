@@ -639,6 +639,10 @@ export class MongoConnector extends Database {
       pipeline.push({ $sample: { size: constraints.sample } });
     }
 
+    if (constraints.limit) {
+      pipeline.push({ $limit: constraints.limit });
+    }
+
     if (constraints.playlist) {
       if (!constraints.sortBy) {
         constraints.sortBy = 'order';
@@ -676,18 +680,20 @@ export class MongoConnector extends Database {
 
     const sort: object = {};
     if (constraints.sortBy) {
+      const sortDirection =
+        constraints.sortDirection === undefined ? undefined : constraints.sortDirection === 'ASC' ? 1 : -1;
       switch (constraints.sortBy) {
         case 'hashDate': // Fallthrough
         case 'rating':
-          Object.assign(sort, { [constraints.sortBy]: -1 });
+          Object.assign(sort, { [constraints.sortBy]: sortDirection || -1 });
           break;
         case 'order': // Fallthrough
         case 'path':
-          Object.assign(sort, { [constraints.sortBy]: 1 });
+          Object.assign(sort, { [constraints.sortBy]: sortDirection || 1 });
           break;
         case 'length': // Fallthrough
         case 'createdAt':
-          Object.assign(sort, { [`metadata.${constraints.sortBy}`]: -1 });
+          Object.assign(sort, { [`metadata.${constraints.sortBy}`]: sortDirection || -1 });
           break;
         case 'recommended': // Skip, handled by subset wrapper.
           break;

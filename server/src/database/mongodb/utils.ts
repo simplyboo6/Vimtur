@@ -84,6 +84,14 @@ export function createStringFilter(field: string, options?: StringFilter): objec
         }),
       });
     }
+
+    if (options.before !== undefined) {
+      likeFilters.push({ [field]: { $lt: options.before } });
+    }
+
+    if (options.after !== undefined) {
+      likeFilters.push({ [field]: { $gt: options.after } });
+    }
   }
 
   if (Object.keys(base).length > 0) {
