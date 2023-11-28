@@ -3,7 +3,7 @@
 .gallery-img {
   object-fit: contain;
   width: calc(380px - 0.2rem);
-  height: 244px;
+  height: 240px;
   margin: auto;
 
   @include small {
