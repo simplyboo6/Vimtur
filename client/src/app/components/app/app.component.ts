@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CollectionService } from 'services/collection.service';
 import { ConfigService } from 'services/config.service';
 import { GalleryService } from 'services/gallery.service';
+import { UiService } from 'services/ui.service';
 
 @Component({
   selector: 'app-root',
@@ -10,20 +11,23 @@ import { GalleryService } from 'services/gallery.service';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit {
-  private collectionService: CollectionService;
+  protected readonly collectionService: CollectionService;
   private route: ActivatedRoute;
   private galleryService: GalleryService;
   private configService: ConfigService;
+  private uiService: UiService;
 
   public constructor(
     collectionService: CollectionService,
     galleryService: GalleryService,
     configService: ConfigService,
+    uiService: UiService,
     route: ActivatedRoute,
   ) {
     this.collectionService = collectionService;
     this.galleryService = galleryService;
     this.configService = configService;
+    this.uiService = uiService;
     this.route = route;
   }
 
@@ -45,10 +49,18 @@ export class AppComponent implements OnInit {
       case '/clone-resolver': {
         switch (event.code) {
           case 'ArrowLeft':
-            this.collectionService.offset(-1);
+            if (event.ctrlKey) {
+              this.uiService.offsetDirectory(-1);
+            } else {
+              this.collectionService.offset(-1);
+            }
             break;
           case 'ArrowRight':
-            this.collectionService.offset(1);
+            if (event.ctrlKey) {
+              this.uiService.offsetDirectory(1);
+            } else {
+              this.collectionService.offset(1);
+            }
             break;
           case 'Delete':
             this.collectionService.deleteCurrent();

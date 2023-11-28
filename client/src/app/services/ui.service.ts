@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject, BehaviorSubject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
+import { CollectionService } from './collection.service';
+import { MediaService } from './media.service';
+import { AlertService } from './alert.service';
 
 export interface SearchArrayFilter {
   equalsAny: string[];
@@ -98,6 +102,9 @@ function createBlankStringFilter(): SearchStringFilter {
 })
 export class UiService {
   private tagPanelState: ReplaySubject<boolean> = new ReplaySubject(1);
+  private readonly collectionService: CollectionService;
+  private readonly mediaService: MediaService;
+  private readonly alertService: AlertService;
   // This is in here to allow the search parameters to persist after leaving the search page.
   public readonly searchModel = new BehaviorSubject<SearchModel>(this.createSearchModel());
 
@@ -113,6 +120,16 @@ export class UiService {
     { field: 'path', name: 'Path' },
     { field: 'dir', name: 'Dir' },
   ];
+
+  public constructor(
+    collectionService: CollectionService,
+    mediaService: MediaService,
+    alertService: AlertService,
+  ) {
+    this.collectionService = collectionService;
+    this.mediaService = mediaService;
+    this.alertService = alertService;
+  }
 
   public getTagPanelState(): ReplaySubject<boolean> {
     return this.tagPanelState;
@@ -232,5 +249,53 @@ export class UiService {
       path: createBlankStringFilter(),
       dir: createBlankStringFilter(),
     };
+  }
+
+  public offsetDirectory(offset: -1 | 1): void {
+    const dir = this.mediaService.media?.dir;
+    if (!dir) {
+      this.alertService.show({ type: 'danger', message: 'No media available' });
+      return;
+    }
+
+    const constraints: SubsetConstraints =
+      offset > 0
+        ? {
+            dir: { after: dir },
+            sortBy: 'path',
+            sortDirection: 'ASC',
+            limit: 1,
+          }
+        : {
+            dir: { before: dir },
+            sortBy: 'path',
+            sortDirection: 'DESC',
+            limit: 1,
+          };
+
+    this.collectionService.setSearching(true);
+    this.collectionService
+      .subset(constraints)
+      .pipe(
+        switchMap(([hash]) => {
+          if (!hash) {
+            throw new Error('Directory not found');
+          }
+          return this.mediaService.getMedia(hash);
+        }),
+      )
+      .subscribe(
+        media => {
+          const searchModel = this.createSearchModel();
+          searchModel.dir.like = media.dir;
+          searchModel.sortBy = 'path';
+          this.searchModel.next(searchModel);
+          this.collectionService.search(this.createSearch(searchModel), { noRedirect: true });
+        },
+        err => {
+          this.collectionService.setSearching(false);
+          this.alertService.show({ type: 'danger', message: err.message });
+        },
+      );
   }
 }

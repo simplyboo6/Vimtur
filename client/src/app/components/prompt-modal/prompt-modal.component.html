@@ -6,10 +6,17 @@
 </div>
 <div class="modal-footer row footer-padding">
   <div class="md-6">
-    <button type="button" class="btn btn-danger" (click)="modal?.close(undefined)">Cancel</button>
+    <button type="button" class="btn btn-danger col-12" (click)="modal?.close(undefined)">
+      Cancel
+    </button>
   </div>
   <div class="md-6">
-    <button type="button" class="btn btn-primary" [disabled]="!text" (click)="modal?.close(text)">
+    <button
+      type="button"
+      class="btn btn-primary col-12"
+      [disabled]="!text"
+      (click)="modal?.close(text)"
+    >
       Confirm
     </button>
   </div>

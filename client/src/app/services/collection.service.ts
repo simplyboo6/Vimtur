@@ -70,6 +70,10 @@ export class CollectionService {
     return this.searching;
   }
 
+  public setSearching(searching: boolean): void {
+    this.searching.next(searching);
+  }
+
   public shuffle() {
     if (!this.collection) {
       return;
@@ -222,6 +226,10 @@ export class CollectionService {
     });
   }
 
+  public subset(constraints: SubsetConstraints): Observable<string[]> {
+    return this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS);
+  }
+
   public search(constraints: SubsetConstraints, options?: ClientSearchOptions) {
     if (options && options.init && this.collection) {
       return;
@@ -233,7 +241,7 @@ export class CollectionService {
     this.searching.next(true);
     this.update();
 
-    this.httpClient.post<string[]>(`/api/images/subset`, constraints, HTTP_OPTIONS).subscribe(
+    this.subset(constraints).subscribe(
       res => {
         this.searching.next(false);
         if (res.length === 0) {

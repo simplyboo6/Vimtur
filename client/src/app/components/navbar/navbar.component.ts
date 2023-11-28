@@ -129,4 +129,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
         break;
     }
   }
+
+  public previousDirectory(): void {
+    this.uiService.offsetDirectory(-1);
+  }
+
+  public nextDirectory(): void {
+    this.uiService.offsetDirectory(1);
+  }
 }

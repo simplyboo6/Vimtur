@@ -1,260 +1,254 @@
-<app-loading
-  *ngIf="collectionService.isSearching() | async; else content"
-  title="Searching"
-></app-loading>
-<ng-template #content>
-  <div *ngIf="tags && actors && playlists; else loadingSearch" class="container-fluid">
-    <div class="row">
-      <div class="col-md">
-        <div class="card card-small">
-          <h3>Search</h3>
-          <div class="form-group">
-            <button type="button" class="btn btn-primary" (click)="search()">Search</button>
-            <button type="button" class="btn btn-danger reset-button" (click)="reset()">
-              Reset
-            </button>
-          </div>
+<div *ngIf="tags && actors && playlists; else loadingSearch" class="container-fluid">
+  <div class="row">
+    <div class="col-md">
+      <div class="card card-small">
+        <h3>Search</h3>
+        <div class="form-group">
+          <button type="button" class="btn btn-primary" (click)="search()">Search</button>
+          <button type="button" class="btn btn-danger reset-button" (click)="reset()">
+            Reset
+          </button>
+        </div>
 
-          <div class="form-group">
-            <label>Keyword Search</label>
-            <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
-          </div>
+        <div class="form-group">
+          <label>Keyword Search</label>
+          <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
+        </div>
 
-          <div class="form-group">
-            <label>Type</label>
-            <div class="form-check input-component">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-type-video"
-                [(ngModel)]="searchModel.typeVideo"
-              />
-              <label class="form-check-label" for="search-filter-type-video">Video</label>
-            </div>
-            <div class="form-check input-component">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-type-gif"
-                [(ngModel)]="searchModel.typeGif"
-              />
-              <label class="form-check-label" for="search-filter-type-gif">Gif</label>
-            </div>
-            <div class="form-check input-component">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-type-still"
-                [(ngModel)]="searchModel.typeStill"
-              />
-              <label class="form-check-label" for="search-filter-type-still">Still</label>
-            </div>
+        <div class="form-group">
+          <label>Type</label>
+          <div class="form-check input-component">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-type-video"
+              [(ngModel)]="searchModel.typeVideo"
+            />
+            <label class="form-check-label" for="search-filter-type-video">Video</label>
           </div>
-          <div class="form-group">
-            <label>Tag Status</label>
-            <div
-              class="form-check input-component"
-              title="Selecting this will select any media that has been tagged."
-            >
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-tagged"
-                [(ngModel)]="searchModel.tagged"
-              />
-              <label class="form-check-label" for="search-filter-tagged">Tagged media</label>
-            </div>
-            <div
-              class="form-check input-component"
-              title="Selected this will will display only untagged media."
-            >
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-untagged"
-                [(ngModel)]="searchModel.untagged"
-              />
-              <label class="form-check-label" for="search-filter-untagged">Untagged media</label>
-            </div>
+          <div class="form-check input-component">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-type-gif"
+              [(ngModel)]="searchModel.typeGif"
+            />
+            <label class="form-check-label" for="search-filter-type-gif">Gif</label>
           </div>
-          <div class="form-group">
-            <label>Others</label>
-            <div
-              class="form-check input-component"
-              title="Selecting this will display only untagged media."
-            >
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="search-filter-has-clones"
-                [(ngModel)]="searchModel.hasClones"
-              />
-              <label class="form-check-label" for="search-filter-has-clones">Has Clones</label>
-            </div>
+          <div class="form-check input-component">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-type-still"
+              [(ngModel)]="searchModel.typeStill"
+            />
+            <label class="form-check-label" for="search-filter-type-still">Still</label>
           </div>
-          <div class="form-group">
-            <label>Playlist</label>
-            <select class="form-select" [(ngModel)]="searchModel.playlist">
-              <option selected="selected" [ngValue]="undefined">None</option>
-              <ng-container *ngIf="playlists">
-                <option
-                  *ngFor="let playlist of playlists; trackBy: playlistId"
-                  [ngValue]="playlist.id"
-                  >{{ playlist.name }} ({{ playlist.size }})</option
-                >
-              </ng-container>
-            </select>
+        </div>
+        <div class="form-group">
+          <label>Tag Status</label>
+          <div
+            class="form-check input-component"
+            title="Selecting this will select any media that has been tagged."
+          >
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-tagged"
+              [(ngModel)]="searchModel.tagged"
+            />
+            <label class="form-check-label" for="search-filter-tagged">Tagged media</label>
           </div>
-          <div class="form-group">
-            <label>Sort By</label>
-            <select
-              [disabled]="!!searchModel.playlist"
-              class="form-select"
-              [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy"
-            >
-              <option selected="selected" [ngValue]="undefined">None</option>
-              <option [ngValue]="'hashDate'">Date Added (newest first)</option>
-              <option [ngValue]="'rating'">Rating</option>
-              <option [ngValue]="'recommended'">Recommended</option>
-              <option [ngValue]="'length'">Length (longest first)</option>
-              <option [ngValue]="'createdAt'">File Date (newest first)</option>
-              <option [ngValue]="'path'">Path</option>
-              <option *ngIf="searchModel.playlist" [ngValue]="'order'">Order</option>
-            </select>
+          <div
+            class="form-check input-component"
+            title="Selected this will will display only untagged media."
+          >
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-untagged"
+              [(ngModel)]="searchModel.untagged"
+            />
+            <label class="form-check-label" for="search-filter-untagged">Untagged media</label>
           </div>
+        </div>
+        <div class="form-group">
+          <label>Others</label>
+          <div
+            class="form-check input-component"
+            title="Selecting this will display only untagged media."
+          >
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="search-filter-has-clones"
+              [(ngModel)]="searchModel.hasClones"
+            />
+            <label class="form-check-label" for="search-filter-has-clones">Has Clones</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Playlist</label>
+          <select class="form-select" [(ngModel)]="searchModel.playlist">
+            <option selected="selected" [ngValue]="undefined">None</option>
+            <ng-container *ngIf="playlists">
+              <option
+                *ngFor="let playlist of playlists; trackBy: playlistId"
+                [ngValue]="playlist.id"
+                >{{ playlist.name }} ({{ playlist.size }})</option
+              >
+            </ng-container>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sort By</label>
+          <select
+            [disabled]="!!searchModel.playlist"
+            class="form-select"
+            [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy"
+          >
+            <option selected="selected" [ngValue]="undefined">None</option>
+            <option [ngValue]="'hashDate'">Date Added (newest first)</option>
+            <option [ngValue]="'rating'">Rating</option>
+            <option [ngValue]="'recommended'">Recommended</option>
+            <option [ngValue]="'length'">Length (longest first)</option>
+            <option [ngValue]="'createdAt'">File Date (newest first)</option>
+            <option [ngValue]="'path'">Path</option>
+            <option *ngIf="searchModel.playlist" [ngValue]="'order'">Order</option>
+          </select>
         </div>
       </div>
-
-      <div class="col-md">
-        <div class="card card-small">
-          <h3>Metadata</h3>
-
-          <label>Minimum Resolution</label>
-          <div class="container">
-            <select class="form-select" [(ngModel)]="searchModel.minimumResolution">
-              <option selected="selected" [value]="0">None</option>
-              <option [value]="240">240p</option>
-              <option [value]="360">360p</option>
-              <option [value]="480">480p</option>
-              <option [value]="720">720p</option>
-              <option [value]="1080">1080p</option>
-            </select>
-          </div>
-
-          <label>Rating</label>
-          <div class="container">
-            <div class="row">
-              <div class="form-group col">
-                <label>Minimum</label>
-                <select class="form-select" [(ngModel)]="searchModel.ratingMin">
-                  <option selected="selected" [value]="-1">None</option>
-                  <option [value]="1">1</option>
-                  <option [value]="2">2</option>
-                  <option [value]="3">3</option>
-                  <option [value]="4">4</option>
-                  <option [value]="5">5</option>
-                </select>
-              </div>
-              <div class="form-group col">
-                <label>Maximum</label>
-                <select class="form-select" [(ngModel)]="searchModel.ratingMax">
-                  <option selected="selected" [value]="-1">None</option>
-                  <option [value]="0">Unrated</option>
-                  <option [value]="1">1</option>
-                  <option [value]="2">2</option>
-                  <option [value]="3">3</option>
-                  <option [value]="4">4</option>
-                  <option [value]="5">5</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <label>Length (Minutes)</label>
-          <div class="container">
-            <div class="row">
-              <div class="form-group col">
-                <label>Minimum</label>
-                <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMin" />
-              </div>
-              <div class="form-group col">
-                <label>Maximum</label>
-                <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMax" />
-              </div>
-            </div>
-          </div>
-
-          <ng-container *ngFor="let field of uiService.stringFields; trackBy: stringFieldId">
-            <label>{{ field.name }}</label>
-            <div class="container">
-              <div class="row">
-                <div class="form-group col">
-                  <label>Like</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="searchModel[field.field].like"
-                    class="form-control"
-                  />
-                </div>
-                <div class="form-group col">
-                  <label>Not Like</label>
-                  <input
-                    type="text"
-                    [(ngModel)]="searchModel[field.field].notLike"
-                    class="form-control"
-                  />
-                </div>
-              </div>
-            </div>
-          </ng-container>
-        </div>
-      </div>
-
-      <ng-container *ngFor="let field of uiService.arrayFields; trackBy: arrayFieldId">
-        <div *ngIf="this[field.field]" class="col-md">
-          <div class="card card-small">
-            <h3>{{ field.name }}</h3>
-            <div class="form-group">
-              <label>All</label>
-              <app-select [(value)]="searchModel[field.field].equalsAll">
-                <app-select-option
-                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
-                  [value]="item.id"
-                >
-                  {{ item.itemName }}
-                </app-select-option>
-              </app-select>
-            </div>
-
-            <div class="form-group">
-              <label>Any</label>
-              <app-select [(value)]="searchModel[field.field].equalsAny">
-                <app-select-option
-                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
-                  [value]="item.id"
-                >
-                  {{ item.itemName }}
-                </app-select-option>
-              </app-select>
-            </div>
-
-            <div class="form-group">
-              <label>None</label>
-              <app-select [(value)]="searchModel[field.field].equalsNone">
-                <app-select-option
-                  *ngFor="let item of (this[field.field] || []); trackBy:listId"
-                  [value]="item.id"
-                >
-                  {{ item.itemName }}
-                </app-select-option>
-              </app-select>
-            </div>
-          </div>
-        </div>
-      </ng-container>
     </div>
+
+    <div class="col-md">
+      <div class="card card-small">
+        <h3>Metadata</h3>
+
+        <label>Minimum Resolution</label>
+        <div class="container">
+          <select class="form-select" [(ngModel)]="searchModel.minimumResolution">
+            <option selected="selected" [value]="0">None</option>
+            <option [value]="240">240p</option>
+            <option [value]="360">360p</option>
+            <option [value]="480">480p</option>
+            <option [value]="720">720p</option>
+            <option [value]="1080">1080p</option>
+          </select>
+        </div>
+
+        <label>Rating</label>
+        <div class="container">
+          <div class="row">
+            <div class="form-group col">
+              <label>Minimum</label>
+              <select class="form-select" [(ngModel)]="searchModel.ratingMin">
+                <option selected="selected" [value]="-1">None</option>
+                <option [value]="1">1</option>
+                <option [value]="2">2</option>
+                <option [value]="3">3</option>
+                <option [value]="4">4</option>
+                <option [value]="5">5</option>
+              </select>
+            </div>
+            <div class="form-group col">
+              <label>Maximum</label>
+              <select class="form-select" [(ngModel)]="searchModel.ratingMax">
+                <option selected="selected" [value]="-1">None</option>
+                <option [value]="0">Unrated</option>
+                <option [value]="1">1</option>
+                <option [value]="2">2</option>
+                <option [value]="3">3</option>
+                <option [value]="4">4</option>
+                <option [value]="5">5</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <label>Length (Minutes)</label>
+        <div class="container">
+          <div class="row">
+            <div class="form-group col">
+              <label>Minimum</label>
+              <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMin" />
+            </div>
+            <div class="form-group col">
+              <label>Maximum</label>
+              <input type="number" class="form-control" [(ngModel)]="searchModel.lengthMax" />
+            </div>
+          </div>
+        </div>
+
+        <ng-container *ngFor="let field of uiService.stringFields; trackBy: stringFieldId">
+          <label>{{ field.name }}</label>
+          <div class="container">
+            <div class="row">
+              <div class="form-group col">
+                <label>Like</label>
+                <input
+                  type="text"
+                  [(ngModel)]="searchModel[field.field].like"
+                  class="form-control"
+                />
+              </div>
+              <div class="form-group col">
+                <label>Not Like</label>
+                <input
+                  type="text"
+                  [(ngModel)]="searchModel[field.field].notLike"
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <ng-container *ngFor="let field of uiService.arrayFields; trackBy: arrayFieldId">
+      <div *ngIf="this[field.field]" class="col-md">
+        <div class="card card-small">
+          <h3>{{ field.name }}</h3>
+          <div class="form-group">
+            <label>All</label>
+            <app-select [(value)]="searchModel[field.field].equalsAll">
+              <app-select-option
+                *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                [value]="item.id"
+              >
+                {{ item.itemName }}
+              </app-select-option>
+            </app-select>
+          </div>
+
+          <div class="form-group">
+            <label>Any</label>
+            <app-select [(value)]="searchModel[field.field].equalsAny">
+              <app-select-option
+                *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                [value]="item.id"
+              >
+                {{ item.itemName }}
+              </app-select-option>
+            </app-select>
+          </div>
+
+          <div class="form-group">
+            <label>None</label>
+            <app-select [(value)]="searchModel[field.field].equalsNone">
+              <app-select-option
+                *ngFor="let item of (this[field.field] || []); trackBy:listId"
+                [value]="item.id"
+              >
+                {{ item.itemName }}
+              </app-select-option>
+            </app-select>
+          </div>
+        </div>
+      </div>
+    </ng-container>
   </div>
-</ng-template>
+</div>
 
 <ng-template #loadingSearch>
   <app-loading title="Loading Search"></app-loading>
