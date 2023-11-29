@@ -83,6 +83,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       }),
     );
 
+    // If screen is greater than XSmall
     const isBigScreenObservable = this.breakpointObserver.observe(Breakpoints.XSmall).pipe(map(result => !result.matches));
     const singularUrls = ['/viewer', '/metadata', '/clone-resolve'];
     const isSingularObservable = this.routeObservable.pipe(map(url => singularUrls.includes(url)));
@@ -90,7 +91,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const isGalleryObservable = this.routeObservable.pipe(map(url => url === galleryUrl));
     const navEnabledObservable = combineLatest([isSingularObservable, isGalleryObservable]).pipe(map(([isSingular, isGallery]) => isSingular || isGallery));
 
-    this.showToggleTags = combineLatest([isBigScreenObservable, this.routeObservable]).pipe(map(([isBigScreen, url]) => isBigScreen && url === '/viewer'));
+    // If screen is greater than Small.
+    this.showToggleTags = combineLatest([
+      this.breakpointObserver.observe([Breakpoints.XSmall, Breakpoints.Small]).pipe(map(result => !result.matches)),
+      this.routeObservable,
+    ]).pipe(map(([isBigScreen, url]) => isBigScreen && url === '/viewer'));
 
     this.navItems = [
       {
