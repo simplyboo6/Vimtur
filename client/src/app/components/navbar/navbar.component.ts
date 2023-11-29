@@ -4,8 +4,9 @@ import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
-import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription, Observable, combineLatest } from 'rxjs';
+import { map, filter } from 'rxjs/operators';
 import {
   faArrowLeft,
   faArrowRight,
@@ -16,7 +17,24 @@ import {
   faTrash,
   faFolderOpen,
   faDiamondTurnRight,
+  IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
+
+interface NavItemButton {
+  type: 'button';
+  click: () => void;
+  title: string;
+  icon: IconDefinition;
+  visible: Observable<boolean>;
+}
+
+interface NavItemPaginator {
+  type: 'paginator';
+  page: Observable<Page>;
+  visible: Observable<boolean>;
+}
+
+type NavItem = NavItemButton | NavItemPaginator;
 
 @Component({
   selector: 'app-navbar',
@@ -24,60 +42,157 @@ import {
   styleUrls: ['./navbar.component.scss'],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
-  public tagsOpen = false;
-  public collectionService: CollectionService;
-  public searchText?: string;
-  public isExpanded = false;
-  public page: Page = { current: 0, max: 0 };
-  protected showDirButtons: boolean = false;
-  protected readonly faArrowLeft = faArrowLeft;
-  protected readonly faArrowRight = faArrowRight;
+  protected tagsOpen = false;
+  protected collectionService: CollectionService;
+  protected searchText?: string;
+  protected isExpanded = false;
+  protected navItems: NavItem[];
   protected readonly faTags = faTags;
-  protected readonly faBackward = faBackward;
-  protected readonly faForward = faForward;
-  protected readonly faShuffle = faShuffle;
-  protected readonly faTrash = faTrash;
-  protected readonly faFolderOpen = faFolderOpen;
-  protected readonly faDiamondTurnRight = faDiamondTurnRight;
+  protected showToggleTags: Observable<boolean>;
+  protected currentRoute?: string;
 
-  private route: ActivatedRoute;
   private uiService: UiService;
   private mediaService: MediaService;
   private galleryService: GalleryService;
   private subscriptions: Subscription[] = [];
   private breakpointObserver: BreakpointObserver;
+  private routeObservable: Observable<string>;
 
   public constructor(
     collectionService: CollectionService,
     uiService: UiService,
-    route: ActivatedRoute,
     mediaService: MediaService,
     galleryService: GalleryService,
     breakpointObserver: BreakpointObserver,
+    router: Router,
   ) {
     this.uiService = uiService;
     this.collectionService = collectionService;
     this.mediaService = mediaService;
-    this.route = route;
     this.galleryService = galleryService;
     this.breakpointObserver = breakpointObserver;
+
+    this.routeObservable = router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(event => (event as NavigationEnd).url),
+    );
+
+    const isBigScreenObservable = this.breakpointObserver.observe(Breakpoints.XSmall).pipe(map(result => !result.matches));
+    const singularUrls = ['/viewer', '/metadata', '/clone-resolve'];
+    const isSingularObservable = this.routeObservable.pipe(map(url => singularUrls.includes(url)));
+    const galleryUrl = '/gallery';
+    const isGalleryObservable = this.routeObservable.pipe(map(url => url === galleryUrl));
+    const navEnabledObservable = combineLatest([isSingularObservable, isGalleryObservable]).pipe(map(([isSingular, isGallery]) => isSingular || isGallery));
+
+    this.showToggleTags = combineLatest([isBigScreenObservable, this.routeObservable]).pipe(map(([isBigScreen, url]) => isBigScreen && url === '/viewer'));
+
+    this.navItems = [
+      {
+        type: 'button',
+        title: 'Previous Directory',
+        icon: faBackward,
+        click: () => uiService.offsetDirectory(-1),
+        visible: combineLatest([isBigScreenObservable, isSingularObservable]).pipe(
+          map(([isBigScreen, isSingular]) => {
+            return isBigScreen && isSingular;
+          }),
+        ),
+      },
+      {
+        type: 'button',
+        title: 'Previous',
+        icon: faArrowLeft,
+        click: () => {
+          if (this.currentRoute) {
+            if (singularUrls.includes(this.currentRoute)) {
+              this.collectionService.offset(-1);
+            } else if (galleryUrl === this.currentRoute) {
+              this.galleryService.offset(-1);
+            }
+          }
+        },
+        visible: navEnabledObservable,
+      },
+      {
+        type: 'button',
+        title: 'Shuffle',
+        icon: faShuffle,
+        click: () => this.collectionService.shuffle(),
+        visible: isGalleryObservable,
+      },
+      {
+        type: 'button',
+        title: 'Delete',
+        icon: faTrash,
+        click: () => this.collectionService.deleteCurrent(),
+        visible: isSingularObservable,
+      },
+      {
+        type: 'button',
+        title: 'View Folder',
+        icon: faFolderOpen,
+        click: () => {
+          if (this.mediaService.media) {
+            const searchModel = this.uiService.createSearchModel();
+            searchModel.dir.like = this.mediaService.media.dir;
+            searchModel.sortBy = 'path';
+            this.uiService.searchModel.next(searchModel);
+            this.collectionService.search(this.uiService.createSearch(searchModel), { preserve: true });
+          }
+        },
+        visible: isSingularObservable,
+      },
+      {
+        type: 'paginator',
+        page: this.galleryService.page,
+        visible: isGalleryObservable,
+      },
+      {
+        type: 'button',
+        title: 'Goto',
+        icon: faDiamondTurnRight,
+        click: () => this.collectionService.goto(this.currentRoute === galleryUrl),
+        visible: navEnabledObservable,
+      },
+      {
+        type: 'button',
+        title: 'Next',
+        icon: faArrowRight,
+        click: () => {
+          if (this.currentRoute) {
+            if (singularUrls.includes(this.currentRoute)) {
+              this.collectionService.offset(1);
+            } else if (galleryUrl === this.currentRoute) {
+              this.galleryService.offset(1);
+            }
+          }
+        },
+        visible: navEnabledObservable,
+      },
+      {
+        type: 'button',
+        title: 'Next Directory',
+        icon: faForward,
+        click: () => uiService.offsetDirectory(1),
+        visible: combineLatest([isBigScreenObservable, isSingularObservable]).pipe(
+          map(([isBigScreen, isSingular]) => {
+            return isBigScreen && isSingular;
+          }),
+        ),
+      },
+    ];
   }
 
   public ngOnInit() {
     this.updateTagPanelState();
 
-    this.subscriptions.push(this.galleryService.page.subscribe(page => (this.page = page)));
     this.subscriptions.push(
       this.uiService.searchModel.subscribe(searchModel => {
         this.searchText = searchModel.keywords;
       }),
     );
 
-    this.subscriptions.push(
-      this.breakpointObserver.observe(Breakpoints.XSmall).subscribe(result => {
-        this.showDirButtons = !result.matches;
-      }),
-    );
+    this.subscriptions.push(this.routeObservable.subscribe(route => (this.currentRoute = route)));
   }
 
   public ngOnDestroy() {
@@ -114,14 +229,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isExpanded = false;
   }
 
-  public isActive(route: string) {
-    return this.getRoute().startsWith(route);
-  }
-
-  public getRoute(): string {
-    return (this.route.snapshot as any)._routerState.url as string;
-  }
-
   public toggleTagsOpen(): void {
     this.tagsOpen = !this.tagsOpen;
     this.updateTagPanelState();
@@ -131,41 +238,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.uiService.setTagPanelState(this.tagsOpen);
   }
 
-  public previous() {
-    switch (this.getRoute()) {
-      case '/viewer': // Fallthrough
-      case '/metadata': // Fallthough
-      case '/clone-resolver':
-        this.collectionService.offset(-1);
-        break;
-      case '/gallery':
-        this.galleryService.offset(-1);
-        break;
-      default:
-        break;
+  public trackNavItem(_: number, navItem: NavItem): string {
+    switch (navItem.type) {
+      case 'button':
+        return `button-${navItem.title}`;
+      case 'paginator':
+        // Only one.
+        return 'paginator';
     }
-  }
-
-  public next() {
-    switch (this.getRoute()) {
-      case '/viewer': // Fallthrough
-      case '/metadata': // Fallthough
-      case '/clone-resolver':
-        this.collectionService.offset(1);
-        break;
-      case '/gallery':
-        this.galleryService.offset(1);
-        break;
-      default:
-        break;
-    }
-  }
-
-  public previousDirectory(): void {
-    this.uiService.offsetDirectory(-1);
-  }
-
-  public nextDirectory(): void {
-    this.uiService.offsetDirectory(1);
   }
 }

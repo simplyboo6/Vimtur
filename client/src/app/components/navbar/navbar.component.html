@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
   <div class="container-fluid">
-    <div class="btn-group btn-group-toggle nav-button-group" *ngIf="getRoute() === '/viewer && showDirButtons'; else emptyNav" title="Toggle Tags">
+    <div class="btn-group btn-group-toggle nav-button-group" *ngIf="showToggleTags | async; else emptyNav" title="Toggle Tags">
       <button class="btn btn-primary" (click)="toggleTagsOpen()">
         <fa-icon [icon]="faTags" size="xl"></fa-icon>
       </button>
@@ -10,55 +10,18 @@
       <div class="btn-group"></div>
     </ng-template>
 
-    <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/gallery' || getRoute() === '/clone-resolver'">
-      <div class="btn-group">
-        <button
-          *ngIf="(getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver') && showDirButtons"
-          (click)="previousDirectory()"
-          class="btn btn-outline-success"
-          type="submit"
-          title="Previous Directory"
-        >
-          <fa-icon [icon]="faBackward" size="xl"></fa-icon>
-        </button>
-        <button class="btn btn-outline-success" type="submit" (click)="previous()" title="Previous">
-          <fa-icon [icon]="faArrowLeft" size="xl"></fa-icon>
-        </button>
-        <button *ngIf="getRoute() === '/gallery'" class="btn btn-outline-success" type="submit" (click)="collectionService.shuffle()" title="Shuffle">
-          <fa-icon [icon]="faShuffle" size="xl"></fa-icon>
-        </button>
-
-        <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'">
-          <button class="btn btn-outline-success" type="submit" (click)="collectionService.deleteCurrent()" title="Delete">
-            <fa-icon [icon]="faTrash" size="xl"></fa-icon>
+    <div class="btn-group">
+      <ng-container *ngFor="let navItem of navItems; trackBy: trackNavItem">
+        <ng-container *ngIf="navItem.visible | async">
+          <button *ngIf="navItem.type === 'button'" class="btn btn-outline-success" [title]="navItem.title" (click)="navItem.click()">
+            <fa-icon [icon]="navItem.icon" size="xl"></fa-icon>
           </button>
-          <button class="btn btn-outline-success" type="submit" (click)="viewFolder()" title="View Folder">
-            <fa-icon [icon]="faFolderOpen" size="xl"></fa-icon>
-          </button>
+          <div *ngIf="navItem.type === 'paginator' && (navItem.page | async) as page" class="btn btn-outline-success paginator" type="submit" title="Page">
+            {{ page.current + 1 }} of {{ page.max }}
+          </div>
         </ng-container>
-
-        <ng-container *ngIf="getRoute() === '/gallery'">
-          <div class="btn btn-outline-success paginator" type="submit" title="Page">{{ this.page.current + 1 }} of {{ this.page.max }}</div>
-        </ng-container>
-
-        <button class="btn btn-outline-success" type="submit" (click)="collectionService.goto(getRoute() === '/gallery')" title="Goto">
-          <fa-icon [icon]="faDiamondTurnRight" size="xl"></fa-icon>
-        </button>
-
-        <button class="btn btn-outline-success" type="submit" (click)="next()" title="Next">
-          <fa-icon [icon]="faArrowRight" size="xl"></fa-icon>
-        </button>
-        <button
-          *ngIf="(getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver') && showDirButtons"
-          class="btn btn-outline-success"
-          type="submit"
-          title="Next Directory"
-          (click)="nextDirectory()"
-        >
-          <fa-icon [icon]="faForward" size="xl"></fa-icon>
-        </button>
-      </div>
-    </ng-container>
+      </ng-container>
+    </div>
 
     <button
       class="navbar-toggler"
@@ -73,28 +36,28 @@
 
     <div class="collapse navbar-collapse justify-content-end" id="navbarDefault" [ngbCollapse]="!isExpanded">
       <ul class="navbar-nav">
-        <li class="nav-item" [class.active]="isActive('/viewer')">
+        <li class="nav-item" [class.active]="currentRoute === '/viewer'">
           <a class="nav-link" routerLink="/viewer" (click)="isExpanded = false">Viewer</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/metadata')">
+        <li class="nav-item" [class.active]="currentRoute === '/metadata'">
           <a class="nav-link" routerLink="/metadata" (click)="isExpanded = false">Metadata</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/clone-resolver')">
+        <li class="nav-item" [class.active]="currentRoute === '/clone-resolver'">
           <a class="nav-link" routerLink="/clone-resolver" (click)="isExpanded = false">Clone Resolver</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/gallery')">
+        <li class="nav-item" [class.active]="currentRoute === '/gallery'">
           <a class="nav-link" routerLink="/gallery" (click)="isExpanded = false">Gallery</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/search')">
+        <li class="nav-item" [class.active]="currentRoute === '/search'">
           <a class="nav-link" routerLink="/search" (click)="isExpanded = false">Search</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/playlists')">
+        <li class="nav-item" [class.active]="currentRoute === '/playlists'">
           <a class="nav-link" routerLink="/playlists" (click)="isExpanded = false">Playlists</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/config')">
+        <li class="nav-item" [class.active]="currentRoute === '/config'">
           <a class="nav-link" routerLink="/config" (click)="isExpanded = false">Config</a>
         </li>
-        <li class="nav-item" [class.active]="isActive('/insights')">
+        <li class="nav-item" [class.active]="currentRoute === '/insights'">
           <a class="nav-link" routerLink="/insights" (click)="isExpanded = false">Insights</a>
         </li>
       </ul>

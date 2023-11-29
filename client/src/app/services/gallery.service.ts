@@ -1,4 +1,4 @@
-import { Injectable, EventEmitter } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { Media } from '@vimtur/common';
 import { MediaService } from './media.service';
@@ -14,7 +14,7 @@ export interface Page {
   providedIn: 'root',
 })
 export class GalleryService {
-  public readonly page: EventEmitter<Page> = new EventEmitter();
+  public readonly page: ReplaySubject<Page> = new ReplaySubject(1);
 
   public readonly media: ReplaySubject<Media[] | undefined> = new ReplaySubject(1);
 
@@ -55,7 +55,7 @@ export class GalleryService {
       this.media.next(undefined);
 
       if (this.collection) {
-        this.page.emit({ current: this.pageNumber || 0, max: this.pageCount || 0 });
+        this.page.next({ current: this.pageNumber || 0, max: this.pageCount || 0 });
 
         const pageHashes = pageSize ? this.collection.slice(this.pageNumber * pageSize, (this.pageNumber + 1) * pageSize) : this.collection;
 
