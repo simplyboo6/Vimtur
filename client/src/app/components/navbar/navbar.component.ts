@@ -6,7 +6,7 @@ import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, Observable, combineLatest } from 'rxjs';
-import { map, filter } from 'rxjs/operators';
+import { map, filter, startWith } from 'rxjs/operators';
 import {
   faArrowLeft,
   faArrowRight,
@@ -74,7 +74,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.routeObservable = router.events.pipe(
       filter(event => event instanceof NavigationEnd),
-      map(event => (event as NavigationEnd).url),
+      startWith(router),
+      map(event => {
+        if (event instanceof NavigationEnd) {
+          return event.urlAfterRedirects || event.url;
+        }
+        return (event as Router).url;
+      }),
     );
 
     const isBigScreenObservable = this.breakpointObserver.observe(Breakpoints.XSmall).pipe(map(result => !result.matches));
