@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
@@ -28,6 +29,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public searchText?: string;
   public isExpanded = false;
   public page: Page = { current: 0, max: 0 };
+  protected showDirButtons: boolean = false;
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faArrowRight = faArrowRight;
   protected readonly faTags = faTags;
@@ -43,6 +45,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private mediaService: MediaService;
   private galleryService: GalleryService;
   private subscriptions: Subscription[] = [];
+  private breakpointObserver: BreakpointObserver;
 
   public constructor(
     collectionService: CollectionService,
@@ -50,12 +53,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     route: ActivatedRoute,
     mediaService: MediaService,
     galleryService: GalleryService,
+    breakpointObserver: BreakpointObserver,
   ) {
     this.uiService = uiService;
     this.collectionService = collectionService;
     this.mediaService = mediaService;
     this.route = route;
     this.galleryService = galleryService;
+    this.breakpointObserver = breakpointObserver;
   }
 
   public ngOnInit() {
@@ -65,6 +70,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.uiService.searchModel.subscribe(searchModel => {
         this.searchText = searchModel.keywords;
+      }),
+    );
+
+    this.subscriptions.push(
+      this.breakpointObserver.observe(Breakpoints.XSmall).subscribe(result => {
+        this.showDirButtons = !result.matches;
       }),
     );
   }

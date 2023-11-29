@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
   <div class="container-fluid">
-    <div class="btn-group btn-group-toggle nav-button-group d-none d-md-block" *ngIf="getRoute() === '/viewer'; else emptyNav" title="Toggle Tags">
+    <div class="btn-group btn-group-toggle nav-button-group" *ngIf="getRoute() === '/viewer && showDirButtons'; else emptyNav" title="Toggle Tags">
       <button class="btn btn-primary" (click)="toggleTagsOpen()">
         <fa-icon [icon]="faTags" size="xl"></fa-icon>
       </button>
@@ -13,7 +13,7 @@
     <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/gallery' || getRoute() === '/clone-resolver'">
       <div class="btn-group">
         <button
-          *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'"
+          *ngIf="(getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver') && showDirButtons"
           (click)="previousDirectory()"
           class="btn btn-outline-success"
           type="submit"
@@ -49,7 +49,7 @@
           <fa-icon [icon]="faArrowRight" size="xl"></fa-icon>
         </button>
         <button
-          *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'"
+          *ngIf="(getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver') && showDirButtons"
           class="btn btn-outline-success"
           type="submit"
           title="Next Directory"
