@@ -8,15 +8,8 @@
 
   <!-- This select is rendered invisible on top of the old one. So this one will capture the users clicks. -->
   <!-- Also the normal multi-select rendering is a load of crap. It's a list. Doing this allows rendering it sensibly -->
-  <select
-    multiple
-    class="hidden-select"
-    (ngModelChange)="onNativeSelectChange($event)"
-    [ngModel]="valueInternal"
-  >
-    <option *ngFor="let opt of basicOptions || []; trackBy: trackByFn" [value]="opt.value">{{
-      opt.name
-    }}</option>
+  <select multiple class="hidden-select" (ngModelChange)="onNativeSelectChange($event)" [ngModel]="valueInternal">
+    <option *ngFor="let opt of basicOptions || []; trackBy: trackByFn" [value]="opt.value">{{ opt.name }}</option>
   </select>
 </ng-container>
 
@@ -24,9 +17,7 @@
   <select
     class="form-select"
     [class.focus]="open"
-    (mousedown)="
-      $event.preventDefault(); $event.button === 0 && (open = !open); selectRef.focus(); onResize()
-    "
+    (mousedown)="$event.preventDefault(); $event.button === 0 && (open = !open); selectRef.focus(); onResize()"
     (keydown)="onKeydown('select', $event)"
     (focusout)="onFocusOut()"
     #selectRef

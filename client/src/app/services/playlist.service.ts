@@ -1,13 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
-import {
-  Playlist,
-  PlaylistCreate,
-  PlaylistUpdate,
-  SubsetConstraints,
-  MediaPlaylist,
-} from '@vimtur/common';
+import { Playlist, PlaylistCreate, PlaylistUpdate, SubsetConstraints, MediaPlaylist } from '@vimtur/common';
 import { AlertService } from './alert.service';
 import { UiService } from './ui.service';
 import { MediaService } from './media.service';
@@ -104,8 +98,7 @@ export class PlaylistService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
-        const message =
-          (err && err.error && err.error.message) || `Failed to add playlist '${request.name}'`;
+        const message = (err && err.error && err.error.message) || `Failed to add playlist '${request.name}'`;
         this.alertService.show({ type: 'warning', message, autoClose: 5000 });
       },
     );
@@ -142,8 +135,7 @@ export class PlaylistService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
-        const message =
-          (err && err.error && err.error.message) || `Failed to delete playlist '${id}'`;
+        const message = (err && err.error && err.error.message) || `Failed to delete playlist '${id}'`;
         this.alertService.show({ type: 'warning', message, autoClose: 5000 });
       },
     );
@@ -152,9 +144,7 @@ export class PlaylistService {
   public addAllCurrentToPlaylist(playlist: Playlist, constraints?: SubsetConstraints): void {
     const subset = constraints || this.uiService.createSearch(this.uiService.searchModel.value);
 
-    let prompt = `Are you sure you want to add ${
-      this.collectionSize === undefined ? 'all' : this.collectionSize
-    } current search results to ${playlist.name}?`;
+    let prompt = `Are you sure you want to add ${this.collectionSize === undefined ? 'all' : this.collectionSize} current search results to ${playlist.name}?`;
     if (this.collectionSize !== undefined && this.collectionSize > PLAYLIST_WARNING_SIZE) {
       prompt = `${prompt} Playlists longer than ${PLAYLIST_WARNING_SIZE} may be difficult to manage and not perform well.`;
     }
@@ -169,29 +159,26 @@ export class PlaylistService {
           this.alertService.show(alert);
           console.log('addAllCurrentToPlaylist', subset, playlist);
 
-          this.httpClient
-            .put<string[]>(`/api/images/subset/playlists/${playlist.id}`, subset, HTTP_OPTIONS)
-            .subscribe(
-              () => {
-                this.alertService.dismiss(alert);
-                this.alertService.show({
-                  type: 'success',
-                  message: `Added current set to ${playlist.name}`,
-                  autoClose: 3000,
-                });
-                if (media) {
-                  this.mediaService.addPlaylist(media.hash, { id: playlist.id, order: NaN });
-                }
-                this.updatePlaylists();
-              },
-              (err: HttpErrorResponse) => {
-                console.error(err);
-                this.alertService.dismiss(alert);
-                const message =
-                  (err && err.error && err.error.message) || `Failed to add all to playlist`;
-                this.alertService.show({ type: 'warning', message, autoClose: 5000 });
-              },
-            );
+          this.httpClient.put<string[]>(`/api/images/subset/playlists/${playlist.id}`, subset, HTTP_OPTIONS).subscribe(
+            () => {
+              this.alertService.dismiss(alert);
+              this.alertService.show({
+                type: 'success',
+                message: `Added current set to ${playlist.name}`,
+                autoClose: 3000,
+              });
+              if (media) {
+                this.mediaService.addPlaylist(media.hash, { id: playlist.id, order: NaN });
+              }
+              this.updatePlaylists();
+            },
+            (err: HttpErrorResponse) => {
+              console.error(err);
+              this.alertService.dismiss(alert);
+              const message = (err && err.error && err.error.message) || `Failed to add all to playlist`;
+              this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+            },
+          );
         }
       })
       .catch(err => console.warn('Playlist add all confirmation error', err));

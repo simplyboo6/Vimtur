@@ -26,11 +26,7 @@ export class CloneResolverComponent implements OnInit, OnDestroy {
   private mediaService: MediaService;
   private alertService: AlertService;
 
-  public constructor(
-    mediaService: MediaService,
-    alertService: AlertService,
-    collectionService: CollectionService,
-  ) {
+  public constructor(mediaService: MediaService, alertService: AlertService, collectionService: CollectionService) {
     this.mediaService = mediaService;
     this.alertService = alertService;
     this.collectionService = collectionService;

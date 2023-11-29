@@ -4,10 +4,7 @@
       Tags
       <a *ngIf="media" [href]="'/api/images/' + media.hash + '/file?download=true'">Download</a>
     </div>
-    <div
-      *ngIf="tagsModel && media && columnIndexes && columnTags; else loading"
-      class="card-body card-small tag-list"
-    >
+    <div *ngIf="tagsModel && media && columnIndexes && columnTags; else loading" class="card-body card-small tag-list">
       <div class="tag-list-column" *ngFor="let i of columnIndexes">
         <div class="tag form-check input-component" *ngFor="let tag of columnTags[i]">
           <input
@@ -62,9 +59,7 @@
         <button
           (click)="saveMetadata('artist')"
           class="btn btn-primary"
-          [disabled]="
-            !mediaMetadataUpdate || mediaMetadataUpdate.artist === (media.metadata?.artist || '')
-          "
+          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.artist === (media.metadata?.artist || '')"
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
@@ -85,9 +80,7 @@
         <button
           (click)="saveMetadata('album')"
           class="btn btn-primary"
-          [disabled]="
-            !mediaMetadataUpdate || mediaMetadataUpdate.album === (media.metadata?.album || '')
-          "
+          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.album === (media.metadata?.album || '')"
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
@@ -108,9 +101,7 @@
         <button
           (click)="saveMetadata('title')"
           class="btn btn-primary"
-          [disabled]="
-            !mediaMetadataUpdate || mediaMetadataUpdate.title === (media.metadata?.title || '')
-          "
+          [disabled]="!mediaMetadataUpdate || mediaMetadataUpdate.title === (media.metadata?.title || '')"
         >
           <ng-container *ngTemplateOutlet="saveIcon"></ng-container>
         </button>
@@ -120,12 +111,7 @@
     <div *ngIf="config.user.quickTagShowPeople && actors && actorsModel" class="card">
       <div class="card-header card-small">People</div>
       <div class="card-body card-small ui-fluid">
-        <app-select
-          [(value)]="actorsModel"
-          (selected)="mediaService.addActor($event)"
-          (deselected)="mediaService.removeActor($event)"
-          placeholder="+ People"
-        >
+        <app-select [(value)]="actorsModel" (selected)="mediaService.addActor($event)" (deselected)="mediaService.removeActor($event)" placeholder="+ People">
           <app-select-option *ngFor="let actor of actors" [value]="actor.id">
             {{ actor.itemName }}
           </app-select-option>
@@ -152,9 +138,7 @@
 </div>
 
 <ng-template #ratingStar let-fill="fill">
-  <span class="star">
-    <span class="half" [style.width.%]="fill">&#9733;</span>{{ fill ? '&#9733;' : '&#9734;' }}
-  </span>
+  <span class="star"> <span class="half" [style.width.%]="fill">&#9733;</span>{{ fill ? '&#9733;' : '&#9734;' }} </span>
 </ng-template>
 
 <ng-template #saveIcon>

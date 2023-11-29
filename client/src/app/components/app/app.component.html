@@ -1,10 +1,7 @@
 <app-alert-overlay></app-alert-overlay>
 <app-navbar></app-navbar>
 <main role="main" class="container-fluid container-body offset-nav">
-  <app-loading
-    *ngIf="collectionService.isSearching() | async; else content"
-    title="Searching"
-  ></app-loading>
+  <app-loading *ngIf="collectionService.isSearching() | async; else content" title="Searching"></app-loading>
   <ng-template #content>
     <router-outlet></router-outlet>
   </ng-template>

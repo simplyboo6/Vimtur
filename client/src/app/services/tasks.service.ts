@@ -31,12 +31,7 @@ export class TasksService {
 
   private completeTasks?: QueuedTask[];
 
-  public constructor(
-    httpClient: HttpClient,
-    alertService: AlertService,
-    configService: ConfigService,
-    modalService: NgbModal,
-  ) {
+  public constructor(httpClient: HttpClient, alertService: AlertService, configService: ConfigService, modalService: NgbModal) {
     this.httpClient = httpClient;
     this.alertService = alertService;
     this.configService = configService;
@@ -69,10 +64,7 @@ export class TasksService {
           type: 'warning',
           message: `Task failed to complete ${data.id} - ${data.error}`,
         });
-      } else if (
-        this.configService.config &&
-        this.configService.config.user.showTaskNotifications
-      ) {
+      } else if (this.configService.config && this.configService.config.user.showTaskNotifications) {
         this.alertService.show({
           type: 'success',
           message: `Task finished with ID ${data.id}`,
@@ -80,10 +72,7 @@ export class TasksService {
         });
       }
 
-      if (
-        !data.error &&
-        (data.type === 'SCAN' || data.type === 'DELETE-MISSING' || data.type === 'INDEX')
-      ) {
+      if (!data.error && (data.type === 'SCAN' || data.type === 'DELETE-MISSING' || data.type === 'INDEX')) {
         this.reloadScanResults();
       }
     });

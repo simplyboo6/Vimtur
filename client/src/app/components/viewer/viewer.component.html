@@ -3,24 +3,14 @@
     <app-tag-panel></app-tag-panel>
   </div>
   <div class="right-panel full-height">
-    <div
-      *ngIf="media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc"
-      class="text-overlay"
-    >
+    <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc" class="text-overlay">
       {{ media.path }}
     </div>
-    <div
-      *ngIf="media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags"
-      class="text-overlay bottom"
-    >
+    <div *ngIf="media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags" class="text-overlay bottom">
       May contain: {{ media.autoTags | formatArray }}
     </div>
     <ng-container *ngIf="media; else loading">
-      <app-video-player
-        class="video-player"
-        [class.hidden]="!media || media.type !== 'video'"
-        [media]="media"
-      ></app-video-player>
+      <app-video-player class="video-player" [class.hidden]="!media || media.type !== 'video'" [media]="media"></app-video-player>
       <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
       <ng-container *ngIf="media.type !== 'video'">
         <img *ngFor="let hash of [mediaSrc]" [src]="mediaSrc" class="image-viewer" />

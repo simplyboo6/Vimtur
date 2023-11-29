@@ -6,6 +6,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RouteReuseStrategy } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { AppRoutingModule } from './app-routing.module';
 import { ReuseStrategy } from './reuse-strategy';
@@ -74,6 +75,7 @@ import { SelectComponent } from './components/select/select.component';
     HttpClientModule,
     BrowserAnimationsModule,
     DragDropModule,
+    FontAwesomeModule,
   ],
   providers: [
     {

@@ -36,8 +36,7 @@ interface BasicSelectOption {
     },
   ],
 })
-export class SelectComponent
-  implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {
+export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {
   @Input() public placeholder?: string;
   @Input() public disabled?: boolean;
   public open = false;
@@ -213,8 +212,7 @@ export class SelectComponent
       }
       this.updateHighlighted(index);
     } else if (event.key === 'ArrowUp') {
-      let index =
-        (this.highlightIndex === undefined ? this.optionsInternal.length : this.highlightIndex) - 1;
+      let index = (this.highlightIndex === undefined ? this.optionsInternal.length : this.highlightIndex) - 1;
       if (index < 0) {
         index = this.optionsInternal.length - 1;
       }
@@ -268,9 +266,7 @@ export class SelectComponent
 
     const body = document.body;
     const html = document.documentElement;
-    const windowHeight =
-      Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, window.innerHeight) -
-      padding;
+    const windowHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, window.innerHeight) - padding;
     const spaceDropdown = windowHeight - dropdownStart;
     const spaceDropup = dropupStart - padding;
 

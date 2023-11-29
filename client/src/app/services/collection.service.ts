@@ -264,8 +264,7 @@ export class CollectionService {
           return;
         }
 
-        const collection =
-          options && options.shuffle ? this.shuffleArray(res, options && options.shuffleSeed) : res;
+        const collection = options && options.shuffle ? this.shuffleArray(res, options && options.shuffleSeed) : res;
         this.shuffled = Boolean(options && options.shuffle);
         this.index = options && options.preserve ? this.getNewIndex(collection) : 0;
         this.collection = collection;

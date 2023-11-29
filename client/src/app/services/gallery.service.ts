@@ -26,11 +26,7 @@ export class GalleryService {
   private active = false;
   private updateRequired = false;
 
-  public constructor(
-    mediaService: MediaService,
-    configService: ConfigService,
-    collectionService: CollectionService,
-  ) {
+  public constructor(mediaService: MediaService, configService: ConfigService, collectionService: CollectionService) {
     this.mediaService = mediaService;
     this.configService = configService;
 
@@ -61,9 +57,7 @@ export class GalleryService {
       if (this.collection) {
         this.page.emit({ current: this.pageNumber || 0, max: this.pageCount || 0 });
 
-        const pageHashes = pageSize
-          ? this.collection.slice(this.pageNumber * pageSize, (this.pageNumber + 1) * pageSize)
-          : this.collection;
+        const pageHashes = pageSize ? this.collection.slice(this.pageNumber * pageSize, (this.pageNumber + 1) * pageSize) : this.collection;
 
         this.mediaService.loadMedia(pageHashes).subscribe(pageMedia => {
           this.media.next(pageMedia);
@@ -99,11 +93,7 @@ export class GalleryService {
       const pageNumber = Math.floor(pageSize ? metadata.index / pageSize : 0);
       const pageCount = Math.ceil(pageSize ? metadata.collection.length / pageSize : 1);
 
-      this.updateRequired =
-        this.updateRequired ||
-        this.pageNumber !== pageNumber ||
-        this.pageCount !== pageCount ||
-        this.collection !== metadata.collection;
+      this.updateRequired = this.updateRequired || this.pageNumber !== pageNumber || this.pageCount !== pageCount || this.collection !== metadata.collection;
 
       this.collection = metadata.collection;
       this.pageNumber = pageNumber;

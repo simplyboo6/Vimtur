@@ -1,13 +1,6 @@
 <div *ngIf="media; else loading" class="gallery full-height">
   <div *ngFor="let m of media; trackBy: trackByHash" class="image-container">
-    <a
-      routerLink="/viewer"
-      class="card"
-      data-toggle="tooltip"
-      data-placement="bottom"
-      [title]="m.path"
-      (click)="collectionService.goto(m.hash)"
-    >
+    <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
       <app-preview
         class="img-fluid gallery-img card-body card-small"
         [slideshow]="true"
@@ -16,10 +9,7 @@
         [media]="m"
       ></app-preview>
       <ng-template #still>
-        <img
-          class="img-fluid gallery-img card-body card-small"
-          [src]="'/cache/thumbnails/' + m.hash + '.png'"
-        />
+        <img class="img-fluid gallery-img card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
       </ng-template>
       <div class="type caption card-header card-small">
         <strong>{{ getTitle(m) }}</strong>

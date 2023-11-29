@@ -19,18 +19,16 @@ export class LazyComponent implements OnDestroy {
     this.lazyRootInternal = lazyRoot;
 
     if (lazyRoot) {
-      this.intersectionSubscription = this.intersectionService.intersectionEmitter.subscribe(
-        entries => {
-          if (!this.lazyRootInternal) {
-            return;
-          }
+      this.intersectionSubscription = this.intersectionService.intersectionEmitter.subscribe(entries => {
+        if (!this.lazyRootInternal) {
+          return;
+        }
 
-          const found = entries.get(this.lazyRootInternal.nativeElement);
-          if (found) {
-            this.loadStateChange.emit(found.isIntersecting);
-          }
-        },
-      );
+        const found = entries.get(this.lazyRootInternal.nativeElement);
+        if (found) {
+          this.loadStateChange.emit(found.isIntersecting);
+        }
+      });
 
       this.intersectionService.observe(lazyRoot);
     }

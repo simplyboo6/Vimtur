@@ -5,6 +5,17 @@ import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import {
+  faArrowLeft,
+  faArrowRight,
+  faTags,
+  faBackward,
+  faForward,
+  faShuffle,
+  faTrash,
+  faFolderOpen,
+  faDiamondTurnRight,
+} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'app-navbar',
@@ -17,6 +28,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public searchText?: string;
   public isExpanded = false;
   public page: Page = { current: 0, max: 0 };
+  protected readonly faArrowLeft = faArrowLeft;
+  protected readonly faArrowRight = faArrowRight;
+  protected readonly faTags = faTags;
+  protected readonly faBackward = faBackward;
+  protected readonly faForward = faForward;
+  protected readonly faShuffle = faShuffle;
+  protected readonly faTrash = faTrash;
+  protected readonly faFolderOpen = faFolderOpen;
+  protected readonly faDiamondTurnRight = faDiamondTurnRight;
 
   private route: ActivatedRoute;
   private uiService: UiService;

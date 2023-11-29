@@ -1,20 +1,9 @@
 <div class="dropdown" (focusout)="open = false">
-  <button
-    class="btn btn-link"
-    type="submit"
-    [class.text-primary]="open"
-    [class.text-muted]="!open"
-    (mousedown)="open = !open"
-    title="Actions Menu"
-  >
+  <button class="btn btn-link" type="submit" [class.text-primary]="open" [class.text-muted]="!open" (mousedown)="open = !open" title="Actions Menu">
     <ng-container *ngTemplateOutlet="actionsIcon"></ng-container>
   </button>
   <div class="dropdown-menu" [class.visible]="open">
-    <button
-      *ngFor="let action of actions"
-      (mousedown)="actionSelected.emit(action); open = false"
-      class="dropdown-item"
-    >
+    <button *ngFor="let action of actions" (mousedown)="actionSelected.emit(action); open = false" class="dropdown-item">
       {{ action.itemName }}
     </button>
   </div>

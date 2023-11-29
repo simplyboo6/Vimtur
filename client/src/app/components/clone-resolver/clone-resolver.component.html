@@ -96,19 +96,11 @@
             Resolve (Selected)
           </button>
 
-          <button
-            (click)="resolveAll()"
-            class="btn btn-primary"
-            title="Marks all of the items as clones"
-          >
+          <button (click)="resolveAll()" class="btn btn-primary" title="Marks all of the items as clones">
             Resolve (All Clones)
           </button>
 
-          <button
-            (click)="resolveNone()"
-            class="btn btn-primary"
-            title="Marks all of the items as not duplicates"
-          >
+          <button (click)="resolveNone()" class="btn btn-primary" title="Marks all of the items as not duplicates">
             Resolve (All Unrelated)
           </button>
         </div>
@@ -126,11 +118,7 @@
         data-placement="bottom"
         [title]="getHoverText(m)"
       >
-        <img
-          (click)="m.isClone = !m.isClone"
-          class="img-fluid clickable card-body card-small"
-          [src]="'/cache/thumbnails/' + m.hash + '.png'"
-        />
+        <img (click)="m.isClone = !m.isClone" class="img-fluid clickable card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
         <ng-container *ngIf="m.isClone; else unchecked">
           <ng-container *ngTemplateOutlet="checked"></ng-container>
         </ng-container>

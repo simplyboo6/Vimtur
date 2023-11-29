@@ -11,12 +11,7 @@
   </div>
 
   <div *ngIf="media; else loading" cdkDropList (cdkDropListDropped)="dragAndDrop($event)">
-    <div
-      *ngFor="let lazyMedia of media; index as index"
-      class="card row"
-      [cdkDragData]="media"
-      cdkDrag
-    >
+    <div *ngFor="let lazyMedia of media; index as index" class="card row" [cdkDragData]="media" cdkDrag>
       <app-lazy (loadStateChange)="updateVisibility(lazyMedia, $event)">
         <div class="row">
           <div class="col-md-1 align btn-link lg-response" cdkDragHandle>
@@ -44,10 +39,7 @@
                 </div>
               </div>
               <div *ngIf="actions && actions[index]" class="col-lg-1 align flex-end flex-0">
-                <app-actions
-                  [actions]="actions[index]"
-                  (actionSelected)="onMediaAction($event)"
-                ></app-actions>
+                <app-actions [actions]="actions[index]" (actionSelected)="onMediaAction($event)"></app-actions>
               </div>
             </div>
           </div>
@@ -63,9 +55,7 @@
 
 <ng-template #dragHandle>
   <svg class="drag-handle" fill="currentColor" viewBox="0 0 24 24">
-    <path
-      d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"
-    ></path>
+    <path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"></path>
     <path d="M0 0h24v24H0z" fill="none"></path>
   </svg>
 </ng-template>

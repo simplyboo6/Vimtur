@@ -1,12 +1,4 @@
-import {
-  Component,
-  Input,
-  EventEmitter,
-  Output,
-  ElementRef,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-} from '@angular/core';
+import { Component, Input, EventEmitter, Output, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { getUid } from 'app/shared/uid';
 
 @Component({

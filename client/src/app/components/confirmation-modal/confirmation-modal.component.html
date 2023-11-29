@@ -3,24 +3,12 @@
 </div>
 <div class="modal-footer row footer-padding">
   <div class="md-6">
-    <button
-      type="button"
-      class="btn col-12"
-      [class.btn-danger]="!negative"
-      [class.btn-primary]="negative"
-      (click)="modal?.close(false)"
-    >
+    <button type="button" class="btn col-12" [class.btn-danger]="!negative" [class.btn-primary]="negative" (click)="modal?.close(false)">
       Cancel
     </button>
   </div>
   <div class="md-6">
-    <button
-      type="button"
-      class="btn col-12"
-      [class.btn-danger]="negative"
-      [class.btn-primary]="!negative"
-      (click)="modal?.close(true)"
-    >
+    <button type="button" class="btn col-12" [class.btn-danger]="negative" [class.btn-primary]="!negative" (click)="modal?.close(true)">
       Confirm
     </button>
   </div>

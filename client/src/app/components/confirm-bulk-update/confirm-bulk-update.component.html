@@ -14,12 +14,7 @@
     </button>
   </div>
   <div class="md-6">
-    <button
-      *ngIf="constraints"
-      type="button"
-      class="btn btn-primary col-12"
-      (click)="modal?.close(true)"
-    >
+    <button *ngIf="constraints" type="button" class="btn btn-primary col-12" (click)="modal?.close(true)">
       Confirm
     </button>
   </div>

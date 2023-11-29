@@ -1,14 +1,4 @@
-import {
-  Component,
-  AfterViewInit,
-  OnInit,
-  OnDestroy,
-  OnChanges,
-  ViewChild,
-  SimpleChanges,
-  Input,
-  NgZone,
-} from '@angular/core';
+import { Component, AfterViewInit, OnInit, OnDestroy, OnChanges, ViewChild, SimpleChanges, Input, NgZone } from '@angular/core';
 import { ConfigService } from 'services/config.service';
 import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
@@ -142,11 +132,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   }
 
   public onSeeking() {
-    const lowQualityOnSeek =
-      this.config &&
-      (this.isMobile
-        ? this.config.user.lowQualityOnLoadEnabledForMobile
-        : this.config.user.lowQualityOnLoadEnabled);
+    const lowQualityOnSeek = this.config && (this.isMobile ? this.config.user.lowQualityOnLoadEnabledForMobile : this.config.user.lowQualityOnLoadEnabled);
 
     // Only has an effect if the segment isn't already loaded.
     if (lowQualityOnSeek) {
@@ -244,10 +230,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       this.videoPlayerState.navigationTime = duration;
     }
 
-    if (
-      this.videoPlayerState.navigationTime !== undefined &&
-      !isNaN(this.videoPlayerState.navigationTime)
-    ) {
+    if (this.videoPlayerState.navigationTime !== undefined && !isNaN(this.videoPlayerState.navigationTime)) {
       console.debug(`Seeking to ${this.videoPlayerState.navigationTime}`);
       this.videoElement.nativeElement.currentTime = this.videoPlayerState.navigationTime;
     }
@@ -391,16 +374,9 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       return;
     }
 
-    const foundIndex = this.hls.levels.findIndex(
-      (l: { height: number }) => l.height >= quality.height,
-    );
-    this.videoPlayerState.currentQuality =
-      foundIndex === undefined ? this.hls.levels.length - 1 : foundIndex;
-    console.debug(
-      'switching hls stream quality',
-      this.videoPlayerState.currentQuality,
-      this.hls.levels,
-    );
+    const foundIndex = this.hls.levels.findIndex((l: { height: number }) => l.height >= quality.height);
+    this.videoPlayerState.currentQuality = foundIndex === undefined ? this.hls.levels.length - 1 : foundIndex;
+    console.debug('switching hls stream quality', this.videoPlayerState.currentQuality, this.hls.levels);
     this.hls.currentLevel = this.videoPlayerState.currentQuality;
     this.videoPlayerState.switching = true;
   }
@@ -418,11 +394,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     }
 
     const autoPlay = !this.isMobile && this.config && this.config.user.autoplayEnabled;
-    const lowQualityOnSeek =
-      this.config &&
-      (this.isMobile
-        ? this.config.user.lowQualityOnLoadEnabledForMobile
-        : this.config.user.lowQualityOnLoadEnabled);
+    const lowQualityOnSeek = this.config && (this.isMobile ? this.config.user.lowQualityOnLoadEnabledForMobile : this.config.user.lowQualityOnLoadEnabled);
     console.debug('playing video', media.hash, lowQualityOnSeek, autoPlay);
 
     this.hls = new Hls({
@@ -436,29 +408,24 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.videoElement.nativeElement.volume = this.videoPlayerState.volume || 1;
     this.videoElement.nativeElement.muted = this.videoPlayerState.muted;
 
-    this.hls.on(
-      Hls.Events.MANIFEST_PARSED,
-      (_: unknown, data: { levels: Array<{ height: number }> }) => {
-        console.log('Manifest quality levels', data.levels);
+    this.hls.on(Hls.Events.MANIFEST_PARSED, (_: unknown, data: { levels: Array<{ height: number }> }) => {
+      console.log('Manifest quality levels', data.levels);
 
-        this.zone.run(() => {
-          this.videoPlayerState.qualities = data.levels.map(
-            (level: { height: number }, index: number) => ({
-              height: level.height,
-              index,
-            }),
-          );
+      this.zone.run(() => {
+        this.videoPlayerState.qualities = data.levels.map((level: { height: number }, index: number) => ({
+          height: level.height,
+          index,
+        }));
 
-          if (this.videoPlayerState.selectedQuality !== undefined) {
-            this.selectQuality(this.videoPlayerState.selectedQuality);
-          }
-        });
-
-        if (autoPlay) {
-          this.videoElement.nativeElement.play();
+        if (this.videoPlayerState.selectedQuality !== undefined) {
+          this.selectQuality(this.videoPlayerState.selectedQuality);
         }
-      },
-    );
+      });
+
+      if (autoPlay) {
+        this.videoElement.nativeElement.play();
+      }
+    });
 
     /*for (const key of Object.keys(Hls.Events)) {
       this.hls.on(Hls.Events[key], (event, data) => {

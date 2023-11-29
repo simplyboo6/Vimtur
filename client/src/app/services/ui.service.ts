@@ -121,11 +121,7 @@ export class UiService {
     { field: 'dir', name: 'Dir' },
   ];
 
-  public constructor(
-    collectionService: CollectionService,
-    mediaService: MediaService,
-    alertService: AlertService,
-  ) {
+  public constructor(collectionService: CollectionService, mediaService: MediaService, alertService: AlertService) {
     this.collectionService = collectionService;
     this.mediaService = mediaService;
     this.alertService = alertService;
@@ -175,11 +171,7 @@ export class UiService {
       constraints.sortBy = searchModel.sortBy;
     }
 
-    const types: string[] = [
-      ...(searchModel.typeVideo ? ['video'] : []),
-      ...(searchModel.typeGif ? ['gif'] : []),
-      ...(searchModel.typeStill ? ['still'] : []),
-    ];
+    const types: string[] = [...(searchModel.typeVideo ? ['video'] : []), ...(searchModel.typeGif ? ['gif'] : []), ...(searchModel.typeStill ? ['still'] : [])];
     if (types.length) {
       constraints.type = { equalsAny: types };
     }

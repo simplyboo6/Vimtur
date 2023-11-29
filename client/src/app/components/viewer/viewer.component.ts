@@ -22,11 +22,7 @@ export class ViewerComponent implements OnInit, OnDestroy {
   private configService: ConfigService;
   private subscriptions: Subscription[] = [];
 
-  public constructor(
-    uiService: UiService,
-    mediaService: MediaService,
-    configService: ConfigService,
-  ) {
+  public constructor(uiService: UiService, mediaService: MediaService, configService: ConfigService) {
     this.uiService = uiService;
     this.mediaService = mediaService;
     this.configService = configService;

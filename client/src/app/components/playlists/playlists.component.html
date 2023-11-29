@@ -14,11 +14,7 @@
           />
         </div>
         <div class="col-md-4">
-          <button
-            class="btn btn-primary col-12"
-            [disabled]="!addPlaylistModel"
-            (click)="addPlaylist()"
-          >
+          <button class="btn btn-primary col-12" [disabled]="!addPlaylistModel" (click)="addPlaylist()">
             Add
           </button>
         </div>
@@ -27,11 +23,7 @@
 
     <div *ngFor="let playlist of playlists" class="card">
       <div class="row">
-        <div
-          (click)="setPlaylist(playlist)"
-          [class.clickable]="playlist.size"
-          class="col-md-3 preview-column img-fluid img-thumbnail"
-        >
+        <div (click)="setPlaylist(playlist)" [class.clickable]="playlist.size" class="col-md-3 preview-column img-fluid img-thumbnail">
           <app-preview
             class="thubmnail"
             [slideshow]="true"
@@ -45,10 +37,7 @@
             <div class="col align">{{ playlist.name }}</div>
             <div class="col-sm-2 align">{{ playlist.size || 'No' }} items</div>
             <div class="col-sm-1 align">
-              <app-actions
-                [actions]="getActions(playlist)"
-                (actionSelected)="onAction($event)"
-              ></app-actions>
+              <app-actions [actions]="getActions(playlist)" (actionSelected)="onAction($event)"></app-actions>
             </div>
           </div>
         </div>

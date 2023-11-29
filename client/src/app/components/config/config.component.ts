@@ -4,14 +4,7 @@ import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
-import {
-  Configuration,
-  Scanner,
-  QueuedTask,
-  ListedTask,
-  TaskArgs,
-  TaskArgDefinition,
-} from '@vimtur/common';
+import { Configuration, Scanner, QueuedTask, ListedTask, TaskArgs, TaskArgDefinition } from '@vimtur/common';
 import { TasksService } from 'app/services/tasks.service';
 import { Subscription, timer, combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -86,11 +79,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(
       timer(0)
-        .pipe(
-          switchMap(() =>
-            combineLatest([this.tagService.getTags(), this.actorService.getActors()]),
-          ),
-        )
+        .pipe(switchMap(() => combineLatest([this.tagService.getTags(), this.actorService.getActors()])))
         .subscribe(([tags, actors]) => {
           this.tags = tags;
           this.actors = actors;
@@ -206,9 +195,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public fromQualitiesToList(qualities: number[]): ListItem<number>[] {
-    return qualities
-      .map(quality => ({ id: quality, itemName: `${quality}p` }))
-      .sort((a, b) => a.id - b.id);
+    return qualities.map(quality => ({ id: quality, itemName: `${quality}p` })).sort((a, b) => a.id - b.id);
   }
 
   public addTag() {

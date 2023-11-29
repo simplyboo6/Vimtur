@@ -46,15 +46,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   public ngOnInit() {
     this.subscriptions.push(
       timer(0)
-        .pipe(
-          switchMap(() =>
-            combineLatest([
-              this.tagService.getTags(),
-              this.actorService.getActors(),
-              this.playlistService.getPlaylists(),
-            ]),
-          ),
-        )
+        .pipe(switchMap(() => combineLatest([this.tagService.getTags(), this.actorService.getActors(), this.playlistService.getPlaylists()])))
         .subscribe(([tags, actors, playlists]) => {
           this.tags = toListItems(tags);
           this.actors = toListItems(actors);

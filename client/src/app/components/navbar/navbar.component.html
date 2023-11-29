@@ -1,29 +1,8 @@
-<nav
-  class="navbar navbar-expand-xl navbar-dark bg-dark navbar-override fixed-top"
-  [class.height-override]="!isExpanded"
->
+<nav class="navbar navbar-expand-xl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
   <div class="container-fluid">
-    <div
-      class="btn-group btn-group-toggle nav-button-group d-none d-md-block"
-      *ngIf="getRoute() === '/viewer'; else emptyNav"
-      title="Toggle Tags"
-    >
+    <div class="btn-group btn-group-toggle nav-button-group d-none d-md-block" *ngIf="getRoute() === '/viewer'; else emptyNav" title="Toggle Tags">
       <button class="btn btn-primary" (click)="toggleTagsOpen()">
-        <svg
-          class="icon"
-          aria-hidden="true"
-          focusable="false"
-          data-prefix="fas"
-          data-icon="tags"
-          role="img"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 640 512"
-        >
-          <path
-            fill="currentColor"
-            d="M497.941 225.941L286.059 14.059A48 48 0 0 0 252.118 0H48C21.49 0 0 21.49 0 48v204.118a48 48 0 0 0 14.059 33.941l211.882 211.882c18.744 18.745 49.136 18.746 67.882 0l204.118-204.118c18.745-18.745 18.745-49.137 0-67.882zM112 160c-26.51 0-48-21.49-48-48s21.49-48 48-48 48 21.49 48 48-21.49 48-48 48zm513.941 133.823L421.823 497.941c-18.745 18.745-49.137 18.745-67.882 0l-.36-.36L527.64 323.522c16.999-16.999 26.36-39.6 26.36-63.64s-9.362-46.641-26.36-63.64L331.397 0h48.721a48 48 0 0 1 33.941 14.059l211.882 211.882c18.745 18.745 18.745 49.137 0 67.882z"
-          ></path>
-        </svg>
+        <fa-icon [icon]="faTags" size="xl"></fa-icon>
       </button>
     </div>
     <!-- Empty button group to keep the hamburger menu on the right on mobile -->
@@ -31,190 +10,52 @@
       <div class="btn-group"></div>
     </ng-template>
 
-    <ng-container
-      *ngIf="
-        getRoute() === '/viewer' ||
-        getRoute() === '/metadata' ||
-        getRoute() === '/gallery' ||
-        getRoute() === '/clone-resolver'
-      "
-    >
+    <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/gallery' || getRoute() === '/clone-resolver'">
       <div class="btn-group">
         <button
-          *ngIf="
-            getRoute() === '/viewer' ||
-            getRoute() === '/metadata' ||
-            getRoute() === '/clone-resolver'
-          "
+          *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'"
           (click)="previousDirectory()"
           class="btn btn-outline-success"
           type="submit"
           title="Previous Directory"
         >
-          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-            <path
-              fill="currentColor"
-              d="M459.5 440.6c9.5 7.9 22.8 9.7 34.1 4.4s18.4-16.6 18.4-29V96c0-12.4-7.2-23.7-18.4-29s-24.5-3.6-34.1 4.4L288 214.3V256v41.7L459.5 440.6zM256 352V256 128 96c0-12.4-7.2-23.7-18.4-29s-24.5-3.6-34.1 4.4l-192 160C4.2 237.5 0 246.5 0 256s4.2 18.5 11.5 24.6l192 160c9.5 7.9 22.8 9.7 34.1 4.4s18.4-16.6 18.4-29V352z"
-            />
-          </svg>
+          <fa-icon [icon]="faBackward" size="xl"></fa-icon>
         </button>
         <button class="btn btn-outline-success" type="submit" (click)="previous()" title="Previous">
-          <svg
-            class="icon"
-            aria-hidden="true"
-            focusable="false"
-            data-prefix="fas"
-            data-icon="arrow-left"
-            role="img"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 448 512"
-          >
-            <path
-              fill="currentColor"
-              d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"
-            ></path>
-          </svg>
+          <fa-icon [icon]="faArrowLeft" size="xl"></fa-icon>
         </button>
-        <button
-          *ngIf="getRoute() === '/gallery'"
-          class="btn btn-outline-success"
-          type="submit"
-          (click)="collectionService.shuffle()"
-          title="Shuffle"
-        >
-          <svg
-            class="icon"
-            aria-hidden="true"
-            focusable="false"
-            data-prefix="fas"
-            data-icon="random"
-            role="img"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 512 512"
-          >
-            <path
-              fill="currentColor"
-              d="M504.971 359.029c9.373 9.373 9.373 24.569 0 33.941l-80 79.984c-15.01 15.01-40.971 4.49-40.971-16.971V416h-58.785a12.004 12.004 0 0 1-8.773-3.812l-70.556-75.596 53.333-57.143L352 336h32v-39.981c0-21.438 25.943-31.998 40.971-16.971l80 79.981zM12 176h84l52.781 56.551 53.333-57.143-70.556-75.596A11.999 11.999 0 0 0 122.785 96H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12zm372 0v39.984c0 21.46 25.961 31.98 40.971 16.971l80-79.984c9.373-9.373 9.373-24.569 0-33.941l-80-79.981C409.943 24.021 384 34.582 384 56.019V96h-58.785a12.004 12.004 0 0 0-8.773 3.812L96 336H12c-6.627 0-12 5.373-12 12v56c0 6.627 5.373 12 12 12h110.785c3.326 0 6.503-1.381 8.773-3.812L352 176h32z"
-            ></path>
-          </svg>
+        <button *ngIf="getRoute() === '/gallery'" class="btn btn-outline-success" type="submit" (click)="collectionService.shuffle()" title="Shuffle">
+          <fa-icon [icon]="faShuffle" size="xl"></fa-icon>
         </button>
 
-        <ng-container
-          *ngIf="
-            getRoute() === '/viewer' ||
-            getRoute() === '/metadata' ||
-            getRoute() === '/clone-resolver'
-          "
-        >
-          <button
-            class="btn btn-outline-success"
-            type="submit"
-            (click)="collectionService.deleteCurrent()"
-            title="Delete"
-          >
-            <svg
-              class="icon"
-              aria-hidden="true"
-              focusable="false"
-              data-prefix="fas"
-              data-icon="trash"
-              role="img"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 448 512"
-            >
-              <path
-                fill="currentColor"
-                d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"
-              ></path>
-            </svg>
+        <ng-container *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'">
+          <button class="btn btn-outline-success" type="submit" (click)="collectionService.deleteCurrent()" title="Delete">
+            <fa-icon [icon]="faTrash" size="xl"></fa-icon>
           </button>
-          <button
-            class="btn btn-outline-success"
-            type="submit"
-            (click)="viewFolder()"
-            title="View Folder"
-          >
-            <svg
-              class="icon"
-              aria-hidden="true"
-              focusable="false"
-              data-prefix="fas"
-              data-icon="folder-open"
-              role="img"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 576 512"
-            >
-              <path
-                fill="currentColor"
-                d="M572.694 292.093L500.27 416.248A63.997 63.997 0 0 1 444.989 448H45.025c-18.523 0-30.064-20.093-20.731-36.093l72.424-124.155A64 64 0 0 1 152 256h399.964c18.523 0 30.064 20.093 20.73 36.093zM152 224h328v-48c0-26.51-21.49-48-48-48H272l-64-64H48C21.49 64 0 85.49 0 112v278.046l69.077-118.418C86.214 242.25 117.989 224 152 224z"
-              ></path>
-            </svg>
+          <button class="btn btn-outline-success" type="submit" (click)="viewFolder()" title="View Folder">
+            <fa-icon [icon]="faFolderOpen" size="xl"></fa-icon>
           </button>
         </ng-container>
 
         <ng-container *ngIf="getRoute() === '/gallery'">
-          <div class="btn btn-outline-success paginator" type="submit" title="Page">
-            {{ this.page.current + 1 }} of {{ this.page.max }}
-          </div>
+          <div class="btn btn-outline-success paginator" type="submit" title="Page">{{ this.page.current + 1 }} of {{ this.page.max }}</div>
         </ng-container>
 
-        <button
-          class="btn btn-outline-success"
-          type="submit"
-          (click)="collectionService.goto(getRoute() === '/gallery')"
-          title="Goto"
-        >
-          <svg
-            class="icon"
-            aria-hidden="true"
-            focusable="false"
-            data-prefix="fas"
-            data-icon="directions"
-            role="img"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 512 512"
-          >
-            <path
-              fill="currentColor"
-              d="M502.61 233.32L278.68 9.39c-12.52-12.52-32.83-12.52-45.36 0L9.39 233.32c-12.52 12.53-12.52 32.83 0 45.36l223.93 223.93c12.52 12.53 32.83 12.53 45.36 0l223.93-223.93c12.52-12.53 12.52-32.83 0-45.36zm-100.98 12.56l-84.21 77.73c-5.12 4.73-13.43 1.1-13.43-5.88V264h-96v64c0 4.42-3.58 8-8 8h-32c-4.42 0-8-3.58-8-8v-80c0-17.67 14.33-32 32-32h112v-53.73c0-6.97 8.3-10.61 13.43-5.88l84.21 77.73c3.43 3.17 3.43 8.59 0 11.76z"
-            ></path>
-          </svg>
+        <button class="btn btn-outline-success" type="submit" (click)="collectionService.goto(getRoute() === '/gallery')" title="Goto">
+          <fa-icon [icon]="faDiamondTurnRight" size="xl"></fa-icon>
         </button>
 
         <button class="btn btn-outline-success" type="submit" (click)="next()" title="Next">
-          <svg
-            class="icon"
-            aria-hidden="true"
-            focusable="false"
-            data-prefix="fas"
-            data-icon="arrow-right"
-            role="img"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 448 512"
-          >
-            <path
-              fill="currentColor"
-              d="M190.5 66.9l22.2-22.2c9.4-9.4 24.6-9.4 33.9 0L441 239c9.4 9.4 9.4 24.6 0 33.9L246.6 467.3c-9.4 9.4-24.6 9.4-33.9 0l-22.2-22.2c-9.5-9.5-9.3-25 .4-34.3L311.4 296H24c-13.3 0-24-10.7-24-24v-32c0-13.3 10.7-24 24-24h287.4L190.9 101.2c-9.8-9.3-10-24.8-.4-34.3z"
-            ></path>
-          </svg>
+          <fa-icon [icon]="faArrowRight" size="xl"></fa-icon>
         </button>
         <button
-          *ngIf="
-            getRoute() === '/viewer' ||
-            getRoute() === '/metadata' ||
-            getRoute() === '/clone-resolver'
-          "
+          *ngIf="getRoute() === '/viewer' || getRoute() === '/metadata' || getRoute() === '/clone-resolver'"
           class="btn btn-outline-success"
           type="submit"
           title="Next Directory"
           (click)="nextDirectory()"
         >
-          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-            <path
-              fill="currentColor"
-              d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416V96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4L224 214.3V256v41.7L52.5 440.6zM256 352V256 128 96c0-12.4 7.2-23.7 18.4-29s24.5-3.6 34.1 4.4l192 160c7.3 6.1 11.5 15.1 11.5 24.6s-4.2 18.5-11.5 24.6l-192 160c-9.5 7.9-22.8 9.7-34.1 4.4s-18.4-16.6-18.4-29V352z"
-            />
-          </svg>
+          <fa-icon [icon]="faForward" size="xl"></fa-icon>
         </button>
       </div>
     </ng-container>
@@ -230,11 +71,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div
-      class="collapse navbar-collapse justify-content-end"
-      id="navbarDefault"
-      [ngbCollapse]="!isExpanded"
-    >
+    <div class="collapse navbar-collapse justify-content-end" id="navbarDefault" [ngbCollapse]="!isExpanded">
       <ul class="navbar-nav">
         <li class="nav-item" [class.active]="isActive('/viewer')">
           <a class="nav-link" routerLink="/viewer" (click)="isExpanded = false">Viewer</a>
@@ -243,9 +80,7 @@
           <a class="nav-link" routerLink="/metadata" (click)="isExpanded = false">Metadata</a>
         </li>
         <li class="nav-item" [class.active]="isActive('/clone-resolver')">
-          <a class="nav-link" routerLink="/clone-resolver" (click)="isExpanded = false"
-            >Clone Resolver</a
-          >
+          <a class="nav-link" routerLink="/clone-resolver" (click)="isExpanded = false">Clone Resolver</a>
         </li>
         <li class="nav-item" [class.active]="isActive('/gallery')">
           <a class="nav-link" routerLink="/gallery" (click)="isExpanded = false">Gallery</a>
@@ -264,11 +99,7 @@
         </li>
       </ul>
 
-      <form
-        [class.xxl-response]="!isExpanded"
-        class="d-flex form-inline my-lg-0"
-        (ngSubmit)="search()"
-      >
+      <form [class.xxl-response]="!isExpanded" class="d-flex form-inline my-lg-0" (ngSubmit)="search()">
         <input
           class="form-control me-2"
           type="text"

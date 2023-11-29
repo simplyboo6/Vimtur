@@ -1,14 +1,4 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  Input,
-  OnChanges,
-  SimpleChanges,
-  ChangeDetectorRef,
-  ViewChild,
-  ElementRef,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { Subscription, interval } from 'rxjs';
 import { ConfigService } from 'app/services/config.service';
 import { Configuration, Media } from '@vimtur/common';
@@ -54,12 +44,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   private intersectionService: IntersectionService;
   private ref: ElementRef;
 
-  public constructor(
-    configService: ConfigService,
-    changeDetector: ChangeDetectorRef,
-    intersectionService: IntersectionService,
-    ref: ElementRef,
-  ) {
+  public constructor(configService: ConfigService, changeDetector: ChangeDetectorRef, intersectionService: IntersectionService, ref: ElementRef) {
     this.configService = configService;
     this.changeDetector = changeDetector;
     this.intersectionService = intersectionService;
@@ -75,9 +60,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
 
     if (this.height && this.media?.metadata) {
       this.canvasHeight = this.height;
-      this.canvasWidth = Math.ceil(
-        (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
-      );
+      this.canvasWidth = Math.ceil((this.media.metadata.width / this.media.metadata.height) * this.canvasHeight);
     }
 
     if (isMobile()) {
@@ -173,9 +156,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     if (changes.offset && this.config) {
       this.previewRequested = true;
 
-      const index = Math.floor(
-        (changes.offset.currentValue || 0) / this.config.transcoder.videoPreviewFps,
-      );
+      const index = Math.floor((changes.offset.currentValue || 0) / this.config.transcoder.videoPreviewFps);
       if (this.index !== index) {
         this.index = index;
         this.rendered = false;
@@ -202,9 +183,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     this.rendered = true;
 
     this.canvasHeight = this.height || this.config.transcoder.videoPreviewHeight;
-    this.canvasWidth = Math.ceil(
-      (this.media.metadata.width / this.media.metadata.height) * this.canvasHeight,
-    );
+    this.canvasWidth = Math.ceil((this.media.metadata.width / this.media.metadata.height) * this.canvasHeight);
     this.changeDetector.detectChanges();
 
     const canvas = this.canvasElement.nativeElement.getContext('2d');
@@ -212,24 +191,12 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
     // If the thumbnails loaded and either the preview isn't loaded or the slideshow isn't in progress.
     if (this.index === undefined) {
       if (this.thumbnail) {
-        canvas.drawImage(
-          this.thumbnail,
-          0,
-          0,
-          this.thumbnail.width,
-          this.thumbnail.height,
-          0,
-          0,
-          this.canvasWidth,
-          this.canvasHeight,
-        );
+        canvas.drawImage(this.thumbnail, 0, 0, this.thumbnail.width, this.thumbnail.height, 0, 0, this.canvasWidth, this.canvasHeight);
       }
     } else {
       if (this.preview) {
         const mediaHeight = this.config.transcoder.videoPreviewHeight;
-        const mediaWidth = Math.ceil(
-          (this.media.metadata.width / this.media.metadata.height) * mediaHeight,
-        );
+        const mediaWidth = Math.ceil((this.media.metadata.width / this.media.metadata.height) * mediaHeight);
 
         const columns = Math.ceil(this.preview.naturalWidth / mediaWidth);
 
@@ -239,17 +206,7 @@ export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
         const offsetX = column * mediaWidth;
         const offsetY = row * mediaHeight;
 
-        canvas.drawImage(
-          this.preview,
-          offsetX,
-          offsetY,
-          mediaWidth,
-          mediaHeight,
-          0,
-          0,
-          this.canvasWidth,
-          this.canvasHeight,
-        );
+        canvas.drawImage(this.preview, offsetX, offsetY, mediaWidth, mediaHeight, 0, 0, this.canvasWidth, this.canvasHeight);
       }
     }
   }

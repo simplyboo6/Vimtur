@@ -70,8 +70,7 @@ export class ActorService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
-        const message =
-          (err && err.error && err.error.message) || `Failed to delete actor '${actor}'`;
+        const message = (err && err.error && err.error.message) || `Failed to delete actor '${actor}'`;
         this.alertService.show({ type: 'warning', message, autoClose: 5000 });
       },
     );

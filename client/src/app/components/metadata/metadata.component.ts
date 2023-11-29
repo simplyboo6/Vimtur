@@ -49,13 +49,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   private uiService: UiService;
   private subscriptions: Subscription[] = [];
 
-  public constructor(
-    mediaService: MediaService,
-    tagService: TagService,
-    actorService: ActorService,
-    uiService: UiService,
-    playlistService: PlaylistService,
-  ) {
+  public constructor(mediaService: MediaService, tagService: TagService, actorService: ActorService, uiService: UiService, playlistService: PlaylistService) {
     this.mediaService = mediaService;
     this.tagService = tagService;
     this.actorService = actorService;
@@ -86,15 +80,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.subscriptions.push(
       timer(0)
-        .pipe(
-          switchMap(() =>
-            combineLatest([
-              this.tagService.getTags(),
-              this.actorService.getActors(),
-              this.playlistService.getPlaylists(),
-            ]),
-          ),
-        )
+        .pipe(switchMap(() => combineLatest([this.tagService.getTags(), this.actorService.getActors(), this.playlistService.getPlaylists()])))
         .subscribe(([tags, actors, playlists]) => {
           this.tags = toListItems(tags);
           this.actors = toListItems(actors);
@@ -140,11 +126,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.mediaService.saveMetadata({ [field]: this.mediaModel.metadata[field] });
   }
 
-  public isMetadataChanged(
-    field: 'artist' | 'album' | 'title',
-    media?: Media,
-    model?: MediaModel,
-  ): boolean {
+  public isMetadataChanged(field: 'artist' | 'album' | 'title', media?: Media, model?: MediaModel): boolean {
     if (!media || !model || !model.metadata || !media.metadata) {
       return false;
     }

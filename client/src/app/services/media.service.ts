@@ -2,14 +2,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject, Subscription, forkJoin } from 'rxjs';
 import { take } from 'rxjs/operators';
-import {
-  Media,
-  UpdateMetadata,
-  UpdateMedia,
-  SubsetConstraints,
-  MediaResolution,
-  MediaPlaylist,
-} from '@vimtur/common';
+import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints, MediaResolution, MediaPlaylist } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { TagService } from 'app/services/tag.service';
 import { ActorService } from 'app/services/actor.service';
@@ -68,9 +61,7 @@ export class MediaService {
     this.collectionService = collectionService;
 
     collectionService.getMetadata().subscribe(metadata => {
-      this.setCurrent(
-        metadata && metadata.collection ? metadata.collection[metadata.index] : undefined,
-      );
+      this.setCurrent(metadata && metadata.collection ? metadata.collection[metadata.index] : undefined);
     });
   }
 
@@ -151,18 +142,16 @@ export class MediaService {
   }
 
   public updateOrderInPlaylist(hash: string, playlistId: string, newLocation: number): void {
-    this.httpClient
-      .patch(`/api/images/${hash}/playlists/${playlistId}`, { order: newLocation }, HTTP_OPTIONS)
-      .subscribe(
-        () => console.debug('location updated', hash, playlistId, newLocation),
-        err => {
-          console.error('failed to update location', hash, playlistId, newLocation, err);
-          this.alertService.show({
-            type: 'danger',
-            message: `Failed to update media order in playlist`,
-          });
-        },
-      );
+    this.httpClient.patch(`/api/images/${hash}/playlists/${playlistId}`, { order: newLocation }, HTTP_OPTIONS).subscribe(
+      () => console.debug('location updated', hash, playlistId, newLocation),
+      err => {
+        console.error('failed to update location', hash, playlistId, newLocation, err);
+        this.alertService.show({
+          type: 'danger',
+          message: `Failed to update media order in playlist`,
+        });
+      },
+    );
   }
 
   public addActor(value: string | TagListItem) {
@@ -372,34 +361,32 @@ export class MediaService {
     };
 
     this.alertService.show(alert);
-    this.httpClient
-      .patch<number>(`/api/images/bulk-update`, { constraints, update }, HTTP_OPTIONS)
-      .subscribe(
-        (count: number) => {
-          this.alertService.dismiss(alert);
-          this.alertService.show({
-            type: 'success',
-            autoClose: 5000,
-            message: `Applied update to ${count} media`,
-          });
-          if (!this.media) {
-            console.warn('Failed to apply to loaded media, media not set');
-            return;
-          }
-          if (update.metadata) {
-            this.media.metadata = Object.assign(this.media.metadata || {}, update.metadata) as any;
-          }
-          const metadata = this.media.metadata;
-          Object.assign(this.media, update);
-          this.media.metadata = metadata;
-          this.mediaReplay.next(this.media);
-        },
-        (err: HttpErrorResponse) => {
-          this.alertService.dismiss(alert);
-          console.error('bulk update failed', constraints, update, err);
-          this.alertService.show({ type: 'danger', message: 'Failed to apply bulk update' });
-        },
-      );
+    this.httpClient.patch<number>(`/api/images/bulk-update`, { constraints, update }, HTTP_OPTIONS).subscribe(
+      (count: number) => {
+        this.alertService.dismiss(alert);
+        this.alertService.show({
+          type: 'success',
+          autoClose: 5000,
+          message: `Applied update to ${count} media`,
+        });
+        if (!this.media) {
+          console.warn('Failed to apply to loaded media, media not set');
+          return;
+        }
+        if (update.metadata) {
+          this.media.metadata = Object.assign(this.media.metadata || {}, update.metadata) as any;
+        }
+        const metadata = this.media.metadata;
+        Object.assign(this.media, update);
+        this.media.metadata = metadata;
+        this.mediaReplay.next(this.media);
+      },
+      (err: HttpErrorResponse) => {
+        this.alertService.dismiss(alert);
+        console.error('bulk update failed', constraints, update, err);
+        this.alertService.show({ type: 'danger', message: 'Failed to apply bulk update' });
+      },
+    );
   }
 
   public saveMedia(hash: string, update: UpdateMedia) {

@@ -33,10 +33,7 @@ export class AppComponent implements OnInit {
 
   public ngOnInit() {
     this.configService.getConfiguration().subscribe(config => {
-      const options =
-        config.user.initialLoadLimit && config.user.initialLoadLimit > 0
-          ? { sample: config.user.initialLoadLimit }
-          : {};
+      const options = config.user.initialLoadLimit && config.user.initialLoadLimit > 0 ? { sample: config.user.initialLoadLimit } : {};
       this.collectionService.search(options, { shuffle: true, init: true });
     });
   }

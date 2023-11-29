@@ -35,12 +35,7 @@ export class PlaylistComponent implements OnInit, OnDestroy {
   private uiService: UiService;
   private subscriptions: Subscription[] = [];
 
-  public constructor(
-    playlistService: PlaylistService,
-    mediaService: MediaService,
-    collectionService: CollectionService,
-    uiService: UiService,
-  ) {
+  public constructor(playlistService: PlaylistService, mediaService: MediaService, collectionService: CollectionService, uiService: UiService) {
     this.playlistService = playlistService;
     this.mediaService = mediaService;
     this.collectionService = collectionService;
@@ -137,11 +132,7 @@ export class PlaylistComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.mediaService.updateOrderInPlaylist(
-      this.media[previousIndex].hash,
-      this.playlist.id,
-      currentIndex,
-    );
+    this.mediaService.updateOrderInPlaylist(this.media[previousIndex].hash, this.playlist.id, currentIndex);
 
     this.updateMediaActions();
 

@@ -21,9 +21,7 @@ export class InsightsComponent implements OnInit, OnDestroy {
   public ngOnInit() {
     this.insights = undefined;
 
-    this.subscriptions.push(
-      this.insightsService.getInsights().subscribe(insights => (this.insights = insights)),
-    );
+    this.subscriptions.push(this.insightsService.getInsights().subscribe(insights => (this.insights = insights)));
   }
 
   public ngOnDestroy() {
