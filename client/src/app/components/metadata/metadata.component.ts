@@ -61,7 +61,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.subscriptions.push(
       this.mediaService.getMedia().subscribe(media => {
         this.media = media;
-        this.mediaModel = this.media
+        this.mediaModel = media
           ? {
               rating: media.rating || 0,
               tags: media.tags,

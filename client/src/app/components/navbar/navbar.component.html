@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-xl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
+<nav class="navbar navbar-expand-xxl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
   <div class="container-fluid">
     <div class="btn-group btn-group-toggle nav-button-group" *ngIf="showToggleTags | async; else emptyNav" title="Toggle Tags">
       <button class="btn btn-primary" (click)="toggleTagsOpen()">
@@ -13,7 +13,13 @@
     <div class="btn-group">
       <ng-container *ngFor="let navItem of navItems; trackBy: trackNavItem">
         <ng-container *ngIf="navItem.visible | async">
-          <button *ngIf="navItem.type === 'button'" class="btn btn-outline-success" [title]="navItem.title" (click)="navItem.click()">
+          <button
+            *ngIf="navItem.type === 'button'"
+            class="btn btn-outline-success"
+            [title]="navItem.title"
+            (click)="navItem.click()"
+            [disabled]="navItem.enabled && (navItem.enabled | async) === false"
+          >
             <fa-icon [icon]="navItem.icon" size="xl"></fa-icon>
           </button>
           <div *ngIf="navItem.type === 'paginator' && (navItem.page | async) as page" class="btn btn-outline-success paginator" type="submit" title="Page">
@@ -26,41 +32,52 @@
     <button
       class="navbar-toggler"
       type="button"
-      (click)="isExpanded = !isExpanded"
-      [attr.aria-expanded]="!isExpanded"
+      (click)="toggleExpanded()"
+      [attr.aria-expanded]="(isExpanded | async) !== true"
       aria-controls="navbarDefault"
       aria-label="Toggle navigation"
     >
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse justify-content-end" id="navbarDefault" [ngbCollapse]="!isExpanded">
+    <div class="collapse navbar-collapse justify-content-end" id="navbarDefault" [ngbCollapse]="(isExpanded | async) !== true">
       <ul class="navbar-nav">
         <li class="nav-item" [class.active]="currentRoute === '/viewer'">
-          <a class="nav-link" routerLink="/viewer" (click)="isExpanded = false">Viewer</a>
+          <a class="nav-link" routerLink="/viewer" (click)="closeExpander()">Viewer</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/metadata'">
-          <a class="nav-link" routerLink="/metadata" (click)="isExpanded = false">Metadata</a>
+          <a class="nav-link" routerLink="/metadata" (click)="closeExpander()">Metadata</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/clone-resolver'">
-          <a class="nav-link" routerLink="/clone-resolver" (click)="isExpanded = false">Clone Resolver</a>
+          <a class="nav-link" routerLink="/clone-resolver" (click)="closeExpander()">Clone Resolver</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/gallery'">
-          <a class="nav-link" routerLink="/gallery" (click)="isExpanded = false">Gallery</a>
+          <a class="nav-link" routerLink="/gallery" (click)="closeExpander()">Gallery</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/search'">
-          <a class="nav-link" routerLink="/search" (click)="isExpanded = false">Search</a>
+          <a class="nav-link" routerLink="/search" (click)="closeExpander()">Search</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/playlists'">
-          <a class="nav-link" routerLink="/playlists" (click)="isExpanded = false">Playlists</a>
+          <a class="nav-link" routerLink="/playlists" (click)="closeExpander()">Playlists</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/config'">
-          <a class="nav-link" routerLink="/config" (click)="isExpanded = false">Config</a>
+          <a class="nav-link" routerLink="/config" (click)="closeExpander()">Config</a>
         </li>
         <li class="nav-item" [class.active]="currentRoute === '/insights'">
-          <a class="nav-link" routerLink="/insights" (click)="isExpanded = false">Insights</a>
+          <a class="nav-link" routerLink="/insights" (click)="closeExpander()">Insights</a>
         </li>
       </ul>
+
+      <ng-container *ngFor="let navItem of expandedNavItems">
+        <button
+          *ngIf="navItem.visible | async"
+          (click)="navItem.click(); closeExpander()"
+          class="d-flex btn btn-outline-success mb-2 d-xxl-none"
+          [disabled]="navItem.enabled && (navItem.enabled | async) === false"
+        >
+          {{ navItem.title }}
+        </button>
+      </ng-container>
 
       <form [class.xxl-response]="!isExpanded" class="d-flex form-inline my-lg-0" (ngSubmit)="search()">
         <input

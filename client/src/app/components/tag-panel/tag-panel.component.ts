@@ -76,7 +76,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.ratingModel = 0;
         this.playlistsModel = undefined;
 
-        if (this.media) {
+        if (media) {
           // Map undefined to empty strings to better do change detection.
           this.mediaMetadataUpdate = {
             artist: media.metadata?.artist || '',

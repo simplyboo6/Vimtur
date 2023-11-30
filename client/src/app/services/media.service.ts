@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, ReplaySubject, Subscription, forkJoin } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Observable, BehaviorSubject, Subscription, forkJoin } from 'rxjs';
+import { take, map } from 'rxjs/operators';
 import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints, MediaResolution, MediaPlaylist } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { TagService } from 'app/services/tag.service';
@@ -41,7 +41,7 @@ export class MediaService {
   private actorService: ActorService;
   private modalService: NgbModal;
   private collectionService: CollectionService;
-  private mediaReplay: ReplaySubject<Media> = new ReplaySubject(1);
+  private mediaReplay = new BehaviorSubject<Media | undefined>(undefined);
 
   public media?: Media;
 
@@ -98,7 +98,15 @@ export class MediaService {
 
   public lazyLoadMedia(hashes: string[]): LazyMedia[] {
     return hashes.map(hash => ({
-      getter: () => this.getMedia(hash),
+      getter: () =>
+        this.getMedia(hash).pipe(
+          map(maybeMedia => {
+            if (!maybeMedia) {
+              throw new Error(`Media not found: ${hash}`);
+            }
+            return maybeMedia;
+          }),
+        ),
       hash,
     }));
   }
@@ -107,7 +115,18 @@ export class MediaService {
     if (hashes.length > 20) {
       console.warn('Not recommended to load that many media at once');
     }
-    return forkJoin(hashes.map(hash => this.getMedia(hash)));
+    return forkJoin(
+      hashes.map(hash =>
+        this.getMedia(hash).pipe(
+          map(maybeMedia => {
+            if (!maybeMedia) {
+              throw new Error(`Media not found: ${hash}`);
+            }
+            return maybeMedia;
+          }),
+        ),
+      ),
+    );
   }
 
   public setCurrent(hash?: string | Media) {
@@ -328,7 +347,7 @@ export class MediaService {
     }
   }
 
-  public getMedia(hash?: string): Observable<Media> {
+  public getMedia(hash?: string): Observable<Media | undefined> {
     if (!hash) {
       return this.mediaReplay;
     }

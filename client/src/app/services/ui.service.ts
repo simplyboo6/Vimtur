@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject, BehaviorSubject } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { switchMap, map } from 'rxjs/operators';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
 import { CollectionService } from './collection.service';
 import { MediaService } from './media.service';
@@ -243,8 +243,15 @@ export class UiService {
     };
   }
 
-  public offsetDirectory(offset: -1 | 1): void {
-    const dir = this.mediaService.media?.dir;
+  public offsetDirectory(offset: -1 | 1, single?: boolean): void {
+    let dir: string | undefined = this.searchModel.value.dir.like;
+    if (!single && !dir) {
+      this.alertService.show({ type: 'danger', message: 'Not currently filtering on a directory' });
+      return;
+    }
+    if (!dir) {
+      dir = this.mediaService.media?.dir;
+    }
     if (!dir) {
       this.alertService.show({ type: 'danger', message: 'No media available' });
       return;
@@ -271,9 +278,16 @@ export class UiService {
       .pipe(
         switchMap(([hash]) => {
           if (!hash) {
-            throw new Error('Directory not found');
+            throw new Error('No further directories found');
           }
-          return this.mediaService.getMedia(hash);
+          return this.mediaService.getMedia(hash).pipe(
+            map(maybeMedia => {
+              if (!maybeMedia) {
+                throw new Error(`Media not found: ${hash}`);
+              }
+              return maybeMedia;
+            }),
+          );
         }),
       )
       .subscribe(

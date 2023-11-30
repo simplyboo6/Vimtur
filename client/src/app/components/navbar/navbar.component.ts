@@ -5,7 +5,7 @@ import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
 import { Router, NavigationEnd } from '@angular/router';
-import { Subscription, Observable, combineLatest } from 'rxjs';
+import { Subscription, Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import {
   faArrowLeft,
@@ -26,6 +26,7 @@ interface NavItemButton {
   title: string;
   icon: IconDefinition;
   visible: Observable<boolean>;
+  enabled?: Observable<boolean>;
 }
 
 interface NavItemPaginator {
@@ -45,8 +46,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   protected tagsOpen = false;
   protected collectionService: CollectionService;
   protected searchText?: string;
-  protected isExpanded = false;
+  protected isExpanded = new BehaviorSubject(false);
   protected navItems: NavItem[];
+  protected expandedNavItems: NavItemButton[];
   protected readonly faTags = faTags;
   protected showToggleTags: Observable<boolean>;
   protected currentRoute?: string;
@@ -97,15 +99,39 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.routeObservable,
     ]).pipe(map(([isBigScreen, url]) => isBigScreen && url === '/viewer'));
 
+    const directoryNavigationEnabledObservable = combineLatest([isSingularObservable, uiService.searchModel]).pipe(
+      map(([isSingular, searchModel]) => {
+        return Boolean(isSingular || searchModel.dir.like);
+      }),
+    );
+
+    const previousDirectoryButtonBase = {
+      type: 'button',
+      title: 'Previous Directory',
+      icon: faBackward,
+      click: () => uiService.offsetDirectory(-1, Boolean(this.currentRoute && singularUrls.includes(this.currentRoute))),
+      enabled: directoryNavigationEnabledObservable,
+    } as const;
+
+    const nextDirectoryButtonBase = {
+      type: 'button',
+      title: 'Next Directory',
+      icon: faForward,
+      click: () => uiService.offsetDirectory(1, Boolean(this.currentRoute && singularUrls.includes(this.currentRoute))),
+      enabled: directoryNavigationEnabledObservable,
+    } as const;
+
+    this.expandedNavItems = [
+      { ...previousDirectoryButtonBase, visible: this.isExpanded },
+      { ...nextDirectoryButtonBase, visible: this.isExpanded },
+    ];
+
     this.navItems = [
       {
-        type: 'button',
-        title: 'Previous Directory',
-        icon: faBackward,
-        click: () => uiService.offsetDirectory(-1),
-        visible: combineLatest([isBigScreenObservable, isSingularObservable]).pipe(
-          map(([isBigScreen, isSingular]) => {
-            return isBigScreen && isSingular;
+        ...previousDirectoryButtonBase,
+        visible: combineLatest([isBigScreenObservable, navEnabledObservable]).pipe(
+          map(([isBigScreen, navEnabled]) => {
+            return isBigScreen && navEnabled;
           }),
         ),
       },
@@ -181,13 +207,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
         visible: navEnabledObservable,
       },
       {
-        type: 'button',
-        title: 'Next Directory',
-        icon: faForward,
-        click: () => uiService.offsetDirectory(1),
-        visible: combineLatest([isBigScreenObservable, isSingularObservable]).pipe(
-          map(([isBigScreen, isSingular]) => {
-            return isBigScreen && isSingular;
+        ...nextDirectoryButtonBase,
+        visible: combineLatest([isBigScreenObservable, navEnabledObservable]).pipe(
+          map(([isBigScreen, navEnabled]) => {
+            return isBigScreen && navEnabled;
           }),
         ),
       },
@@ -237,7 +260,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.uiService.searchModel.next(searchModel);
     this.collectionService.search(this.uiService.createSearch(searchModel));
 
-    this.isExpanded = false;
+    this.isExpanded.next(false);
+  }
+
+  public toggleExpanded(): void {
+    this.isExpanded.next(!this.isExpanded.value);
+  }
+
+  public closeExpander(): void {
+    this.isExpanded.next(false);
   }
 
   public toggleTagsOpen(): void {
