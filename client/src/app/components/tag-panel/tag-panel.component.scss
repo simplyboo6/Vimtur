@@ -10,6 +10,10 @@
 .tag-header {
   height: 2rem;
   min-width: 10rem;
+
+  & > button {
+    width: 1.5rem;
+  }
 }
 
 .tag-label {

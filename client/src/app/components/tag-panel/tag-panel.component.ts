@@ -5,8 +5,11 @@ import { MediaService } from 'services/media.service';
 import { PlaylistService } from 'services/playlist.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
-import { Subscription } from 'rxjs';
+import { PromptService } from 'services/prompt.service';
+import { Subscription, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ListItem, toListItems } from 'app/shared/types';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 const DEFAULT_COLUMN_COUNT = 1;
 
@@ -22,6 +25,7 @@ interface MetadataModel {
   styleUrls: ['./tag-panel.component.scss'],
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
+  public readonly faPlus = faPlus;
   public tagsModel?: Record<string, boolean>;
   public ratingModel = 0;
   public actorsModel?: string[];
@@ -44,6 +48,7 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private configService: ConfigService;
   private tagService: TagService;
+  private promptService: PromptService;
   private subscriptions: Subscription[] = [];
 
   public constructor(
@@ -52,12 +57,14 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     tagService: TagService,
     actorService: ActorService,
     playlistService: PlaylistService,
+    promptService: PromptService,
   ) {
     this.configService = configService;
     this.mediaService = mediaService;
     this.tagService = tagService;
     this.actorService = actorService;
     this.playlistService = playlistService;
+    this.promptService = promptService;
   }
 
   public ngOnInit() {
@@ -166,6 +173,30 @@ export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
     } else {
       this.mediaService.removeTag(tag);
     }
+  }
+
+  public createTag(): void {
+    this.subscriptions.push(
+      from(this.promptService.prompt('Enter Tag'))
+        .pipe(
+          map(tag => {
+            if (!tag || !tag.trim()) {
+              return;
+            }
+            console.log(tag);
+            this.mediaService.addTag(tag);
+          }),
+        )
+        .subscribe(
+          () => {
+            // Nothing to do
+          },
+          err => {
+            // TODO
+            console.error(err);
+          },
+        ),
+    );
   }
 
   private updateColumnIndexes(): void {

@@ -3,9 +3,13 @@
     <app-tag-panel></app-tag-panel>
   </div>
   <div class="right-panel full-height">
-    <div *ngIf="media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc" class="text-overlay">
+    <a
+      [href]="'/api/images/' + media.hash + '/file?download=true'"
+      *ngIf="media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc"
+      class="text-overlay"
+    >
       {{ media.path }}
-    </div>
+    </a>
     <div *ngIf="media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags" class="text-overlay bottom">
       May contain: {{ media.autoTags | formatArray }}
     </div>

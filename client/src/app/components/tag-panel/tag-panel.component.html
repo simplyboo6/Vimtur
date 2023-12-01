@@ -2,7 +2,7 @@
   <div class="card tag-panel margin-bottom">
     <div class="card-header card-small tag-header">
       Tags
-      <a *ngIf="media" [href]="'/api/images/' + media.hash + '/file?download=true'">Download</a>
+      <button class="btn btn-primary ms-auto" (click)="createTag()"><fa-icon [icon]="faPlus"></fa-icon></button>
     </div>
     <div *ngIf="tagsModel && media && columnIndexes && columnTags; else loading" class="card-body card-small tag-list">
       <div class="tag-list-column" *ngFor="let i of columnIndexes">
