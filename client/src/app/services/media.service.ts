@@ -229,7 +229,9 @@ export class MediaService {
       if (!this.actorService.actors.includes(name)) {
         this.actorService.addActor(name);
       }
-      media.actors.push(name);
+      // Replace the actors object to trigger change detection.
+      media.actors = [...media.actors, name];
+      this.mediaReplay.next(this.media);
 
       const hash = media.hash;
       console.log('addActor', hash, name);

@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 import { ReplaySubject, Observable } from 'rxjs';
 import { Playlist, PlaylistCreate, PlaylistUpdate, SubsetConstraints, MediaPlaylist } from '@vimtur/common';
 import { AlertService } from './alert.service';
-import { UiService } from './ui.service';
 import { MediaService } from './media.service';
 import { ConfirmationService } from './confirmation.service';
 import { CollectionService } from './collection.service';
@@ -22,7 +21,6 @@ const PLAYLIST_WARNING_SIZE = 500;
 export class PlaylistService {
   private httpClient: HttpClient;
   private alertService: AlertService;
-  private uiService: UiService;
   private confirmationService: ConfirmationService;
   private mediaService: MediaService;
   private playlistsReplay = new ReplaySubject<Playlist[]>(1);
@@ -34,14 +32,12 @@ export class PlaylistService {
   public constructor(
     httpClient: HttpClient,
     alertService: AlertService,
-    uiService: UiService,
     confirmationService: ConfirmationService,
     mediaService: MediaService,
     collectionService: CollectionService,
   ) {
     this.httpClient = httpClient;
     this.alertService = alertService;
-    this.uiService = uiService;
     this.confirmationService = confirmationService;
     this.mediaService = mediaService;
     this.collectionService = collectionService;
@@ -76,14 +72,16 @@ export class PlaylistService {
     return this.playlistsReplay;
   }
 
-  public addPlaylist(request: PlaylistCreate) {
+  public addPlaylist(request: PlaylistCreate, quiet = false) {
     this.httpClient.post<Playlist>(`/api/playlists`, request, HTTP_OPTIONS).subscribe(
       res => {
-        this.alertService.show({
-          type: 'success',
-          message: `Added playlist '${request.name}'`,
-          autoClose: 3000,
-        });
+        if (!quiet) {
+          this.alertService.show({
+            type: 'success',
+            message: `Added playlist '${request.name}'`,
+            autoClose: 3000,
+          });
+        }
 
         if (request.hashes) {
           for (let i = 0; i < request.hashes.length; i++) {
@@ -141,9 +139,7 @@ export class PlaylistService {
     );
   }
 
-  public addAllCurrentToPlaylist(playlist: Playlist, constraints?: SubsetConstraints): void {
-    const subset = constraints || this.uiService.createSearch(this.uiService.searchModel.value);
-
+  public addAllCurrentToPlaylist(playlist: Playlist, subset: SubsetConstraints): void {
     let prompt = `Are you sure you want to add ${this.collectionSize === undefined ? 'all' : this.collectionSize} current search results to ${playlist.name}?`;
     if (this.collectionSize !== undefined && this.collectionSize > PLAYLIST_WARNING_SIZE) {
       prompt = `${prompt} Playlists longer than ${PLAYLIST_WARNING_SIZE} may be difficult to manage and not perform well.`;

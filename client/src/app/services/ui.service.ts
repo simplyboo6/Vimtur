@@ -1,10 +1,12 @@
 import { Injectable } from '@angular/core';
-import { ReplaySubject, BehaviorSubject } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { ReplaySubject, BehaviorSubject, from } from 'rxjs';
+import { switchMap, map, take } from 'rxjs/operators';
 import { ArrayFilter, SubsetConstraints } from '@vimtur/common';
 import { CollectionService } from './collection.service';
 import { MediaService } from './media.service';
 import { AlertService } from './alert.service';
+import { PromptService } from './prompt.service';
+import { PlaylistService } from './playlist.service';
 
 export interface SearchArrayFilter {
   equalsAny: string[];
@@ -105,6 +107,8 @@ export class UiService {
   private readonly collectionService: CollectionService;
   private readonly mediaService: MediaService;
   private readonly alertService: AlertService;
+  private readonly promptService: PromptService;
+  private readonly playlistService: PlaylistService;
   // This is in here to allow the search parameters to persist after leaving the search page.
   public readonly searchModel = new BehaviorSubject<SearchModel>(this.createSearchModel());
 
@@ -121,10 +125,18 @@ export class UiService {
     { field: 'dir', name: 'Dir' },
   ];
 
-  public constructor(collectionService: CollectionService, mediaService: MediaService, alertService: AlertService) {
+  public constructor(
+    collectionService: CollectionService,
+    mediaService: MediaService,
+    alertService: AlertService,
+    promptService: PromptService,
+    playlistService: PlaylistService,
+  ) {
     this.collectionService = collectionService;
     this.mediaService = mediaService;
     this.alertService = alertService;
+    this.promptService = promptService;
+    this.playlistService = playlistService;
   }
 
   public getTagPanelState(): ReplaySubject<boolean> {
@@ -300,6 +312,75 @@ export class UiService {
         },
         err => {
           this.collectionService.setSearching(false);
+          this.alertService.show({ type: 'danger', message: err.message });
+        },
+      );
+  }
+
+  public createTag(): void {
+    from(this.promptService.prompt('Enter Tag'))
+      .pipe(
+        take(1),
+        map(tag => {
+          if (!tag || !tag.trim()) {
+            return;
+          }
+          this.mediaService.addTag(tag);
+        }),
+      )
+      .subscribe(
+        () => {
+          // Nothing to do
+        },
+        err => {
+          this.alertService.show({ type: 'danger', message: err.message });
+        },
+      );
+  }
+
+  public createActor(): void {
+    from(this.promptService.prompt('Enter Persons Name'))
+      .pipe(
+        take(1),
+        map(actor => {
+          if (!actor || !actor.trim()) {
+            return;
+          }
+          this.mediaService.addActor(actor);
+        }),
+      )
+      .subscribe(
+        () => {
+          // Nothing to do
+        },
+        err => {
+          this.alertService.show({ type: 'danger', message: err.message });
+        },
+      );
+  }
+
+  public createPlaylist(): void {
+    from(this.promptService.prompt('Enter Playlist Name'))
+      .pipe(
+        take(1),
+        map(name => {
+          if (!name || !name.trim()) {
+            return;
+          }
+          if (!this.mediaService.media) {
+            return;
+          }
+          this.playlistService.addPlaylist({
+            name,
+            hashes: [this.mediaService.media.hash],
+          }, true);
+        }),
+      )
+      .subscribe(
+        () => {
+          // Nothing to do
+        },
+        err => {
           this.alertService.show({ type: 'danger', message: err.message });
         },
       );

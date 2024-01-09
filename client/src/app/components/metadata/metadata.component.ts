@@ -8,6 +8,7 @@ import { switchMap } from 'rxjs/operators';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface MediaModel extends UpdateMedia {
   tags?: string[];
@@ -38,6 +39,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public actorService: ActorService;
   public playlistService: PlaylistService;
   public currentPlaylist?: Playlist;
+  public readonly faPlus = faPlus;
 
   public readonly metadataFields: MetadataField[] = [
     { name: 'artist', text: 'Artist' },

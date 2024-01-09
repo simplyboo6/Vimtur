@@ -120,7 +120,7 @@ export class PlaylistsComponent implements OnInit, OnDestroy {
   public onAction(action: ListItem<Playlist>): void {
     switch (action.itemName) {
       case 'Add Media':
-        this.playlistService.addAllCurrentToPlaylist(action.id);
+        this.playlistService.addAllCurrentToPlaylist(action.id, this.uiService.createSearch(this.uiService.searchModel.value));
         break;
       case 'Delete':
         this.deletePlaylist(action.id);
