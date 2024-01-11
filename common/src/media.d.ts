@@ -110,3 +110,8 @@ export interface MediaResolution {
 export interface Media extends BaseMedia {
   absolutePath: string;
 }
+
+export interface DeletedMedia {
+  hash: string;
+  path: string;
+}

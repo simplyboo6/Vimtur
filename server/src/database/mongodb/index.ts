@@ -3,6 +3,7 @@ import Path from 'path';
 import {
   BaseMedia,
   Configuration,
+  DeletedMedia,
   Media,
   MediaPlaylist,
   Playlist,
@@ -54,11 +55,15 @@ export class MongoConnector extends Database {
     if (!config) {
       throw new Error('database config missing');
     }
+    if (config.provider !== 'mongodb') {
+      throw new Error('Missing mongo config');
+    }
+    const mongoConfig = config;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        return await MongoClient.connect(config.uri, {
+        return await MongoClient.connect(mongoConfig.uri, {
           useNewUrlParser: true,
           useUnifiedTopology: true,
         });
@@ -74,7 +79,16 @@ export class MongoConnector extends Database {
   private constructor(server: MongoClient) {
     super();
     this.server = server;
-    const dbName = Config.get().database?.db;
+
+    const config = Config.get().database;
+    if (!config) {
+      throw new Error('database config missing');
+    }
+    if (config.provider !== 'mongodb') {
+      throw new Error('Missing mongo config');
+    }
+    const mongoConfig = config;
+    const dbName = mongoConfig.db;
     if (!dbName) {
       throw new Error('missing database config');
     }
@@ -603,15 +617,25 @@ export class MongoConnector extends Database {
     }
 
     if (media && ignoreInImport) {
-      await this.db.collection<BaseMedia>('media.deleted').update({ hash: media.hash }, media, { upsert: true });
+      await this.addDeleted(media);
     }
     await mediaCollection.deleteOne({ hash });
+  }
+
+  public async addDeleted(deleted: DeletedMedia): Promise<void> {
+    await this.db.collection<BaseMedia>('media.deleted').update({ hash: deleted.hash }, deleted, { upsert: true });
   }
 
   public async isDeletedPath(path: string): Promise<boolean> {
     const media = this.db.collection<BaseMedia>('media.deleted');
     const result = await media.findOne({ path });
     return Boolean(result);
+  }
+
+  public async getDeletedMedia(): Promise<DeletedMedia[]> {
+    const media = this.db.collection<BaseMedia>('media.deleted');
+    const result = await media.find({}).toArray();
+    return result.map((res) => ({ hash: res.hash, path: res.path }));
   }
 
   public async addMediaTag(hash: string, tag: string): Promise<void> {

@@ -3,7 +3,7 @@ import Util from 'util';
 
 import Config from '../config';
 import { setup as setupDb } from '../database';
-import type { DumpFile } from '../types';
+import type { DumpFile, DumpPlaylist } from '../types';
 
 async function main(): Promise<void> {
   const file = process.argv[2];
@@ -20,13 +20,25 @@ async function main(): Promise<void> {
   const userConfigOverlay = await db.getUserConfig();
   Config.setUserOverlay(userConfigOverlay);
 
+  const outputPlaylists: DumpPlaylist[] = [];
   const output: DumpFile = {
     tags: await db.getTags(),
     media: [],
     actors: await db.getActors(),
     config: userConfigOverlay,
+    playlists: outputPlaylists,
+    deleted: await db.getDeletedMedia(),
     version: 4,
   };
+
+  const playlists = await db.getPlaylists();
+  for (const playlist of playlists) {
+    outputPlaylists.push({
+      ...playlist,
+      hashes: await db.subset({ playlist: playlist.id, sortBy: 'order' }),
+    });
+  }
+
   // Save tags
   const map = await db.subset({});
   for (const hash of map) {

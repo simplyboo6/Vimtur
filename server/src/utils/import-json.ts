@@ -10,6 +10,7 @@ import Config from '../config';
 import { setup as setupDb } from '../database';
 import type { Database, DumpFile } from '../types';
 
+// TODO This must also cover playlists and deleted media.
 async function importMedia(db: Database, media: BaseMedia, version?: number): Promise<void> {
   if (!media.hash) {
     throw new Error('Missing hash');
@@ -142,6 +143,10 @@ async function main(): Promise<void> {
 
   console.log('Adding all to database. This can take some time.');
   const start = new Date();
+  console.log('Adding config...');
+  if (imported.config && Object.keys(imported.config).length) {
+    await db.saveUserConfig(imported.config);
+  }
   console.log('Adding tags...');
   for (const tag of imported.tags) {
     await db.addTag(tag);
@@ -149,10 +154,6 @@ async function main(): Promise<void> {
   console.log('Adding actors...');
   for (const actor of imported.actors) {
     await db.addActor(actor);
-  }
-  console.log('Adding config...');
-  if (imported.config && Object.keys(imported.config).length) {
-    await db.saveUserConfig(imported.config);
   }
   console.log('Adding media...');
   let progress = 0;
@@ -175,6 +176,18 @@ async function main(): Promise<void> {
       );
     }
   }
+
+  console.log('Adding deleted media...');
+  for (const deleted of imported.deleted || []) {
+    await db.addDeleted(deleted);
+  }
+
+  console.log('Adding playlists...');
+  for (const playlist of imported.playlists || []) {
+    // Note this discards the ID.
+    await db.addPlaylist(playlist);
+  }
+
   console.log('Import complete');
 
   await db.close();
