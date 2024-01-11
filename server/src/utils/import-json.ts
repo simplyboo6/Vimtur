@@ -1,3 +1,4 @@
+import 'source-map-support/register';
 /* eslint require-atomic-updates: 0 */
 import FS from 'fs';
 import Path from 'path';

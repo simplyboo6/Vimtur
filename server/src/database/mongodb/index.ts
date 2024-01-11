@@ -654,6 +654,18 @@ export class MongoConnector extends Database {
     await this.db.collection<BaseMedia>('media').updateOne({ hash }, { $pull: { actors: actor } });
   }
 
+  public async testCleanup(): Promise<void> {
+    if (!process.env.TEST_MODE) {
+      throw new Error('testCleanup called outside of test mode');
+    }
+    await this.db.collection('media').deleteMany({});
+    await this.db.collection('media.deleted').deleteMany({});
+    await this.db.collection('tags').deleteMany({});
+    await this.db.collection('actors').deleteMany({});
+    await this.db.collection('playlists').deleteMany({});
+    await this.db.collection('config').deleteMany({});
+  }
+
   public async subsetFields(constraints: SubsetConstraints, fields?: SubsetFields | 'all'): Promise<BaseMedia[]> {
     const mediaCollection = this.db.collection<BaseMedia>('media');
 

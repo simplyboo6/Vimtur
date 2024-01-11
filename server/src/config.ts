@@ -50,6 +50,7 @@ const DEFAULTS: any = {
   // Enabled pHash generation during auto-import.
   enablePhash: false,
   enableTensorFlow: true,
+  database: { provider: 'sqlite' },
   transcoder: {
     // Copy data to speedup setup.
     maxCopyEnabled: true,

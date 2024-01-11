@@ -30,8 +30,9 @@ export interface SubsetConstraints {
   // Arrays
   tags?: ArrayFilter;
   actors?: ArrayFilter;
-  type?: ArrayFilter;
-  autoTags?: ArrayFilter;
+  type?: StringFilter;
+  // Only currently searched by Full-text, but exists: false is used.
+  autoTags?: StringFilter;
 
   // Strings
   hash?: StringFilter;
@@ -62,13 +63,13 @@ export interface SubsetConstraints {
   // If not set defaults to whatever is sensible for the sortBy field.
   sortDirection?: 'ASC' | 'DESC';
   // Checks that metadata exists
-  indexed?: boolean;
+  indexed?: BooleanFilter;
   // Checks that metadata.qualityCache.0 exists or type != video
-  cached?: boolean;
+  cached?: BooleanFilter;
   // Checks if a string exists
-  phashed?: boolean;
+  phashed?: BooleanFilter;
   // Returns media that have potential clones. clones.length > 0 & exists
-  hasClones?: boolean;
+  hasClones?: BooleanFilter;
   // Return a random set of this size.
   sample?: number;
   // Return the first number of matches

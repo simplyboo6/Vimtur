@@ -1,30 +1,116 @@
+import 'source-map-support/register';
+
 import type { Media, Playlist } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-import { Db, MongoClient } from 'mongodb';
 
-import Config from '../config';
-import { MongoConnector } from '../database/mongodb';
+import { SqliteConnector } from '../database/sqlite';
 import type { Database } from '../types/database';
 
 describe('Database Tests', () => {
   let database: Database;
-  let connection: MongoClient;
-  let mongo: Db;
 
   before(async () => {
-    database = await MongoConnector.init();
+    database = await SqliteConnector.init({ filename: ':memory:', libraryPath: '/tmp' });
+  });
 
-    const config = Config.get().database;
-    if (!config) {
-      throw new Error('missing database config');
-    }
-    connection = await MongoClient.connect(config.uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+  describe('Subset tests', () => {
+    const media: Media[] = [];
+
+    before(async () => {
+      for (let i = 0; i < 5; i++) {
+        media.push(
+          await database.saveMedia(`hash-${i}`, {
+            hash: `hash-${i}`,
+            path: `/tmp/${i}.jpg`,
+            dir: '/tmp',
+            type: 'still',
+            actors: [],
+            tags: [],
+            hashDate: Date.now(),
+          }),
+        );
+      }
+      await database.addTag('tag-a');
+      await database.addTag('tag-b');
+      await database.addTag('tag-c');
+      await database.addTag('tag-d');
+      await database.addMediaTag('hash-0', 'tag-a');
+      await database.addMediaTag('hash-0', 'tag-b');
+      await database.addMediaTag('hash-1', 'tag-b');
+      await database.addMediaTag('hash-1', 'tag-c');
     });
-    const dbName = config.db;
-    mongo = connection.db(dbName);
+
+    it('keyword search', async () => {
+      const hashes = await database.subset({ keywordSearch: 'tag-b' });
+      expect(hashes).to.deep.equal(['hash-0', 'hash-1']);
+    });
+
+    it('arrayFilter.equalsAny (a, c)', async () => {
+      const hashes = await database.subset({ tags: { equalsAny: ['tag-a', 'tag-c'] } });
+      expect(hashes).to.deep.equal(['hash-0', 'hash-1']);
+    });
+
+    it('arrayFilter.equalsAny (d)', async () => {
+      const hashes = await database.subset({ tags: { equalsAny: ['tag-d'] } });
+      expect(hashes).to.deep.equal([]);
+    });
+
+    it('arrayFilter.equalsNone (d)', async () => {
+      const hashes = await database.subset({ tags: { equalsNone: ['tag-d'] } });
+      expect(hashes.length).to.equal(5);
+    });
+
+    it('arrayFilter.equalsNone (a, b)', async () => {
+      const hashes = await database.subset({ tags: { equalsNone: ['tag-a', 'tag-b'] } });
+      expect(hashes.length).to.equal(3);
+    });
+
+    it('arrayFilter.equalsAll (b)', async () => {
+      const hashes = await database.subset({ tags: { equalsAll: ['tag-b'] } });
+      expect(hashes.length).to.equal(2);
+    });
+
+    it('arrayFilter.equalsAll (b, c)', async () => {
+      const hashes = await database.subset({ tags: { equalsAll: ['tag-b', 'tag-c'] } });
+      expect(hashes.length).to.equal(1);
+    });
+
+    it('arrayFilter.exists (true)', async () => {
+      const hashes = await database.subset({ tags: { exists: true } });
+      expect(hashes.length).to.equal(2);
+    });
+
+    it('arrayFilter.exists (false)', async () => {
+      const hashes = await database.subset({ tags: { exists: false } });
+      expect(hashes.length).to.equal(3);
+    });
+
+    it('arrayFilter combo', async () => {
+      const hashes = await database.subset({
+        tags: {
+          equalsAll: ['tag-b'],
+          equalsAny: ['tag-a', 'tag-c'],
+          equalsNone: ['tag-d'],
+          exists: true,
+        },
+      });
+      expect(hashes.length).to.equal(2);
+    });
+
+    it('keyword with arrayFilter.exists', async () => {
+      const hashes = await database.subset({
+        keywordSearch: 'tag-a',
+        tags: {
+          exists: true,
+        },
+      });
+      expect(hashes.length).to.equal(1);
+    });
+
+    after(async () => {
+      await database.testCleanup();
+    });
   });
 
   describe('Basic playlist tests', () => {
@@ -123,7 +209,7 @@ describe('Database Tests', () => {
     });
 
     afterEach(async () => {
-      await mongo.collection('playlists').deleteMany({});
+      await database.testCleanup();
     });
   });
 
@@ -146,6 +232,7 @@ describe('Database Tests', () => {
       for (let i = 0; i < 5; i++) {
         media.push(
           await database.saveMedia(`hash-${i}`, {
+            hash: `hash-${i}`,
             path: `/tmp/${i}.jpg`,
             dir: '/tmp',
             type: 'still',
@@ -158,8 +245,7 @@ describe('Database Tests', () => {
     });
 
     afterEach(async () => {
-      await mongo.collection('playlists').deleteMany({});
-      await mongo.collection('media').deleteMany({});
+      await database.testCleanup();
     });
 
     it('Add media to playlist', async () => {
@@ -434,6 +520,5 @@ describe('Database Tests', () => {
 
   after(async () => {
     await database.close();
-    await connection.close();
   });
 });

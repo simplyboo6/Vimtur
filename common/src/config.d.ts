@@ -76,11 +76,15 @@ export namespace Configuration {
     db: string;
   }
 
+  export interface SqliteDbConfig {
+    provider: 'sqlite';
+  }
+
   export interface Main {
     port: number; // The listen port.
     libraryPath: string; // Path to the source library.
     cachePath: string; // Path to store thumbnails and cached media.
-    database?: Mongo; // Not passed back to the APIs.
+    database?: Mongo | SqliteDbConfig; // Not passed back to the APIs.
     transcoder: Transcoder;
     // Enable pHash generation for stills as part of import.
     enablePhash: boolean;

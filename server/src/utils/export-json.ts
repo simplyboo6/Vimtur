@@ -1,3 +1,4 @@
+import 'source-map-support/register';
 import FS from 'fs';
 import Util from 'util';
 
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   const userConfigOverlay = await db.getUserConfig();
   Config.setUserOverlay(userConfigOverlay);
 
+  console.log('Doing initial export (tags, actors, config, deleted media)...');
   const outputPlaylists: DumpPlaylist[] = [];
   const output: DumpFile = {
     tags: await db.getTags(),
@@ -31,6 +33,7 @@ async function main(): Promise<void> {
     version: 4,
   };
 
+  console.log('Exporting playlists...');
   const playlists = await db.getPlaylists();
   for (const playlist of playlists) {
     outputPlaylists.push({
@@ -40,6 +43,7 @@ async function main(): Promise<void> {
   }
 
   // Save tags
+  console.log('Exporting media...');
   const map = await db.subset({});
   for (const hash of map) {
     const media = await db.getMedia(hash);

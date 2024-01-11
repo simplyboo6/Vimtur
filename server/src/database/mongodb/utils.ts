@@ -142,7 +142,7 @@ export function createNumberFilter(field: string, options?: NumberFilter): objec
       filters.push({ $or: [{ [field]: { $lte: 0 } }, { [field]: { $exists: false } }] });
     } else {
       filters.push({
-        [field]: { $gte: options.max },
+        [field]: { $lte: options.max },
       });
     }
   }
