@@ -282,12 +282,16 @@ export interface QueryObj {
   values: unknown[];
 }
 
+export interface HavingQuery {
+  join: QueryObj;
+  having: QueryObj;
+}
+
 function buildArrayFilter(table: string, field: string, filter: ArrayFilter | undefined): QueryObj | undefined {
   if (filter === undefined) {
     return undefined;
   }
-  const joinBase =
-    'LEFT JOIN ' + table + ' ON `media`.`hash` = ' + table + '.`media_hash` GROUP BY `media`.`hash` HAVING ';
+
   const havings: string[] = [];
   const values: unknown[] = [];
   if (filter.equalsAny) {
@@ -312,7 +316,20 @@ function buildArrayFilter(table: string, field: string, filter: ArrayFilter | un
   if (havings.length === 0) {
     return undefined;
   }
-  return { query: joinBase + havings.join(' AND '), values };
+
+  const innerSelect =
+    'SELECT `media`.`hash` FROM `media` LEFT JOIN ' +
+    table +
+    ' ON `media`.`hash` = ' +
+    table +
+    '.`media_hash` GROUP BY `media`.`hash` HAVING ' +
+    havings.join(' AND ');
+
+  return {
+    // Doesn't work because still matches equalsNone when it has them.
+    query: 'INNER JOIN (' + innerSelect + ') AS ' + table + ' ON ' + table + '.`hash` = `media`.`hash`',
+    values,
+  };
 }
 
 function joinQueries(queries: QueryObj[], operator: 'AND' | 'OR'): QueryObj | undefined {
