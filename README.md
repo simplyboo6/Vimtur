@@ -21,6 +21,7 @@
 - Automatic image clone detection and viewer using perceuptual hashing.
 - Playlists
 - Download with gallery-dl or youtube-dlp
+- Support for SQLite (default) and MongoDB
 
 ## Quick-Start
 
@@ -60,7 +61,7 @@ The server can be run as a Docker instance. It accepts the following environment
 - (optional) USERNAME - A username to login with. PASSWORD also required.
 - (optional) PASSWORD - A password to login with. USERNAME required too.
 - (optional) PORT - A port for the Docker instance to expose. Default 3523.
-- (optional) DATABASE - Must be set to `mongodb` (default).
+- (optional) DATABASE - Either `sqlite` (default) or `mongodb`. SQLite DB is created in the cache dir and called vimtur.db.
   - If using `mongodb` then you must also set `DATABASE_URI` to a MongoDB connection string (eg `mongodb://localhost`) and `DATABASE_DB` to the database name.
 
 Note: Any of these variables can be used when starting the NodeJS app natively.
