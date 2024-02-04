@@ -51,7 +51,7 @@ export class SqliteConnector extends Database {
     db.pragma('foreign_keys = ON');
     db.pragma('journal_mode = WAL');
     db.exec('CREATE TABLE IF NOT EXISTS `migrations` (`id` TEXT NOT NULL PRIMARY KEY)');
-    for (const migrationFilename of ['001-initial.sql']) {
+    for (const migrationFilename of ['001-initial.sql', '002-media-deleted-primary-key.sql']) {
       if (db.prepare('SELECT * FROM `migrations` WHERE `id` = ?').get(migrationFilename)) {
         continue;
       }
@@ -163,6 +163,11 @@ export class SqliteConnector extends Database {
 
   public isDeletedPath(path: string): Promise<boolean> {
     const deletedItem = this.db.prepare('SELECT * FROM `media_deleted` WHERE `path` = ?').get(path);
+    return Promise.resolve(deletedItem !== null && deletedItem !== undefined);
+  }
+
+  public isDeletedHash(hash: string): Promise<boolean> {
+    const deletedItem = this.db.prepare('SELECT * FROM `media_deleted` WHERE `hash` = ?').get(hash);
     return Promise.resolve(deletedItem !== null && deletedItem !== undefined);
   }
 
@@ -282,6 +287,7 @@ export class SqliteConnector extends Database {
   // Searching
   public subset(constraints: SubsetConstraints): Promise<string[]> {
     const { query, values } = buildMediaQuery(constraints);
+    console.log(query, values);
     const raw = this.db.prepare(query).all(...values) as Array<{ hash: string }>;
     return Promise.resolve(raw.map((el) => el.hash));
   }

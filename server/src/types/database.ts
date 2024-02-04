@@ -20,6 +20,7 @@ export abstract class Database {
   public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;
   public abstract isDeletedPath(path: string): Promise<boolean>;
+  public abstract isDeletedHash(hash: string): Promise<boolean>;
   public abstract getDeletedMedia(): Promise<DeletedMedia[]>;
   public abstract addDeleted(deleted: DeletedMedia): Promise<void>;
   // Media - tags

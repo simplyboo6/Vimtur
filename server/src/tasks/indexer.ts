@@ -60,7 +60,9 @@ export class Indexer {
               path: media.path,
             });
           } else {
-            await this.database.saveMedia(media.hash, media);
+            if (!(await this.database.isDeletedHash(media.hash))) {
+              await this.database.saveMedia(media.hash, media);
+            }
           }
         } catch (err) {
           console.error('Failed to index file', file, err);

@@ -632,6 +632,12 @@ export class MongoConnector extends Database {
     return Boolean(result);
   }
 
+  public async isDeletedHash(hash: string): Promise<boolean> {
+    const media = this.db.collection<BaseMedia>('media.deleted');
+    const result = await media.findOne({ hash });
+    return Boolean(result);
+  }
+
   public async getDeletedMedia(): Promise<DeletedMedia[]> {
     const media = this.db.collection<BaseMedia>('media.deleted');
     const result = await media.find({}).toArray();
