@@ -60,7 +60,10 @@ export class Indexer {
               path: media.path,
             });
           } else {
-            if (!(await this.database.isDeletedHash(media.hash))) {
+            if (await this.database.isDeletedHash(media.hash)) {
+              // If the hash has been deleted that means this path is new for this hash.
+              await this.database.addDeleted(media);
+            } else {
               await this.database.saveMedia(media.hash, media);
             }
           }

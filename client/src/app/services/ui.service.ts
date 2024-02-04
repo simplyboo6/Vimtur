@@ -261,13 +261,13 @@ export class UiService {
       offset > 0
         ? {
             dir: { after: dir },
-            sortBy: 'path',
+            sortBy: 'dir',
             sortDirection: 'ASC',
             limit: 1,
           }
         : {
             dir: { before: dir },
-            sortBy: 'path',
+            sortBy: 'dir',
             sortDirection: 'DESC',
             limit: 1,
           };

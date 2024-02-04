@@ -139,7 +139,6 @@ export class SqliteConnector extends Database {
       constraintsQuery.query +
       ') AS `joined_media` WHERE `joined_media`.`hash` = `media`.`hash`';
     const values = [...updateQuery.values, ...constraintsQuery.values];
-    console.log(query, values);
     const res = this.db.prepare(query).run(...values) as { changes: number };
     return Promise.resolve(res.changes);
   }
@@ -287,7 +286,6 @@ export class SqliteConnector extends Database {
   // Searching
   public subset(constraints: SubsetConstraints): Promise<string[]> {
     const { query, values } = buildMediaQuery(constraints);
-    console.log(query, values);
     const raw = this.db.prepare(query).all(...values) as Array<{ hash: string }>;
     return Promise.resolve(raw.map((el) => el.hash));
   }

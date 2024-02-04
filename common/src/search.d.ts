@@ -59,7 +59,7 @@ export interface SubsetConstraints {
   keywordSearch?: string;
   // Object ID, if set can sort by order.
   playlist?: string;
-  sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt' | 'path' | 'order';
+  sortBy?: 'hashDate' | 'recommended' | 'rating' | 'length' | 'createdAt' | 'path' | 'order' | 'dir';
   // If not set defaults to whatever is sensible for the sortBy field.
   sortDirection?: 'ASC' | 'DESC';
   // Checks that metadata exists

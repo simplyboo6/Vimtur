@@ -730,7 +730,8 @@ export class MongoConnector extends Database {
           Object.assign(sort, { [constraints.sortBy]: sortDirection || -1 });
           break;
         case 'order': // Fallthrough
-        case 'path':
+        case 'path': // Fallthrough
+        case 'dir':
           Object.assign(sort, { [constraints.sortBy]: sortDirection || 1 });
           break;
         case 'length': // Fallthrough

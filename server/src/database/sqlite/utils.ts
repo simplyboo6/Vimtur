@@ -636,7 +636,8 @@ export function buildMediaQuery(
           constraints.sortDirection = 'DESC';
           break;
         case 'order': // fallthrough
-        case 'path':
+        case 'path': // fallthrough
+        case 'dir':
           constraints.sortDirection = 'ASC';
           break;
       }
