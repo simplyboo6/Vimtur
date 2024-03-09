@@ -396,7 +396,7 @@ function buildStringFilter(field: string, filter: StringFilter | undefined): Que
     const likeAnyQuery = joinQueries(
       filter.likeAny.map((likeAny) => ({
         query: field + ' LIKE ?',
-        values: [likeAny],
+        values: [`%${likeAny}%`],
       })),
       'OR',
     );
@@ -408,7 +408,7 @@ function buildStringFilter(field: string, filter: StringFilter | undefined): Que
     const likeAllQuery = joinQueries(
       filter.likeAll.map((likeAll) => ({
         query: field + ' LIKE ?',
-        values: [likeAll],
+        values: [`%${likeAll}%`],
       })),
       'AND',
     );
@@ -420,7 +420,7 @@ function buildStringFilter(field: string, filter: StringFilter | undefined): Que
     const likeNoneQuery = joinQueries(
       filter.likeNone.map((likeNone) => ({
         query: field + ' NOT LIKE ?',
-        values: [likeNone],
+        values: [`%${likeNone}%`],
       })),
       'AND',
     );
