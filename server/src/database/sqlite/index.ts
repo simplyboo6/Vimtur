@@ -392,14 +392,14 @@ export class SqliteConnector extends Database {
 
   public resetClones(): Promise<void> {
     this.db.exec(
-      'UPDATE `media` SET `clones` = NULL WHERE `hash` IN ((SELECT `hash` FROM `media` WHERE `clones` IS NOT NULL))',
+      'UPDATE `media` SET `clones` = NULL WHERE `hash` IN (SELECT `hash` FROM `media` WHERE `clones` IS NOT NULL)',
     );
     return Promise.resolve();
   }
 
   public async resetAutoTags(): Promise<void> {
     this.db.exec(
-      'UPDATE `media` SET `auto_tags` = NULL WHERE `hash` IN ((SELECT `hash` FROM `media` WHERE `auto_tags` IS NOT NULL))',
+      'UPDATE `media` SET `auto_tags` = NULL WHERE `hash` IN (SELECT `hash` FROM `media` WHERE `auto_tags` IS NOT NULL)',
     );
     return Promise.resolve();
   }
