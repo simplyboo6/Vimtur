@@ -78,6 +78,7 @@ export namespace Configuration {
 
   export interface SqliteDbConfig {
     provider: 'sqlite';
+    path?: string;
   }
 
   export interface Main {
