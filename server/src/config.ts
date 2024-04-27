@@ -137,6 +137,8 @@ class Config {
     // MongoDB database configuration options.
     mapEnv('DATABASE_URI', config, 'database.uri');
     mapEnv('DATABASE_DB', config, 'database.db');
+    // SQLite
+    mapEnv('DATABASE_PATH', config, 'database.path');
 
     return config;
   }

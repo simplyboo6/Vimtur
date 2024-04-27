@@ -1,4 +1,5 @@
 import Path from 'path';
+import type { Configuration } from '@vimtur/common';
 import Config from '../config';
 import type { Database } from '../types';
 
@@ -15,7 +16,10 @@ export async function setup(): Promise<Database> {
       return MongoConnector.init();
     case 'sqlite':
       return SqliteConnector.init({
-        filename: Path.resolve(Config.get().cachePath, 'vimtur.db'),
+        filename: Path.resolve(
+          (Config.get().database as Configuration.SqliteDbConfig | undefined)?.path ?? Config.get().cachePath,
+          'vimtur.db',
+        ),
         libraryPath: Config.get().libraryPath,
       });
     default:
