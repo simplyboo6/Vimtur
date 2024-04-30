@@ -8,7 +8,7 @@
     "url": "https://github.com/simplyboo6/Vimtur"
   },
   "dependencies": {
-    "@tensorflow/tfjs-node": "^3.21.1",
+    "@tensorflow/tfjs-node": "^4.18.0",
     "ajv": "^8.6.0",
     "better-ajv-errors": "^1.1.2",
     "better-sqlite3": "^9.2.2",
@@ -28,6 +28,7 @@
     "proper-job": "1.4.14",
     "rimraf": "^3.0.0",
     "saslprep": "^1.0.3",
+    "seedrandom": "^3.0.5",
     "socket.io": "^4.4.1",
     "strip-json-comments": "^3.0.1",
     "uuid": "^9.0.1",
