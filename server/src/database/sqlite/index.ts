@@ -14,10 +14,10 @@ import type {
   SubsetFields,
   UpdateMedia,
 } from '@vimtur/common';
-import Sqlite, { Database as SqliteDb } from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequest, NotFound } from '../../errors';
 import { Database } from '../../types';
+import { SqliteController } from './controller';
 import {
   buildMediaQuery,
   makeMediaUpdate,
@@ -31,10 +31,10 @@ import {
 } from './utils';
 
 export class SqliteConnector extends Database {
-  protected db: SqliteDb;
+  protected db: SqliteController;
   protected libraryPath: string;
 
-  public constructor(db: SqliteDb, libraryPath: string) {
+  public constructor(db: SqliteController, libraryPath: string) {
     super();
     this.db = db;
     this.libraryPath = libraryPath;
@@ -47,81 +47,81 @@ export class SqliteConnector extends Database {
     filename: string;
     libraryPath: string;
   }): Promise<SqliteConnector> {
-    const db = new Sqlite(filename);
-    db.pragma('foreign_keys = ON');
-    db.pragma('journal_mode = WAL');
-    db.exec('CREATE TABLE IF NOT EXISTS `migrations` (`id` TEXT NOT NULL PRIMARY KEY)');
+    const db = new SqliteController(filename);
+    await db.exec('CREATE TABLE IF NOT EXISTS `migrations` (`id` TEXT NOT NULL PRIMARY KEY)');
     for (const migrationFilename of ['001-initial.sql', '002-media-deleted-primary-key.sql']) {
-      if (db.prepare('SELECT * FROM `migrations` WHERE `id` = ?').get(migrationFilename)) {
+      if (await db.get('SELECT * FROM `migrations` WHERE `id` = ?', [migrationFilename])) {
         continue;
       }
       const path = Path.resolve(__dirname, 'migrations', migrationFilename);
       const migration = await FS.readFile(path).then((file) => file.toString());
-      db.exec(migration);
-      db.prepare('INSERT INTO `migrations` (`id`) VALUES (?)').run(migrationFilename);
+      await db.exec(migration);
+      await db.run('INSERT INTO `migrations` (`id`) VALUES (?)', [migrationFilename]);
     }
 
     return new SqliteConnector(db, libraryPath);
   }
 
   // Media
-  public getMedia(hash: string): Promise<Media | undefined> {
-    const rawMedia = this.db.prepare('SELECT * FROM `media` WHERE `hash` = ?').get(hash) as undefined | RawMedia;
+  public async getMedia(hash: string): Promise<Media | undefined> {
+    const rawMedia = await this.db.get<RawMedia>('SELECT * FROM `media` WHERE `hash` = ?', [hash]);
     if (!rawMedia) {
-      return Promise.resolve(undefined);
+      return undefined;
     }
     const media = rawMediaToMedia(rawMedia);
-    const tags = this.db.prepare('SELECT `tag_id` FROM `media_tags` WHERE `media_hash` = ?').all(hash) as Array<{
+    const tags = await this.db.all<{
       tag_id: string;
-    }>;
-    const actors = this.db.prepare('SELECT `actor_id` FROM `media_actors` WHERE `media_hash` = ?').all(hash) as Array<{
-      actor_id: string;
-    }>;
-    const mediaPlaylists = this.db
-      .prepare('SELECT * FROM `media_playlists` WHERE `media_hash` = ?')
-      .all(hash) as Array<{ playlist_id: string; order: number }>;
-    return Promise.resolve({
+    }>('SELECT `tag_id` FROM `media_tags` WHERE `media_hash` = ?', [hash]);
+    const actors = await this.db.all<{ actor_id: string }>(
+      'SELECT `actor_id` FROM `media_actors` WHERE `media_hash` = ?',
+      [hash],
+    );
+    const mediaPlaylists = await this.db.all<{ playlist_id: string; order: number }>(
+      'SELECT * FROM `media_playlists` WHERE `media_hash` = ?',
+      [hash],
+    );
+    return {
       ...media,
       tags: tags.map((tag) => tag.tag_id),
       actors: actors.map((actor) => actor.actor_id),
       playlists: mediaPlaylists.map((playlist) => ({ id: playlist.playlist_id, order: playlist.order })),
       absolutePath: Path.resolve(this.libraryPath, media.path),
-    });
+    };
   }
 
   public async saveMedia(hash: string, update: UpdateMedia | BaseMedia): Promise<Media> {
     const { query, values } = makeMediaUpsert({ ...update, hash });
-    this.db.prepare(query + ' WHERE `hash` = ?').run(...values, hash);
-    const baseMedia = update as BaseMedia;
-    if (baseMedia.tags) {
-      this.db.prepare('DELETE FROM `media_tags` WHERE `media_hash` = ?').run(hash);
-      if (baseMedia.tags.length > 0) {
-        const values: unknown[] = [];
-        for (const tag of baseMedia.tags) {
-          values.push(hash, tag);
-        }
-        this.db
-          .prepare(
+    await this.db.transaction((transaction) => {
+      transaction.run(query + ' WHERE `hash` = ?', [...values, hash]);
+      const baseMedia = update as BaseMedia;
+      if (baseMedia.tags) {
+        transaction.run('DELETE FROM `media_tags` WHERE `media_hash` = ?', [hash]);
+        if (baseMedia.tags.length > 0) {
+          const values: unknown[] = [];
+          for (const tag of baseMedia.tags) {
+            values.push(hash, tag);
+          }
+          transaction.run(
             'INSERT INTO `media_tags` (`media_hash`, `tag_id`) VALUES ' + baseMedia.tags.map(() => '(?, ?)').join(', '),
-          )
-          .run(...values);
-      }
-    }
-    if (baseMedia.actors) {
-      this.db.prepare('DELETE FROM `media_actors` WHERE `media_hash` = ?').run(hash);
-      if (baseMedia.actors.length > 0) {
-        const values: unknown[] = [];
-        for (const actor of baseMedia.actors) {
-          values.push(hash, actor);
+            values,
+          );
         }
-        this.db
-          .prepare(
+      }
+      if (baseMedia.actors) {
+        transaction.run('DELETE FROM `media_actors` WHERE `media_hash` = ?', [hash]);
+        if (baseMedia.actors.length > 0) {
+          const values: unknown[] = [];
+          for (const actor of baseMedia.actors) {
+            values.push(hash, actor);
+          }
+          transaction.run(
             'INSERT INTO `media_actors` (`media_hash`, `actor_id`) VALUES ' +
               baseMedia.actors.map(() => '(?, ?)').join(', '),
-          )
-          .run(...values);
+            values,
+          );
+        }
       }
-    }
+    });
 
     const media = await this.getMedia(hash);
     if (!media) {
@@ -130,7 +130,7 @@ export class SqliteConnector extends Database {
     return media;
   }
 
-  public saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number> {
+  public async saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number> {
     const updateQuery = makeMediaUpdate(media);
     const constraintsQuery = buildMediaQuery(constraints);
     const query =
@@ -139,8 +139,8 @@ export class SqliteConnector extends Database {
       constraintsQuery.query +
       ') AS `joined_media` WHERE `joined_media`.`hash` = `media`.`hash`';
     const values = [...updateQuery.values, ...constraintsQuery.values];
-    const res = this.db.prepare(query).run(...values) as { changes: number };
-    return Promise.resolve(res.changes);
+    const res = await this.db.run(query, values);
+    return res.changes;
   }
 
   public async removeMedia(hash: string, ignoreInImport: boolean): Promise<void> {
@@ -150,92 +150,83 @@ export class SqliteConnector extends Database {
         await this.addDeleted(media);
       }
     }
-    this.db.prepare('DELETE FROM `media` WHERE `hash` = ?').run(hash);
+    await this.db.run('DELETE FROM `media` WHERE `hash` = ?', [hash]);
   }
 
-  public addDeleted(deleted: DeletedMedia): Promise<void> {
-    this.db
-      .prepare('INSERT OR IGNORE INTO `media_deleted` (`hash`, `path`) VALUES (?, ?)')
-      .run(deleted.hash, deleted.path);
-    return Promise.resolve();
+  public async addDeleted(deleted: DeletedMedia): Promise<void> {
+    await this.db.run('INSERT OR IGNORE INTO `media_deleted` (`hash`, `path`) VALUES (?, ?)', [
+      deleted.hash,
+      deleted.path,
+    ]);
   }
 
-  public isDeletedPath(path: string): Promise<boolean> {
-    const deletedItem = this.db.prepare('SELECT * FROM `media_deleted` WHERE `path` = ?').get(path);
-    return Promise.resolve(deletedItem !== null && deletedItem !== undefined);
+  public async isDeletedPath(path: string): Promise<boolean> {
+    const deletedItem = await this.db.get<unknown>('SELECT * FROM `media_deleted` WHERE `path` = ?', [path]);
+    return deletedItem !== null && deletedItem !== undefined;
   }
 
-  public isDeletedHash(hash: string): Promise<boolean> {
-    const deletedItem = this.db.prepare('SELECT * FROM `media_deleted` WHERE `hash` = ?').get(hash);
-    return Promise.resolve(deletedItem !== null && deletedItem !== undefined);
+  public async isDeletedHash(hash: string): Promise<boolean> {
+    const deletedItem = await this.db.get<unknown>('SELECT * FROM `media_deleted` WHERE `hash` = ?', [hash]);
+    return deletedItem !== null && deletedItem !== undefined;
   }
 
   public getDeletedMedia(): Promise<DeletedMedia[]> {
-    return Promise.resolve(this.db.prepare('SELECT * FROM `media_deleted`').all() as DeletedMedia[]);
+    return this.db.all<DeletedMedia>('SELECT * FROM `media_deleted`');
   }
 
   // Media - tags
-  public addMediaTag(hash: string, tag: string): Promise<void> {
-    this.db.prepare('INSERT OR IGNORE INTO `media_tags` (`media_hash`, `tag_id`) VALUES (?, ?)').run(hash, tag);
-    return Promise.resolve();
+  public async addMediaTag(hash: string, tag: string): Promise<void> {
+    await this.db.run('INSERT OR IGNORE INTO `media_tags` (`media_hash`, `tag_id`) VALUES (?, ?)', [hash, tag]);
   }
 
-  public removeMediaTag(hash: string, tag: string): Promise<void> {
-    this.db.prepare('DELETE FROM `media_tags` WHERE `media_hash` = ? AND `tag_id` = ?').run(hash, tag);
-    return Promise.resolve();
+  public async removeMediaTag(hash: string, tag: string): Promise<void> {
+    await this.db.run('DELETE FROM `media_tags` WHERE `media_hash` = ? AND `tag_id` = ?', [hash, tag]);
   }
 
   // Media - actors
-  public addMediaActor(hash: string, actor: string): Promise<void> {
-    this.db.prepare('INSERT OR IGNORE INTO `media_actors` (`media_hash`, `actor_id`) VALUES (?, ?)').run(hash, actor);
-    return Promise.resolve();
+  public async addMediaActor(hash: string, actor: string): Promise<void> {
+    await this.db.run('INSERT OR IGNORE INTO `media_actors` (`media_hash`, `actor_id`) VALUES (?, ?)', [hash, actor]);
   }
 
-  public removeMediaActor(hash: string, actor: string): Promise<void> {
-    this.db.prepare('DELETE FROM `media_actors` WHERE `media_hash` = ? AND `actor_id` = ?').run(hash, actor);
-    return Promise.resolve();
+  public async removeMediaActor(hash: string, actor: string): Promise<void> {
+    await this.db.run('DELETE FROM `media_actors` WHERE `media_hash` = ? AND `actor_id` = ?', [hash, actor]);
   }
   // Media - playlists
-  public addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist> {
-    this.db.transaction(() => {
-      this.db
-        .prepare(
-          'INSERT OR IGNORE INTO `media_playlists` (`media_hash`, `playlist_id`, `order`) VALUES (?, ?, IFNULL((SELECT MAX(`order`) FROM `media_playlists` WHERE `playlist_id` = ?) + 1, 0))',
-        )
-        .run(hash, playlistId, playlistId);
-      this.db
-        .prepare(
-          'UPDATE `playlists` SET `size` = (SELECT COUNT(*) FROM `media_playlists` WHERE `playlist_id` = ?) WHERE `id` = ?',
-        )
-        .run(playlistId, playlistId);
-    })();
-    const mediaPlaylist = this.db
-      .prepare('SELECT `order` FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?')
-      .get(hash, playlistId) as undefined | { order: number };
+  public async addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist> {
+    await this.db.transaction((transaction) => {
+      transaction.run(
+        'INSERT OR IGNORE INTO `media_playlists` (`media_hash`, `playlist_id`, `order`) VALUES (?, ?, IFNULL((SELECT MAX(`order`) FROM `media_playlists` WHERE `playlist_id` = ?) + 1, 0))',
+        [hash, playlistId, playlistId],
+      );
+      transaction.run(
+        'UPDATE `playlists` SET `size` = (SELECT COUNT(*) FROM `media_playlists` WHERE `playlist_id` = ?) WHERE `id` = ?',
+        [playlistId, playlistId],
+      );
+    });
+    const mediaPlaylist = await this.db.get<{ order: number }>(
+      'SELECT `order` FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?',
+      [hash, playlistId],
+    );
     if (!mediaPlaylist) {
       throw new Error('Unable to find media added to playlist');
     }
-    return Promise.resolve({ id: playlistId, order: mediaPlaylist.order });
+    return { id: playlistId, order: mediaPlaylist.order };
   }
 
-  public removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void> {
-    this.db.transaction(() => {
-      this.db
-        .prepare(
-          'UPDATE `media_playlists` SET `order` = `order` - 1 WHERE `playlist_id` = ? AND `order` > (SELECT `order` FROM `media_playlists` WHERE `playlist_id` = ? AND `media_hash` = ?)',
-        )
-        .run(playlistId, playlistId, hash);
-      this.db
-        .prepare('DELETE FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?')
-        .run(hash, playlistId);
-      this.db
-        .prepare(
-          'UPDATE `playlists` SET `size` = IFNULL((SELECT COUNT(*) FROM `media_playlists` WHERE `playlist_id` = ?), 0) WHERE `id` = ?',
-        )
-        .run(playlistId, playlistId);
-    })();
-    return Promise.resolve();
+  public async removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void> {
+    await this.db.transaction((transaction) => {
+      transaction.run(
+        'UPDATE `media_playlists` SET `order` = `order` - 1 WHERE `playlist_id` = ? AND `order` > (SELECT `order` FROM `media_playlists` WHERE `playlist_id` = ? AND `media_hash` = ?)',
+        [playlistId, playlistId, hash],
+      );
+      transaction.run('DELETE FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?', [hash, playlistId]);
+      transaction.run(
+        'UPDATE `playlists` SET `size` = IFNULL((SELECT COUNT(*) FROM `media_playlists` WHERE `playlist_id` = ?), 0) WHERE `id` = ?',
+        [playlistId, playlistId],
+      );
+    });
   }
+
   public async updateMediaPlaylistOrder(hash: string, playlistId: string, update: PlaylistEntryUpdate): Promise<void> {
     const playlist = await this.getPlaylist(playlistId);
     if (!playlist) {
@@ -251,89 +242,88 @@ export class SqliteConnector extends Database {
       throw new BadRequest(`Requested location (${update.order}) is less than 0`);
     }
 
-    this.db.transaction(() => {
-      const mediaPlaylist = this.db
-        .prepare('SELECT `order` FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?')
-        .get(hash, playlistId) as { order: number } | undefined;
-      if (!mediaPlaylist) {
-        throw new BadRequest('Media not already in playlist');
-      }
-      const oldLocation = mediaPlaylist.order;
-
+    const mediaPlaylist = await this.db.get<{ order: number }>(
+      'SELECT `order` FROM `media_playlists` WHERE `media_hash` = ? AND `playlist_id` = ?',
+      [hash, playlistId],
+    );
+    if (!mediaPlaylist) {
+      throw new BadRequest('Media not already in playlist');
+    }
+    const oldLocation = mediaPlaylist.order;
+    await this.db.transaction((transaction) => {
       if (newLocation > oldLocation) {
-        this.db
-          .prepare(
-            'UPDATE `media_playlists` SET `order` = `order` - 1 WHERE `playlist_id` = ? AND `order` > ? AND `order` <= ?',
-          )
-          .run(playlistId, oldLocation, newLocation);
-        this.db
-          .prepare('UPDATE `media_playlists` SET `order` = ? WHERE `playlist_id` = ? AND `media_hash` = ?')
-          .run(newLocation, playlistId, hash);
+        transaction.run(
+          'UPDATE `media_playlists` SET `order` = `order` - 1 WHERE `playlist_id` = ? AND `order` > ? AND `order` <= ?',
+          [playlistId, oldLocation, newLocation],
+        );
+        transaction.run('UPDATE `media_playlists` SET `order` = ? WHERE `playlist_id` = ? AND `media_hash` = ?', [
+          newLocation,
+          playlistId,
+          hash,
+        ]);
       } else {
-        this.db
-          .prepare(
-            'UPDATE `media_playlists` SET `order` = `order` + 1 WHERE `playlist_id` = ? AND `order` < ? AND `order` >= ?',
-          )
-          .run(playlistId, oldLocation, newLocation);
-        this.db
-          .prepare('UPDATE `media_playlists` SET `order` = ? WHERE `playlist_id` = ? AND `media_hash` = ?')
-          .run(newLocation, playlistId, hash);
+        transaction.run(
+          'UPDATE `media_playlists` SET `order` = `order` + 1 WHERE `playlist_id` = ? AND `order` < ? AND `order` >= ?',
+          [playlistId, oldLocation, newLocation],
+        );
+        transaction.run('UPDATE `media_playlists` SET `order` = ? WHERE `playlist_id` = ? AND `media_hash` = ?', [
+          newLocation,
+          playlistId,
+          hash,
+        ]);
       }
-    })();
-    return Promise.resolve();
+    });
   }
 
   // Searching
-  public subset(constraints: SubsetConstraints): Promise<string[]> {
+  public async subset(constraints: SubsetConstraints): Promise<string[]> {
     const { query, values } = buildMediaQuery(constraints);
-    const raw = this.db.prepare(query).all(...values) as Array<{ hash: string }>;
-    return Promise.resolve(raw.map((el) => el.hash));
+    const raw = await this.db.all<{ hash: string }>(query, values);
+    return raw.map((el) => el.hash);
   }
 
-  public subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]> {
+  public async subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]> {
     const { query, values } = buildMediaQuery(constraints, fields);
-    const raw = this.db.prepare(query).all(...values) as Array<RawMedia>;
-    return Promise.resolve(raw.map((el) => rawToPartial<RawMedia, Media>(el, mediaFieldMap)) as BaseMedia[]);
+    const raw = await this.db.all<RawMedia>(query, values);
+    return raw.map((el) => rawToPartial<RawMedia, Media>(el, mediaFieldMap)) as BaseMedia[];
   }
 
   // Actors
-  public addActor(name: string): Promise<void> {
-    this.db.prepare('INSERT OR IGNORE INTO `actors` (`id`) VALUES (?)').run(name);
-    return Promise.resolve();
+  public async addActor(name: string): Promise<void> {
+    await this.db.run('INSERT OR IGNORE INTO `actors` (`id`) VALUES (?)', [name]);
   }
 
-  public removeActor(name: string): Promise<void> {
-    this.db.prepare('DELETE FROM `actors` WHERE `id` = ?').run(name);
-    return Promise.resolve();
+  public async removeActor(name: string): Promise<void> {
+    await this.db.run('DELETE FROM `actors` WHERE `id` = ?', [name]);
   }
 
-  public getActors(): Promise<string[]> {
-    const raw = this.db.prepare('SELECT * FROM `actors`').all() as Array<{ id: string }>;
-    return Promise.resolve(raw.map((el) => el.id));
+  public async getActors(): Promise<string[]> {
+    const raw = await this.db.all<{ id: string }>('SELECT * FROM `actors`');
+    return raw.map((el) => el.id);
   }
 
   // Tags
-  public addTag(name: string): Promise<void> {
-    this.db.prepare('INSERT OR IGNORE INTO `tags` (`id`) VALUES (?)').run(name);
-    return Promise.resolve();
+  public async addTag(name: string): Promise<void> {
+    await this.db.run('INSERT OR IGNORE INTO `tags` (`id`) VALUES (?)', [name]);
   }
 
-  public removeTag(name: string): Promise<void> {
-    this.db.prepare('DELETE FROM `tags` WHERE `id` = ?').run(name);
-    return Promise.resolve();
+  public async removeTag(name: string): Promise<void> {
+    await this.db.run('DELETE FROM `tags` WHERE `id` = ?', [name]);
   }
 
-  public getTags(): Promise<string[]> {
-    const raw = this.db.prepare('SELECT * FROM `tags`').all() as Array<{ id: string }>;
-    return Promise.resolve(raw.map((el) => el.id));
+  public async getTags(): Promise<string[]> {
+    const raw = await this.db.all<{ id: string }>('SELECT * FROM `tags`');
+    return raw.map((el) => el.id);
   }
 
   // Playlists
   public async addPlaylist(request: PlaylistCreate): Promise<Playlist> {
     const id = uuidv4();
-    this.db
-      .prepare('INSERT INTO `playlists` (`id`, `name`, `thumbnail`) VALUES (?, ?, ?)')
-      .run(id, request.name, request.thumbnail || null);
+    await this.db.run('INSERT INTO `playlists` (`id`, `name`, `thumbnail`) VALUES (?, ?, ?)', [
+      id,
+      request.name,
+      request.thumbnail || null,
+    ]);
     for (const hash of request.hashes || []) {
       await this.addMediaToPlaylist(hash, id);
     }
@@ -344,44 +334,40 @@ export class SqliteConnector extends Database {
     return playlist;
   }
 
-  public removePlaylist(id: string): Promise<void> {
-    this.db.prepare('DELETE FROM `playlists` WHERE `id` = ?').run(id);
-    return Promise.resolve();
+  public async removePlaylist(id: string): Promise<void> {
+    await this.db.run('DELETE FROM `playlists` WHERE `id` = ?', [id]);
   }
 
-  public updatePlaylist(id: string, request: PlaylistUpdate): Promise<void> {
-    this.db
-      .prepare('UPDATE `playlists` SET `name` = IFNULL(?, `name`), `thumbnail` = IFNULL(?, `thumbnail`) WHERE `id` = ?')
-      .run(request.name || null, request.thumbnail || null, id);
-    return Promise.resolve();
+  public async updatePlaylist(id: string, request: PlaylistUpdate): Promise<void> {
+    await this.db.run(
+      'UPDATE `playlists` SET `name` = IFNULL(?, `name`), `thumbnail` = IFNULL(?, `thumbnail`) WHERE `id` = ?',
+      [request.name || null, request.thumbnail || null, id],
+    );
   }
 
-  public getPlaylists(): Promise<Playlist[]> {
-    const raw = this.db.prepare('SELECT * FROM `playlists`').all() as RawPlaylist[];
-    return Promise.resolve(raw.map(mapRawPlaylist));
+  public async getPlaylists(): Promise<Playlist[]> {
+    const raw = await this.db.all<RawPlaylist>('SELECT * FROM `playlists`');
+    return raw.map(mapRawPlaylist);
   }
 
-  public getPlaylist(id: string): Promise<Playlist | undefined> {
-    const raw = this.db.prepare('SELECT * FROM `playlists` WHERE `id` = ?').get(id) as RawPlaylist | undefined;
+  public async getPlaylist(id: string): Promise<Playlist | undefined> {
+    const raw = await this.db.get<RawPlaylist>('SELECT * FROM `playlists` WHERE `id` = ?', [id]);
     if (!raw) {
-      return Promise.resolve(undefined);
+      return undefined;
     }
-    return Promise.resolve(mapRawPlaylist(raw));
+    return mapRawPlaylist(raw);
   }
 
   // Config
-  public getUserConfig(): Promise<Configuration.Partial> {
-    const row = this.db.prepare("SELECT * FROM `config` WHERE `key` = 'user'").get() as
-      | { key: string; value: string }
-      | undefined;
+  public async getUserConfig(): Promise<Configuration.Partial> {
+    const row = await this.db.get<{ key: string; value: string }>("SELECT * FROM `config` WHERE `key` = 'user'");
     if (!row) {
-      return Promise.resolve({});
+      return {};
     }
-    return Promise.resolve(JSON.parse(row.value));
+    return JSON.parse(row.value);
   }
-  public saveUserConfig(config: Configuration.Partial): Promise<void> {
-    this.db.prepare("INSERT OR REPLACE INTO `config` (`key`, `value`) VALUES('user', ?)").run(JSON.stringify(config));
-    return Promise.resolve();
+  public async saveUserConfig(config: Configuration.Partial): Promise<void> {
+    await this.db.run("INSERT OR REPLACE INTO `config` (`key`, `value`) VALUES('user', ?)", [JSON.stringify(config)]);
   }
 
   // Utility
@@ -391,22 +377,17 @@ export class SqliteConnector extends Database {
   }
 
   public async resetAutoTags(): Promise<void> {
-    this.db.exec(
+    await this.db.run(
       'UPDATE `media` SET `auto_tags` = NULL WHERE `hash` IN (SELECT `hash` FROM `media` WHERE `auto_tags` IS NOT NULL)',
     );
-    return Promise.resolve();
   }
 
   public async testCleanup(): Promise<void> {
     if (!process.env.TEST_MODE) {
       throw new Error('testCleanup called outside of test mode');
     }
-    this.db.exec('DELETE FROM `playlists`');
-    this.db.exec('DELETE FROM `media_fts`');
-    this.db.exec('DELETE FROM `media`');
-    this.db.exec('DELETE FROM `media_deleted`');
-    this.db.exec('DELETE FROM `tags`');
-    this.db.exec('DELETE FROM `actors`');
-    this.db.exec('DELETE FROM `config`');
+    for (const table of ['playlists', 'media_fts', 'media', 'media_deleted', 'tags', 'actors', 'config']) {
+      await this.db.run(`DELETE FROM ${table}`);
+    }
   }
 }
