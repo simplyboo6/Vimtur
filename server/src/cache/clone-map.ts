@@ -18,6 +18,7 @@ export interface MediaPhash {
   hash: string;
   phash: string;
   clones?: string[];
+  unrelated?: string[];
 }
 
 export interface Job {
@@ -36,6 +37,20 @@ interface WorkerWrapper {
   idle: boolean;
 }
 
+function stringArrayEqual(a: string[], b: string[]): boolean {
+  a.sort();
+  b.sort();
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function generateImageCloneMap(
   database: Database,
   updateStatus: (current: number, max: number) => void,
@@ -45,7 +60,7 @@ export function generateImageCloneMap(
       // Now find all phashed
       const imagesRaw = await database.subsetFields(
         { type: { equalsAll: ['still'] }, phashed: true, duplicateOf: { exists: false } },
-        { phash: 1, hash: 1, clones: 1 },
+        { phash: 1, hash: 1, unrelated: 1 },
       );
 
       const images: MediaPhash[] = imagesRaw.map((image) => {
@@ -53,6 +68,7 @@ export function generateImageCloneMap(
           hash: image.hash,
           phash: image.phash!,
           clones: [],
+          unrelated: image.unrelated,
         };
       });
 
@@ -88,10 +104,6 @@ export function generateImageCloneMap(
       }
 
       const workerRun = (image: MediaPhash): Promise<void> => {
-        if (image.clones !== undefined) {
-          return Promise.resolve();
-        }
-
         const workerWrapper = workers.find((it) => it.idle);
         if (!workerWrapper) {
           throw new Error('No available worker');
@@ -106,20 +118,23 @@ export function generateImageCloneMap(
             if (data.err) {
               reject(data.err);
             } else if (data.clones) {
-              // data.clones is always set unless there is an error.
-              // That means this is a clear operation too.
-              database
-                .saveMedia(data.hash, {
-                  clones: data.clones.map((c) => c.hash),
-                  cloneDate: Math.floor(Date.now() / 1000),
-                })
-                .then(() => {
-                  if (data.clones && data.clones.length > 0) {
-                    console.log(`${data.hash} has ${data.clones.length} possible clones`);
-                  }
-                  resolve();
-                })
-                .catch((err) => reject(err));
+              const clones = data.clones.map((c) => c.hash);
+              if (!stringArrayEqual(clones, image.clones ?? [])) {
+                // data.clones is always set unless there is an error.
+                // That means this is a clear operation too.
+                database
+                  .saveMedia(data.hash, {
+                    clones,
+                    cloneDate: Math.floor(Date.now() / 1000),
+                  })
+                  .then(() => {
+                    if (data.clones && data.clones.length > 0) {
+                      console.log(`${data.hash} has ${data.clones.length} possible clones`);
+                    }
+                    resolve();
+                  })
+                  .catch((err) => reject(err));
+              }
             }
           });
 

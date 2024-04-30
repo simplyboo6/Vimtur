@@ -36,7 +36,12 @@ for (let i = 0; i < blockCount; i++) {
 }
 const hashPhashMap = new Map<string, string>();
 
+const hashUnrelatedMap = new Map<string, string[]>();
+
 for (const image of job.data) {
+  if (image.unrelated) {
+    hashUnrelatedMap.set(image.hash, image.unrelated);
+  }
   hashPhashMap.set(image.hash, image.phash);
   const chunks = createChunks(image.phash);
   for (let i = 0; i < blockCount; i++) {
@@ -79,7 +84,15 @@ parentPort.on('message', (imageA: MediaPhash) => {
         continue;
       }
       const difference = hammingDistance(imageA.phash, potentialPhash);
-      if (difference <= job.threshold) {
+      let related = false;
+      const matchRelated = hashUnrelatedMap.get(potentialMatch);
+      if (imageA.unrelated && imageA.unrelated.includes(potentialMatch)) {
+        related = true;
+      }
+      if (matchRelated && matchRelated.includes(imageA.hash)) {
+        related = true;
+      }
+      if (difference <= job.threshold && !related) {
         clones.push({
           hash: potentialMatch,
           difference,
