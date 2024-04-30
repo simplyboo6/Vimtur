@@ -527,11 +527,6 @@ export class MongoConnector extends Database {
     return undefined;
   }
 
-  public async resetClones(): Promise<void> {
-    const collection = this.db.collection<BaseMedia>('media');
-    await collection.updateMany({}, { $unset: { clones: '' } });
-  }
-
   public async resetAutoTags(): Promise<void> {
     const collection = this.db.collection<BaseMedia>('media');
     const result = await collection.updateMany({ autoTags: { $exists: true } }, { $unset: { autoTags: '' } });

@@ -66,7 +66,6 @@ export abstract class Database {
 
   // Utility
   public abstract close(): Promise<void>;
-  public abstract resetClones(): Promise<void>;
   public abstract resetAutoTags(): Promise<void>;
 
   // Clears data from all tables. Implementation should check TEST_MODE=1 is set.

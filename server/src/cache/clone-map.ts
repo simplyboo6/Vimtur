@@ -42,9 +42,6 @@ export function generateImageCloneMap(
 ): ExecutorPromise<any> {
   return execute(
     async () => {
-      // First reset the clone map.
-      await database.resetClones();
-
       // Now find all phashed
       const imagesRaw = await database.subsetFields(
         { type: { equalsAll: ['still'] }, phashed: true, duplicateOf: { exists: false } },
@@ -55,7 +52,7 @@ export function generateImageCloneMap(
         return {
           hash: image.hash,
           phash: image.phash!,
-          clones: image.clones,
+          clones: [],
         };
       });
 
@@ -109,6 +106,8 @@ export function generateImageCloneMap(
             if (data.err) {
               reject(data.err);
             } else if (data.clones) {
+              // data.clones is always set unless there is an error.
+              // That means this is a clear operation too.
               database
                 .saveMedia(data.hash, {
                   clones: data.clones.map((c) => c.hash),
