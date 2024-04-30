@@ -1,3 +1,4 @@
+import FS from 'fs';
 import { parentPort, workerData } from 'worker_threads';
 import Sqlite from 'better-sqlite3';
 
@@ -58,7 +59,7 @@ function runRequest(request: SqliteWorkerRequest): SqliteWorkerResult {
   }
 }
 
-parentPort.on('message', (request: SqliteWorkerRequest[] | SqliteWorkerRequest | { type: 'exit' }) => {
+parentPort.on('message', (request: SqliteWorkerRequest[] | SqliteWorkerRequest | { type: 'exit' | 'flush' }) => {
   try {
     if (Array.isArray(request)) {
       const results: SqliteWorkerResult[] = [];
@@ -69,10 +70,24 @@ parentPort.on('message', (request: SqliteWorkerRequest[] | SqliteWorkerRequest |
       })();
       postResult(results);
     } else {
-      if (request.type === 'exit') {
-        process.exit(0);
+      switch (request.type) {
+        case 'exit':
+          process.exit(0);
+          break;
+        case 'flush':
+          // Attempt to flush the WAL cache forcefully if the size is too big.
+          FS.stat(filename, (err, stat) => {
+            if (err) {
+              console.error(err);
+            } else if (stat.size > 10 * 1024 * 1024) {
+              db.pragma('wal_checkpoint(RESTART)');
+            }
+          });
+          break;
+        default:
+          postResult([runRequest(request)]);
+          break;
       }
-      postResult([runRequest(request)]);
     }
   } catch (err) {
     if (err instanceof Error) {

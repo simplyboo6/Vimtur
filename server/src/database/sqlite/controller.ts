@@ -24,15 +24,24 @@ export class SqliteController {
   private queue: QueueItem[] = [];
   private workers: WorkerWrapper[] = [];
   private filename: string;
+  private interval: NodeJS.Timeout;
 
   public constructor(filename: string) {
     this.filename = filename;
     for (let i = 0; i < OS.cpus().length; i++) {
       this.spawnWorker();
     }
+
+    this.interval = setInterval(() => {
+      const wrapper = this.workers[0];
+      if (wrapper) {
+        wrapper.worker.postMessage({ type: 'flush' });
+      }
+    }, 30000);
   }
 
   public close(): void {
+    clearInterval(this.interval);
     for (const wrapper of this.workers) {
       wrapper.worker.postMessage({ type: 'exit' });
     }
