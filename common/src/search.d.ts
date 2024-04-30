@@ -81,5 +81,6 @@ export interface SubsetFields {
   path?: number;
   phash?: number;
   clones?: number;
+  unrelated?: number;
   order?: number;
 }
