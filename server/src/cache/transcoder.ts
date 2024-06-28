@@ -248,6 +248,9 @@ export class Transcoder {
 
   public async getStreamSegments(media: Media): Promise<SegmentMetadata> {
     const segments = media.metadata?.segments ?? (await ImportUtils.generateSegments(media));
+    if (segments.standard[0].start !== 0) {
+      segments.standard.unshift({ start: 0, end: segments.standard[0].start });
+    }
 
     if (Config.get().transcoder.enableCachingKeyframes && !media.metadata?.segments) {
       await this.database.saveMedia(media.hash, {

@@ -405,6 +405,9 @@ export class ImportUtils {
     } else {
       let lastTimeIndex = 0;
       for (let i = 0; i < keyframes.length; i++) {
+        if (i === 0 && keyframes[0] !== 0) {
+          segments.standard.push({ start: 0, end: keyframes[0] });
+        }
         if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
           segments.standard.push({ start: keyframes[lastTimeIndex], end: keyframes[i] });
 
