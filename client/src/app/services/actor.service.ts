@@ -24,6 +24,7 @@ export class ActorService {
 
     this.httpClient.get<string[]>(`/api/actors`).subscribe(
       res => {
+        res.sort();
         this.actorReplay.next(res);
         this.actors = res;
       },

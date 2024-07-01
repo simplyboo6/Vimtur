@@ -29,7 +29,7 @@
     "@ng-bootstrap/ng-bootstrap": "15",
     "@popperjs/core": "^2.11.6",
     "bootstrap": "5.2.3",
-    "hls.js": "^1.4.12",
+    "hls.js": "^1.5.11",
     "is-mobile": "^2.2.2",
     "resize-observer-polyfill": "^1.5.1",
     "rxjs": "^6.6.6",

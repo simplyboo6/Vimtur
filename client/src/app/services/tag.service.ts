@@ -24,7 +24,7 @@ export class TagService {
 
     this.httpClient.get<string[]>(`/api/tags`).subscribe(
       res => {
-        this.tagReplay.next(res), (this.tags = res);
+        this.tagReplay.next(res.sort()), (this.tags = res);
       },
       (err: HttpErrorResponse) => {
         console.error(err);
