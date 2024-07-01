@@ -632,7 +632,8 @@ export function buildMediaQuery(
       switch (constraints.sortBy) {
         case 'hashDate': // fallthrough
         case 'rating': // fallthrough
-        case 'createdAt':
+        case 'createdAt': // fallthrough
+        case 'length':
           constraints.sortDirection = 'DESC';
           break;
         case 'order': // fallthrough
