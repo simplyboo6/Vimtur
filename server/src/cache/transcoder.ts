@@ -285,14 +285,26 @@ export class Transcoder {
 
     media.metadata.qualityCache.push(targetHeight);
 
-    await ImportUtils.deleteFolder(`${Config.get().cachePath}/${media.hash}/${targetHeight}p`);
-    await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}/${targetHeight}p`);
+    try {
+      await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}/${targetHeight}p`);
+    } catch (err) {
+      console.warn('Failed to make cache dir, may already exist', media.hash, targetHeight, err);
+    }
 
     const segmentMetadata = await this.getStreamSegments(media);
-    for (const segment of segmentMetadata.standard) {
+    for (let i = 0; i < segmentMetadata.standard.length; i++) {
+      const segment = segmentMetadata.standard[i];
+      if (!segment) {
+        throw new Error('Segment array modified during cache generation');
+      }
       const filename = `${Config.get().cachePath}/${media.hash}/${targetHeight}p/data.ts?start=${segment.start}&end=${
         segment.end
       }`;
+      const exists = await ImportUtils.exists(filename);
+      if (exists) {
+        continue;
+      }
+
       await this.streamMedia(
         media,
         segment.start,
