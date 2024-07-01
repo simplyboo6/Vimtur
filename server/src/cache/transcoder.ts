@@ -168,6 +168,9 @@ export class Transcoder {
           // Add profile because high 10 isn't well supported
           '-profile:v',
           'high',
+          // Ensure that the output isn't 10 bit
+          '-pix_fmt',
+          'yuv420p',
         ],
       );
     }
