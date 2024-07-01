@@ -3,7 +3,7 @@ FROM node:18-alpine3.18 as build
 ARG VERSION_NAME=dev
 
 # python3, g++, make required for tensowflowjs build
-RUN apk add -U python3 g++ make sqlite && mkdir -p /app/server /app/client
+RUN apk add -U python3 g++ make && mkdir -p /app/server /app/client
 
 # Copy in files necessary to install node_modules first so this layer can be cached
 COPY ./common /app/common
@@ -25,7 +25,7 @@ RUN echo "$VERSION_NAME" > /app/version
 # Build the resultant image.
 FROM node:18-alpine3.18
 
-RUN apk add --no-cache tini imagemagick ffmpeg pngquant jq gallery-dl yt-dlp
+RUN apk add --no-cache tini imagemagick ffmpeg pngquant jq gallery-dl yt-dlp sqlite
 
 RUN yt-dlp --version && gallery-dl --version && ffmpeg -version && ffprobe -version && pngquant --version
 
