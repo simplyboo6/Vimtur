@@ -158,9 +158,6 @@ export class Transcoder {
           'libx264',
           '-bsf:v',
           'h264_mp4toannexb',
-          // Now defaults to high 10 currently unsupported in Firefox
-          '-profile:v',
-          'main',
           '-tune',
           'film',
           ...(realtime ? ['-quality', 'realtime', '-preset', 'ultrafast'] : ['-quality', 'good', '-preset', 'medium']),
@@ -168,6 +165,9 @@ export class Transcoder {
           quality,
           '-bufsize',
           qualityBuffer,
+          // Add profile because high 10 isn't well supported
+          '-profile:v',
+          'high',
         ],
       );
     }
