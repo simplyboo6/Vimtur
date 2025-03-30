@@ -147,7 +147,7 @@ export function getTask(db: Database): RouterTask {
             normalisedPaths.push(media.path);
           }
           // Not an outdated value of only one task runs at a time.
-          // eslint-disable-next-line require-atomic-updates
+
           Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files, db);
 
           return [];

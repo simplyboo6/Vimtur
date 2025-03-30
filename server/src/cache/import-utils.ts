@@ -8,7 +8,7 @@ import type { BaseMedia, Media, MediaType, Metadata, SegmentMetadata } from '@vi
 import type { Response } from 'express';
 import FFMpeg from 'fluent-ffmpeg';
 import GM from 'gm';
-import Rimraf from 'rimraf';
+import { rimraf } from 'rimraf';
 
 import Config from '../config';
 
@@ -303,7 +303,7 @@ export class ImportUtils {
 
   public static async deleteFolder(path: string): Promise<void> {
     console.log(`Removing ${path}`);
-    return Util.promisify(Rimraf)(path);
+    await rimraf(path);
   }
 
   public static async exists(path: string): Promise<boolean> {

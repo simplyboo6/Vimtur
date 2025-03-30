@@ -60,7 +60,6 @@ export class MongoConnector extends Database {
     }
     const mongoConfig = config;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         return await MongoClient.connect(mongoConfig.uri, {

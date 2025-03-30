@@ -6,7 +6,7 @@ import Util from 'util';
 
 import type { Media, SegmentMetadata } from '@vimtur/common';
 import GM from 'gm';
-import Rimraf from 'rimraf';
+import { rimraf } from 'rimraf';
 import Config from '../config';
 import type { Database } from '../types';
 
@@ -219,7 +219,7 @@ export class Transcoder {
       console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
       for (const quality of redundant) {
         console.log(`${media.hash}: Removing quality ${quality}p...`);
-        await Util.promisify(Rimraf)(`${Config.get().cachePath}/${media.hash}/${quality}p`);
+        await rimraf(`${Config.get().cachePath}/${media.hash}/${quality}p`);
         media.metadata.qualityCache!.splice(media.metadata.qualityCache!.indexOf(quality), 1);
       }
 

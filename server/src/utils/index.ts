@@ -4,7 +4,7 @@ import Util from 'util';
 import type { Media } from '@vimtur/common';
 import type Express from 'express';
 import Auth from 'http-auth';
-import RimRaf from 'rimraf';
+import { rimraf } from 'rimraf';
 
 import Config from '../config';
 
@@ -47,7 +47,7 @@ export async function deleteCache(hash: string): Promise<void> {
 
   const cache = `${Config.get().cachePath}/${hash}/`;
   try {
-    await Util.promisify(RimRaf)(cache);
+    await rimraf(cache);
   } catch (errUnknown: unknown) {
     const err = asError(errUnknown);
     if (!err.message.startsWith('ENOENT')) {

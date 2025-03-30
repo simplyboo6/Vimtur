@@ -176,7 +176,7 @@ export class TaskManager extends EventEmitter {
     this.emit('queue', this.taskQueue);
 
     // ESLint being stupid. This whole mess handles the promise.
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
     queuedTask.promise
       .then((result) => {
         if (queuedTask.aborted) {

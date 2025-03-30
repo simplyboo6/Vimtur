@@ -16,3 +16,4 @@ test_data*
 dump/*
 version
 data/
+**/.yarn

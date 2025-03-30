@@ -44,7 +44,6 @@ if (isAvxSupported()) {
   // eslint-disable-next-line
   const tfjs = require('@tensorflow/tfjs-node');
 
-  // eslint-disable-next-line no-inner-declarations
   function decodeImage(buffer: Buffer): TFJS.Tensor3D {
     return tfjs.node.decodeImage(buffer, 3) as TFJS.Tensor3D;
   }
@@ -63,7 +62,7 @@ if (isAvxSupported()) {
 
   // Input buffer must be a png. This is about 10x slower than
   // TensorFlow.node.decodeImage.
-  // eslint-disable-next-line no-inner-declarations
+
   function decodeImage(buffer: Buffer): TFJS.Tensor3D {
     const decoded = PNG.sync.read(buffer);
     const rgbaPixels = decoded.data;
