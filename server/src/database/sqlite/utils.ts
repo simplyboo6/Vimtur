@@ -86,6 +86,10 @@ export const mediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast?: 
 ];
 const requiredMediaKeys = ['hash', 'path', 'dir', 'type', 'hashDate'] as const;
 
+export const searchFieldMap: Array<{ db: keyof RawMedia; js: keyof SubsetConstraints }> = [
+  { db: 'metadata_height', js: 'quality' },
+];
+
 const mediaMetadataFieldMap: Array<{ db: keyof RawMedia; js: keyof Metadata; cast?: 'bool' | 'json' }> = [
   { db: 'metadata_width', js: 'width' },
   { db: 'metadata_height', js: 'height' },
@@ -533,7 +537,7 @@ export function buildMediaQuery(
   // All below add conditions rather than joins
   const queries: QueryObj[] = [];
 
-  const fieldMap = [...mediaFieldMap, ...mediaMetadataFieldMap];
+  const fieldMap = [...mediaFieldMap, ...mediaMetadataFieldMap, ...searchFieldMap];
 
   // String filters
   for (const field of ['type', 'autoTags', 'hash', 'dir', 'path', 'duplicateOf', 'artist', 'album', 'title'] as const) {

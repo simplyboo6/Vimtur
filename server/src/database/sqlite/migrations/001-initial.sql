@@ -15,7 +15,7 @@ CREATE TABLE `media` (
     `dir` TEXT DEFAULT NULL,
     `type` TEXT DEFAULT NULL,
     `hash_date` INTEGER DEFAULT NULL,
-    
+
     `rotation` INTEGER DEFAULT NULL,
     `corrupted` INTEGER DEFAULT NULL,
     `thumbnail` INTEGER DEFAULT NULL,

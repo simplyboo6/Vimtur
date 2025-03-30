@@ -28,6 +28,7 @@ describe('Database Tests', () => {
             actors: [],
             tags: [],
             hashDate: Date.now(),
+            metadata: { height: 1080, width: 1920 },
           }),
         );
       }
@@ -44,6 +45,11 @@ describe('Database Tests', () => {
     it('keyword search', async () => {
       const hashes = await database.subset({ keywordSearch: 'tag-b' });
       expect(hashes).to.deep.equal(['hash-0', 'hash-1']);
+    });
+
+    it('quality search', async () => {
+      const hashes = await database.subset({ quality: { min: 1080 } });
+      expect(hashes.length).to.equal(5);
     });
 
     it('arrayFilter.equalsAny (a, c)', async () => {
