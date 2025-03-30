@@ -905,10 +905,10 @@ better-ajv-errors@^1.1.2:
     jsonpointer "^5.0.0"
     leven "^3.1.0 < 4"
 
-better-sqlite3@^9.2.2:
-  version "9.2.2"
-  resolved "https://registry.yarnpkg.com/better-sqlite3/-/better-sqlite3-9.2.2.tgz#3ce1ed24f327ed8c9b0c39b825cdc2341aeb249f"
-  integrity sha512-qwjWB46il0lsDkeB4rSRI96HyDQr8sxeu1MkBVLMrwusq1KRu4Bpt1TMI+8zIJkDUtZ3umjAkaEjIlokZKWCQw==
+better-sqlite3@^11.9.1:
+  version "11.9.1"
+  resolved "https://registry.yarnpkg.com/better-sqlite3/-/better-sqlite3-11.9.1.tgz#0540da2f2ce24cbd766bb35db412f4be2c75b8bb"
+  integrity sha512-Ba0KR+Fzxh2jDRhdg6TSH0SJGzb8C0aBY4hR8w8madIdIzzC6Y1+kx5qR6eS1Z+Gy20h6ZU28aeyg0z1VIrShQ==
   dependencies:
     bindings "^1.5.0"
     prebuild-install "^7.1.1"
