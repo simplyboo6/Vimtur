@@ -1,4 +1,4 @@
-FROM node:18-alpine3.18 as build
+FROM node:22-alpine3.21 as build
 
 ARG VERSION_NAME=dev
 
@@ -23,7 +23,7 @@ RUN cd /app/server && yarn lint && yarn build && \
 RUN echo "$VERSION_NAME" > /app/version
 
 # Build the resultant image.
-FROM node:18-alpine3.18
+FROM node:22-alpine3.21
 
 RUN apk add --no-cache tini imagemagick ffmpeg pngquant jq gallery-dl yt-dlp sqlite
 
