@@ -222,6 +222,9 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
         const option = this.optionsInternal[this.highlightIndex];
         option.onValueChange(!option.selected);
       }
+      // On option selected reset the timer and search.
+      this.searchSubscription?.unsubscribe();
+      this.searchString = undefined;
     } else if (this.searchStrings) {
       const searchString = (this.searchString || '') + event.key.toLowerCase();
       const startIndex = this.searchStrings.findIndex(str => str.startsWith(searchString));
