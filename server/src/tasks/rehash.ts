@@ -54,16 +54,23 @@ export function getTask(database: Database): RouterTask {
                 Path.resolve(cachePath, 'thumbnails', `${media.hash}.png`),
                 Path.resolve(cachePath, 'thumbnails', `${hash}.png`),
               );
-
-              // Rename the preview.
-              await Util.promisify(FS.rename)(
-                Path.resolve(cachePath, 'previews', `${media.hash}.png`),
-                Path.resolve(cachePath, 'previews', `${hash}.png`),
-              );
             } catch (err) {
               // If thumbnails can't be moved, because say they're not generated then it's not the end of the world.
               console.warn('Failed to rename thumbnail during rehash', err);
               await database.saveMedia(media.hash, { thumbnail: false });
+            }
+
+            if (media.type === 'video') {
+              try {
+                // Rename the preview.
+                await Util.promisify(FS.rename)(
+                  Path.resolve(cachePath, 'previews', `${media.hash}.png`),
+                  Path.resolve(cachePath, 'previews', `${hash}.png`),
+                );
+              } catch (err) {
+                console.warn('Failed to rename preview during rehash', err);
+                await database.saveMedia(media.hash, { preview: false });
+              }
             }
           }
           await database.saveMedia(media.hash, { hash });
