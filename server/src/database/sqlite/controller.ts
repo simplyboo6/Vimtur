@@ -161,7 +161,11 @@ export class SqliteController {
       this.queue.push({
         resolve,
         request,
-        reject,
+        reject: (err) => {
+          let message = err instanceof Error ? err.message : 'Unknown';
+          message += ` - ${JSON.stringify(request)}`;
+          reject(new Error(message));
+        },
       });
       this.drainQueue();
     });
