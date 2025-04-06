@@ -72,8 +72,9 @@ export function getTask(database: Database): RouterTask {
                 await database.saveMedia(media.hash, { preview: false });
               }
             }
+
+            await database.saveMedia(media.hash, { hash });
           }
-          await database.saveMedia(media.hash, { hash });
 
           updateStatus(init.current++, init.max);
         },
