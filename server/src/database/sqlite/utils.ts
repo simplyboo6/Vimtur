@@ -164,8 +164,9 @@ export function rawMediaToMedia(raw: RawMedia): Omit<Media, 'tags' | 'actors' | 
   return intermediate as Media;
 }
 
-export function makeMediaUpsert(mediaRaw: UpdateMedia | BaseMedia): QueryObj {
-  const media = mediaRaw as Partial<Media>;
+export function makeMediaUpsert(hash: string, mediaRaw: UpdateMedia | BaseMedia): QueryObj {
+  const updateHash = mediaRaw.hash;
+  const media = { ...(mediaRaw as Partial<Media>), hash };
   const keyValues: Partial<Record<keyof RawMedia, unknown>> = {};
   for (const map of mediaFieldMap) {
     const value = media[map.js];
@@ -216,12 +217,14 @@ export function makeMediaUpsert(mediaRaw: UpdateMedia | BaseMedia): QueryObj {
       keys.map(() => '?').join(', ') +
       ') ON CONFLICT (`hash`) DO UPDATE SET ' +
       keys
-        .filter((key) => key !== 'hash')
+        .filter((key) => updateHash || key !== 'hash')
         .map((key) => mapMediaDbField(key, false) + ' = ?')
         .join(', '),
     values: [
       ...keys.map((key) => keyValues[key]),
-      ...keys.filter((key) => key !== 'hash').map((key) => keyValues[key]),
+      ...keys
+        .filter((key) => updateHash || key !== 'hash')
+        .map((key) => (key === 'hash' ? updateHash : keyValues[key])),
     ],
   };
 }

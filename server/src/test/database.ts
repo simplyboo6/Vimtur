@@ -14,6 +14,32 @@ describe('Database Tests', () => {
     database = await SqliteConnector.init({ filename: ':memory:', libraryPath: '/tmp' });
   });
 
+  describe('Misc tests', () => {
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    it('Update hash', async () => {
+      await database.saveMedia(`hash-1`, {
+        hash: `hash-1`,
+        path: `/tmp/1.jpg`,
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+      });
+
+      await database.saveMedia(`hash-1`, {
+        hash: `hash-2`,
+      });
+
+      const hashes = await database.subset({ hash: { equalsAny: ['hash-1', 'hash-2'] } });
+      expect(hashes).to.deep.equal(['hash-2']);
+    });
+  });
+
   describe('Subset tests', () => {
     const media: Media[] = [];
 

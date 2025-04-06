@@ -90,7 +90,7 @@ export class SqliteConnector extends Database {
   }
 
   public async saveMedia(hash: string, update: UpdateMedia | BaseMedia): Promise<Media> {
-    const { query, values } = makeMediaUpsert({ ...update, hash });
+    const { query, values } = makeMediaUpsert(hash, update);
     await this.db.transaction((transaction) => {
       transaction.run(query + ' WHERE `hash` = ?', [...values, hash]);
       const baseMedia = update as BaseMedia;
@@ -123,7 +123,7 @@ export class SqliteConnector extends Database {
       }
     });
 
-    const media = await this.getMedia(hash);
+    const media = await this.getMedia(update.hash ?? hash);
     if (!media) {
       throw new Error('Failed to find media after update');
     }
