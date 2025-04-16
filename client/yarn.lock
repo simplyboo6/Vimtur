@@ -3300,8 +3300,8 @@ __metadata:
 
 "@vimtur/common@file:../common::locator=client%40workspace%3A.":
   version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=677d2a&locator=client%40workspace%3A."
-  checksum: 10c0/e580ae5a33cd3b2e7efac9f62189c97dcff9e8db06f610dfeb166a8d1589fd2d0cd94745c327499c922413fd2ea81bc995b7395015f7c53cb70d984ced09a513
+  resolution: "@vimtur/common@file:../common#../common::hash=cb3582&locator=client%40workspace%3A."
+  checksum: 10c0/344a1967fc70a6339c4cab071e59d0a3df2a1bb3168fd800df4822cfaa885a7bc3aa3b3ec2a21f66a37a848f9cee66557d31f6ffe1476d770d69de3819428fc1
   languageName: node
   linkType: hard
 
@@ -6474,8 +6474,8 @@ __metadata:
   linkType: hard
 
 "http-proxy-middleware@npm:^2.0.3":
-  version: 2.0.6
-  resolution: "http-proxy-middleware@npm:2.0.6"
+  version: 2.0.9
+  resolution: "http-proxy-middleware@npm:2.0.9"
   dependencies:
     "@types/http-proxy": "npm:^1.17.8"
     http-proxy: "npm:^1.18.1"
@@ -6487,7 +6487,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/express":
       optional: true
-  checksum: 10c0/25a0e550dd1900ee5048a692e0e9b2b6339d06d487a705d90c47e359e9c6561d648cd7862d001d090e651c9efffa1b6e5160fcf1f299b5fa4935f76e9754eb11
+  checksum: 10c0/8e9032af625f7c9f2f0d318f6cdb14eb725cc16ffe7b4ccccea25cf591fa819bb7c3bb579e0b543e0ae9c73059b505a6d728290c757bff27bae526a6ed11c05e
   languageName: node
   linkType: hard
 
