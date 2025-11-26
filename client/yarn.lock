@@ -336,15 +336,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/common@npm:^16.2.12":
-  version: 16.2.12
-  resolution: "@angular/common@npm:16.2.12"
+"@angular/common@npm:^19.2.16":
+  version: 19.2.16
+  resolution: "@angular/common@npm:19.2.16"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/core": 16.2.12
+    "@angular/core": 19.2.16
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/a5bd26a6fd41a08bfdb56b99cc362df014740736e1f8cfca690e4ab2e64572a1b6bc9a2e8bcdc94ed1346593a699e157dffebbc69def5828ff7e597d1b31de33
+  checksum: 10c0/c6dd3f30dc794f69312bac111da9e78a254475047c2b98c08f498b1f70c522e1754a06e6c2f0b6228a59a3878246995f0c3b4c89fd352f4a481f12920a7e9f91
   languageName: node
   linkType: hard
 
@@ -3300,8 +3300,8 @@ __metadata:
 
 "@vimtur/common@file:../common::locator=client%40workspace%3A.":
   version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=677d2a&locator=client%40workspace%3A."
-  checksum: 10c0/e580ae5a33cd3b2e7efac9f62189c97dcff9e8db06f610dfeb166a8d1589fd2d0cd94745c327499c922413fd2ea81bc995b7395015f7c53cb70d984ced09a513
+  resolution: "@vimtur/common@file:../common#../common::hash=cb3582&locator=client%40workspace%3A."
+  checksum: 10c0/344a1967fc70a6339c4cab071e59d0a3df2a1bb3168fd800df4822cfaa885a7bc3aa3b3ec2a21f66a37a848f9cee66557d31f6ffe1476d770d69de3819428fc1
   languageName: node
   linkType: hard
 
@@ -4403,7 +4403,7 @@ __metadata:
     "@angular/animations": "npm:^16.2.12"
     "@angular/cdk": "npm:16.2.12"
     "@angular/cli": "npm:^16.2.10"
-    "@angular/common": "npm:^16.2.12"
+    "@angular/common": "npm:^19.2.16"
     "@angular/compiler": "npm:^16.2.12"
     "@angular/compiler-cli": "npm:^16.2.12"
     "@angular/core": "npm:^16.2.12"
