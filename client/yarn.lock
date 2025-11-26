@@ -3300,8 +3300,8 @@ __metadata:
 
 "@vimtur/common@file:../common::locator=client%40workspace%3A.":
   version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=677d2a&locator=client%40workspace%3A."
-  checksum: 10c0/e580ae5a33cd3b2e7efac9f62189c97dcff9e8db06f610dfeb166a8d1589fd2d0cd94745c327499c922413fd2ea81bc995b7395015f7c53cb70d984ced09a513
+  resolution: "@vimtur/common@file:../common#../common::hash=cb3582&locator=client%40workspace%3A."
+  checksum: 10c0/344a1967fc70a6339c4cab071e59d0a3df2a1bb3168fd800df4822cfaa885a7bc3aa3b3ec2a21f66a37a848f9cee66557d31f6ffe1476d770d69de3819428fc1
   languageName: node
   linkType: hard
 
@@ -7946,9 +7946,9 @@ __metadata:
   linkType: hard
 
 "node-forge@npm:^1":
-  version: 1.3.1
-  resolution: "node-forge@npm:1.3.1"
-  checksum: 10c0/e882819b251a4321f9fc1d67c85d1501d3004b4ee889af822fd07f64de3d1a8e272ff00b689570af0465d65d6bf5074df9c76e900e0aff23e60b847f2a46fbe8
+  version: 1.3.2
+  resolution: "node-forge@npm:1.3.2"
+  checksum: 10c0/1def35652c93a588718a6d0d0b4f33e3e7de283aa6f4c00d01d1605d6ccce23fb3b59bcbfb6434014acd23a251cfcc2736052b406f53d94e1b19c09d289d0176
   languageName: node
   linkType: hard
 
