@@ -1,4 +1,5 @@
-<div class="container" *ngIf="media && mediaModel && tags && actors && playlists; else loading">
+@if (media && mediaModel && tags && actors && playlists) {
+<div class="container">
   <div class="card form-card">
     <h4>Metadata</h4>
     <div class="header">
@@ -8,44 +9,43 @@
       <div class="media-path">
         <div>Path: {{ media.path }}</div>
         <div>Hash: {{ media.hash }}</div>
-        <div *ngIf="media.metadata">Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}</div>
-
-        <div *ngIf="media.metadata && media.metadata.createdAt">Created: {{ timestampAsDate(media.metadata.createdAt) | date }}</div>
-
-        <div *ngIf="media.autoTags">May contain: {{ media.autoTags | formatArray }}</div>
-
+        @if (media.metadata) {
+        <div>Resolution: {{ media.metadata.width }}x{{ media.metadata.height }}</div>
+        } @if (media.metadata && media.metadata.createdAt) {
+        <div>Created: {{ timestampAsDate(media.metadata.createdAt) | date }}</div>
+        } @if (media.autoTags) {
+        <div>May contain: {{ media.autoTags | formatArray }}</div>
+        }
         <a [href]="'/api/images/' + media.hash + '/file?download=true'">Download</a>
       </div>
     </div>
   </div>
-
   <div class="card form-card">
-    <ng-container *ngFor="let field of metadataFields">
-      <h5 class="form-padded-input">{{ field.text }}</h5>
-      <div class="row horizontal">
-        <div class="col-lg-7">
-          <input
-            [(ngModel)]="mediaModel.metadata[field.name]"
-            class="form-control"
-            type="text"
-            [placeholder]="(media.metadata && media.metadata[field.name]) || ''"
-            (keyup.enter)="saveMetadata(field.name)"
-          />
-        </div>
-        <div class="col-lg-2">
-          <button [disabled]="!isMetadataChanged(field.name, media, mediaModel)" class="btn btn-primary" (click)="saveMetadata(field.name)">
-            Apply
-          </button>
-        </div>
-        <div class="col-lg-3">
-          <button class="btn btn-primary" (click)="saveBulkMetadata(field.name)">
-            Apply to all search results
-          </button>
-        </div>
+    @for (field of metadataFields; track field) {
+    <h5 class="form-padded-input">{{ field.text }}</h5>
+    <div class="row horizontal">
+      <div class="col-lg-7">
+        <input
+          [(ngModel)]="mediaModel.metadata[field.name]"
+          class="form-control"
+          type="text"
+          [placeholder]="(media.metadata && media.metadata[field.name]) || ''"
+          (keyup.enter)="saveMetadata(field.name)"
+        />
       </div>
-    </ng-container>
+      <div class="col-lg-2">
+        <button [disabled]="!isMetadataChanged(field.name, media, mediaModel)" class="btn btn-primary" (click)="saveMetadata(field.name)">
+          Apply
+        </button>
+      </div>
+      <div class="col-lg-3">
+        <button class="btn btn-primary" (click)="saveBulkMetadata(field.name)">
+          Apply to all search results
+        </button>
+      </div>
+    </div>
+    }
   </div>
-
   <div class="card form-card">
     <h5 class="form-padded-input">Rating</h5>
     <div class="row">
@@ -58,49 +58,57 @@
         #ratingElement
       ></ngb-rating>
     </div>
-
     <h5 class="form-padded-input">Tags</h5>
-    <div *ngIf="mediaModel && mediaModel.tags && tags" class="row">
+    @if (mediaModel && mediaModel.tags && tags) {
+    <div class="row">
       <app-select [(value)]="mediaModel.tags" (selected)="mediaService.addTag($event)" (deselected)="mediaService.removeTag($event)" placeholder="+ Tags">
-        <app-select-option *ngFor="let tag of tags" [value]="tag.id">
+        @for (tag of tags; track tag) {
+        <app-select-option [value]="tag.id">
           {{ tag.itemName }}
         </app-select-option>
+        }
       </app-select>
     </div>
-
+    }
     <h5 class="form-padded-input">Actors</h5>
-    <div *ngIf="mediaModel && mediaModel.actors && actors" class="row">
+    @if (mediaModel && mediaModel.actors && actors) {
+    <div class="row">
       <app-select
         [(value)]="mediaModel.actors"
         (selected)="mediaService.addActor($event)"
         (deselected)="mediaService.removeActor($event)"
         placeholder="+ People"
       >
-        <app-select-option *ngFor="let actor of actors" [value]="actor.id">
+        @for (actor of actors; track actor) {
+        <app-select-option [value]="actor.id">
           {{ actor.itemName }}
         </app-select-option>
+        }
       </app-select>
     </div>
-
+    }
     <h5 class="form-padded-input">Playlists</h5>
-    <div *ngIf="mediaModel && mediaModel.playlists && playlists" class="row">
+    @if (mediaModel && mediaModel.playlists && playlists) {
+    <div class="row">
       <app-select
         [(value)]="mediaModel.playlists"
         (selected)="playlistService.addMediaToPlaylist($event, media.hash)"
         (deselected)="playlistService.removeMediaFromPlaylist($event, media.hash)"
         placeholder="+ Playlists"
       >
-        <app-select-option *ngFor="let playlist of playlists" [value]="playlist.id">
+        @for (playlist of playlists; track playlist) {
+        <app-select-option [value]="playlist.id">
           {{ playlist.itemName }}
         </app-select-option>
+        }
       </app-select>
     </div>
+    }
   </div>
 </div>
-
-<ng-template #loading>
-  <app-loading></app-loading>
-</ng-template>
+} @else {
+<app-loading></app-loading>
+}
 
 <ng-template #ratingStar let-fill="fill">
   <span class="star"> <span class="half" [style.width.%]="fill">&#9733;</span>{{ fill ? '&#9733;' : '&#9734;' }} </span>

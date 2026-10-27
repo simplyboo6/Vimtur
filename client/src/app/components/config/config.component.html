@@ -1,4 +1,5 @@
-<div class="container" *ngIf="config && tags && actors; else loading">
+@if (config && tags && actors) {
+<div class="container">
   <div class="card">
     <h4>Tasks</h4>
     <!-- Task Starting Options -->
@@ -12,7 +13,9 @@
     <div class="row">
       <div class="col-md-8 form-padded-input">
         <select [disabled]="!tasks" [(ngModel)]="task" (ngModelChange)="updateArgs()" class="form-select w-100 form-select">
-          <option *ngFor="let task of tasks" [ngValue]="task">{{ task.description }}</option>
+          @for (task of tasks; track task) {
+          <option [ngValue]="task">{{ task.description }}</option>
+          }
         </select>
       </div>
       <div class="col-md-4 form-padded-input">
@@ -21,20 +24,25 @@
         </button>
       </div>
     </div>
-    <div class="row" *ngFor="let arg of (task && task.args) || []; let index = index">
+    @for (arg of (task && task.args) || []; track arg; let index = $index) {
+    <div class="row">
       <div class="col-md-12 form-padded-input">
         <h5>{{ arg.name }}</h5>
-        <ng-container [ngSwitch]="arg.type">
-          <select *ngSwitchCase="'select'" [(ngModel)]="args[index]" class="form-select d-block w-100 form-select">
-            <option *ngFor="let value of getArgValues(arg)" [ngValue]="value.id">{{ value.name }}</option>
-          </select>
-          <input *ngSwitchCase="'string'" (keydown.enter)="startAction()" type="text" [(ngModel)]="args[index]" class="d-block w-100 form-control" />
-        </ng-container>
+        @switch (arg.type) { @case ('select') {
+        <select [(ngModel)]="args[index]" class="form-select d-block w-100 form-select">
+          @for (value of getArgValues(arg); track value) {
+          <option [ngValue]="value.id">{{ value.name }}</option>
+          }
+        </select>
+        } @case ('string') {
+        <input (keydown.enter)="startAction()" type="text" [(ngModel)]="args[index]" class="d-block w-100 form-control" />
+        } }
       </div>
     </div>
-
+    }
     <!-- Task queue/list -->
-    <div class="row" *ngIf="queue && queue.length > 0">
+    @if (queue && queue.length > 0) {
+    <div class="row">
       <div class="col-md-12 form-padded-input"></div>
       <div class="col-md-12 form-padded-input">
         <table class="table table-striped">
@@ -51,44 +59,42 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of queue">
+            @for (item of queue; track item) {
+            <tr>
               <td>{{ item.id }}</td>
               <td>
                 {{ item.description }}
-                <p *ngIf="item.error && !item.aborted" class="text-danger">Error running task. {{ item.error }}</p>
+                @if (item.error && !item.aborted) {
+                <p class="text-danger">Error running task. {{ item.error }}</p>
+                }
               </td>
               <td>
                 {{ formatQueueState(item) }}
               </td>
               <td>
-                <button
-                  *ngIf="!item.aborted || !item.running"
-                  class="btn btn-link"
-                  type="submit"
-                  (click)="tasksService.cancelAction(item.id)"
-                  title="Cancel / Clear"
-                >
+                @if (!item.aborted || !item.running) {
+                <button class="btn btn-link" type="submit" (click)="tasksService.cancelAction(item.id)" title="Cancel / Clear">
                   <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
                 </button>
+                }
               </td>
             </tr>
+            }
           </tbody>
         </table>
       </div>
     </div>
-
-    <ng-container *ngIf="scanResults">
-      <h4>Scan Results</h4>
-      <div class="row">
-        <div class="col-md-12 form-padded-input">
-          <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths }} new files</a>
-          found and
-          <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')">{{ scanResults.missingPaths }} files missing</a>.
-        </div>
+    } @if (scanResults) {
+    <h4>Scan Results</h4>
+    <div class="row">
+      <div class="col-md-12 form-padded-input">
+        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths }} new files</a>
+        found and
+        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')">{{ scanResults.missingPaths }} files missing</a>.
       </div>
-    </ng-container>
+    </div>
+    }
   </div>
-
   <div class="card">
     <h4>Tags</h4>
     <div class="row">
@@ -101,11 +107,16 @@
         </button>
       </div>
     </div>
-    <div class="row" *ngIf="tags">
+    @if (tags) {
+    <div class="row">
       <div class="col-md-8 form-padded-input">
-        <select [(ngModel)]="deleteTagModel" *ngIf="tags" id="config-tags" class="form-select d-block w-100 form-select">
-          <option *ngFor="let tag of tags">{{ tag }}</option>
+        @if (tags) {
+        <select [(ngModel)]="deleteTagModel" id="config-tags" class="form-select d-block w-100 form-select">
+          @for (tag of tags; track tag) {
+          <option>{{ tag }}</option>
+          }
         </select>
+        }
       </div>
       <div class="col-md-4 form-padded-input">
         <button class="btn btn-danger col-12" [disabled]="!deleteTagModel" (click)="deleteTag()">
@@ -113,8 +124,8 @@
         </button>
       </div>
     </div>
+    }
   </div>
-
   <div class="card">
     <h4>Actors</h4>
     <div class="row">
@@ -127,11 +138,16 @@
         </button>
       </div>
     </div>
-    <div class="row" *ngIf="actors">
+    @if (actors) {
+    <div class="row">
       <div class="col-md-8 form-padded-input">
-        <select [(ngModel)]="deleteActorModel" *ngIf="actors" id="config-actors" class="form-select d-block w-100 form-select">
-          <option *ngFor="let actor of actors">{{ actor }}</option>
+        @if (actors) {
+        <select [(ngModel)]="deleteActorModel" id="config-actors" class="form-select d-block w-100 form-select">
+          @for (actor of actors; track actor) {
+          <option>{{ actor }}</option>
+          }
         </select>
+        }
       </div>
       <div class="col-md-4 form-padded-input">
         <button class="btn btn-danger col-12" [disabled]="!deleteActorModel" (click)="deleteActor()">
@@ -139,8 +155,8 @@
         </button>
       </div>
     </div>
+    }
   </div>
-
   <div class="card">
     <h4>UI Configuration</h4>
     <!-- user.autoplayEnabled -->
@@ -285,7 +301,6 @@
         >
       </div>
     </div>
-
     <div class="input-component">
       <h5>Quick Tag Panel Configuration</h5>
       <!-- Rating -->
@@ -378,7 +393,6 @@
       </div>
     </div>
   </div>
-
   <div class="card">
     <h4>Transcoder Configuration</h4>
     <!-- transcoder.enableCachingKeyframes -->
@@ -439,9 +453,11 @@
         (deselected)="removeQuality('cacheQualities', $event)"
         placeholder="+ Quality"
       >
-        <app-select-option *ngFor="let quality of qualityList" [value]="quality.id">
+        @for (quality of qualityList; track quality) {
+        <app-select-option [value]="quality.id">
           {{ quality.itemName }}
         </app-select-option>
+        }
       </app-select>
       <div>
         <span class="text-muted">
@@ -458,9 +474,11 @@
         (deselected)="removeQuality('streamQualities', $event)"
         placeholder="+ Quality"
       >
-        <app-select-option *ngFor="let quality of qualityList" [value]="quality.id">
+        @for (quality of qualityList; track quality) {
+        <app-select-option [value]="quality.id">
           {{ quality.itemName }}
         </app-select-option>
+        }
       </app-select>
       <div>
         <span class="text-muted">
@@ -477,7 +495,9 @@
         [ngModel]="config.transcoder.minQuality"
         (ngModelChange)="updateConfig('transcoder.minQuality', $event)"
       >
-        <option *ngFor="let quality of qualityList" [value]="quality.id">{{ quality.itemName }}</option>
+        @for (quality of qualityList; track quality) {
+        <option [value]="quality.id">{{ quality.itemName }}</option>
+        }
       </select>
       <div>
         <span class="text-muted">
@@ -537,7 +557,6 @@
       </div>
     </div>
   </div>
-
   <div class="card">
     <h4>Misc Configuration</h4>
     <!-- enablePhash -->
@@ -577,7 +596,6 @@
       </div>
     </div>
   </div>
-
   <div class="card">
     <h4>Version</h4>
     <div>
@@ -585,9 +603,9 @@
     </div>
   </div>
 </div>
-<ng-template #loading>
-  <app-loading></app-loading>
-</ng-template>
+} @else {
+<app-loading></app-loading>
+}
 
 <ng-template #clearIcon>
   <svg

@@ -1,4 +1,5 @@
-<div *ngIf="insights; else loading" class="insights">
+@if (insights) {
+<div class="insights">
   <ul ngbNav #nav="ngbNav" class="nav-tabs">
     <li ngbNavItem>
       <a ngbNavLink>Overview</a>
@@ -30,11 +31,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let tag of insights">
+            @for (tag of insights; track tag) {
+            <tr>
               <td>{{ tag.name }}</td>
               <td>{{ (tag.average * 2 + 3).toFixed(2) }}</td>
               <td>{{ tag.count }}</td>
             </tr>
+            }
           </tbody>
         </table>
       </ng-template>
@@ -42,7 +45,6 @@
   </ul>
   <div [ngbNavOutlet]="nav"></div>
 </div>
-
-<ng-template #loading>
-  <app-loading title="Generating"></app-loading>
-</ng-template>
+} @else {
+<app-loading title="Generating"></app-loading>
+}

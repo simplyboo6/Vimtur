@@ -1,4 +1,5 @@
-<div *ngIf="tags && actors && playlists; else loadingSearch" class="container-fluid">
+@if (tags && actors && playlists) {
+<div class="container-fluid">
   <div class="row">
     <div class="col-md">
       <div class="card card-small">
@@ -9,12 +10,10 @@
             Reset
           </button>
         </div>
-
         <div class="form-group">
           <label>Keyword Search</label>
           <input type="text" [(ngModel)]="searchModel.keywords" class="form-control" />
         </div>
-
         <div class="form-group">
           <label>Type</label>
           <div class="form-check input-component">
@@ -52,9 +51,9 @@
           <label>Playlist</label>
           <select class="form-select" [(ngModel)]="searchModel.playlist">
             <option selected="selected" [ngValue]="undefined">None</option>
-            <ng-container *ngIf="playlists">
-              <option *ngFor="let playlist of playlists; trackBy: playlistId" [ngValue]="playlist.id">{{ playlist.name }} ({{ playlist.size }})</option>
-            </ng-container>
+            @if (playlists) { @for (playlist of playlists; track playlistId($index, playlist)) {
+            <option [ngValue]="playlist.id">{{ playlist.name }} ({{ playlist.size }})</option>
+            } }
           </select>
         </div>
         <div class="form-group">
@@ -72,16 +71,16 @@
             <option [ngValue]="'length'">Length (longest first)</option>
             <option [ngValue]="'createdAt'">File Date (newest first)</option>
             <option [ngValue]="'path'">Path</option>
-            <option *ngIf="searchModel.playlist" [ngValue]="'order'">Order</option>
+            @if (searchModel.playlist) {
+            <option [ngValue]="'order'">Order</option>
+            }
           </select>
         </div>
       </div>
     </div>
-
     <div class="col-md">
       <div class="card card-small">
         <h3>Metadata</h3>
-
         <label>Minimum Resolution</label>
         <div class="container">
           <select class="form-select" [(ngModel)]="searchModel.minimumResolution">
@@ -93,7 +92,6 @@
             <option [value]="1080">1080p</option>
           </select>
         </div>
-
         <label>Rating</label>
         <div class="container">
           <div class="row">
@@ -122,7 +120,6 @@
             </div>
           </div>
         </div>
-
         <label>Length (Minutes)</label>
         <div class="container">
           <div class="row">
@@ -136,61 +133,62 @@
             </div>
           </div>
         </div>
-
-        <ng-container *ngFor="let field of uiService.stringFields; trackBy: stringFieldId">
-          <label>{{ field.name }}</label>
-          <div class="container">
-            <div class="row">
-              <div class="form-group col">
-                <label>Like</label>
-                <input type="text" [(ngModel)]="searchModel[field.field].like" class="form-control" />
-              </div>
-              <div class="form-group col">
-                <label>Not Like</label>
-                <input type="text" [(ngModel)]="searchModel[field.field].notLike" class="form-control" />
-              </div>
+        @for (field of uiService.stringFields; track stringFieldId($index, field)) {
+        <label>{{ field.name }}</label>
+        <div class="container">
+          <div class="row">
+            <div class="form-group col">
+              <label>Like</label>
+              <input type="text" [(ngModel)]="searchModel[field.field].like" class="form-control" />
+            </div>
+            <div class="form-group col">
+              <label>Not Like</label>
+              <input type="text" [(ngModel)]="searchModel[field.field].notLike" class="form-control" />
             </div>
           </div>
-        </ng-container>
+        </div>
+        }
       </div>
     </div>
-
-    <ng-container *ngFor="let field of uiService.arrayFields; trackBy: arrayFieldId">
-      <div *ngIf="this[field.field]" class="col-md">
-        <div class="card card-small">
-          <h3>{{ field.name }}</h3>
-          <div class="form-group">
-            <label>All</label>
-            <app-select [(value)]="searchModel[field.field].equalsAll">
-              <app-select-option *ngFor="let item of (this[field.field] || []); trackBy:listId" [value]="item.id">
-                {{ item.itemName }}
-              </app-select-option>
-            </app-select>
-          </div>
-
-          <div class="form-group">
-            <label>Any</label>
-            <app-select [(value)]="searchModel[field.field].equalsAny">
-              <app-select-option *ngFor="let item of (this[field.field] || []); trackBy:listId" [value]="item.id">
-                {{ item.itemName }}
-              </app-select-option>
-            </app-select>
-          </div>
-
-          <div class="form-group">
-            <label>None</label>
-            <app-select [(value)]="searchModel[field.field].equalsNone">
-              <app-select-option *ngFor="let item of (this[field.field] || []); trackBy:listId" [value]="item.id">
-                {{ item.itemName }}
-              </app-select-option>
-            </app-select>
-          </div>
+    @for (field of uiService.arrayFields; track arrayFieldId($index, field)) { @if (this[field.field]) {
+    <div class="col-md">
+      <div class="card card-small">
+        <h3>{{ field.name }}</h3>
+        <div class="form-group">
+          <label>All</label>
+          <app-select [(value)]="searchModel[field.field].equalsAll">
+            @for (item of (this[field.field] || []); track listId($index, item)) {
+            <app-select-option [value]="item.id">
+              {{ item.itemName }}
+            </app-select-option>
+            }
+          </app-select>
+        </div>
+        <div class="form-group">
+          <label>Any</label>
+          <app-select [(value)]="searchModel[field.field].equalsAny">
+            @for (item of (this[field.field] || []); track listId($index, item)) {
+            <app-select-option [value]="item.id">
+              {{ item.itemName }}
+            </app-select-option>
+            }
+          </app-select>
+        </div>
+        <div class="form-group">
+          <label>None</label>
+          <app-select [(value)]="searchModel[field.field].equalsNone">
+            @for (item of (this[field.field] || []); track listId($index, item)) {
+            <app-select-option [value]="item.id">
+              {{ item.itemName }}
+            </app-select-option>
+            }
+          </app-select>
         </div>
       </div>
-    </ng-container>
+    </div>
+    } }
   </div>
 </div>
-
-<ng-template #loadingSearch>
-  <app-loading title="Loading Search"></app-loading>
-</ng-template>
+} @else {
+<app-loading title="Loading Search"></app-loading>
+}

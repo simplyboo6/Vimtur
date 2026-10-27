@@ -3,9 +3,11 @@
     <ng-container *ngTemplateOutlet="actionsIcon"></ng-container>
   </button>
   <div class="dropdown-menu" [class.visible]="open">
-    <button *ngFor="let action of actions" (mousedown)="actionSelected.emit(action); open = false" class="dropdown-item">
+    @for (action of actions; track action) {
+    <button (mousedown)="actionSelected.emit(action); open = false" class="dropdown-item">
       {{ action.itemName }}
     </button>
+    }
   </div>
 </div>
 
