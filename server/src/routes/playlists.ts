@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { BadRequest } from '../errors';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
+import { singleParam } from '../utils';
 import { Validator } from '../utils/validator';
 
 const PLAYLIST_CREATE_VALIDATOR = Validator.load('PlaylistCreate');
@@ -37,7 +38,7 @@ export async function create(db: Database): Promise<Router> {
   router.delete(
     '/:id',
     wrap(async ({ req }) => {
-      await db.removePlaylist(req.params.id);
+      await db.removePlaylist(singleParam(req.params.id));
     }),
   );
 
@@ -49,7 +50,7 @@ export async function create(db: Database): Promise<Router> {
         throw new BadRequest(result.errorText!);
       }
 
-      await db.updatePlaylist(req.params.id, req.body);
+      await db.updatePlaylist(singleParam(req.params.id), req.body);
     }),
   );
 
@@ -57,7 +58,7 @@ export async function create(db: Database): Promise<Router> {
     '/:id',
     wrap(async ({ req }) => {
       return {
-        data: await db.getPlaylist(req.params.id),
+        data: await db.getPlaylist(singleParam(req.params.id)),
       };
     }),
   );
