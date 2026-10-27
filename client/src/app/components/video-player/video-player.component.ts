@@ -1,12 +1,19 @@
 import { Component, AfterViewInit, OnInit, OnDestroy, OnChanges, ViewChild, SimpleChanges, Input, NgZone } from '@angular/core';
+import { AlertService } from 'services/alert.service';
 import { ConfigService } from 'services/config.service';
 import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
-import Hls from 'hls.js';
+import Hls, { ErrorData } from 'hls.js';
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
+// Fatal errors to recover from before rebuilding the player rather than retrying on the same stream.
+// hls.js already retries internally before fatal errors reach here.
+const MAX_CONSECUTIVE_RECOVERIES = 3;
+// Total fatal errors to recover from before giving up entirely so permanently broken sources
+// can't endlessly cycle through rebuilds. Only resets when a new media is loaded.
+const MAX_TOTAL_RECOVERIES = 10;
 
 interface QualityLevel {
   index: number;
@@ -53,14 +60,20 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   public readonly isMobile = isMobile();
 
   private configService: ConfigService;
+  private alertService: AlertService;
   private subscriptions: Subscription[] = [];
   private hls?: any;
   private config?: Configuration.Main;
   private zone: NgZone;
   private initialised = false;
+  private recoveryAttempts = 0;
+  private totalRecoveryAttempts = 0;
+  private mediaRecoveryAttempted = false;
+  private failureAlerted = false;
 
-  public constructor(configService: ConfigService, zone: NgZone) {
+  public constructor(configService: ConfigService, alertService: AlertService, zone: NgZone) {
     this.configService = configService;
+    this.alertService = alertService;
     this.zone = zone;
   }
 
@@ -86,10 +99,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     if (this.videoElement) {
       this.videoElement.nativeElement.pause();
     }
-    if (this.hls) {
-      this.hls.detachMedia();
-      this.hls = undefined;
-    }
+    this.destroyPlayer();
   }
 
   public ngOnChanges(changes: SimpleChanges) {
@@ -110,9 +120,7 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
         if (this.videoElement) {
           this.videoElement.nativeElement.pause();
         }
-        this.hls.detachMedia();
-        this.hls.destroy();
-        this.hls = undefined;
+        this.destroyPlayer();
         this.videoPlayerState = {
           width: this.videoPlayerState.width,
           height: this.videoPlayerState.height,
@@ -125,6 +133,11 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
         };
       }
 
+      // Recovery caps and alerts are per media, not per player instance, so resets
+      // happen on media change even when nothing else needs tearing down.
+      this.totalRecoveryAttempts = 0;
+      this.failureAlerted = false;
+
       if (this.media && this.media.type === 'video') {
         this.playVideo(this.media);
       }
@@ -132,22 +145,29 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   }
 
   public onSeeking() {
-    const lowQualityOnSeek = this.config && (this.isMobile ? this.config.user.lowQualityOnLoadEnabledForMobile : this.config.user.lowQualityOnLoadEnabled);
-
     // Only has an effect if the segment isn't already loaded.
-    if (lowQualityOnSeek) {
+    if (this.shouldStartAtLowQuality()) {
+      if (!this.hls) {
+        return;
+      }
       console.debug('Seeking - Forcing to level 0');
       this.hls.nextLoadLevel = 0;
     }
   }
 
   public onPlay() {
-    if (this.hls) {
-      const autoPlay = !this.isMobile && this.config && this.config.user.autoplayEnabled;
-      if (!autoPlay) {
-        this.hls.startLoad();
-      }
+    if (this.hls && !this.isAutoplayEnabled()) {
+      this.hls.startLoad();
     }
+  }
+
+  private isAutoplayEnabled(): boolean {
+    return !this.isMobile && Boolean(this.config?.user?.autoplayEnabled);
+  }
+
+  private shouldStartAtLowQuality(): boolean {
+    const lowQualityKey = this.isMobile ? 'lowQualityOnLoadEnabledForMobile' : 'lowQualityOnLoadEnabled';
+    return Boolean(this.config?.user?.[lowQualityKey]);
   }
 
   public onResized() {
@@ -393,8 +413,8 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       this.initialised = true;
     }
 
-    const autoPlay = !this.isMobile && this.config && this.config.user.autoplayEnabled;
-    const lowQualityOnSeek = this.config && (this.isMobile ? this.config.user.lowQualityOnLoadEnabledForMobile : this.config.user.lowQualityOnLoadEnabled);
+    const autoPlay = this.isAutoplayEnabled();
+    const lowQualityOnSeek = this.shouldStartAtLowQuality();
     console.debug('playing video', media.hash, lowQualityOnSeek, autoPlay);
 
     this.hls = new Hls({
@@ -404,6 +424,10 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       maxBufferLength: 15,
       startLevel: lowQualityOnSeek ? 0 : -1,
     });
+
+    // Recovery counters belong to a single Hls instance/run of playback.
+    this.recoveryAttempts = 0;
+    this.mediaRecoveryAttempted = false;
 
     this.videoElement.nativeElement.volume = this.videoPlayerState.volume || 1;
     this.videoElement.nativeElement.muted = this.videoPlayerState.muted;
@@ -437,6 +461,9 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
 
     // Need this for when switching from a fixed quality to auto.
     this.hls.on(Hls.Events.FRAG_LOADED, () => {
+      // Loading is succeeding, so the error recovery counters can be reset.
+      this.recoveryAttempts = 0;
+      this.mediaRecoveryAttempted = false;
       this.zone.run(() => {
         if (this.hls.currentLevel >= 0) {
           this.videoPlayerState.currentQuality = this.hls.currentLevel;
@@ -453,8 +480,57 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
       });
     });
 
-    this.hls.on(Hls.Events.ERROR, (event: unknown, data: unknown) => {
-      console.warn('HLS error', event, data);
+    this.hls.on(Hls.Events.ERROR, (_: unknown, data: ErrorData) => {
+      // Non-fatal errors are logged and self-handled by hls.js.
+      if (!data.fatal) {
+        console.debug('HLS error', data.details, data.type);
+        return;
+      }
+
+      console.warn('Fatal HLS error', data.details, data.type);
+      this.zone.run(() => {
+        this.videoPlayerState.loading = false;
+        this.videoPlayerState.switching = false;
+      });
+
+      // Total count includes errors across rebuilds so permanently broken sources can't loop forever.
+      this.totalRecoveryAttempts += 1;
+      if (this.totalRecoveryAttempts >= MAX_TOTAL_RECOVERIES) {
+        console.error(`Giving up on HLS playback after ${this.totalRecoveryAttempts} fatal errors`);
+        this.destroyPlayer();
+        if (!this.failureAlerted) {
+          this.failureAlerted = true;
+          this.alertService.show({ type: 'danger', message: 'Playback failed. Select the media again to restart.' });
+        }
+        return;
+      }
+
+      this.recoveryAttempts += 1;
+      if (this.recoveryAttempts >= MAX_CONSECUTIVE_RECOVERIES) {
+        console.debug('Rebuilding HLS player after consecutive failures', this.recoveryAttempts);
+        this.recoveryAttempts = 0;
+        this.resetPlayer();
+        return;
+      }
+
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        this.zone.run(() => {
+          this.videoPlayerState.loading = true;
+        });
+        console.debug('HLS network error, restarting load', this.recoveryAttempts);
+        this.hls.startLoad();
+      } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        // hls.js expects the application to recover media errors, only attempt it once per stream.
+        if (!this.mediaRecoveryAttempted) {
+          this.mediaRecoveryAttempted = true;
+          console.debug('HLS media error, attempting media recovery');
+          this.hls.recoverMediaError();
+        } else {
+          this.resetPlayer();
+        }
+      } else {
+        this.resetPlayer();
+      }
     });
 
     this.hls.attachMedia(this.videoElement.nativeElement);
@@ -462,6 +538,27 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
     this.hls.loadSource(`/api/images/${media.hash}/stream/index.m3u8`);
     if (autoPlay) {
       this.hls.startLoad();
+    }
+  }
+
+  // Destroys the HLS player, leaving the component idle. Recovery counters are reset
+  // in playVideo() which is what is used to rebuild it.
+  private destroyPlayer() {
+    if (this.hls) {
+      this.hls.detachMedia();
+      this.hls.destroy();
+      this.hls = undefined;
+    }
+  }
+
+  private resetPlayer() {
+    if (this.videoElement) {
+      this.videoElement.nativeElement.pause();
+    }
+    this.destroyPlayer();
+    this.initialised = false;
+    if (this.media && this.media.type === 'video') {
+      this.playVideo(this.media);
     }
   }
 }

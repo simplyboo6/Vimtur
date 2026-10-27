@@ -20,6 +20,10 @@ export interface Quality {
 // Nice level for low priority tasks
 const LOW_PRIORITY = 15;
 
+// Keyframes further apart than this are used as segment boundaries, closer ones are skipped
+// to avoid tiny segments adding per-segment request and ffmpeg overhead for no benefit.
+const MAX_SEGMENT_GAP_SECONDS = 10;
+
 export interface TranscoderOptions {
   input: string;
   output: string | Stream.Writable;
@@ -273,23 +277,24 @@ export class ImportUtils {
         err += data;
       });
 
-      proc.on('exit', (code) => {
-        if (code === 0 || code === 255) {
+      // Set once the output stream closes, either from a client abort or natural completion.
+      let outputClosed = false;
+
+      proc.on('exit', (code: number | null, signal: string | null) => {
+        // This happens if stdout/the pipe is closed. Which can happen
+        // when a HTTP request is cancelled.
+        const ffmpegEmptyError = err.includes('specified for output file #0 (pipe:1) has not been used for any stream');
+        if (code === 0 || ffmpegEmptyError || (outputClosed && (signal === 'SIGKILL' || code === 255))) {
           resolve();
         } else {
-          // This happens if stdout/the pipe is closed. Which can happen
-          // when a HTTP request is cancelled.
-          if (err.includes('specified for output file #0 (pipe:1) has not been used for any stream')) {
-            resolve();
-          } else {
-            console.error(`FFMPEG error: code (${code})`, err);
-            reject(new Error(err));
-          }
+          console.error(`FFMPEG error: code (${code})`, err);
+          reject(new Error(err || `ffmpeg exited with code ${code}`));
         }
       });
 
       if (typeof options.output !== 'string') {
         options.output.on('close', () => {
+          outputClosed = true;
           // Wait slightly to avoid race condition under load.
           setTimeout(() => {
             proc.kill('SIGKILL');
@@ -396,26 +401,45 @@ export class ImportUtils {
     // The reason we have to fetch the keyframes is to we can manually split the stream on keyframes.
     // This allows videos where the codec is copied rather than only supporting re-encoded videos.
     const keyframes = await ImportUtils.getKeyframes(media);
+
+    return ImportUtils.buildSegments(keyframes, media.metadata.length);
+  }
+
+  // Cuts a video into segments at keyframes. Kept separate from generateSegments so it can be
+  // unit tested without ffprobe on real files.
+  public static buildSegments(rawKeyframes: number[], length: number): SegmentMetadata {
+    const keyframes = rawKeyframes.filter((kf) => {
+      // ffprobe can yield degenerate timestamps, and boundaries past the end of the video are useless.
+      return Number.isFinite(kf) && kf > 0 && kf < length;
+    });
     const segments: SegmentMetadata = {
       standard: [],
     };
 
-    if (keyframes.length === 1 || media.metadata.length < 10) {
-      segments.standard.push({ start: 0, end: media.metadata.length });
+    // One whole-file segment if there are no usable keyframe gaps, so the tail always covers everything.
+    if (keyframes.length === 1 || length < MAX_SEGMENT_GAP_SECONDS) {
+      segments.standard.push({ start: 0, end: length });
     } else {
+      if (keyframes[0] > 0) {
+        segments.standard.push({ start: 0, end: keyframes[0] });
+      }
       let lastTimeIndex = 0;
       for (let i = 0; i < keyframes.length; i++) {
-        if (i === 0 && keyframes[0] !== 0) {
-          segments.standard.push({ start: 0, end: keyframes[0] });
-        }
-        if (keyframes[i] - keyframes[lastTimeIndex] > 10) {
+        if (keyframes[i] - keyframes[lastTimeIndex] > MAX_SEGMENT_GAP_SECONDS) {
           segments.standard.push({ start: keyframes[lastTimeIndex], end: keyframes[i] });
-
           lastTimeIndex = i;
-        } else if (i === keyframes.length - 1) {
-          segments.standard.push({ start: keyframes[lastTimeIndex], end: media.metadata.length });
         }
       }
+      // Always cover from the last cut boundary to the end of the video (the old logic
+      // dropped the tail when the final keyframe was more than MAX_SEGMENT_GAP_SECONDS from the previous cut).
+      if (keyframes[lastTimeIndex] < length) {
+        segments.standard.push({ start: keyframes[lastTimeIndex], end: length });
+      }
+    }
+
+    // Degenerate keyframes shouldn't result in an empty playlist.
+    if (segments.standard.length === 0) {
+      segments.standard.push({ start: 0, end: length });
     }
 
     return segments;
@@ -436,11 +460,17 @@ export class ImportUtils {
     let longest = 0;
 
     for (const segment of segments.standard) {
-      const length = segment.end - segment.start;
+      // Previously generated segments may be cached in the database and out of date.
+      const start = Math.min(segment.start, media.metadata.length);
+      const end = Math.min(segment.end, media.metadata.length);
+      const length = end - start;
+      if (length <= 0) {
+        continue;
+      }
       if (length > longest) {
         longest = length;
       }
-      data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${segment.start}&end=${segment.end}\n`;
+      data += `#EXTINF:${length.toFixed(6)},\ndata.ts?start=${start}&end=${end}\n`;
     }
 
     const header = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:${Math.ceil(

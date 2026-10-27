@@ -1,6 +1,7 @@
 import Path from 'path';
 
 import type { BulkUpdate, MediaResolution, SubsetConstraints } from '@vimtur/common';
+import type { Response } from 'express';
 import { Router } from 'express';
 import PathIsInside from 'path-is-inside';
 import { execute } from 'proper-job';
@@ -19,6 +20,16 @@ const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
 const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
 const RESOLUTION_VALIDATOR = Validator.load('MediaResolution');
 const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load('PlaylistEntryUpdate');
+
+// Streaming endpoints write the response body directly, so errors are only reportable
+// before the first byte is sent. After that the connection can only be ended early.
+function respondStreamError(res: Response, status: number, message: string): void {
+  if (!res.headersSent) {
+    res.status(status).json({ message });
+  } else {
+    res.end();
+  }
+}
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();
@@ -346,17 +357,31 @@ export async function create(db: Database): Promise<Router> {
           throw new BadRequest('start and end must be set to numbers');
         }
 
-        res.set('Cache-Control', 'public, max-age=604800, immutable');
-        res.set('Content-Type', 'video/mp2t');
-
         // This is the new cache method.
         if (media.metadata?.qualityCache?.includes(quality)) {
-          res.sendFile(`${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`);
+          const absPath = `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`;
+
+          res.set('Cache-Control', 'public, max-age=604800, immutable');
+          res.set('Content-Type', 'video/mp2t');
+
+          // Callback so a file deleted from the cache mid-send doesn't fall through to
+          // express returning a HTML error page.
+          res.sendFile(absPath, (sendErr?: Error) => {
+            if (!sendErr) {
+              return;
+            }
+            console.error('Failed to send cached segment', absPath, sendErr);
+            respondStreamError(res, 404, `Failed to send segment: ${sendErr.message}`);
+          });
         } else {
+          // On-demand transcodes may be truncated if the transcode fails, so they aren't cached
+          // by the browser. hls.js caches the fragments it has loaded for the session anyway.
+          res.set('Cache-Control', 'no-store');
+          res.set('Content-Type', 'video/mp2t');
+
           transcoder.streamMedia(media, start, end, res, quality, true).catch((err) => {
             console.error('Error streaming media', err);
-            // Can't send headers
-            res.end();
+            respondStreamError(res, 503, err instanceof Error ? err.message : 'Failed to stream media');
           });
         }
       } else {
