@@ -1,4 +1,4 @@
-@import '../../../helpers.scss';
+@use '../../../helpers' as *;
 
 .main-body {
   display: flex;

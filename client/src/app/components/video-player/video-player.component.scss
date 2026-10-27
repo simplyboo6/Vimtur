@@ -1,4 +1,4 @@
-@import '../../../helpers.scss';
+@use '../../../helpers' as *;
 
 .video-player {
   width: 100%;

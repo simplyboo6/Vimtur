@@ -1,4 +1,4 @@
-@import './helpers.scss';
+@use './helpers' as *;
 
 :root {
   @include v(navbar-height, 56px);

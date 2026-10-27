@@ -1,4 +1,4 @@
-@import '../../../helpers.scss';
+@use '../../../helpers' as *;
 
 h4:not(:first-child) {
   margin-top: 1rem;
