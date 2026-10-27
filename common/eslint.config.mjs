@@ -1,0 +1,55 @@
+import { defineConfig, globalIgnores } from "eslint/config";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import importX from "eslint-plugin-import-x";
+import prettierRecommended from "eslint-plugin-prettier/recommended";
+import sortImports from "eslint-plugin-sort-imports-es6-autofix";
+
+// Flat-config equivalent of the former .eslintrc.js, keeping the same rule
+// set and severities so lint output stays comparable across the upgrade.
+export default defineConfig([
+    globalIgnores(["node_modules/**/*", "build/**/*", "dist/**/*"]),
+    {
+        files: ["**/*.ts"],
+        plugins: {
+            "sort-imports-es6-autofix": sortImports,
+        },
+        extends: [
+            js.configs.recommended,
+            importX.flatConfigs.recommended,
+            importX.flatConfigs.typescript,
+            tseslint.configs.recommendedTypeChecked,
+            prettierRecommended,
+        ],
+        languageOptions: {
+            parser: tseslint.parser,
+            parserOptions: {
+                project: ["./tsconfig.json"],
+            },
+        },
+        rules: {
+            // Allows the "interface X extends Y {}" shape used to alias
+            // declaration types in the .d.ts sources.
+            "@typescript-eslint/no-empty-object-type": ["error", {
+                allowInterfaces: "with-single-extends",
+            }],
+            "import-x/order": ["error", {
+                alphabetize: {
+                    caseInsensitive: true,
+                    order: "asc",
+                },
+            }],
+            "import-x/no-unresolved": "off",
+
+            // The autofix plugin keeps import statements in the order enforced
+            // by this rule.
+            "sort-imports": ["error", {
+                ignoreCase: true,
+                ignoreDeclarationSort: true,
+                allowSeparatedGroups: true,
+            }],
+
+            "prettier/prettier": "warn",
+        },
+    },
+]);
