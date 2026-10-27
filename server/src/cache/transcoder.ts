@@ -129,8 +129,14 @@ export class Transcoder {
       throw new Error(`Can't transcode media without metadata`);
     }
 
-    if (end > media.metadata.length) {
-      throw new Error('Requested end after end of video');
+    // Clamp the requested range to the media duration. Playlist-derived values can
+    // drift slightly past it (Math.ceil'd duration, keyframe timestamps from other probes).
+    const videoLength = media.metadata.length;
+    start = Math.max(0, Math.min(start, videoLength));
+    end = Math.min(end, videoLength);
+    // nothing left to encode
+    if (end - start <= 0) {
+      throw new Error(`Requested segment [${start}, ${end}] is outside the media duration`);
     }
 
     const inputOptions = ['-hwaccel', 'auto', '-copyts'];
