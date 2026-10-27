@@ -5249,17 +5249,12 @@ __metadata:
     "@ng-bootstrap/ng-bootstrap": "npm:21"
     "@popperjs/core": "npm:^2.11.6"
     "@types/node": "npm:^24.19.2"
-    "@typescript-eslint/eslint-plugin": "npm:8.72.1"
-    "@typescript-eslint/parser": "npm:8.72.1"
-    "@typescript-eslint/types": "npm:8.72.1"
-    "@typescript-eslint/utils": "npm:8.72.1"
     "@vimtur/common": ../common
     angular-eslint: "npm:22.6.0"
     bootstrap: "npm:^5.3.8"
     eslint: "npm:^9.39.5"
     hls.js: "npm:^1.7.3"
     is-mobile: "npm:^2.2.2"
-    istanbul-lib-instrument: "npm:^6.0.3"
     prettier: "npm:^3.9.10"
     resize-observer-polyfill: "npm:^1.5.1"
     rxjs: "npm:^7.8.2"
@@ -6998,7 +6993,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"istanbul-lib-instrument@npm:6.0.3, istanbul-lib-instrument@npm:^6.0.3":
+"istanbul-lib-instrument@npm:6.0.3":
   version: 6.0.3
   resolution: "istanbul-lib-instrument@npm:6.0.3"
   dependencies:
