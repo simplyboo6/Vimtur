@@ -102,13 +102,22 @@
       height: 100%;
       background-color: transparent;
       color: var(--bs-primary);
-      // Chromium/Safari paint the value of native <progress> from
-      // accent-color, not color (which Firefox uses); without this the bar
-      // falls back to the browser accent shade.
-      accent-color: var(--bs-primary);
       border-style: solid;
       border-color: rgba(0, 0, 0, 0.2);
       border-width: 0 1px;
+
+      // Firefox paints the native value fill from `color` (accent-color is
+      // also honoured); Chromium/Safari do the same until the element gets
+      // an authored background — `background-color: transparent` above
+      // already switches them into legacy painting, which ignores
+      // accent-color and leaves the fill the UA green. Paint it from the
+      // WebKit pseudo-elements to keep every engine on bootstrap primary.
+      &::-webkit-progress-bar {
+        background-color: transparent;
+      }
+      &::-webkit-progress-value {
+        background-color: var(--bs-primary);
+      }
     }
 
     & > progress.volume {
