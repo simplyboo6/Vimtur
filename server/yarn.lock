@@ -488,12 +488,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/better-sqlite3@npm:^7.6.8":
-  version: 7.6.8
-  resolution: "@types/better-sqlite3@npm:7.6.8"
+"@types/better-sqlite3@npm:^9.6.0":
+  version: 9.6.0
+  resolution: "@types/better-sqlite3@npm:9.6.0"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/e9fd1893af20afe0d5fc42eca8733b5a7629482e53236322227251f54e170c5788a33be02eb3706adc022782f91f445741166a8424286c376d17ed0aa833aa25
+  checksum: 10c0/630273028a281addb0df36d204d0edcd0ab000f55ed89fdc742536a6ead4d4404287ebfb1714f5c58ec2f08fd508baf810e1d8f093ff9d480b9f3fb6495d141a
   languageName: node
   linkType: hard
 
@@ -514,12 +514,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/compression@npm:^1.0.1":
-  version: 1.7.5
-  resolution: "@types/compression@npm:1.7.5"
+"@types/compression@npm:^1.8.1":
+  version: 1.8.1
+  resolution: "@types/compression@npm:1.8.1"
   dependencies:
     "@types/express": "npm:*"
-  checksum: 10c0/3818f3d10cede38a835b40b80c341eae162aef1691f2e8f81178a77dbc109f04234cf760b6066eaa06ecbb1da143433c00db2fd9999198b76cd5a193e1d09675
+    "@types/node": "npm:*"
+  checksum: 10c0/3b958b1c9b7cdf9852cd8fbd85fb9067196656fb771aaed950b1ae6ebab5e87d2f7b75260160c772038919a12c8ca8bee42aaa3fdb989b0646163979d75fe8b2
   languageName: node
   linkType: hard
 
@@ -609,16 +610,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/fluent-ffmpeg@npm:^2.1.10":
-  version: 2.1.24
-  resolution: "@types/fluent-ffmpeg@npm:2.1.24"
+"@types/fluent-ffmpeg@npm:^2.1.28":
+  version: 2.1.28
+  resolution: "@types/fluent-ffmpeg@npm:2.1.28"
   dependencies:
     "@types/node": "npm:*"
-  checksum: 10c0/73a32f2313a0225452b5acdf7a341b9860ffcb88490ee726a1241887111cf4f2f7259d7491cf4e9b6be8316ababdd9064e085437f0b768adcfb0becc0733973c
+  checksum: 10c0/5c02c2f7f8db001fe9c57ad521a47624258bd5fc427576a47c299044bb2ec8b73864d436548da39fd84fea4de28b6b0d8a644a4343993cea52328f6bf1b7e791
   languageName: node
   linkType: hard
 
-"@types/gm@npm:^1.18.3":
+"@types/gm@npm:^1.25.4":
   version: 1.25.4
   resolution: "@types/gm@npm:1.25.4"
   dependencies:
@@ -1126,12 +1127,12 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:^10.0.1"
     "@tensorflow/tfjs-node": "npm:^4.22.0"
-    "@types/better-sqlite3": "npm:^7.6.8"
+    "@types/better-sqlite3": "npm:^9.6.0"
     "@types/chai": "npm:^4.2.11"
-    "@types/compression": "npm:^1.0.1"
+    "@types/compression": "npm:^1.8.1"
     "@types/express": "npm:^5.0.6"
-    "@types/fluent-ffmpeg": "npm:^2.1.10"
-    "@types/gm": "npm:^1.18.3"
+    "@types/fluent-ffmpeg": "npm:^2.1.28"
+    "@types/gm": "npm:^1.25.4"
     "@types/http-auth": "npm:^4.1.0"
     "@types/mocha": "npm:^10.0.10"
     "@types/node": "npm:^24"
