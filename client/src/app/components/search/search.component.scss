@@ -1,4 +1,4 @@
-@import '../../../helpers.scss';
+@use '../../../helpers' as *;
 
 .reset-button {
   margin-left: 1rem;

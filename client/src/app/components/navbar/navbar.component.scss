@@ -1,4 +1,4 @@
-@import '../../../helpers.scss';
+@use '../../../helpers' as *;
 
 .nav-button-group {
   margin-right: 1rem;
