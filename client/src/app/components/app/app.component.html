@@ -2,8 +2,8 @@
 <app-navbar></app-navbar>
 <main role="main" class="container-fluid container-body offset-nav">
   @if (collectionService.isSearching() | async) {
-  <app-loading title="Searching"></app-loading>
+    <app-loading title="Searching"></app-loading>
   } @else {
-  <router-outlet></router-outlet>
+    <router-outlet></router-outlet>
   }
 </main>

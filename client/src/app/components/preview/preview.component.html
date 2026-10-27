@@ -1,7 +1,8 @@
 @if (thumbnail && previewSrc && (previewRequested || preloadPreview)) {
-<img class="hidden" [src]="previewSrc" (load)="onPreviewLoaded($event)" />
-} @if (thumbnailSrc) {
-<img class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
+  <img class="hidden" [src]="previewSrc" (load)="onPreviewLoaded($event)" />
+}
+@if (thumbnailSrc) {
+  <img class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
 }
 <canvas
   [width]="canvasWidth"

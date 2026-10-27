@@ -24,7 +24,11 @@ export class TagService {
 
     this.httpClient.get<string[]>(`/api/tags`).subscribe(
       res => {
-        this.tagReplay.next(res.sort()), (this.tags = res);
+        // res.sort() mutates in place and returns the same array, so the
+        // replay subject and this.tags share the sorted instance.
+        const sorted = res.sort();
+        this.tagReplay.next(sorted);
+        this.tags = sorted;
       },
       (err: HttpErrorResponse) => {
         console.error(err);

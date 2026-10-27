@@ -1,136 +1,133 @@
 @if (media) {
-<div class="main-body full-height">
-  <ng-container *ngTemplateOutlet="leftPanel"></ng-container>
-  @if (media.type !== 'still') {
-  <div class="right-panel">
-    Clone detection is currently only possible for still images.
-  </div>
-  } @else { @if (!media.clones) {
-  <div class="right-panel">
-    This media doesn't have any data about potential clones. Generate it on the Config page.
-  </div>
-  } @else { @if (media.clones?.length === 0) {
-  <div class="right-panel">
-    This media doesn't have any clones.
-  </div>
-  } @else { @if (!clones) {
-  <div class="loading right-panel">
-    <app-loading class="right-panel" title="Loading Clones"></app-loading>
-  </div>
-  } @else {
-  <div class="right-panel gallery">
-    @for (m of clones; track m) {
-    <div class="d-block image-container card" [class.checked]="m.isClone" data-toggle="tooltip" data-placement="bottom" [title]="getHoverText(m)">
-      <img (click)="m.isClone = !m.isClone" class="img-fluid clickable card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
-      @if (m.isClone) {
-      <ng-container *ngTemplateOutlet="checked"></ng-container>
+  <div class="main-body full-height">
+    <ng-container *ngTemplateOutlet="leftPanel"></ng-container>
+    @if (media.type !== 'still') {
+      <div class="right-panel">Clone detection is currently only possible for still images.</div>
+    } @else {
+      @if (!media.clones) {
+        <div class="right-panel">This media doesn't have any data about potential clones. Generate it on the Config page.</div>
       } @else {
-      <div class="check-circle">
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          data-prefix="far"
-          data-icon="circle"
-          class="svg-inline--fa fa-circle fa-w-16"
-          role="img"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 512 512"
-        >
-          <path
-            fill="currentColor"
-            d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200z"
-          ></path>
-        </svg>
-      </div>
-      }
-      <div class="type caption card-header card-small">
-        <a routerLink="/clone-resolver" (click)="collectionService.goto(m.hash)">
-          <strong>{{ getTitle(m) }}</strong>
-          <div class="subtitle">{{ getSubtitle(m) }}</div>
-        </a>
-      </div>
-    </div>
-    }
-  </div>
-  } } } }
-  <ng-template #leftPanel>
-    <div class="image-container">
-      <div class="card padded-auto">
-        <div class="card-header card-small">Current</div>
-        <div class="card-body card-small">
-          <img class="img-fluid thumbnail" [src]="'/cache/thumbnails/' + media.hash + '.png'" />
-          @if (media.metadata) {
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Resolution</strong>
-            {{ media.metadata.width }}x{{ media.metadata.height }}
-          </p>
-          } @if (media.metadata) {
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Artist</strong>
-            {{ media.metadata.artist || 'Unknown' }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Album</strong>
-            {{ media.metadata.album || 'Unknown' }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Title</strong>
-            {{ media.metadata.title || 'Unknown' }}
-          </p>
+        @if (media.clones?.length === 0) {
+          <div class="right-panel">This media doesn't have any clones.</div>
+        } @else {
+          @if (!clones) {
+            <div class="loading right-panel">
+              <app-loading class="right-panel" title="Loading Clones"></app-loading>
+            </div>
+          } @else {
+            <div class="right-panel gallery">
+              @for (m of clones; track m) {
+                <div class="d-block image-container card" [class.checked]="m.isClone" data-toggle="tooltip" data-placement="bottom" [title]="getHoverText(m)">
+                  <img (click)="m.isClone = !m.isClone" class="img-fluid clickable card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
+                  @if (m.isClone) {
+                    <ng-container *ngTemplateOutlet="checked"></ng-container>
+                  } @else {
+                    <div class="check-circle">
+                      <svg
+                        aria-hidden="true"
+                        focusable="false"
+                        data-prefix="far"
+                        data-icon="circle"
+                        class="svg-inline--fa fa-circle fa-w-16"
+                        role="img"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 512 512"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200z"
+                        ></path>
+                      </svg>
+                    </div>
+                  }
+                  <div class="type caption card-header card-small">
+                    <a routerLink="/clone-resolver" (click)="collectionService.goto(m.hash)">
+                      <strong>{{ getTitle(m) }}</strong>
+                      <div class="subtitle">{{ getSubtitle(m) }}</div>
+                    </a>
+                  </div>
+                </div>
+              }
+            </div>
           }
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Tags</strong>
-            {{ media.tags && media.tags.length ? media.tags.join(', ') : 'No tags' }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">People</strong>
-            {{ media.actors && media.actors.length ? media.actors.join(', ') : 'No people' }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Rating</strong>
-            {{ media.rating ? media.rating + ' / 5' : 'Unrated' }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Hash</strong>
-            {{ media.hash }}
-          </p>
-          <p class="media-body pb-1 mb-0 small lh-125">
-            <strong class="d-block text-gray-dark">Path</strong>
-            {{ media.path }}
-          </p>
+        }
+      }
+    }
+    <ng-template #leftPanel>
+      <div class="image-container">
+        <div class="card padded-auto">
+          <div class="card-header card-small">Current</div>
+          <div class="card-body card-small">
+            <img class="img-fluid thumbnail" [src]="'/cache/thumbnails/' + media.hash + '.png'" />
+            @if (media.metadata) {
+              <p class="media-body pb-1 mb-0 small lh-125">
+                <strong class="d-block text-gray-dark">Resolution</strong>
+                {{ media.metadata.width }}x{{ media.metadata.height }}
+              </p>
+            }
+            @if (media.metadata) {
+              <p class="media-body pb-1 mb-0 small lh-125">
+                <strong class="d-block text-gray-dark">Artist</strong>
+                {{ media.metadata.artist || 'Unknown' }}
+              </p>
+              <p class="media-body pb-1 mb-0 small lh-125">
+                <strong class="d-block text-gray-dark">Album</strong>
+                {{ media.metadata.album || 'Unknown' }}
+              </p>
+              <p class="media-body pb-1 mb-0 small lh-125">
+                <strong class="d-block text-gray-dark">Title</strong>
+                {{ media.metadata.title || 'Unknown' }}
+              </p>
+            }
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Tags</strong>
+              {{ media.tags && media.tags.length ? media.tags.join(', ') : 'No tags' }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">People</strong>
+              {{ media.actors && media.actors.length ? media.actors.join(', ') : 'No people' }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Rating</strong>
+              {{ media.rating ? media.rating + ' / 5' : 'Unrated' }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Hash</strong>
+              {{ media.hash }}
+            </p>
+            <p class="media-body pb-1 mb-0 small lh-125">
+              <strong class="d-block text-gray-dark">Path</strong>
+              {{ media.path }}
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-small">Resolutions</div>
+          <div class="card-body card-small d-grid gap-1">
+            <button
+              (click)="autoResolve()"
+              class="btn btn-primary"
+              title="Picks the image with the highest resolution, merges the metadata and marks all as duplicates"
+            >
+              Auto-resolve (All Clones)
+            </button>
+            <button
+              [disabled]="!anyClonesSelected(clones)"
+              class="btn btn-primary"
+              title="Mark the selected items as duplicates and the rest as not duplicates"
+              (click)="resolveSelected()"
+            >
+              Resolve (Selected)
+            </button>
+            <button (click)="resolveAll()" class="btn btn-primary" title="Marks all of the items as clones">Resolve (All Clones)</button>
+            <button (click)="resolveNone()" class="btn btn-primary" title="Marks all of the items as not duplicates">Resolve (All Unrelated)</button>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header card-small">Resolutions</div>
-        <div class="card-body card-small d-grid gap-1">
-          <button
-            (click)="autoResolve()"
-            class="btn btn-primary"
-            title="Picks the image with the highest resolution, merges the metadata and marks all as duplicates"
-          >
-            Auto-resolve (All Clones)
-          </button>
-          <button
-            [disabled]="!anyClonesSelected(clones)"
-            class="btn btn-primary"
-            title="Mark the selected items as duplicates and the rest as not duplicates"
-            (click)="resolveSelected()"
-          >
-            Resolve (Selected)
-          </button>
-          <button (click)="resolveAll()" class="btn btn-primary" title="Marks all of the items as clones">
-            Resolve (All Clones)
-          </button>
-          <button (click)="resolveNone()" class="btn btn-primary" title="Marks all of the items as not duplicates">
-            Resolve (All Unrelated)
-          </button>
-        </div>
-      </div>
-    </div>
-  </ng-template>
-</div>
+    </ng-template>
+  </div>
 } @else {
-<app-loading></app-loading>
+  <app-loading></app-loading>
 }
 
 <ng-template #checked>

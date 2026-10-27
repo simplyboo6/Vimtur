@@ -294,12 +294,12 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   public areControlsOpen(): boolean {
     return Boolean(
       !this.videoPlayerState.playing ||
-        this.videoPlayerState.loading ||
-        this.videoPlayerState.inControls ||
-        this.videoPlayerState.active ||
-        this.videoPlayerState.updatingVolume ||
-        this.videoPlayerState.navigationTime !== undefined ||
-        this.qualitySelectorOpen,
+      this.videoPlayerState.loading ||
+      this.videoPlayerState.inControls ||
+      this.videoPlayerState.active ||
+      this.videoPlayerState.updatingVolume ||
+      this.videoPlayerState.navigationTime !== undefined ||
+      this.qualitySelectorOpen,
     );
   }
 

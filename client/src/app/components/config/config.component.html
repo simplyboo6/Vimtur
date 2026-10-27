@@ -1,610 +1,602 @@
 @if (config && tags && actors) {
-<div class="container">
-  <div class="card">
-    <h4>Tasks</h4>
-    <!-- Task Starting Options -->
-    <div class="row">
-      <div class="col-md-12 form-padded-input">
-        <button class="col-12 btn btn-primary col-12" [disabled]="!tasks" (click)="tasksService.startImport()">
-          Start Auto-Import
-        </button>
+  <div class="container">
+    <div class="card">
+      <h4>Tasks</h4>
+      <!-- Task Starting Options -->
+      <div class="row">
+        <div class="col-md-12 form-padded-input">
+          <button class="col-12 btn btn-primary col-12" [disabled]="!tasks" (click)="tasksService.startImport()">Start Auto-Import</button>
+        </div>
       </div>
-    </div>
-    <div class="row">
-      <div class="col-md-8 form-padded-input">
-        <select [disabled]="!tasks" [(ngModel)]="task" (ngModelChange)="updateArgs()" class="form-select w-100 form-select">
-          @for (task of tasks; track task) {
-          <option [ngValue]="task">{{ task.description }}</option>
-          }
-        </select>
-      </div>
-      <div class="col-md-4 form-padded-input">
-        <button class="btn btn-primary col-12 clear-button" [disabled]="!task" (click)="startAction()">
-          Start
-        </button>
-      </div>
-    </div>
-    @for (arg of (task && task.args) || []; track arg; let index = $index) {
-    <div class="row">
-      <div class="col-md-12 form-padded-input">
-        <h5>{{ arg.name }}</h5>
-        @switch (arg.type) { @case ('select') {
-        <select [(ngModel)]="args[index]" class="form-select d-block w-100 form-select">
-          @for (value of getArgValues(arg); track value) {
-          <option [ngValue]="value.id">{{ value.name }}</option>
-          }
-        </select>
-        } @case ('string') {
-        <input (keydown.enter)="startAction()" type="text" [(ngModel)]="args[index]" class="d-block w-100 form-control" />
-        } }
-      </div>
-    </div>
-    }
-    <!-- Task queue/list -->
-    @if (queue && queue.length > 0) {
-    <div class="row">
-      <div class="col-md-12 form-padded-input"></div>
-      <div class="col-md-12 form-padded-input">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th scope="col-3">ID</th>
-              <th scope="col-3">Description</th>
-              <th scope="col-3">Running</th>
-              <th scope="col-3">
-                <button class="btn btn-link clear-all-button" (click)="tasksService.clearComplete()">
-                  Clear Complete
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of queue; track item) {
-            <tr>
-              <td>{{ item.id }}</td>
-              <td>
-                {{ item.description }}
-                @if (item.error && !item.aborted) {
-                <p class="text-danger">Error running task. {{ item.error }}</p>
-                }
-              </td>
-              <td>
-                {{ formatQueueState(item) }}
-              </td>
-              <td>
-                @if (!item.aborted || !item.running) {
-                <button class="btn btn-link" type="submit" (click)="tasksService.cancelAction(item.id)" title="Cancel / Clear">
-                  <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
-                </button>
-                }
-              </td>
-            </tr>
+      <div class="row">
+        <div class="col-md-8 form-padded-input">
+          <select [disabled]="!tasks" [(ngModel)]="task" (ngModelChange)="updateArgs()" class="form-select w-100 form-select">
+            @for (task of tasks; track task) {
+              <option [ngValue]="task">{{ task.description }}</option>
             }
-          </tbody>
-        </table>
+          </select>
+        </div>
+        <div class="col-md-4 form-padded-input">
+          <button class="btn btn-primary col-12 clear-button" [disabled]="!task" (click)="startAction()">Start</button>
+        </div>
+      </div>
+      @for (arg of (task && task.args) || []; track arg; let index = $index) {
+        <div class="row">
+          <div class="col-md-12 form-padded-input">
+            <h5>{{ arg.name }}</h5>
+            @switch (arg.type) {
+              @case ('select') {
+                <select [(ngModel)]="args[index]" class="form-select d-block w-100 form-select">
+                  @for (value of getArgValues(arg); track value) {
+                    <option [ngValue]="value.id">{{ value.name }}</option>
+                  }
+                </select>
+              }
+              @case ('string') {
+                <input (keydown.enter)="startAction()" type="text" [(ngModel)]="args[index]" class="d-block w-100 form-control" />
+              }
+            }
+          </div>
+        </div>
+      }
+      <!-- Task queue/list -->
+      @if (queue && queue.length > 0) {
+        <div class="row">
+          <div class="col-md-12 form-padded-input"></div>
+          <div class="col-md-12 form-padded-input">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th scope="col-3">ID</th>
+                  <th scope="col-3">Description</th>
+                  <th scope="col-3">Running</th>
+                  <th scope="col-3">
+                    <button class="btn btn-link clear-all-button" (click)="tasksService.clearComplete()">Clear Complete</button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of queue; track item) {
+                  <tr>
+                    <td>{{ item.id }}</td>
+                    <td>
+                      {{ item.description }}
+                      @if (item.error && !item.aborted) {
+                        <p class="text-danger">Error running task. {{ item.error }}</p>
+                      }
+                    </td>
+                    <td>
+                      {{ formatQueueState(item) }}
+                    </td>
+                    <td>
+                      @if (!item.aborted || !item.running) {
+                        <button class="btn btn-link" type="submit" (click)="tasksService.cancelAction(item.id)" title="Cancel / Clear">
+                          <ng-container *ngTemplateOutlet="clearIcon"></ng-container>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+      @if (scanResults) {
+        <h4>Scan Results</h4>
+        <div class="row">
+          <div class="col-md-12 form-padded-input">
+            <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths }} new files</a>
+            found and
+            <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')">{{ scanResults.missingPaths }} files missing</a>.
+          </div>
+        </div>
+      }
+    </div>
+    <div class="card">
+      <h4>Tags</h4>
+      <div class="row">
+        <div class="col-md-8 form-padded-input">
+          <input [(ngModel)]="addTagModel" class="form-control" type="text" placeholder="Enter new tag name..." (keyup.enter)="addTagModel && addTag()" />
+        </div>
+        <div class="col-md-4 form-padded-input">
+          <button class="btn btn-primary col-12" [disabled]="!addTagModel" (click)="addTag()">Add</button>
+        </div>
+      </div>
+      @if (tags) {
+        <div class="row">
+          <div class="col-md-8 form-padded-input">
+            @if (tags) {
+              <select [(ngModel)]="deleteTagModel" id="config-tags" class="form-select d-block w-100 form-select">
+                @for (tag of tags; track tag) {
+                  <option>{{ tag }}</option>
+                }
+              </select>
+            }
+          </div>
+          <div class="col-md-4 form-padded-input">
+            <button class="btn btn-danger col-12" [disabled]="!deleteTagModel" (click)="deleteTag()">Delete</button>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="card">
+      <h4>Actors</h4>
+      <div class="row">
+        <div class="col-md-8 form-padded-input">
+          <input
+            [(ngModel)]="addActorModel"
+            class="form-control"
+            type="text"
+            placeholder="Enter new actor name..."
+            (keyup.enter)="addActorModel && addActor()"
+          />
+        </div>
+        <div class="col-md-4 form-padded-input">
+          <button class="btn btn-primary col-12" [disabled]="!addActorModel" (click)="addActor()">Add</button>
+        </div>
+      </div>
+      @if (actors) {
+        <div class="row">
+          <div class="col-md-8 form-padded-input">
+            @if (actors) {
+              <select [(ngModel)]="deleteActorModel" id="config-actors" class="form-select d-block w-100 form-select">
+                @for (actor of actors; track actor) {
+                  <option>{{ actor }}</option>
+                }
+              </select>
+            }
+          </div>
+          <div class="col-md-4 form-padded-input">
+            <button class="btn btn-danger col-12" [disabled]="!deleteActorModel" (click)="deleteActor()">Delete</button>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="card">
+      <h4>UI Configuration</h4>
+      <!-- user.autoplayEnabled -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-autoplay"
+          [(ngModel)]="config.user.autoplayEnabled"
+          (ngModelChange)="updateConfig('user.autoplayEnabled', $event)"
+        />
+        <label class="form-check-label" for="config-autoplay">Enable autoplay?</label>
+        <div><span class="text-muted">Videos will autoplay muted.</span></div>
+      </div>
+      <!-- user.showTaskNotifications -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-show-task-notifications"
+          [(ngModel)]="config.user.showTaskNotifications"
+          (ngModelChange)="updateConfig('user.showTaskNotifications', $event)"
+        />
+        <label class="form-check-label" for="config-show-task-notifications">Enable status notifications for tasks?</label>
+        <div>
+          <span class="text-muted">Displays a popup when tasks start and end if enabled. Errors will always show.</span>
+        </div>
+      </div>
+      <!-- user.autoClearCompletedTasks -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-auto-clear-completed-tasks"
+          [(ngModel)]="config.user.autoClearCompletedTasks"
+          (ngModelChange)="updateConfig('user.autoClearCompletedTasks', $event)"
+        />
+        <label class="form-check-label" for="config-auto-clear-completed-tasks">Automatically clear completed tasks?</label>
+      </div>
+      <!-- user.lowQualityOnLoadEnabled -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-low-quality-on-load-desktop"
+          [(ngModel)]="config.user.lowQualityOnLoadEnabled"
+          (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabled', $event)"
+        />
+        <label class="form-check-label" for="config-low-quality-on-load-desktop">Lower quality on load for desktop?</label>
+        <div>
+          <span class="text-muted">On desktop browsers during initial load and seeking a lower quality will be selected for speed.</span>
+        </div>
+      </div>
+      <!-- user.lowQualityOnLoadEnabledForMobile -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-low-quality-on-load-mobile"
+          [(ngModel)]="config.user.lowQualityOnLoadEnabledForMobile"
+          (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabledForMobile', $event)"
+        />
+        <label class="form-check-label" for="config-low-quality-on-load-mobile">Lower quality on load for mobile?</label>
+        <div>
+          <span class="text-muted">On mobile browsers during initial load and seeking a lower quality will be selected for speed.</span>
+        </div>
+      </div>
+      <!-- user.useNativeSelectOnMobile -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-native-select-on-load-mobile"
+          [(ngModel)]="config.user.useNativeSelectOnMobile"
+          (ngModelChange)="updateConfig('user.useNativeSelectOnMobile', $event)"
+        />
+        <label class="form-check-label" for="config-native-select-on-load-mobile">Use the native multi-select on mobile devices?</label>
+        <div>
+          <span class="text-muted"
+            >Only recommended to disable if your device is incorrectly detected as mobile or doesn't have a user-friendly multi-select.</span
+          >
+        </div>
+      </div>
+      <!-- user.scaleToScreenWidthOnMobile -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-max-width-on-load-mobile"
+          [(ngModel)]="config.user.scaleToScreenWidthOnMobile"
+          (ngModelChange)="updateConfig('user.scaleToScreenWidthOnMobile', $event)"
+        />
+        <label class="form-check-label" for="config-max-width-on-load-mobile">Scale image widths when it exceeds the screens width on mobile?</label>
+      </div>
+      <!-- user.tagColumnCount -->
+      <div class="input-component">
+        <label for="config-tag-column-count">Tag panel column count</label>
+        <input
+          type="number"
+          class="form-control"
+          id="config-tag-column-count"
+          [(ngModel)]="config.user.tagColumnCount"
+          (ngModelChange)="updateConfig('user.tagColumnCount', $event)"
+          required
+        />
+        <div>
+          <span class="text-muted">The number of columns in the quick tag panel of the viewer.</span>
+        </div>
+      </div>
+      <!-- user.galleryImageCount -->
+      <div class="input-component">
+        <label for="config-gallery-image-count">Gallery image count</label>
+        <input
+          type="number"
+          class="form-control"
+          id="config-gallery-image-count"
+          [(ngModel)]="config.user.galleryImageCount"
+          (ngModelChange)="updateConfig('user.galleryImageCount', $event)"
+          required
+        />
+        <div>
+          <span class="text-muted"> Maximum number of images per-gallery page. Set to 0 to show all in a single page. </span>
+        </div>
+      </div>
+      <!-- user.initialLoadLimit -->
+      <div class="input-component">
+        <label for="config-initial-load-limit">Initial search load limit</label>
+        <input
+          type="number"
+          class="form-control"
+          id="config-initial-load-limit"
+          [(ngModel)]="config.user.initialLoadLimit"
+          (ngModelChange)="updateConfig('user.initialLoadLimit', $event)"
+          required
+        />
+        <div>
+          <span class="text-muted"
+            >When the UI initially loads this will limit the maximum number of items it fetches. This will speed up load in large collections. Set to 0 to
+            disable.</span
+          >
+        </div>
+      </div>
+      <div class="input-component">
+        <h5>Quick Tag Panel Configuration</h5>
+        <!-- Rating -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-rating"
+            [(ngModel)]="config.user.quickTagShowRating"
+            (ngModelChange)="updateConfig('user.quickTagShowRating', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-rating">Show rating?</label>
+        </div>
+        <!-- Artist -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-artist"
+            [(ngModel)]="config.user.quickTagShowArtist"
+            (ngModelChange)="updateConfig('user.quickTagShowArtist', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-artist">Show artist?</label>
+        </div>
+        <!-- Album -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-album"
+            [(ngModel)]="config.user.quickTagShowAlbum"
+            (ngModelChange)="updateConfig('user.quickTagShowAlbum', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-album">Show album?</label>
+        </div>
+        <!-- Title -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-title"
+            [(ngModel)]="config.user.quickTagShowTitle"
+            (ngModelChange)="updateConfig('user.quickTagShowTitle', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-title">Show title?</label>
+        </div>
+        <!-- People -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-people"
+            [(ngModel)]="config.user.quickTagShowPeople"
+            (ngModelChange)="updateConfig('user.quickTagShowPeople', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-people">Show people?</label>
+        </div>
+        <!-- Playlists -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-playlists"
+            [(ngModel)]="config.user.quickTagShowPlaylists"
+            (ngModelChange)="updateConfig('user.quickTagShowPlaylists', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-playlists">Show playlists?</label>
+        </div>
+        <!-- Path -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-path"
+            [(ngModel)]="config.user.quickTagShowPath"
+            (ngModelChange)="updateConfig('user.quickTagShowPath', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-path">Show path above media?</label>
+        </div>
+        <!-- Auto Tags -->
+        <div class="form-check tag-config">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="config-quick-tag-auto-tag"
+            [(ngModel)]="config.user.quickTagShowAutoTags"
+            (ngModelChange)="updateConfig('user.quickTagShowAutoTags', $event)"
+          />
+          <label class="form-check-label" for="config-quick-tag-auto-tag">Show auto-generated tags below media?</label>
+        </div>
       </div>
     </div>
-    } @if (scanResults) {
-    <h4>Scan Results</h4>
-    <div class="row">
-      <div class="col-md-12 form-padded-input">
-        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths }} new files</a>
-        found and
-        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')">{{ scanResults.missingPaths }} files missing</a>.
+    <div class="card">
+      <h4>Transcoder Configuration</h4>
+      <!-- transcoder.enableCachingKeyframes -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-caching-keyframes"
+          [(ngModel)]="config.transcoder.enableCachingKeyframes"
+          (ngModelChange)="updateConfig('transcoder.enableCachingKeyframes', $event)"
+        />
+        <label class="form-check-label" for="config-enable-caching-keyframes">Enable caching for keyframe information on generation?</label>
+        <div>
+          <span class="text-muted"
+            >Enabling this caches the data needed to generate a playlist for streaming. Takes up DB space but makes second loads faster.</span
+          >
+        </div>
       </div>
-    </div>
-    }
-  </div>
-  <div class="card">
-    <h4>Tags</h4>
-    <div class="row">
-      <div class="col-md-8 form-padded-input">
-        <input [(ngModel)]="addTagModel" class="form-control" type="text" placeholder="Enter new tag name..." (keyup.enter)="addTagModel && addTag()" />
+      <!-- transcoder.enablePrecachingKeyframes -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-precaching-keyframes"
+          [(ngModel)]="config.transcoder.enablePrecachingKeyframes"
+          (ngModelChange)="updateConfig('transcoder.enablePrecachingKeyframes', $event)"
+        />
+        <label class="form-check-label" for="config-enable-precaching-keyframes">Enable caching keyframe information during import?</label>
+        <div>
+          <span class="text-muted"
+            >Enabling this pre-generates information needed to create a playlist for streaming. Imports take longer but initial load of videos will be
+            faster.</span
+          >
+        </div>
       </div>
-      <div class="col-md-4 form-padded-input">
-        <button class="btn btn-primary col-12" [disabled]="!addTagModel" (click)="addTag()">
-          Add
-        </button>
+      <!-- transcoder.enableVideoCaching -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-video-caching"
+          [(ngModel)]="config.transcoder.enableVideoCaching"
+          (ngModelChange)="updateConfig('transcoder.enableVideoCaching', $event)"
+        />
+        <label class="form-check-label" for="config-enable-video-caching">Enable caching for all videos?</label>
+        <div>
+          <span class="text-muted">
+            Enabling this causes videos to be cached during import. Uses large amounts of disk space but seeking and loading times are very fast.
+          </span>
+        </div>
       </div>
-    </div>
-    @if (tags) {
-    <div class="row">
-      <div class="col-md-8 form-padded-input">
-        @if (tags) {
-        <select [(ngModel)]="deleteTagModel" id="config-tags" class="form-select d-block w-100 form-select">
-          @for (tag of tags; track tag) {
-          <option>{{ tag }}</option>
+      <!-- transcoder.cacheQualities -->
+      <div class="input-component">
+        <label for="config-transcoder-cache-qualities">Video caching qualities</label>
+        <app-select
+          [value]="config.transcoder.cacheQualities"
+          (selected)="addQuality('cacheQualities', $event)"
+          (deselected)="removeQuality('cacheQualities', $event)"
+          placeholder="+ Quality"
+        >
+          @for (quality of qualityList; track quality) {
+            <app-select-option [value]="quality.id">
+              {{ quality.itemName }}
+            </app-select-option>
+          }
+        </app-select>
+        <div>
+          <span class="text-muted"> When importing/caching videos will be pre-transcoded to these qualities. </span>
+        </div>
+      </div>
+      <!-- transcoder.streamQualities -->
+      <div class="input-component">
+        <label for="config-transcoder-stream-qualities">Video streaming qualities</label>
+        <app-select
+          [value]="config.transcoder.streamQualities"
+          (selected)="addQuality('streamQualities', $event)"
+          (deselected)="removeQuality('streamQualities', $event)"
+          placeholder="+ Quality"
+        >
+          @for (quality of qualityList; track quality) {
+            <app-select-option [value]="quality.id">
+              {{ quality.itemName }}
+            </app-select-option>
+          }
+        </app-select>
+        <div>
+          <span class="text-muted">
+            When streaming a video these will be the resolutions available to stream at. To stream only cached video, have this be the same as the cache
+            qualities.
+          </span>
+        </div>
+      </div>
+      <!-- transcoder.minQuality -->
+      <div class="input-component">
+        <label for="config-transcoder-min-quality">Minimum transcode quality</label>
+        <select
+          class="form-select d-block w-100 form-select"
+          [ngModel]="config.transcoder.minQuality"
+          (ngModelChange)="updateConfig('transcoder.minQuality', $event)"
+        >
+          @for (quality of qualityList; track quality) {
+            <option [value]="quality.id">{{ quality.itemName }}</option>
           }
         </select>
-        }
+        <div>
+          <span class="text-muted">
+            If the source quality is less than or equal to the above then it will use the source quality and not downscale. This is only applied for caching.
+          </span>
+        </div>
       </div>
-      <div class="col-md-4 form-padded-input">
-        <button class="btn btn-danger col-12" [disabled]="!deleteTagModel" (click)="deleteTag()">
-          Delete
-        </button>
+      <!-- transcoder.bitrateMultiplier -->
+      <div class="input-component">
+        <label for="config-transcoder-bitrate-multiplier">Bitrate (quality) multiplier (Default 1.5)</label>
+        <input
+          type="number"
+          class="form-control"
+          id="config-transcoder-bitrate-multiplier"
+          [(ngModel)]="config.transcoder.bitrateMultiplier"
+          (ngModelChange)="updateConfig('transcoder.bitrateMultiplier', $event)"
+          required
+        />
+        <div>
+          <span class="text-muted"
+            >Videos when streamed or cached are transcoded to a constant average bitrate. A calculations run to increase bitrate as resolution increases. This
+            field is a multiplier to that calculation. Increasing it will increase chunk size and video quality, generally increasing load times and quality.
+            The default of 1.5 produces 3M bitrate for 1080p for example.</span
+          >
+        </div>
+      </div>
+      <!-- transcoder.enableVideoPreviews -->
+      <div class="form-check input-component">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-video-previews"
+          [(ngModel)]="config.transcoder.enableVideoPreviews"
+          (ngModelChange)="updateConfig('transcoder.enableVideoPreviews', $event)"
+        />
+        <label class="form-check-label" for="config-enable-video-previews">Enable generating video previews during import?</label>
+        <div>
+          <span class="text-muted">Enabling this causes video previews to be generated during auto-import.</span>
+        </div>
+      </div>
+      <!-- transcoder.maxCopyEnabled -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-max-copy"
+          [(ngModel)]="config.transcoder.maxCopyEnabled"
+          (ngModelChange)="updateConfig('transcoder.maxCopyEnabled', $event)"
+        />
+        <label class="form-check-label" for="config-enable-max-copy">Copy video streams if possible?</label>
+        <div>
+          <span class="text-muted"
+            >Enabling this causes video streams to be copied without transcoding if browser compatible. This sometimes leads to buffer overflows if the source
+            media is a very high bitrate, on the other hand this is also faster and less CPU intensive than transcoding. This setting does not applt when caches
+            of videos are generated.</span
+          >
+        </div>
       </div>
     </div>
-    }
-  </div>
-  <div class="card">
-    <h4>Actors</h4>
-    <div class="row">
-      <div class="col-md-8 form-padded-input">
-        <input [(ngModel)]="addActorModel" class="form-control" type="text" placeholder="Enter new actor name..." (keyup.enter)="addActorModel && addActor()" />
+    <div class="card">
+      <h4>Misc Configuration</h4>
+      <!-- enablePhash -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-phash-generation"
+          [(ngModel)]="config.enablePhash"
+          (ngModelChange)="updateConfig('enablePhash', $event)"
+        />
+        <label class="form-check-label" for="config-enable-phash-generation">Enable pHash generation during import?</label>
+        <div>
+          <span class="text-muted">
+            pHash's generate a fingerprint of videos or still images based on what it looks like. This allows locating scaled duplicates or similiar images.
+            Enabling this causes pHash's to be generated as part of the auto-import process. It an always be triggered manually.
+          </span>
+        </div>
       </div>
-      <div class="col-md-4 form-padded-input">
-        <button class="btn btn-primary col-12" [disabled]="!addActorModel" (click)="addActor()">
-          Add
-        </button>
+      <!-- enableTensorFlow -->
+      <div class="form-check">
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="config-enable-tensorflow"
+          [(ngModel)]="config.enableTensorFlow"
+          (ngModelChange)="updateConfig('enableTensorFlow', $event)"
+        />
+        <label class="form-check-label" for="config-enable-tensorflow">Enable TensorFlow image classification using MobileNet V2 during import?</label>
+        <div>
+          <span class="text-muted">
+            Enabling this setting will use TensorFlow's MobileNet V2 model to auto-generate tags for all images during the import process. These are vague and
+            while can be seen they can only be used during a keyword search and have a low weighting. Even if it is disabled here it can still be triggered
+            manually from the tasks dropdown. Note: If you have an old CPU that does not support AVX instructions (see startup log) then this setting will do
+            nothing.
+          </span>
+        </div>
       </div>
     </div>
-    @if (actors) {
-    <div class="row">
-      <div class="col-md-8 form-padded-input">
-        @if (actors) {
-        <select [(ngModel)]="deleteActorModel" id="config-actors" class="form-select d-block w-100 form-select">
-          @for (actor of actors; track actor) {
-          <option>{{ actor }}</option>
-          }
-        </select>
-        }
-      </div>
-      <div class="col-md-4 form-padded-input">
-        <button class="btn btn-danger col-12" [disabled]="!deleteActorModel" (click)="deleteActor()">
-          Delete
-        </button>
-      </div>
-    </div>
-    }
-  </div>
-  <div class="card">
-    <h4>UI Configuration</h4>
-    <!-- user.autoplayEnabled -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-autoplay"
-        [(ngModel)]="config.user.autoplayEnabled"
-        (ngModelChange)="updateConfig('user.autoplayEnabled', $event)"
-      />
-      <label class="form-check-label" for="config-autoplay">Enable autoplay?</label>
-      <div><span class="text-muted">Videos will autoplay muted.</span></div>
-    </div>
-    <!-- user.showTaskNotifications -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-show-task-notifications"
-        [(ngModel)]="config.user.showTaskNotifications"
-        (ngModelChange)="updateConfig('user.showTaskNotifications', $event)"
-      />
-      <label class="form-check-label" for="config-show-task-notifications">Enable status notifications for tasks?</label>
+    <div class="card">
+      <h4>Version</h4>
       <div>
-        <span class="text-muted">Displays a popup when tasks start and end if enabled. Errors will always show.</span>
-      </div>
-    </div>
-    <!-- user.autoClearCompletedTasks -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-auto-clear-completed-tasks"
-        [(ngModel)]="config.user.autoClearCompletedTasks"
-        (ngModelChange)="updateConfig('user.autoClearCompletedTasks', $event)"
-      />
-      <label class="form-check-label" for="config-auto-clear-completed-tasks">Automatically clear completed tasks?</label>
-    </div>
-    <!-- user.lowQualityOnLoadEnabled -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-low-quality-on-load-desktop"
-        [(ngModel)]="config.user.lowQualityOnLoadEnabled"
-        (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabled', $event)"
-      />
-      <label class="form-check-label" for="config-low-quality-on-load-desktop">Lower quality on load for desktop?</label>
-      <div>
-        <span class="text-muted">On desktop browsers during initial load and seeking a lower quality will be selected for speed.</span>
-      </div>
-    </div>
-    <!-- user.lowQualityOnLoadEnabledForMobile -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-low-quality-on-load-mobile"
-        [(ngModel)]="config.user.lowQualityOnLoadEnabledForMobile"
-        (ngModelChange)="updateConfig('user.lowQualityOnLoadEnabledForMobile', $event)"
-      />
-      <label class="form-check-label" for="config-low-quality-on-load-mobile">Lower quality on load for mobile?</label>
-      <div>
-        <span class="text-muted">On mobile browsers during initial load and seeking a lower quality will be selected for speed.</span>
-      </div>
-    </div>
-    <!-- user.useNativeSelectOnMobile -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-native-select-on-load-mobile"
-        [(ngModel)]="config.user.useNativeSelectOnMobile"
-        (ngModelChange)="updateConfig('user.useNativeSelectOnMobile', $event)"
-      />
-      <label class="form-check-label" for="config-native-select-on-load-mobile">Use the native multi-select on mobile devices?</label>
-      <div>
-        <span class="text-muted"
-          >Only recommended to disable if your device is incorrectly detected as mobile or doesn't have a user-friendly multi-select.</span
-        >
-      </div>
-    </div>
-    <!-- user.scaleToScreenWidthOnMobile -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-max-width-on-load-mobile"
-        [(ngModel)]="config.user.scaleToScreenWidthOnMobile"
-        (ngModelChange)="updateConfig('user.scaleToScreenWidthOnMobile', $event)"
-      />
-      <label class="form-check-label" for="config-max-width-on-load-mobile">Scale image widths when it exceeds the screens width on mobile?</label>
-    </div>
-    <!-- user.tagColumnCount -->
-    <div class="input-component">
-      <label for="config-tag-column-count">Tag panel column count</label>
-      <input
-        type="number"
-        class="form-control"
-        id="config-tag-column-count"
-        [(ngModel)]="config.user.tagColumnCount"
-        (ngModelChange)="updateConfig('user.tagColumnCount', $event)"
-        required
-      />
-      <div>
-        <span class="text-muted">The number of columns in the quick tag panel of the viewer.</span>
-      </div>
-    </div>
-    <!-- user.galleryImageCount -->
-    <div class="input-component">
-      <label for="config-gallery-image-count">Gallery image count</label>
-      <input
-        type="number"
-        class="form-control"
-        id="config-gallery-image-count"
-        [(ngModel)]="config.user.galleryImageCount"
-        (ngModelChange)="updateConfig('user.galleryImageCount', $event)"
-        required
-      />
-      <div>
-        <span class="text-muted">
-          Maximum number of images per-gallery page. Set to 0 to show all in a single page.
-        </span>
-      </div>
-    </div>
-    <!-- user.initialLoadLimit -->
-    <div class="input-component">
-      <label for="config-initial-load-limit">Initial search load limit</label>
-      <input
-        type="number"
-        class="form-control"
-        id="config-initial-load-limit"
-        [(ngModel)]="config.user.initialLoadLimit"
-        (ngModelChange)="updateConfig('user.initialLoadLimit', $event)"
-        required
-      />
-      <div>
-        <span class="text-muted"
-          >When the UI initially loads this will limit the maximum number of items it fetches. This will speed up load in large collections. Set to 0 to
-          disable.</span
-        >
-      </div>
-    </div>
-    <div class="input-component">
-      <h5>Quick Tag Panel Configuration</h5>
-      <!-- Rating -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-rating"
-          [(ngModel)]="config.user.quickTagShowRating"
-          (ngModelChange)="updateConfig('user.quickTagShowRating', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-rating">Show rating?</label>
-      </div>
-      <!-- Artist -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-artist"
-          [(ngModel)]="config.user.quickTagShowArtist"
-          (ngModelChange)="updateConfig('user.quickTagShowArtist', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-artist">Show artist?</label>
-      </div>
-      <!-- Album -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-album"
-          [(ngModel)]="config.user.quickTagShowAlbum"
-          (ngModelChange)="updateConfig('user.quickTagShowAlbum', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-album">Show album?</label>
-      </div>
-      <!-- Title -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-title"
-          [(ngModel)]="config.user.quickTagShowTitle"
-          (ngModelChange)="updateConfig('user.quickTagShowTitle', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-title">Show title?</label>
-      </div>
-      <!-- People -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-people"
-          [(ngModel)]="config.user.quickTagShowPeople"
-          (ngModelChange)="updateConfig('user.quickTagShowPeople', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-people">Show people?</label>
-      </div>
-      <!-- Playlists -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-playlists"
-          [(ngModel)]="config.user.quickTagShowPlaylists"
-          (ngModelChange)="updateConfig('user.quickTagShowPlaylists', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-playlists">Show playlists?</label>
-      </div>
-      <!-- Path -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-path"
-          [(ngModel)]="config.user.quickTagShowPath"
-          (ngModelChange)="updateConfig('user.quickTagShowPath', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-path">Show path above media?</label>
-      </div>
-      <!-- Auto Tags -->
-      <div class="form-check tag-config">
-        <input
-          type="checkbox"
-          class="form-check-input"
-          id="config-quick-tag-auto-tag"
-          [(ngModel)]="config.user.quickTagShowAutoTags"
-          (ngModelChange)="updateConfig('user.quickTagShowAutoTags', $event)"
-        />
-        <label class="form-check-label" for="config-quick-tag-auto-tag">Show auto-generated tags below media?</label>
+        {{ version || 'Loading version...' }}
       </div>
     </div>
   </div>
-  <div class="card">
-    <h4>Transcoder Configuration</h4>
-    <!-- transcoder.enableCachingKeyframes -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-caching-keyframes"
-        [(ngModel)]="config.transcoder.enableCachingKeyframes"
-        (ngModelChange)="updateConfig('transcoder.enableCachingKeyframes', $event)"
-      />
-      <label class="form-check-label" for="config-enable-caching-keyframes">Enable caching for keyframe information on generation?</label>
-      <div>
-        <span class="text-muted"
-          >Enabling this caches the data needed to generate a playlist for streaming. Takes up DB space but makes second loads faster.</span
-        >
-      </div>
-    </div>
-    <!-- transcoder.enablePrecachingKeyframes -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-precaching-keyframes"
-        [(ngModel)]="config.transcoder.enablePrecachingKeyframes"
-        (ngModelChange)="updateConfig('transcoder.enablePrecachingKeyframes', $event)"
-      />
-      <label class="form-check-label" for="config-enable-precaching-keyframes">Enable caching keyframe information during import?</label>
-      <div>
-        <span class="text-muted"
-          >Enabling this pre-generates information needed to create a playlist for streaming. Imports take longer but initial load of videos will be
-          faster.</span
-        >
-      </div>
-    </div>
-    <!-- transcoder.enableVideoCaching -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-video-caching"
-        [(ngModel)]="config.transcoder.enableVideoCaching"
-        (ngModelChange)="updateConfig('transcoder.enableVideoCaching', $event)"
-      />
-      <label class="form-check-label" for="config-enable-video-caching">Enable caching for all videos?</label>
-      <div>
-        <span class="text-muted">
-          Enabling this causes videos to be cached during import. Uses large amounts of disk space but seeking and loading times are very fast.
-        </span>
-      </div>
-    </div>
-    <!-- transcoder.cacheQualities -->
-    <div class="input-component">
-      <label for="config-transcoder-cache-qualities">Video caching qualities</label>
-      <app-select
-        [value]="config.transcoder.cacheQualities"
-        (selected)="addQuality('cacheQualities', $event)"
-        (deselected)="removeQuality('cacheQualities', $event)"
-        placeholder="+ Quality"
-      >
-        @for (quality of qualityList; track quality) {
-        <app-select-option [value]="quality.id">
-          {{ quality.itemName }}
-        </app-select-option>
-        }
-      </app-select>
-      <div>
-        <span class="text-muted">
-          When importing/caching videos will be pre-transcoded to these qualities.
-        </span>
-      </div>
-    </div>
-    <!-- transcoder.streamQualities -->
-    <div class="input-component">
-      <label for="config-transcoder-stream-qualities">Video streaming qualities</label>
-      <app-select
-        [value]="config.transcoder.streamQualities"
-        (selected)="addQuality('streamQualities', $event)"
-        (deselected)="removeQuality('streamQualities', $event)"
-        placeholder="+ Quality"
-      >
-        @for (quality of qualityList; track quality) {
-        <app-select-option [value]="quality.id">
-          {{ quality.itemName }}
-        </app-select-option>
-        }
-      </app-select>
-      <div>
-        <span class="text-muted">
-          When streaming a video these will be the resolutions available to stream at. To stream only cached video, have this be the same as the cache
-          qualities.
-        </span>
-      </div>
-    </div>
-    <!-- transcoder.minQuality -->
-    <div class="input-component">
-      <label for="config-transcoder-min-quality">Minimum transcode quality</label>
-      <select
-        class="form-select d-block w-100 form-select"
-        [ngModel]="config.transcoder.minQuality"
-        (ngModelChange)="updateConfig('transcoder.minQuality', $event)"
-      >
-        @for (quality of qualityList; track quality) {
-        <option [value]="quality.id">{{ quality.itemName }}</option>
-        }
-      </select>
-      <div>
-        <span class="text-muted">
-          If the source quality is less than or equal to the above then it will use the source quality and not downscale. This is only applied for caching.
-        </span>
-      </div>
-    </div>
-    <!-- transcoder.bitrateMultiplier -->
-    <div class="input-component">
-      <label for="config-transcoder-bitrate-multiplier">Bitrate (quality) multiplier (Default 1.5)</label>
-      <input
-        type="number"
-        class="form-control"
-        id="config-transcoder-bitrate-multiplier"
-        [(ngModel)]="config.transcoder.bitrateMultiplier"
-        (ngModelChange)="updateConfig('transcoder.bitrateMultiplier', $event)"
-        required
-      />
-      <div>
-        <span class="text-muted"
-          >Videos when streamed or cached are transcoded to a constant average bitrate. A calculations run to increase bitrate as resolution increases. This
-          field is a multiplier to that calculation. Increasing it will increase chunk size and video quality, generally increasing load times and quality. The
-          default of 1.5 produces 3M bitrate for 1080p for example.</span
-        >
-      </div>
-    </div>
-    <!-- transcoder.enableVideoPreviews -->
-    <div class="form-check input-component">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-video-previews"
-        [(ngModel)]="config.transcoder.enableVideoPreviews"
-        (ngModelChange)="updateConfig('transcoder.enableVideoPreviews', $event)"
-      />
-      <label class="form-check-label" for="config-enable-video-previews">Enable generating video previews during import?</label>
-      <div>
-        <span class="text-muted">Enabling this causes video previews to be generated during auto-import.</span>
-      </div>
-    </div>
-    <!-- transcoder.maxCopyEnabled -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-max-copy"
-        [(ngModel)]="config.transcoder.maxCopyEnabled"
-        (ngModelChange)="updateConfig('transcoder.maxCopyEnabled', $event)"
-      />
-      <label class="form-check-label" for="config-enable-max-copy">Copy video streams if possible?</label>
-      <div>
-        <span class="text-muted"
-          >Enabling this causes video streams to be copied without transcoding if browser compatible. This sometimes leads to buffer overflows if the source
-          media is a very high bitrate, on the other hand this is also faster and less CPU intensive than transcoding. This setting does not applt when caches
-          of videos are generated.</span
-        >
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <h4>Misc Configuration</h4>
-    <!-- enablePhash -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-phash-generation"
-        [(ngModel)]="config.enablePhash"
-        (ngModelChange)="updateConfig('enablePhash', $event)"
-      />
-      <label class="form-check-label" for="config-enable-phash-generation">Enable pHash generation during import?</label>
-      <div>
-        <span class="text-muted">
-          pHash's generate a fingerprint of videos or still images based on what it looks like. This allows locating scaled duplicates or similiar images.
-          Enabling this causes pHash's to be generated as part of the auto-import process. It an always be triggered manually.
-        </span>
-      </div>
-    </div>
-    <!-- enableTensorFlow -->
-    <div class="form-check">
-      <input
-        type="checkbox"
-        class="form-check-input"
-        id="config-enable-tensorflow"
-        [(ngModel)]="config.enableTensorFlow"
-        (ngModelChange)="updateConfig('enableTensorFlow', $event)"
-      />
-      <label class="form-check-label" for="config-enable-tensorflow">Enable TensorFlow image classification using MobileNet V2 during import?</label>
-      <div>
-        <span class="text-muted">
-          Enabling this setting will use TensorFlow's MobileNet V2 model to auto-generate tags for all images during the import process. These are vague and
-          while can be seen they can only be used during a keyword search and have a low weighting. Even if it is disabled here it can still be triggered
-          manually from the tasks dropdown. Note: If you have an old CPU that does not support AVX instructions (see startup log) then this setting will do
-          nothing.
-        </span>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <h4>Version</h4>
-    <div>
-      {{ version || 'Loading version...' }}
-    </div>
-  </div>
-</div>
 } @else {
-<app-loading></app-loading>
+  <app-loading></app-loading>
 }
 
 <ng-template #clearIcon>

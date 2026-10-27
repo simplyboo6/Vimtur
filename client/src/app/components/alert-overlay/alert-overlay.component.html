@@ -1,7 +1,7 @@
 <div class="overlay">
   @for (alert of alerts; track alert) {
-  <p class="capture" (click)="close(alert)">
-    <ngb-alert [type]="alert.type" (close)="close(alert)">{{ alert.message }}</ngb-alert>
-  </p>
+    <p class="capture" (click)="close(alert)">
+      <ngb-alert [type]="alert.type" (close)="close(alert)">{{ alert.message }}</ngb-alert>
+    </p>
   }
 </div>
