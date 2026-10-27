@@ -2,7 +2,6 @@ import FS from 'fs';
 import Path from 'path';
 
 import { NodeFileSystem } from '@tensorflow/tfjs-node/dist/io/file_system';
-import Fetch from 'node-fetch';
 
 import { ImportUtils } from '../../cache/import-utils';
 import Config from '../../config';
@@ -35,9 +34,11 @@ function loadClassesLocal(): Promise<string> {
 }
 
 async function loadClassesRemote(): Promise<string> {
-  const res = await Fetch('https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt');
+  const url = 'https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt';
+  const res = await fetch(url);
   if (!res.ok) {
-    throw new Error('Failed to fetch imagenet classes');
+    const text = await res.text(); // Only here: reading consumes the body.
+    throw new Error(`Failed to fetch imagenet classes: ${res.status}: ${text}`);
   }
   return res.text();
 }
