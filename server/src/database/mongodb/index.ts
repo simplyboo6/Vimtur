@@ -34,6 +34,20 @@ interface Tag {
   name: string;
 }
 
+interface MediaPlaylistDoc {
+  _id: ObjectId;
+  order: number;
+}
+
+// Playlists are stored against the ObjectId rather than the API's id.
+interface MediaDoc extends Omit<BaseMedia, 'playlists'> {
+  playlists?: MediaPlaylistDoc[];
+}
+
+interface ConfigDoc extends Configuration.Partial {
+  _id?: string;
+}
+
 const MEDIA_VALIDATOR = Validator.load('BaseMedia');
 
 export class MongoConnector extends Database {
@@ -62,11 +76,7 @@ export class MongoConnector extends Database {
 
     while (true) {
       try {
-        return await MongoClient.connect(mongoConfig.uri, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
-        });
-        break;
+        return await MongoClient.connect(mongoConfig.uri);
       } catch (errUnknown: unknown) {
         const err = asError(errUnknown);
         console.warn('Failed to connect to database, retrying in 10 seconds', err.message);
@@ -96,8 +106,8 @@ export class MongoConnector extends Database {
   }
 
   public async getUserConfig(): Promise<Configuration.Partial> {
-    const meta = this.db.collection('config');
-    const row = await meta.findOne({ _id: 'userconfig' });
+    const meta = this.db.collection<ConfigDoc>('config');
+    const row = await meta.findOne<ConfigDoc>({ _id: 'userconfig' });
     if (!row) {
       return {};
     }
@@ -108,7 +118,7 @@ export class MongoConnector extends Database {
   }
 
   public async saveUserConfig(config: Configuration.Partial): Promise<void> {
-    const meta = this.db.collection('config');
+    const meta = this.db.collection<ConfigDoc>('config');
     await meta.updateOne({ _id: 'userconfig' }, { $set: config }, { upsert: true });
   }
 
@@ -186,7 +196,7 @@ export class MongoConnector extends Database {
   }
 
   public async removePlaylist(id: string): Promise<void> {
-    const media = this.db.collection('media');
+    const media = this.db.collection<MediaDoc>('media');
     await media.updateMany(
       {
         'playlists._id': new ObjectId(id),
@@ -211,7 +221,7 @@ export class MongoConnector extends Database {
     const playlists = this.db.collection('playlists');
 
     return playlists
-      .aggregate([
+      .aggregate<Playlist>([
         {
           $addFields: {
             id: {
@@ -232,17 +242,15 @@ export class MongoConnector extends Database {
   }
 
   public async getPlaylist(id: string): Promise<Playlist | undefined> {
-    const playlists = this.db.collection('playlists');
+    const playlists = this.db.collection<Omit<Playlist, 'id'>>('playlists');
 
     const raw = await playlists.findOne({ _id: new ObjectId(id) });
     if (!raw) {
       return undefined;
     }
 
-    raw.id = raw._id.toHexString();
-    delete raw._id;
-
-    return raw;
+    const { _id, ...playlist } = raw;
+    return { ...playlist, id: _id.toHexString() };
   }
 
   public async addMediaToPlaylist(hash: string, playlistId: string): Promise<MediaPlaylist> {
@@ -257,7 +265,7 @@ export class MongoConnector extends Database {
       return existingEntry;
     }
 
-    const playlistCollection = this.db.collection('playlists');
+    const playlistCollection = this.db.collection<Omit<Playlist, 'id'>>('playlists');
     const updateResult = await playlistCollection.findOneAndUpdate(
       {
         _id: new ObjectId(playlistId),
@@ -269,11 +277,11 @@ export class MongoConnector extends Database {
       },
     );
 
-    if (!updateResult.value || !updateResult.ok) {
+    if (!updateResult) {
       throw new NotFound(`Playlist not found: ${playlistId}`);
     }
-    const order = updateResult.value.size;
-    const mediaCollection = this.db.collection('media');
+    const order = updateResult.size;
+    const mediaCollection = this.db.collection<MediaDoc>('media');
 
     // If the update failed attempt a rollback, this may include ones
     // that have been added to the set after this one.
@@ -349,7 +357,7 @@ export class MongoConnector extends Database {
   }
 
   public async removeMediaFromPlaylist(hash: string, playlistId: string): Promise<void> {
-    const mediaCollection = this.db.collection('media');
+    const mediaCollection = this.db.collection<MediaDoc>('media');
 
     const result = await mediaCollection.findOneAndUpdate(
       {
@@ -363,8 +371,8 @@ export class MongoConnector extends Database {
       },
     );
 
-    if (result.ok && result.value) {
-      const mediaPlaylist = result.value.playlists.find((pl: any) => pl._id.toHexString() === playlistId);
+    if (result) {
+      const mediaPlaylist = result.playlists?.find((pl) => pl._id.toHexString() === playlistId);
       if (!mediaPlaylist) {
         throw new Error(`Media playlist fetched and updated with no matching playlist (${hash}/${playlistId})`);
       }
@@ -414,7 +422,7 @@ export class MongoConnector extends Database {
   }
 
   public async updateMediaPlaylistOrder(hash: string, playlistId: string, update: PlaylistEntryUpdate): Promise<void> {
-    const mediaCollection = this.db.collection('media');
+    const mediaCollection = this.db.collection<MediaDoc>('media');
 
     const matchedMedia = await this.subsetFields(
       {
@@ -617,7 +625,9 @@ export class MongoConnector extends Database {
   }
 
   public async addDeleted(deleted: DeletedMedia): Promise<void> {
-    await this.db.collection<BaseMedia>('media.deleted').update({ hash: deleted.hash }, deleted, { upsert: true });
+    await this.db
+      .collection<DeletedMedia>('media.deleted')
+      .replaceOne({ hash: deleted.hash }, deleted, { upsert: true });
   }
 
   public async isDeletedPath(path: string): Promise<boolean> {
@@ -761,7 +771,7 @@ export class MongoConnector extends Database {
       });
     }
 
-    return mediaCollection.aggregate(pipeline).toArray();
+    return mediaCollection.aggregate<BaseMedia>(pipeline).toArray();
   }
 
   public async subset(constraints: SubsetConstraints): Promise<string[]> {
