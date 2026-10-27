@@ -10,7 +10,7 @@ import { Validator } from './utils/validator';
 
 function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
   if (process.env[env]) {
-    console.log(`Using ${process.env[env]!} from ${env}`);
+    console.log(`Using ${process.env[env]} from ${env}`);
     let node = obj;
     const path = dest.split('.');
     for (let i = 0; i < path.length - 1; i++) {
@@ -20,7 +20,7 @@ function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
       node = node[path[i]];
     }
 
-    let value: string | number = process.env[env]!;
+    let value: string | number = process.env[env];
     if (!isNaN(Number(value))) {
       value = Number(value);
     }
@@ -37,7 +37,7 @@ function getVersion(): string {
     const version = FS.readFileSync('./version').toString().trim();
     console.log(`Version file found: ${version}`);
     return version;
-  } catch (_err) {
+  } catch {
     console.warn('Failed to load version file. Using default.');
     return 'DEVELOPMENT';
   }

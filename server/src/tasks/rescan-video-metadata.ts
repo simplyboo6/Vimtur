@@ -58,7 +58,7 @@ export function getTask(db: Database): RouterTask {
           } catch (err) {
             console.log(`Error getting metadata for ${hash}.`, err);
             await db.saveMedia(hash, { corrupted: true });
-            throw new Error(`Error getting metadata for ${hash}.`);
+            throw new Error(`Error getting metadata for ${hash}.`, { cause: err });
           } finally {
             updateStatus(init.current++, init.max);
           }

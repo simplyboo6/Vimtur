@@ -52,7 +52,7 @@ export function getTask(database: Database): RouterTask {
           } catch (err) {
             console.log(`Error generating preview for ${hash}.`, err);
             await database.saveMedia(hash, { corrupted: true });
-            throw new Error(`Error generating preview for ${hash}.`);
+            throw new Error(`Error generating preview for ${hash}.`, { cause: err });
           } finally {
             updateStatus(init.current++, init.max);
           }

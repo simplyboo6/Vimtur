@@ -26,7 +26,7 @@ function getDownloaderLoaders(dir: string): DownloaderLoader[] {
         return undefined;
       }
     })
-    .filter((loader) => loader !== undefined) as DownloaderLoader[];
+    .filter((loader) => loader !== undefined);
 }
 
 const downloaderLoaders = getDownloaderLoaders(__dirname);
