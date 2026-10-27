@@ -11,6 +11,7 @@ import {
   AfterContentInit,
   AfterViewChecked,
   NgZone,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { Subscription, timer, Observable } from 'rxjs';
@@ -35,6 +36,7 @@ interface BasicSelectOption {
       multi: true,
     },
   ],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {

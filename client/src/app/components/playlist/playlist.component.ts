@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ChangeDetectionStrategy } from '@angular/core';
 import { Playlist } from '@vimtur/common';
 import { PlaylistService } from 'app/services/playlist.service';
 import { MediaService, LazyMedia } from 'app/services/media.service';
@@ -20,6 +20,7 @@ interface MediaTitle {
   selector: 'app-playlist',
   templateUrl: './playlist.component.html',
   styleUrls: ['./playlist.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class PlaylistComponent implements OnInit, OnDestroy {

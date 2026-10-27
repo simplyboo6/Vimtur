@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, OnInit, OnDestroy, OnChanges, ViewChild, SimpleChanges, Input, NgZone } from '@angular/core';
+import { Component, AfterViewInit, OnInit, OnDestroy, OnChanges, ViewChild, SimpleChanges, Input, NgZone, ChangeDetectionStrategy } from '@angular/core';
 import { AlertService } from 'services/alert.service';
 import { ConfigService } from 'services/config.service';
 import { Subscription, timer } from 'rxjs';
@@ -47,6 +47,7 @@ interface VideoPlayerState {
   selector: 'app-video-player',
   templateUrl: './video-player.component.html',
   styleUrls: ['./video-player.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, OnChanges {

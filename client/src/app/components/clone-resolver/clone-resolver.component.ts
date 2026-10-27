@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { MediaService } from 'services/media.service';
 import { AlertService } from 'services/alert.service';
 import { CollectionService } from 'services/collection.service';
@@ -14,6 +14,7 @@ interface CloneMedia extends Media {
   selector: 'app-clone-resolver',
   templateUrl: './clone-resolver.component.html',
   styleUrls: ['./clone-resolver.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {

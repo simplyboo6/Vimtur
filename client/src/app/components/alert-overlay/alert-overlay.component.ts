@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectionStrategy } from '@angular/core';
 import { Alert } from 'app/shared/types';
 import { AlertService } from 'app/services/alert.service';
 
@@ -6,6 +6,7 @@ import { AlertService } from 'app/services/alert.service';
   selector: 'app-alert-overlay',
   templateUrl: './alert-overlay.component.html',
   styleUrls: ['./alert-overlay.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class AlertOverlayComponent implements OnInit {

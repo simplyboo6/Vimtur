@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewChecked, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MediaService } from 'services/media.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
@@ -26,6 +26,7 @@ interface MetadataField {
   selector: 'app-metadata',
   templateUrl: './metadata.component.html',
   styleUrls: ['./metadata.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {

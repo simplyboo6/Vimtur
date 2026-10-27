@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { UiService } from 'services/ui.service';
 import { MediaService } from 'services/media.service';
 import { ConfigService } from 'services/config.service';
@@ -10,6 +10,7 @@ import { isMobile } from 'is-mobile';
   selector: 'app-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class ViewerComponent implements OnInit, OnDestroy {

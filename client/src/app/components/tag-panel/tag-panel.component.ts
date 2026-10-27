@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewChecked, ChangeDetectionStrategy } from '@angular/core';
 import { Media, Configuration, Playlist } from '@vimtur/common';
 import { ConfigService } from 'services/config.service';
 import { MediaService } from 'services/media.service';
@@ -23,6 +23,7 @@ interface MetadataModel {
   selector: 'app-tag-panel',
   templateUrl: './tag-panel.component.html',
   styleUrls: ['./tag-panel.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
