@@ -35,6 +35,7 @@ interface BasicSelectOption {
       multi: true,
     },
   ],
+  standalone: false,
 })
 export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {
   @Input() public placeholder?: string;

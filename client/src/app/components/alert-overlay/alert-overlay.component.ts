@@ -6,6 +6,7 @@ import { AlertService } from 'app/services/alert.service';
   selector: 'app-alert-overlay',
   templateUrl: './alert-overlay.component.html',
   styleUrls: ['./alert-overlay.component.scss'],
+  standalone: false,
 })
 export class AlertOverlayComponent implements OnInit {
   private alertService: AlertService;

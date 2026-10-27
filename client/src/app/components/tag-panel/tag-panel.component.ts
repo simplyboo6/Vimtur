@@ -23,6 +23,7 @@ interface MetadataModel {
   selector: 'app-tag-panel',
   templateUrl: './tag-panel.component.html',
   styleUrls: ['./tag-panel.component.scss'],
+  standalone: false,
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public readonly faPlus = faPlus;

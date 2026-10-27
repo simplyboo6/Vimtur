@@ -26,6 +26,7 @@ interface MetadataField {
   selector: 'app-metadata',
   templateUrl: './metadata.component.html',
   styleUrls: ['./metadata.component.scss'],
+  standalone: false,
 })
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;

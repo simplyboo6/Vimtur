@@ -47,6 +47,7 @@ interface VideoPlayerState {
   selector: 'app-video-player',
   templateUrl: './video-player.component.html',
   styleUrls: ['./video-player.component.scss'],
+  standalone: false,
 })
 export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, OnChanges {
   @ViewChild('videoElement', { static: false }) public videoElement: any;

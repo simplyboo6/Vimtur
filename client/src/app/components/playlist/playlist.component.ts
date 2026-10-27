@@ -20,6 +20,7 @@ interface MediaTitle {
   selector: 'app-playlist',
   templateUrl: './playlist.component.html',
   styleUrls: ['./playlist.component.scss'],
+  standalone: false,
 })
 export class PlaylistComponent implements OnInit, OnDestroy {
   @Input() public playlist?: Playlist;

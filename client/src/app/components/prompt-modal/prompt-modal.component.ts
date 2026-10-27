@@ -5,6 +5,7 @@ import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
   selector: 'app-prompt-modal',
   templateUrl: './prompt-modal.component.html',
   styleUrls: ['./prompt-modal.component.scss'],
+  standalone: false,
 })
 export class PromptModalComponent {
   public title?: string;

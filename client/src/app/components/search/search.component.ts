@@ -13,6 +13,7 @@ import { ListItem, toListItems } from 'app/shared/types';
   selector: 'app-search',
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss'],
+  standalone: false,
 })
 export class SearchComponent implements OnInit, OnDestroy {
   private readonly tagService: TagService;

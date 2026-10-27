@@ -10,6 +10,7 @@ import { isMobile } from 'is-mobile';
   selector: 'app-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss'],
+  standalone: false,
 })
 export class ViewerComponent implements OnInit, OnDestroy {
   public tagsOpen = false;
