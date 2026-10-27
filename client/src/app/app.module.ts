@@ -1,5 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import { NgModule, provideZoneChangeDetection } from '@angular/core';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -82,6 +82,12 @@ import { SelectComponent } from './components/select/select.component';
       provide: RouteReuseStrategy,
       useClass: ReuseStrategy,
     },
+    // Zone event coalescing skips change-detection ticks when paired
+    // emissions resolve within one frame; the gallery search chain boots
+    // that way and components stay on their initial template until an
+    // unrelated event ticks. Run one tick per cycle like pre-v22
+    // behaviour.
+    provideZoneChangeDetection({ eventCoalescing: false }),
   ],
   bootstrap: [AppComponent],
 })
