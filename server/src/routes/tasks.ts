@@ -7,6 +7,7 @@ import { wrap } from '../express-async';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
 import type { Database, RouterTask } from '../types';
+import { singleParam } from '../utils';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -120,7 +121,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     '/queue/:id',
     wrap(async ({ req }) => {
       return {
-        data: taskManager.start(req.params.id, req.body),
+        data: taskManager.start(singleParam(req.params.id), req.body),
       };
     }),
   );
@@ -128,7 +129,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   router.delete(
     '/queue/:id',
     wrap(async ({ req }) => {
-      taskManager.cancel(req.params.id);
+      taskManager.cancel(singleParam(req.params.id));
     }),
   );
 

@@ -88,3 +88,16 @@ export function asError(obj: unknown): Error {
     return new Error(`Unknown error type: ${typeof obj}`);
   }
 }
+
+// Express 5 / path-to-regexp v8 types path and query keys as
+// `string | string[]` because repeated keys are possible at runtime; all
+// non-wildcard routes here only ever capture a single value, so the
+// repeated form failing loudly is better than silently using the first
+// element. Wildcard (`*splat`) captures are always arrays and are joined
+// with `/` at their call sites instead.
+export function singleParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    throw new Error('Unexpected repeated path parameter');
+  }
+  return value ?? '';
+}

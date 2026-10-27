@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { BadRequest } from '../errors';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
+import { singleParam } from '../utils';
 
 export async function create(db: Database): Promise<Router> {
   const router = Router();
@@ -32,7 +33,7 @@ export async function create(db: Database): Promise<Router> {
   router.delete(
     '/:actor',
     wrap(async ({ req }) => {
-      await db.removeActor(req.params.actor);
+      await db.removeActor(singleParam(req.params.actor));
       return {
         data: await db.getActors(),
       };

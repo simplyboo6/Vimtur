@@ -12,7 +12,7 @@ import Config from '../config';
 import { BadRequest, NotFound } from '../errors';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
-import { asError, deleteCache, deleteMedia } from '../utils';
+import { asError, deleteCache, deleteMedia, singleParam } from '../utils';
 import { Validator } from '../utils/validator';
 
 const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
@@ -70,7 +70,7 @@ export async function create(db: Database): Promise<Router> {
 
       // Do sequentially to preserve sort order
       for (const hash of subset) {
-        await db.addMediaToPlaylist(hash, req.params.playlistId);
+        await db.addMediaToPlaylist(hash, singleParam(req.params.playlistId));
       }
     }),
   );
@@ -84,7 +84,7 @@ export async function create(db: Database): Promise<Router> {
       await execute(
         subset,
         async (hash) => {
-          await db.removeMediaFromPlaylist(hash, req.params.playlistId);
+          await db.removeMediaFromPlaylist(hash, singleParam(req.params.playlistId));
         },
         { parallel: 8 },
       );
@@ -113,9 +113,9 @@ export async function create(db: Database): Promise<Router> {
   router.get(
     '/:hash',
     wrap(async ({ req }) => {
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
-        throw new NotFound(`No media found with hash: ${req.params.hash}`);
+        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
       }
       return {
         data: media,
@@ -126,12 +126,12 @@ export async function create(db: Database): Promise<Router> {
   router.delete(
     '/:hash',
     wrap(async ({ req }) => {
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
-        throw new NotFound(`No media found with hash: ${req.params.hash}`);
+        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
       }
       await deleteMedia(media);
-      await db.removeMedia(req.params.hash, true);
+      await db.removeMedia(singleParam(req.params.hash), true);
     }),
   );
 
@@ -144,7 +144,7 @@ export async function create(db: Database): Promise<Router> {
       }
 
       return {
-        data: await db.saveMedia(req.params.hash, req.body),
+        data: await db.saveMedia(singleParam(req.params.hash), req.body),
       };
     }),
   );
@@ -153,7 +153,7 @@ export async function create(db: Database): Promise<Router> {
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
       return {
-        data: await db.addMediaToPlaylist(req.params.hash, req.params.playlistId),
+        data: await db.addMediaToPlaylist(singleParam(req.params.hash), singleParam(req.params.playlistId)),
       };
     }),
   );
@@ -166,14 +166,14 @@ export async function create(db: Database): Promise<Router> {
         throw new BadRequest(result.errorText!);
       }
 
-      await db.updateMediaPlaylistOrder(req.params.hash, req.params.playlistId, req.body);
+      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), req.body);
     }),
   );
 
   router.delete(
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
-      await db.removeMediaFromPlaylist(req.params.hash, req.params.playlistId);
+      await db.removeMediaFromPlaylist(singleParam(req.params.hash), singleParam(req.params.playlistId));
     }),
   );
 
@@ -183,14 +183,14 @@ export async function create(db: Database): Promise<Router> {
       if (typeof req.body.name !== 'string') {
         throw new BadRequest('name not specified');
       }
-      await db.addMediaTag(req.params.hash, req.body.name);
+      await db.addMediaTag(singleParam(req.params.hash), req.body.name);
     }),
   );
 
   router.delete(
     '/:hash/tags/:name',
     wrap(async ({ req }) => {
-      await db.removeMediaTag(req.params.hash, req.params.name);
+      await db.removeMediaTag(singleParam(req.params.hash), singleParam(req.params.name));
     }),
   );
 
@@ -200,24 +200,24 @@ export async function create(db: Database): Promise<Router> {
       if (typeof req.body.name !== 'string') {
         throw new BadRequest('name not specified');
       }
-      await db.addMediaActor(req.params.hash, req.body.name);
+      await db.addMediaActor(singleParam(req.params.hash), req.body.name);
     }),
   );
 
   router.delete(
     '/:hash/actors/:name',
     wrap(async ({ req }) => {
-      await db.removeMediaActor(req.params.hash, req.params.name);
+      await db.removeMediaActor(singleParam(req.params.hash), singleParam(req.params.name));
     }),
   );
 
   router.get(
     '/:hash/file',
     wrap(async ({ req, res }) => {
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         return res.status(404).json({
-          message: `No media found with hash: ${req.params.hash}`,
+          message: `No media found with hash: ${singleParam(req.params.hash)}`,
         });
       }
 
@@ -260,9 +260,9 @@ export async function create(db: Database): Promise<Router> {
   router.post(
     '/:hash/resolve',
     wrap(async ({ req }) => {
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
-        throw new NotFound(`No media found with hash: ${req.params.hash}`);
+        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
       }
 
       if (!media.clones) {
@@ -304,7 +304,7 @@ export async function create(db: Database): Promise<Router> {
   router.get(
     '/:hash/stream/index.m3u8',
     wrap(async ({ req, res }) => {
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         throw new NotFound('media not found');
       }
@@ -323,7 +323,7 @@ export async function create(db: Database): Promise<Router> {
         throw new BadRequest('quality must be a number');
       }
 
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         throw new NotFound('media not found');
       }
@@ -337,13 +337,13 @@ export async function create(db: Database): Promise<Router> {
   router.get(
     '/:hash/stream/:quality/:file',
     wrap(async ({ req, res }) => {
-      const file = req.params.file;
+      const file = singleParam(req.params.file);
       const quality = Number(req.params.quality);
       if (isNaN(quality)) {
         throw new BadRequest('quality must be a number');
       }
 
-      const media = await db.getMedia(req.params.hash);
+      const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         throw new NotFound('media not found');
       }
@@ -389,7 +389,7 @@ export async function create(db: Database): Promise<Router> {
         if (!file.startsWith('index') || !file.endsWith('.ts')) {
           throw new BadRequest('Invalid filename to fetch from cache');
         }
-        const absPath = Path.resolve(Config.get().cachePath, req.params.hash, `${quality}p`, file);
+        const absPath = Path.resolve(Config.get().cachePath, singleParam(req.params.hash), `${quality}p`, file);
         if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
           throw new BadRequest('Requested file not inside cache');
         }

@@ -5,7 +5,7 @@ import Path from 'path';
 import BodyParser from 'body-parser';
 import Compression from 'compression';
 import DeepMerge from 'deepmerge';
-import Express, { Request, Response } from 'express';
+import Express, { Request, RequestHandler, Response } from 'express';
 import PathIsInside from 'path-is-inside';
 import IO from 'socket.io';
 
@@ -30,7 +30,8 @@ async function createServer(db: Database): Promise<Server> {
   const server = Http.createServer(app);
   const io = new IO.Server(server);
 
-  app.use(Compression({ level: 9 }));
+  // @types/compression 1.8.1 still types against express 4; runtime middleware shape is unchanged.
+  app.use(Compression({ level: 9 }) as unknown as RequestHandler);
   app.use(BodyParser.json());
   app.use(Utils.authConnector);
 
@@ -49,17 +50,20 @@ async function createServer(db: Database): Promise<Server> {
     throw new Error('require.main undefned');
   }
   const webRoot = Path.resolve(Path.dirname(require.main.filename), '..', '..', 'client');
-  app.use<{ file: string }>('/web/:file(*)', (req, res) => {
+  // Express 5 removed the express-4 `:file(*)` regex-capture syntax. `*splat` is the
+  // path-to-regexp v8 wildcard name, and the braces keep it optional so `/web/` still
+  // serves index.html. A v8 wildcard always yields an array of decoded segments, so join
+  // them back into the same web-root-relative path the old `:file` param provided.
+  app.use('/web{/*splat}', (req, res) => {
+    const file = req.params.splat?.join('/') ?? '';
     if (
-      req.params.file.endsWith('.js') ||
-      req.params.file.endsWith('.map') ||
-      req.params.file.endsWith('.css') ||
-      req.params.file.includes('assets') ||
-      req.params.file.includes('node_modules')
+      file.endsWith('.js') ||
+      file.endsWith('.map') ||
+      file.endsWith('.css') ||
+      file.includes('assets') ||
+      file.includes('node_modules')
     ) {
-      const absPath = req.params.file.includes('node_modules')
-        ? Path.resolve(webRoot, req.params.file)
-        : Path.resolve(webRoot, 'dist', req.params.file);
+      const absPath = file.includes('node_modules') ? Path.resolve(webRoot, file) : Path.resolve(webRoot, 'dist', file);
       if (!PathIsInside(absPath, webRoot)) {
         res.status(403).json({ message: 'Cannot access files outside web-root' });
         return;
@@ -71,9 +75,15 @@ async function createServer(db: Database): Promise<Server> {
     }
   });
 
-  app.get('/cache/:file(*)', (req: Request, res: Response) => {
+  // Express 5 removed the express-4 `:file(*)` regex-capture syntax. `*splat` is the
+  // path-to-regexp v8 wildcard name, and the braces keep it optional so a bare `/cache/`
+  // request still reaches this handler (with an empty path) as it did before. A v8
+  // wildcard always yields an array of decoded segments (not a single string), so join
+  // them back into the same cache-relative path the old `:file` param provided.
+  app.get('/cache{/*splat}', (req, res) => {
     try {
-      const absPath = Path.resolve(Config.get().cachePath, req.params.file);
+      const file = req.params.splat?.join('/') ?? '';
+      const absPath = Path.resolve(Config.get().cachePath, file);
       if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
         throw new Error('File is not inside cache directory');
       }
