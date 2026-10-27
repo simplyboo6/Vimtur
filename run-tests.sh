@@ -27,7 +27,7 @@ echo "Stopping Mongo instance..."
 docker kill mongo_test
 docker rm mongo_test
 
-if [ ${TEST_RESULT} == "0" ]; then
+if [ ${TEST_RESULT} = "0" ]; then
   echo "Tests passed"
 else
   echo "Tests failed"
