@@ -11,6 +11,7 @@ const SLIDE_INTERVAL = 500;
   selector: 'app-preview',
   templateUrl: './preview.component.html',
   styleUrls: ['./preview.component.scss'],
+  standalone: false,
 })
 export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('canvasElement', { static: false }) public canvasElement: any;

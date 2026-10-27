@@ -14,6 +14,7 @@ interface CloneMedia extends Media {
   selector: 'app-clone-resolver',
   templateUrl: './clone-resolver.component.html',
   styleUrls: ['./clone-resolver.component.scss'],
+  standalone: false,
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {
   public readonly getTitle = getTitle;

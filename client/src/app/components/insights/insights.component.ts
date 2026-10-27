@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-insights',
   templateUrl: './insights.component.html',
   styleUrls: ['./insights.component.scss'],
+  standalone: false,
 })
 export class InsightsComponent implements OnInit, OnDestroy {
   public insights?: InsightsResponse;

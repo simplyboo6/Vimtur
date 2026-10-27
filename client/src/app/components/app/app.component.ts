@@ -9,6 +9,7 @@ import { UiService } from 'services/ui.service';
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  standalone: false,
 })
 export class AppComponent implements OnInit {
   protected readonly collectionService: CollectionService;

@@ -5,6 +5,7 @@ import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
   selector: 'app-list-modal',
   templateUrl: './list-modal.component.html',
   styleUrls: ['./list-modal.component.scss'],
+  standalone: false,
 })
 export class ListModalComponent {
   public title?: string;

@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-lazy',
   templateUrl: './lazy.component.html',
   styleUrls: [],
+  standalone: false,
 })
 export class LazyComponent implements OnDestroy {
   @Output() public readonly loadStateChange = new EventEmitter<boolean>();

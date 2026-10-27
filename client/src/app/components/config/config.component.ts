@@ -14,6 +14,7 @@ import { ListItem } from 'app/shared/types';
   selector: 'app-config',
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
+  standalone: false,
 })
 export class ConfigComponent implements OnInit, OnDestroy {
   private configService: ConfigService;

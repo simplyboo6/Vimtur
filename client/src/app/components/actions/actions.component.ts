@@ -5,6 +5,7 @@ import { ListItem } from 'app/shared/types';
   selector: 'app-actions',
   templateUrl: './actions.component.html',
   styleUrls: ['./actions.component.scss'],
+  standalone: false,
 })
 export class ActionsComponent {
   public open = false;

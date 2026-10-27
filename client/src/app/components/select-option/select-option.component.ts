@@ -6,6 +6,7 @@ import { getUid } from 'app/shared/uid';
   templateUrl: './select-option.component.html',
   styleUrls: ['./select-option.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class SelectOptionComponent {
   public readonly uid = getUid();

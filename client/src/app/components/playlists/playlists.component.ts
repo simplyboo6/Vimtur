@@ -21,6 +21,7 @@ export interface MediaVisibility extends Media {
   selector: 'app-playlists',
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
+  standalone: false,
 })
 export class PlaylistsComponent implements OnInit, OnDestroy {
   public readonly getTitle = getTitle;

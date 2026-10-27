@@ -41,6 +41,7 @@ type NavItem = NavItemButton | NavItemPaginator;
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
+  standalone: false,
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   protected tagsOpen = false;
