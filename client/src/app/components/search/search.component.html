@@ -59,7 +59,12 @@
         </div>
         <div class="form-group">
           <label>Sort By</label>
-          <select [disabled]="!!searchModel.playlist" class="form-select" [(ngModel)]="searchModel.playlist ? 'order' : searchModel.sortBy">
+          <select
+            [disabled]="!!searchModel.playlist"
+            class="form-select"
+            [ngModel]="searchModel.playlist ? 'order' : searchModel.sortBy"
+            (ngModelChange)="searchModel.playlist ? 'order' : (searchModel.sortBy = $event)"
+          >
             <option selected="selected" [ngValue]="undefined">None</option>
             <option [ngValue]="'hashDate'">Date Added (newest first)</option>
             <option [ngValue]="'rating'">Rating</option>
