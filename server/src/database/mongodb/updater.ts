@@ -1,5 +1,3 @@
-import Util from 'util';
-
 import type { Collection, Db } from 'mongodb';
 
 export class Updater {
@@ -11,10 +9,7 @@ export class Updater {
     if (!updatesExists) {
       console.log('Updates collection does not exist, running original setup');
       await db.createCollection('updates');
-      await Util.promisify((updatesCollection.createIndex as any).bind(updatesCollection))(
-        { name: 1 },
-        { unique: true },
-      );
+      await updatesCollection.createIndex({ name: 1 }, { unique: true });
       await Updater.saveUpdate(updatesCollection, '015_remove-validator');
     }
 
@@ -60,8 +55,7 @@ export class Updater {
 
   private static async createMediaCollectionTextIndex(db: Db, name: string): Promise<void> {
     const mediaCollection = db.collection(name);
-    // Bloody thing doesn't return a promise.
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
+    await mediaCollection.createIndex(
       {
         path: 'text',
         type: 'text',
@@ -100,31 +94,25 @@ export class Updater {
 
     const mediaCollection = db.collection(name);
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ hash: 1 }, { unique: true });
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { hashDate: 1 },
-      { unique: false },
-    );
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ rating: 1 }, { unique: false });
+    await mediaCollection.createIndex({ hash: 1 }, { unique: true });
+    await mediaCollection.createIndex({ hashDate: 1 }, { unique: false });
+    await mediaCollection.createIndex({ rating: 1 }, { unique: false });
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))(
-      { 'metadata.createdAt': 1 },
-      { unique: false },
-    );
+    await mediaCollection.createIndex({ 'metadata.createdAt': 1 }, { unique: false });
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({ path: 1 }, { unique: false });
+    await mediaCollection.createIndex({ path: 1 }, { unique: false });
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+    await mediaCollection.createIndex({
       aliases: 1,
     });
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+    await mediaCollection.createIndex({
       related: 1,
     });
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+    await mediaCollection.createIndex({
       unrelated: 1,
     });
 
-    await Util.promisify((mediaCollection.createIndex as any).bind(mediaCollection))({
+    await mediaCollection.createIndex({
       duplicateOf: 1,
     });
   }
@@ -137,10 +125,7 @@ export class Updater {
     if (!(await Updater.collectionExists(db, 'media.deleted'))) {
       await Updater.createMediaCollection(db, 'media.deleted');
       const deletedCollection = db.collection('media.deleted');
-      await Util.promisify((deletedCollection.createIndex as any).bind(deletedCollection))(
-        { hash: 1 },
-        { unique: true },
-      );
+      await deletedCollection.createIndex({ hash: 1 }, { unique: true });
     }
 
     if (!(await Updater.collectionExists(db, 'config'))) {
@@ -150,22 +135,19 @@ export class Updater {
     if (!(await Updater.collectionExists(db, 'actors'))) {
       await db.createCollection('actors');
       const actorsCollection = db.collection('actors');
-      await Util.promisify((actorsCollection.createIndex as any).bind(actorsCollection))({ name: 1 }, { unique: true });
+      await actorsCollection.createIndex({ name: 1 }, { unique: true });
     }
 
     if (!(await Updater.collectionExists(db, 'tags'))) {
       await db.createCollection('tags');
       const tagsCollection = db.collection('tags');
-      await Util.promisify((tagsCollection.createIndex as any).bind(tagsCollection))({ name: 1 }, { unique: true });
+      await tagsCollection.createIndex({ name: 1 }, { unique: true });
     }
 
     if (!(await Updater.collectionExists(db, 'playlists'))) {
       await db.createCollection('playlists');
       const playlistsCollection = db.collection('playlists');
-      await Util.promisify((playlistsCollection.createIndex as any).bind(playlistsCollection))(
-        { name: 1 },
-        { unique: true },
-      );
+      await playlistsCollection.createIndex({ name: 1 }, { unique: true });
     }
   }
 }

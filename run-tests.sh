@@ -3,7 +3,11 @@
 set -e
 
 echo "Starting Mongo instance..."
-docker run -d --name mongo_test --tmpfs /data/db -p 127.0.0.1:27020:27017/tcp mongo:4.2
+# Default to the oldest server the driver still supports so the gate runs
+# on hardware without AVX (MongoDB 5.0+ requires it); override with
+# MONGO_TEST_IMAGE to test against a newer server.
+MONGO_IMAGE="${MONGO_TEST_IMAGE:-mongo:4.4}"
+docker run -d --name mongo_test --tmpfs /data/db -p 127.0.0.1:27020:27017/tcp "${MONGO_IMAGE}"
 cd server
 
 echo "Running tests..."
