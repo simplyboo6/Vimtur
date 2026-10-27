@@ -1,4 +1,15 @@
-import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectorRef,
+  ViewChild,
+  ElementRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { Subscription, interval } from 'rxjs';
 import { ConfigService } from 'app/services/config.service';
 import { Configuration, Media } from '@vimtur/common';
@@ -11,6 +22,7 @@ const SLIDE_INTERVAL = 500;
   selector: 'app-preview',
   templateUrl: './preview.component.html',
   styleUrls: ['./preview.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class PreviewComponent implements OnInit, OnDestroy, OnChanges {

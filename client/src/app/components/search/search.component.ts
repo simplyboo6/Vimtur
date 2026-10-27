@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { CollectionService } from 'services/collection.service';
@@ -13,6 +13,7 @@ import { ListItem, toListItems } from 'app/shared/types';
   selector: 'app-search',
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class SearchComponent implements OnInit, OnDestroy {

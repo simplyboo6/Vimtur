@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { ConfirmationService } from 'services/confirmation.service';
 import { Playlist, Media } from '@vimtur/common';
 import { PlaylistService } from 'app/services/playlist.service';
@@ -21,6 +21,7 @@ export interface MediaVisibility extends Media {
   selector: 'app-playlists',
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class PlaylistsComponent implements OnInit, OnDestroy {

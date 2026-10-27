@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { formatPercent } from '@angular/common';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
@@ -14,6 +14,7 @@ import { ListItem } from 'app/shared/types';
   selector: 'app-config',
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class ConfigComponent implements OnInit, OnDestroy {

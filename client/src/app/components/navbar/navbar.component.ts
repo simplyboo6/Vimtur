@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
@@ -41,6 +41,7 @@ type NavItem = NavItemButton | NavItemPaginator;
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class NavbarComponent implements OnInit, OnDestroy {

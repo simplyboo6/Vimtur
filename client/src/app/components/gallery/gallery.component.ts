@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { GalleryService } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { Media } from '@vimtur/common';
@@ -9,6 +9,7 @@ import { getTitle, getSubtitle } from 'app/shared/media-formatting';
   selector: 'app-gallery',
   templateUrl: './gallery.component.html',
   styleUrls: ['./gallery.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class GalleryComponent implements OnInit, OnDestroy {

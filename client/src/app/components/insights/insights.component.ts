@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { InsightsService } from 'services/insights.service';
 import { InsightsResponse } from '@vimtur/common';
 import { Subscription } from 'rxjs';
@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-insights',
   templateUrl: './insights.component.html',
   styleUrls: ['./insights.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
 export class InsightsComponent implements OnInit, OnDestroy {
