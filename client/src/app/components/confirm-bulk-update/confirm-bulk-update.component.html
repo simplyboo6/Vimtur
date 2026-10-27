@@ -2,26 +2,20 @@
   <h4 class="modal-title">Bulk Media Update</h4>
 </div>
 @if (constraints) {
-<div class="modal-body">
-  <p>Are you sure you want to update all media that match the current search criteria?</p>
-  @if (isConstraintsEmpty()) {
-  <p class="text-danger">
-    Warning! This operation will apply to all media in the entire collection.
-  </p>
-  }
-</div>
+  <div class="modal-body">
+    <p>Are you sure you want to update all media that match the current search criteria?</p>
+    @if (isConstraintsEmpty()) {
+      <p class="text-danger">Warning! This operation will apply to all media in the entire collection.</p>
+    }
+  </div>
 }
 <div class="modal-footer row footer-padding">
   <div class="md-6">
-    <button type="button" class="btn btn-danger col-12" (click)="modal?.close(false)">
-      Cancel
-    </button>
+    <button type="button" class="btn btn-danger col-12" (click)="modal?.close(false)">Cancel</button>
   </div>
   <div class="md-6">
     @if (constraints) {
-    <button type="button" class="btn btn-primary col-12" (click)="modal?.close(true)">
-      Confirm
-    </button>
+      <button type="button" class="btn btn-primary col-12" (click)="modal?.close(true)">Confirm</button>
     }
   </div>
 </div>

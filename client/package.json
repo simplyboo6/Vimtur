@@ -57,7 +57,7 @@
     "angular-eslint": "22.6.0",
     "eslint": "^9.39.5",
     "istanbul-lib-instrument": "^6.0.3",
-    "prettier": "^1.19.1",
+    "prettier": "^3.9.10",
     "ts-node": "^10.9.2",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1"

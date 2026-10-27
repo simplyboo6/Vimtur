@@ -4,9 +4,9 @@
   </button>
   <div class="dropdown-menu" [class.visible]="open">
     @for (action of actions; track action) {
-    <button (mousedown)="actionSelected.emit(action); open = false" class="dropdown-item">
-      {{ action.itemName }}
-    </button>
+      <button (mousedown)="actionSelected.emit(action); open = false" class="dropdown-item">
+        {{ action.itemName }}
+      </button>
     }
   </div>
 </div>

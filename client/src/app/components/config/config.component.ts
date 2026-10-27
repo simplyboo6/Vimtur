@@ -260,10 +260,10 @@ export class ConfigComponent implements OnInit, OnDestroy {
     const fields = field.split('.');
     for (let i = 0; i < fields.length - 1; i++) {
       obj[fields[i]] = {};
-      obj = (obj[fields[i]] as unknown) as Record<string, unknown>;
+      obj = obj[fields[i]] as unknown as Record<string, unknown>;
     }
     obj[fields[fields.length - 1]] = value;
 
-    this.configService.updateConfiguration((root as unknown) as Configuration.Partial);
+    this.configService.updateConfiguration(root as unknown as Configuration.Partial);
   }
 }

@@ -1,29 +1,34 @@
 <nav class="navbar navbar-expand-xxl navbar-dark bg-dark navbar-override fixed-top" [class.height-override]="!isExpanded">
   <div class="container-fluid">
     @if (showToggleTags | async) {
-    <div class="btn-group btn-group-toggle nav-button-group" title="Toggle Tags">
-      <button class="btn btn-primary" (click)="toggleTagsOpen()">
-        <fa-icon [icon]="faTags" size="xl"></fa-icon>
-      </button>
-    </div>
+      <div class="btn-group btn-group-toggle nav-button-group" title="Toggle Tags">
+        <button class="btn btn-primary" (click)="toggleTagsOpen()">
+          <fa-icon [icon]="faTags" size="xl"></fa-icon>
+        </button>
+      </div>
     } @else {
-    <div class="btn-group"></div>
+      <div class="btn-group"></div>
     }
     <!-- Empty button group to keep the hamburger menu on the right on mobile -->
 
     <div class="btn-group">
-      @for (navItem of navItems; track trackNavItem($index, navItem)) { @if (navItem.visible | async) { @if (navItem.type === 'button') {
-      <button
-        class="btn btn-outline-success"
-        [title]="navItem.title"
-        (click)="navItem.click()"
-        [disabled]="navItem.enabled && (navItem.enabled | async) === false"
-      >
-        <fa-icon [icon]="navItem.icon" size="xl"></fa-icon>
-      </button>
-      } @if (navItem.type === 'paginator' && (navItem.page | async); as page) {
-      <div class="btn btn-outline-success paginator" type="submit" title="Page">{{ page.current + 1 }} of {{ page.max }}</div>
-      } } }
+      @for (navItem of navItems; track trackNavItem($index, navItem)) {
+        @if (navItem.visible | async) {
+          @if (navItem.type === 'button') {
+            <button
+              class="btn btn-outline-success"
+              [title]="navItem.title"
+              (click)="navItem.click()"
+              [disabled]="navItem.enabled && (navItem.enabled | async) === false"
+            >
+              <fa-icon [icon]="navItem.icon" size="xl"></fa-icon>
+            </button>
+          }
+          @if (navItem.type === 'paginator' && (navItem.page | async); as page) {
+            <div class="btn btn-outline-success paginator" type="submit" title="Page">{{ page.current + 1 }} of {{ page.max }}</div>
+          }
+        }
+      }
     </div>
 
     <button
@@ -65,15 +70,17 @@
         </li>
       </ul>
 
-      @for (navItem of expandedNavItems; track navItem) { @if (navItem.visible | async) {
-      <button
-        (click)="navItem.click(); closeExpander()"
-        class="d-flex btn btn-outline-success mb-2 d-xxl-none"
-        [disabled]="navItem.enabled && (navItem.enabled | async) === false"
-      >
-        {{ navItem.title }}
-      </button>
-      } }
+      @for (navItem of expandedNavItems; track navItem) {
+        @if (navItem.visible | async) {
+          <button
+            (click)="navItem.click(); closeExpander()"
+            class="d-flex btn btn-outline-success mb-2 d-xxl-none"
+            [disabled]="navItem.enabled && (navItem.enabled | async) === false"
+          >
+            {{ navItem.title }}
+          </button>
+        }
+      }
 
       <form [class.xxl-response]="!isExpanded" class="d-flex form-inline my-lg-0" (ngSubmit)="search()">
         <input
@@ -85,9 +92,7 @@
           [(ngModel)]="searchText"
           [ngModelOptions]="{ standalone: true }"
         />
-        <button class="btn btn-outline-success my-sm-0" type="submit" [disabled]="!searchText">
-          Search
-        </button>
+        <button class="btn btn-outline-success my-sm-0" type="submit" [disabled]="!searchText">Search</button>
       </form>
     </div>
   </div>

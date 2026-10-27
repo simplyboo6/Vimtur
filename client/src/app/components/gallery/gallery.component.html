@@ -1,21 +1,21 @@
 @if (media) {
-<div class="gallery full-height">
-  @for (m of media; track trackByHash($index, m)) {
-  <div class="image-container">
-    <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
-      @if (m.type === 'video' && m.preview) {
-      <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
-      } @else {
-      <img class="img-fluid gallery-img card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
-      }
-      <div class="type caption card-header card-small">
-        <strong>{{ getTitle(m) }}</strong>
-        <div class="subtitle">{{ getSubtitle(m) }}</div>
+  <div class="gallery full-height">
+    @for (m of media; track trackByHash($index, m)) {
+      <div class="image-container">
+        <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
+          @if (m.type === 'video' && m.preview) {
+            <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
+          } @else {
+            <img class="img-fluid gallery-img card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
+          }
+          <div class="type caption card-header card-small">
+            <strong>{{ getTitle(m) }}</strong>
+            <div class="subtitle">{{ getSubtitle(m) }}</div>
+          </div>
+        </a>
       </div>
-    </a>
+    }
   </div>
-  }
-</div>
 } @else {
-<app-loading></app-loading>
+  <app-loading></app-loading>
 }

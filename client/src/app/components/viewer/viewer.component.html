@@ -1,23 +1,28 @@
 <div class="main-body">
   @if (tagsOpen) {
-  <div class="left-panel full-height">
-    <app-tag-panel></app-tag-panel>
-  </div>
+    <div class="left-panel full-height">
+      <app-tag-panel></app-tag-panel>
+    </div>
   }
   <div class="right-panel full-height">
     @if (media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc) {
-    <a [href]="'/api/images/' + media.hash + '/file?download=true'" class="text-overlay">
-      {{ media.path }}
-    </a>
-    } @if (media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags) {
-    <div class="text-overlay bottom">May contain: {{ media.autoTags | formatArray }}</div>
-    } @if (media) {
-    <app-video-player class="video-player" [class.hidden]="!media || media.type !== 'video'" [media]="media"></app-video-player>
-    <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
-    @if (media.type !== 'video') { @for (hash of [mediaSrc]; track hash) {
-    <img [src]="mediaSrc" class="image-viewer" />
-    } } } @else {
-    <app-loading class="image-viewer"></app-loading>
+      <a [href]="'/api/images/' + media.hash + '/file?download=true'" class="text-overlay">
+        {{ media.path }}
+      </a>
+    }
+    @if (media && media.autoTags && tagsOpen && config && config.user.quickTagShowAutoTags) {
+      <div class="text-overlay bottom">May contain: {{ media.autoTags | formatArray }}</div>
+    }
+    @if (media) {
+      <app-video-player class="video-player" [class.hidden]="!media || media.type !== 'video'" [media]="media"></app-video-player>
+      <!-- This ridiculous madness forces the img element to recreate so it doesnt show the old one during loading -->
+      @if (media.type !== 'video') {
+        @for (hash of [mediaSrc]; track hash) {
+          <img [src]="mediaSrc" class="image-viewer" />
+        }
+      }
+    } @else {
+      <app-loading class="image-viewer"></app-loading>
     }
   </div>
 </div>

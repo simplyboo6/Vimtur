@@ -3,15 +3,15 @@
   <button type="button" class="btn-close" aria-label="Close" (click)="modal?.close(false)"></button>
 </div>
 @if (items) {
-<div class="modal-body">
-  <table class="table table-striped">
-    <tbody>
-      @for (item of items; track item) {
-      <tr>
-        <td>{{ item }}</td>
-      </tr>
-      }
-    </tbody>
-  </table>
-</div>
+  <div class="modal-body">
+    <table class="table table-striped">
+      <tbody>
+        @for (item of items; track item) {
+          <tr>
+            <td>{{ item }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }

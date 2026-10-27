@@ -5260,7 +5260,7 @@ __metadata:
     hls.js: "npm:^1.7.3"
     is-mobile: "npm:^2.2.2"
     istanbul-lib-instrument: "npm:^6.0.3"
-    prettier: "npm:^1.19.1"
+    prettier: "npm:^3.9.10"
     resize-observer-polyfill: "npm:^1.5.1"
     rxjs: "npm:^7.8.2"
     socket.io-client: "npm:^4.8.4"
@@ -8665,12 +8665,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:^1.19.1":
-  version: 1.19.1
-  resolution: "prettier@npm:1.19.1"
+"prettier@npm:^3.9.10":
+  version: 3.9.10
+  resolution: "prettier@npm:3.9.10"
   bin:
-    prettier: ./bin-prettier.js
-  checksum: 10c0/12efb4e486c1e1d006e9eadd3b6585fc6beb9481dc801080fc23d3e75ec599d88c6fea1b40aef167128069e8fe76b4205bb8306ad145575d1b051b8fa70cfaae
+    prettier: bin/prettier.cjs
+  checksum: 10c0/0b3531593aa6fb36ac6baf629cb058bda472c59a6938774f931fe55283a07c62e6f56e621b043a82d8a3e21fc284c08c34f9e539fc70072635f79b7bae1a1067
   languageName: node
   linkType: hard
 
