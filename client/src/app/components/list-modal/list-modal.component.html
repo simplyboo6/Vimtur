@@ -2,12 +2,16 @@
   <h4 class="modal-title">{{ title }}</h4>
   <button type="button" class="btn-close" aria-label="Close" (click)="modal?.close(false)"></button>
 </div>
-<div *ngIf="items" class="modal-body">
+@if (items) {
+<div class="modal-body">
   <table class="table table-striped">
     <tbody>
-      <tr *ngFor="let item of items">
+      @for (item of items; track item) {
+      <tr>
         <td>{{ item }}</td>
       </tr>
+      }
     </tbody>
   </table>
 </div>
+}

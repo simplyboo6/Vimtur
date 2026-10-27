@@ -1,4 +1,5 @@
-<div class="container-lg" *ngIf="playlist; else loading">
+@if (playlist) {
+<div class="container-lg">
   <div class="card">
     <div class="row">
       <div class="col-md-auto flex-0">
@@ -9,18 +10,19 @@
       <h4 class="col align">{{ playlist.name }}</h4>
     </div>
   </div>
-
-  <div *ngIf="media; else loading" cdkDropList (cdkDropListDropped)="dragAndDrop($event)">
-    <div *ngFor="let lazyMedia of media; index as index" class="card row" [cdkDragData]="media" cdkDrag>
+  @if (media) {
+  <div cdkDropList (cdkDropListDropped)="dragAndDrop($event)">
+    @for (lazyMedia of media; track lazyMedia; let index = $index) {
+    <div class="card row" [cdkDragData]="media" cdkDrag>
       <app-lazy (loadStateChange)="updateVisibility(lazyMedia, $event)">
         <div class="row">
           <div class="col-md-1 align btn-link lg-response" cdkDragHandle>
             <ng-container *ngTemplateOutlet="dragHandle"></ng-container>
           </div>
           <div class="col-md-1 align lg-response">
-            <ng-container *ngIf="lazyMedia.media">
-              {{ index + 1 }}
-            </ng-container>
+            @if (lazyMedia.media) {
+            {{ index + 1 }}
+            }
           </div>
           <div class="col-lg-3 preview-column img-fluid img-thumbnail">
             <img [src]="'/cache/thumbnails/' + lazyMedia.hash + '.png'" />
@@ -29,29 +31,33 @@
             <div class="row height-100">
               <div class="col align overflow-hidden">
                 <div class="flex-column">
-                  <ng-container *ngIf="titles && titles[index]; else loadingMedia">
-                    <strong>{{ titles[index]?.title }}</strong>
-                    <span class="subtitle">{{ titles[index]?.subtitle }}</span>
-                  </ng-container>
-                  <ng-template #loadingMedia>
-                    <strong>Loading...</strong>
-                  </ng-template>
+                  @if (titles && titles[index]) {
+                  <strong>{{ titles[index]?.title }}</strong>
+                  <span class="subtitle">{{ titles[index]?.subtitle }}</span>
+                  } @else {
+                  <strong>Loading...</strong>
+                  }
                 </div>
               </div>
-              <div *ngIf="actions && actions[index]" class="col-lg-1 align flex-end flex-0">
+              @if (actions && actions[index]) {
+              <div class="col-lg-1 align flex-end flex-0">
                 <app-actions [actions]="actions[index]" (actionSelected)="onMediaAction($event)"></app-actions>
               </div>
+              }
             </div>
           </div>
         </div>
       </app-lazy>
     </div>
+    }
   </div>
-</div>
-
-<ng-template #loading>
+  } @else {
   <app-loading></app-loading>
-</ng-template>
+  }
+</div>
+} @else {
+<app-loading></app-loading>
+}
 
 <ng-template #dragHandle>
   <svg class="drag-handle" fill="currentColor" viewBox="0 0 24 24">
@@ -71,7 +77,7 @@
     role="img"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 640 512"
-  >
+    >
     <path
       fill="currentColor"
       d="M608 0H160a32 32 0 0 0-32 32v96h160V64h192v320h128a32 32 0 0 0 32-32V32a32 32 0 0 0-32-32zM232 103a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm352 208a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9v-30a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm0-104a9 9 0 0 1-9 9h-30a9 9 0 0 1-9-9V73a9 9 0 0 1 9-9h30a9 9 0 0 1 9 9zm-168 57H32a32 32 0 0 0-32 32v288a32 32 0 0 0 32 32h384a32 32 0 0 0 32-32V192a32 32 0 0 0-32-32zM96 224a32 32 0 1 1-32 32 32 32 0 0 1 32-32zm288 224H64v-32l64-64 32 32 128-128 96 96z"

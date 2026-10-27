@@ -1,5 +1,8 @@
-<img class="hidden" *ngIf="thumbnail && previewSrc && (previewRequested || preloadPreview)" [src]="previewSrc" (load)="onPreviewLoaded($event)" />
-<img *ngIf="thumbnailSrc" class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
+@if (thumbnail && previewSrc && (previewRequested || preloadPreview)) {
+<img class="hidden" [src]="previewSrc" (load)="onPreviewLoaded($event)" />
+} @if (thumbnailSrc) {
+<img class="hidden" [src]="thumbnailSrc" (load)="onThumbnailLoaded($event)" />
+}
 <canvas
   [width]="canvasWidth"
   [height]="canvasHeight"
