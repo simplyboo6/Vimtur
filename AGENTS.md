@@ -2,15 +2,23 @@
 
 ## Repo structure
 
-- Three-package TypeScript project: `common/` (shared types, `@vimtur/common`), `server/` (Node/Express + Socket.io backend), `client/` (Angular 16 frontend). Uses Yarn 4 (`corepack enable`); each package has its own `yarn.lock`.
-- `common/src` contains only `.d.ts` declaration files (media, search, config, playlist, etc). Both server and client depend on it via `yarn link --relative ../common` from their own directory. If imports from `@vimtur/common` fail, re-run that link after `yarn` install.
-- Server entrypoint: `server/src/index.ts`; runs from `dist/`. Client dev build output goes to `client/dist/`, which the server serves.
+- Three-package TypeScript project: `common/` (shared types, `@vimtur/common`), `server/` (Node/Express + Socket.io backend on Node 24), `client/` (Angular 22 frontend). Uses Yarn 4 (`corepack enable`); each package has its own `yarn.lock`.
+- `common/src` contains only `.d.ts` declaration files (media, search, config, playlist, etc). Both server and client depend on it via `yarn link --relative ../common` from their own directory. If imports from `@vimtur/common` fail, re-run that link after `yarn` install. (The dependency is declared as a plain `file:../common` locator in `package.json`, so a fresh `yarn` usually materialises it without the link.)
+- Server entrypoint: `server/src/index.ts`; runs from `dist/`. Client build output goes to `client/dist/`, which the server serves.
+
+## Dev flow
+
+1. `corepack enable` once per environment. Yarn is invoked per package directory — each package has its own `.yarnrc.yml` and lockfile; run all commands inside the package you are working on.
+2. Build order matters: `common` → `server` and/or `client`. After changing `common`, rebuild it and re-run `yarn link --relative ../common` in `server/` and `client/` before rebuilding those.
+3. Backend run: set env (`./env-sqlite.sh` or env vars below), run `node server/dist/index.js`. Frontend: use `yarn serve` (proxies `/api`), or open `http://<host>:<port>/web/` against the server which serves `client/dist` (remember `yarn build:prod` first, see dev/prod note below).
+4. Full backend regression gate: `./run-tests.sh` after every dependency/infra change (starts a disposable MongoDB container, runs the mocha suite against `dist/test`); single-file variant as documented in the Commands section.
+5. Verify schema stability with toolchain changes: `rm -rf server/.schema-build-info && yarn build` in `server/`, then diff `dist/schemas` against the previous output — the generated JSON must be byte-identical when the underlying types didn't change.
 
 ## Commands (run inside the relevant package directory)
 
 - Build server: `yarn build` in `server/` — runs `tsc`, then `create-schemas.sh` (generates JSON schemas from the `.d.ts` types in `common` into `dist/schemas`, hash-cached in `.schema-build-info`), then `copy.sh` (copies SQLite migrations to `dist/`). Deleting `dist/` alone is not enough — schema/migration files come from these scripts.
 - Server tests: from repo root run `./run-tests.sh` — it starts a disposable Mongo container on port 27020, sets `DATABASE`/`DATA_PATH`/`CACHE_PATH`/`SCHEMA_PATH` env vars, and runs `yarn test` (mocha against compiled `dist/test`). Server must be built first. Docker is required.
-- Run a single server test: `cd server && TEST_MODE=1 mocha --timeout 30000 dist/test/database.ts` requires building first; tests compile only via `tsc`.
+- Run a single server test: `cd server && TEST_MODE=1 mocha --timeout 30000 dist/test/database.ts` requires building first; tests compile only via `tsc`. A single test file doesn't need the Mongo container, but any test importing `config.ts` (directly or transitively, e.g. `cache/import-utils.ts`) fails at import time unless `DATA_PATH`/`CACHE_PATH`/`SCHEMA_PATH` are set, because the Config module validates its layers on import. Use: `TEST_MODE=1 DATABASE=sqlite DATA_PATH=/tmp/data CACHE_PATH=/tmp/cache SCHEMA_PATH=./dist/schemas npx mocha dist/test/<file>.js`.
 - Lint/format: `yarn lint` / `yarn fix` in each package (server: eslint; client: `ng lint` + prettier; common: eslint).
 - Client dev server: `yarn serve` in `client/` (port 8455, proxies to backend via `proxy-config.json`).
 
@@ -26,3 +34,32 @@
 - SQLite migrations live in `server/src/database/sqlite/migrations/` as numbered `.sql` files; a new migration must be added there and is picked up by `copy.sh` during build.
 - Config JSON allows comments (`strip-json-comments`); schemas are strict (`--required --noExtraProps`), so new config fields must be added to the `common` types.
 - CI (`.github/workflows/docker-image.yml`) only validates the Docker build on master; Docker images publish to `simplyboo6/vimtur` from master and tags.
+- `create-schemas.sh` hash-caches its output on the *source .d.ts hashes only*, so bumping TypeScript or typescript-json-schema does NOT trigger regeneration — delete `.schema-build-info` first or you compare stale artifacts and can "pass" while actually generating different schemas.
+- Dev (`yarn build`) and prod (`yarn build:prod`) client builds write the same `client/dist/`, and the server serves it — a dev build clobbers the production bundle; re-run `build:prod` after any dev build.
+- Native dependencies (`better-sqlite3`, `@tensorflow/tfjs-node`) recompile per Node major bump; Yarn 4 does this automatically on install (`YN0007: must be built...`), but the build needs python3/g++/make.
+- The MongoDB driver major must match supported servers (driver 7: servers 4.4–8); `run-tests.sh` takes `MONGO_TEST_IMAGE` to point the disposable container at any of them (defaults to `mongo:4.4` because MongoDB ≥5 requires AVX hardware).
+
+## Video streaming architecture (visible in `server/src/routes/images.ts`, `server/src/cache/`, `client/src/app/components/video-player/`)
+
+- Video is streamed via HLS: a VOD m3u8 whose segments are keyed off ffprobe keyframes, served as `data.ts?start=X&end=Y`. Each segment is either pre-cached on disk or transcodes on demand via `streamMedia` (input seeks with `-ss <X> -t <end-start>`). Note the on-disk cache filenames literally contain `?start=…&end=…`, don't "fix" that.
+- `metadata.length` is `Math.ceil(duration)` (rounded up, ~1s slack); segment `end` values derived from keyframes can drift past it, so clamp segment ranges against `metadata.length` rather than throwing (see `streamMedia`, `buildSegments`, `generateStreamPlaylist`).
+- The ONLY error handler for hls.js lives in the video player component and must implement recovery: on a fatal error hls.js calls stopLoad() internally and *expects the app* to call `startLoad()` (network errors) or `recoverMediaError()`; without it playback continues from buffer until the next seek then freezes. Client aborts (seeking away) intentionally SIGKILL ffmpeg — `ImportUtils.transcode` distinguishes that via an `outputClosed` flag set on the response's close event; exit 255 is only success when the output actually closed.
+- Streaming endpoints (`data.ts` segments) write the response body directly, so once the first byte is sent the status can't change — errors after that can only `res.end()`. Report pre-stream failures with a proper JSON error status (see `respondStreamError` in `routes/images.ts`), and keep long-lived cache headers (`Cache-Control: immutable`) on the pre-cached branch only, so a truncated/failed transcode can't be cached for a week.
+
+## Client toolchain constraints
+
+- Native `<progress>` value fills use `color` on Firefox but `accent-color` on Chromium/Safari — set **both** (see `video-player.component.scss`) or the bar renders in the browser accent shade on Chromium.
+- hls.js packaged types (e.g. `ErrorData`) are importable from `hls.js` directly.
+- Plain `import X from '@vimtur/common'` (not `import type`) is the established style for cross-package imports; TS elides type-only usage.
+
+## Dependency-upgrade lessons (from the master modernisation)
+
+Non-obvious things that cost real debugging time — re-check these when bumping majors again:
+
+- **TypeScript majors**: `typescript-json-schema` vendors its own TS version (`~5.9.x`) and its schemas output must stay byte-stable (see Dev flow #5), while `eslint-plugin-import-x`'s resolver (`unrs-resolver`) and `@typescript-eslint` declare TS support windows (`<6.1`) — check **both** before upgrading the compiler past a patch-line; TS 6/7 are not yet usable here at the time of writing.
+- **ESLint 9/10 is flat config only**: no `--ext` flag (it errors silently-shaped CLI failures), `eslint-plugin-import` is superseded by `import-x` and rules are referenced as `import-x/*`; `eslint-import-resolver-typescript` must be an explicit devDependency or resolution rules crash with "typescript with invalid interface loaded as resolver".
+- **Angular `ng update` on Yarn 4**: hoisted-dep duplication (`@jridgewell/sourcemap-codec`) can make the update migration silently no-op or crash — `yarn dedupe --strategy highest` recovers; `ng update <pkg> --migrate-only --from/--to` reruns any missed migration.
+- **Angular 22 zone event coalescing** can wedge a freshly loaded app on its initial template even though services state settled (fixed with `provideZoneChangeDetection({ eventCoalescing: false })` in `app.module.ts`). If the view doesn't move while logs do, this is the first thing to suspect after a major bump.
+- The `@typescript-eslint` "recommended-requiring-type-checking" preset got renamed (`recommendedTypeChecked`) and its v8 rules are sharper — expect new lint findings (dead assertions, missing `{ cause }` on rethrows, `preserve-caught-error`) rather than a config change.
+- Express 5 uses path-to-regexp v8: legacy `:param(*)` segment captures must become `{/*splat}` optional groups, and path/query params are typed `string | string[]` (repeated keys are possible at runtime) — use the `singleParam()` helper in `server/src/utils` rather than non-null assertions.
+- Driver majors: read the upstream CHANGELOG for API shape changes our layer uses (`findOneAndUpdate` result unwrapping, `collection.update` removal) and verify the driver against a LIVE server per version matrix, not only unit tests — the mocha suite runs on sqlite.
