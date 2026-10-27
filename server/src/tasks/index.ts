@@ -26,7 +26,7 @@ function getTaskLoaders(dir: string): TaskLoader[] {
         return undefined;
       }
     })
-    .filter((loader) => loader !== undefined) as TaskLoader[];
+    .filter((loader) => loader !== undefined);
 }
 
 const taskLoaders = [...getTaskLoaders(__dirname), ...getTaskLoaders(`${__dirname}/tensorflow`)];
@@ -40,6 +40,6 @@ export function getTasks(database: Database): RouterTask[] {
       })
       // Map 2d array to 1d.
       .reduce((acc, val) => acc.concat(val), [])
-      .filter((task) => task !== undefined) as RouterTask[]
+      .filter((task) => task !== undefined)
   );
 }

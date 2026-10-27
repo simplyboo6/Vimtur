@@ -53,7 +53,7 @@ export function getTask(database: Database): RouterTask {
             }
           } catch (err) {
             console.log(`Error optimising preview for ${hash}.`, err);
-            throw new Error(`Error optimising preview for ${hash}.`);
+            throw new Error(`Error optimising preview for ${hash}.`, { cause: err });
           } finally {
             updateStatus(init.current++, init.max);
           }

@@ -1,7 +1,7 @@
 import OS from 'os';
 import Path from 'path';
 import { Worker } from 'worker_threads';
-import type { SqliteWorkerData, SqliteWorkerRequest, SqliteWorkerResult } from './worker';
+import type { SqliteWorkerRequest, SqliteWorkerResult } from './worker';
 
 interface QueueItem {
   resolve: (result: SqliteWorkerResult[]) => void;
@@ -105,7 +105,7 @@ export class SqliteController {
 
   private spawnWorker(): void {
     const worker = new Worker(Path.resolve(__dirname, 'worker.js'), {
-      workerData: { filename: this.filename } as SqliteWorkerData,
+      workerData: { filename: this.filename },
     });
 
     let job: QueueItem | undefined = undefined;

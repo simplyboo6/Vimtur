@@ -5,6 +5,7 @@ import { Worker } from 'worker_threads';
 import { execute, ExecutorPromise } from 'proper-job';
 
 import type { Database } from '../types';
+import { asError } from '../utils';
 
 const WORKER_COUNT = Math.ceil(OS.cpus().length / 2);
 const HAMMING_DISTANCE_THRESHOLD = 2;
@@ -116,7 +117,7 @@ export function generateImageCloneMap(
 
             // If there's an error just log it.
             if (data.err) {
-              reject(data.err);
+              reject(new Error(data.err));
             } else if (data.clones) {
               const clones = data.clones.map((c) => c.hash);
               if (!stringArrayEqual(clones, image.clones ?? [])) {
@@ -133,7 +134,7 @@ export function generateImageCloneMap(
                     }
                     resolve();
                   })
-                  .catch((err) => reject(err));
+                  .catch((err) => reject(asError(err)));
               }
             }
           });

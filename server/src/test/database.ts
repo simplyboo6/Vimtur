@@ -292,8 +292,8 @@ describe('Database Tests', () => {
       expect(fetchedMedia!.playlists).to.be.an('array');
 
       expect(fetchedMedia!.playlists!.length).to.equal(1);
-      expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-      expect(fetchedMedia!.playlists![0]!.order).to.equal(0);
+      expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+      expect(fetchedMedia!.playlists![0].order).to.equal(0);
     });
 
     it('Add second media to playlist', async () => {
@@ -306,8 +306,8 @@ describe('Database Tests', () => {
         expect(fetchedMedia!.playlists).to.be.an('array');
 
         expect(fetchedMedia!.playlists!.length).to.equal(1);
-        expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-        expect(fetchedMedia!.playlists![0]!.order).to.equal(0);
+        expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+        expect(fetchedMedia!.playlists![0].order).to.equal(0);
       }
 
       {
@@ -316,8 +316,8 @@ describe('Database Tests', () => {
         expect(fetchedMedia!.playlists).to.be.an('array');
 
         expect(fetchedMedia!.playlists!.length).to.equal(1);
-        expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-        expect(fetchedMedia!.playlists![0]!.order).to.equal(1);
+        expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+        expect(fetchedMedia!.playlists![0].order).to.equal(1);
       }
     });
 
@@ -345,8 +345,8 @@ describe('Database Tests', () => {
           expect(fetchedMedia!.playlists).to.be.an('array');
 
           expect(fetchedMedia!.playlists!.length).to.equal(1);
-          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0].order).to.equal(order);
         }
       });
 
@@ -367,8 +367,8 @@ describe('Database Tests', () => {
           expect(fetchedMedia!.playlists).to.be.an('array');
 
           expect(fetchedMedia!.playlists!.length).to.equal(1);
-          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0].order).to.equal(order);
         }
       });
 
@@ -387,8 +387,8 @@ describe('Database Tests', () => {
           expect(fetchedMedia!.playlists).to.be.an('array');
 
           expect(fetchedMedia!.playlists!.length).to.equal(1);
-          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0].order).to.equal(order);
         }
       });
 
@@ -407,8 +407,8 @@ describe('Database Tests', () => {
           expect(fetchedMedia!.playlists).to.be.an('array');
 
           expect(fetchedMedia!.playlists!.length).to.equal(1);
-          expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-          expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+          expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+          expect(fetchedMedia!.playlists![0].order).to.equal(order);
         }
       });
 
@@ -432,8 +432,8 @@ describe('Database Tests', () => {
 
           if (order !== undefined) {
             expect(fetchedMedia!.playlists!.length).to.equal(1);
-            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+            expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0].order).to.equal(order);
           } else {
             expect(fetchedMedia!.playlists!.length).to.equal(0);
           }
@@ -460,8 +460,8 @@ describe('Database Tests', () => {
 
           if (order !== undefined) {
             expect(fetchedMedia!.playlists!.length).to.equal(1);
-            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+            expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0].order).to.equal(order);
           } else {
             expect(fetchedMedia!.playlists!.length).to.equal(0);
           }
@@ -488,8 +488,8 @@ describe('Database Tests', () => {
 
           if (order !== undefined) {
             expect(fetchedMedia!.playlists!.length).to.equal(1);
-            expect(fetchedMedia!.playlists![0]!.id).to.equal(playlists[0].id);
-            expect(fetchedMedia!.playlists![0]!.order).to.equal(order);
+            expect(fetchedMedia!.playlists![0].id).to.equal(playlists[0].id);
+            expect(fetchedMedia!.playlists![0].order).to.equal(order);
           } else {
             expect(fetchedMedia!.playlists!.length).to.equal(0);
           }

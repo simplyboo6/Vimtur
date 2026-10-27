@@ -1,6 +1,6 @@
 import Path from 'path';
 
-import type Types from '@vimtur/common';
+import type * as Types from '@vimtur/common';
 import { Router } from 'express';
 import { execute } from 'proper-job';
 import Walk from 'walk';
@@ -28,8 +28,8 @@ export class Scanner {
       try {
         ImportUtils.getType(fileStats.name);
         files.push(Path.relative(dir, Path.resolve(root, fileStats.name)));
-      } catch (err) {
-        // Ignore
+      } catch {
+        // Deliberately ignored: files with unsupported extensions aren't part of the library.
       } finally {
         next();
       }

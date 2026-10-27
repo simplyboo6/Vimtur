@@ -136,7 +136,7 @@ async function setup(): Promise<void> {
     try {
       server.listen(Config.get().port, resolve);
     } catch (err) {
-      reject(err);
+      reject(asError(err));
     }
   });
 }

@@ -1,6 +1,6 @@
 import Path from 'path';
 import { Worker } from 'worker_threads';
-import type { BlockhashJob, BlockhashJobError, BlockhashJobResult } from './blockhash-worker';
+import type { BlockhashJobError, BlockhashJobResult } from './blockhash-worker';
 
 interface PendingJob {
   resolve: (hash: string) => void;
@@ -46,7 +46,7 @@ export class BlockhashAsync {
   public async hash(path: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const id = this.nextId();
-      this.worker.postMessage({ id, path, bits: 16 } as BlockhashJob);
+      this.worker.postMessage({ id, path, bits: 16 });
       this.pendingJobs[id] = { resolve, reject };
     });
   }

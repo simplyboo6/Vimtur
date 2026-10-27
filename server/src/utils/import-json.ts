@@ -100,7 +100,7 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
         Path.resolve(cacheDir, 'thumbnails', `${hash}.png`),
       );
       media.thumbnail = true;
-    } catch (err) {
+    } catch {
       // If thumbnails can't be moved, because say they're not generated then it's not the end of the world.
       console.warn('Could not rename thumbnail during rehash. Marking as missing.', media.path);
       media.thumbnail = false;

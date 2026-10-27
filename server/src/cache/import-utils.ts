@@ -45,7 +45,7 @@ interface ExternalMetadata {
 function getExternalMetadataField(obj: ExternalMetadata, field: keyof ExternalMetadata): string | undefined {
   switch (typeof obj[field]) {
     case 'string':
-      return obj[field] as string;
+      return obj[field];
     case 'object':
       if (typeof (obj[field] as MetadataNameObject).name === 'string') {
         return (obj[field] as MetadataNameObject).name as string;
@@ -97,7 +97,8 @@ export class ImportUtils {
         }
       }
       return metadata;
-    } catch (err) {
+    } catch {
+      // Deliberately ignored: a missing or unparseable sidecar file just means no external metadata.
       return {};
     }
   }
@@ -315,7 +316,8 @@ export class ImportUtils {
     try {
       await Util.promisify(FS.access)(path, FS.constants.R_OK);
       return true;
-    } catch (err) {
+    } catch {
+      // Deliberately ignored: an unreadable path is treated the same as a missing one.
       return false;
     }
   }
