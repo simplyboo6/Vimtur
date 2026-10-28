@@ -26,11 +26,14 @@ jobs:
           node-version: "24"
       - name: Enable corepack (Yarn 4)
         run: corepack enable
-      # gm and ffmpeg generate the fixture media the suite imports.
+      # imagemagick (the server spawns its convert/identify — see
+      # GM.subClass({ imageMagick: true })) and ffmpeg generate the fixture
+      # media the suite imports. This matches the production Docker image's
+      # binary set; graphicsmagick alone is not sufficient.
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphicsmagick ffmpeg
+          sudo apt-get install -y imagemagick ffmpeg
       - name: Install dependencies
         run: cd server && yarn link --relative ../common && yarn --immutable
       # run-api-tests.sh builds the server (including generated schemas) and

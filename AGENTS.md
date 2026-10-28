@@ -26,7 +26,7 @@
 ## Running locally
 
 - Native run uses env vars (see `env-sqlite.sh`): `PORT`, `DATABASE` (`sqlite` default | `mongodb`), `DATABASE_URI`/`DATABASE_DB` for mongo, plus `DATA_PATH` (media library) and `CACHE_PATH` (must be outside `DATA_PATH`). These override `config.json` (format: `Configuration.Main` in `common/src/config.d.ts`; example in `server/config.json.example`).
-- Requires system binaries outside Docker: `ffmpeg`, `graphicsmagick` (`gm`), and optionally `pngquant`, `gallery-dl`, `yt-dlp`.
+- Requires system binaries outside Docker: `ffmpeg`, ImageMagick (`convert`/`identify` — the `gm` node module is configured with `imageMagick: true`), and optionally `pngquant`, `gallery-dl`, `yt-dlp`.
 - `@tensorflow/tfjs-node` needs python3/g++/make to build and internet access on first model use.
 
 ## Gotchas
