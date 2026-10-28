@@ -38,7 +38,8 @@
     "clean": "rm -rf dist/* *.tsbuildinfo ./.schema-build-info",
     "lint": "eslint ./src",
     "fix": "eslint --fix ./src",
-    "test": "TEST_MODE=1 mocha --recursive --timeout 30000 dist/test"
+    "test": "TEST_MODE=1 mocha --recursive --timeout 30000 dist/test",
+    "test:api": "mocha --timeout 120000 dist/api-tests"
   },
   "author": "SimplyBoo",
   "license": "MIT",

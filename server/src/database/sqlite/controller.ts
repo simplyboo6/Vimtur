@@ -28,7 +28,11 @@ export class SqliteController {
 
   public constructor(filename: string) {
     this.filename = filename;
-    for (let i = 0; i < OS.cpus().length; i++) {
+    // Each worker opens its own connection. File databases are shared through
+    // WAL, but `:memory:` databases are per-connection, so in-memory mode must
+    // use a single worker or every worker would see a separate empty database.
+    const workerCount = filename === ':memory:' ? 1 : OS.cpus().length;
+    for (let i = 0; i < workerCount; i++) {
       this.spawnWorker();
     }
 
