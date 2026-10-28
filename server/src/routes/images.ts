@@ -25,6 +25,10 @@ const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load('PlaylistEntryUpdate');
 // before the first byte is sent. After that the connection can only be ended early.
 function respondStreamError(res: Response, status: number, message: string): void {
   if (!res.headersSent) {
+    // The stream routes set a video/mp2t content type before streaming, which
+    // express's res.json() would keep for an error body. Force the JSON
+    // content type so error responses are parseable by clients.
+    res.set('Content-Type', 'application/json');
     res.status(status).json({ message });
   } else {
     res.end();
@@ -361,6 +365,9 @@ export async function create(db: Database): Promise<Router> {
       if (!media) {
         throw new NotFound('media not found');
       }
+      if (media.type !== 'video') {
+        throw new BadRequest('Cannot stream non-video media');
+      }
 
       const masterPlaylist = ImportUtils.generateStreamMasterPlaylist(media);
       res.set('Content-Type', 'application/vnd.apple.mpegurl');
@@ -379,6 +386,9 @@ export async function create(db: Database): Promise<Router> {
       const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         throw new NotFound('media not found');
+      }
+      if (media.type !== 'video') {
+        throw new BadRequest('Cannot stream non-video media');
       }
 
       const playlist = await transcoder.getStreamPlaylist(media, quality);

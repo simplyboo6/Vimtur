@@ -96,9 +96,9 @@ describe('Streaming API', () => {
   it('rejects fully out-of-range segments with a 503', async () => {
     const response = await client.get(`/api/images/${videoHash}/stream/128/data.ts?start=5&end=9`);
     expect(response.status).to.equal(503);
-    // The pre-stream error is JSON, but the route already set a video/mp2t
-    // content type, so the client returns it as raw text.
-    expect(String(response.data)).to.include('Requested segment');
+    // Pre-stream errors arrive as parseable JSON even though the route had
+    // already set a video/mp2t content type.
+    expect(response.data).to.have.property('message');
   });
 
   it('rejects segments without numeric start/end', async () => {
@@ -132,18 +132,18 @@ describe('Streaming API', () => {
     expect(response.body).to.include('#EXT-X-PLAYLIST-TYPE:VOD');
   });
 
-  // Accidental but current behaviour: still images are not type-checked on the
-  // master playlist route, but the media playlist route fails with a 500.
-  describe('Still image behaviour (current, accidental)', () => {
-    it('master playlist is served for stills', async () => {
+  // Non-video media has no stream; both playlist routes reject it up front.
+  describe('Non-video media', () => {
+    it('master playlist is a 400 for stills', async () => {
       const response = await fetchText(`/api/images/${stillHash}/stream/index.m3u8`);
-      expect(response.status).to.equal(200);
-      expect(response.body).to.include('64/index.m3u8');
+      expect(response.status).to.equal(400);
+      expect(response.body).to.include('non-video');
     });
 
-    it('media playlist fails with a 500', async () => {
+    it('media playlist is a 400 for stills', async () => {
       const response = await fetchText(`/api/images/${stillHash}/stream/64/index.m3u8`);
-      expect(response.status).to.equal(500);
+      expect(response.status).to.equal(400);
+      expect(response.body).to.include('non-video');
     });
   });
 

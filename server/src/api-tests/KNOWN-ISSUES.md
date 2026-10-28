@@ -8,15 +8,7 @@ When an open item is fixed, its entry is removed.
 
 ## Open
 
-1. **Streaming error responses carry a video/mp2t content type.** Pre-stream
-   JSON errors on `data.ts` respond with `Content-Type: video/mp2t` because
-   the route sets it before the failure path. Pinned in `streaming.spec.ts`.
-
-2. **Still images are not rejected on the master playlist route.** `GET
-   /api/images/:hash/stream/index.m3u8` for a still returns a playlist; the
-   media playlist route then fails with a 500. Pinned in `streaming.spec.ts`.
-
-3. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
+1. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
    `worker.ts` calls `FS.stat(filename)`, logging an ENOENT error every 30s
    when the database is `:memory:`. Harmless; noisy in API-test logs.
 
