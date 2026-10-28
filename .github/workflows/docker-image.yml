@@ -18,6 +18,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Docker meta
         id: meta
+        # Publish metadata is only needed when actually pushing; pull requests
+        # build the image without touching anything Docker Hub related.
+        if: github.event_name != 'pull_request'
         uses: docker/metadata-action@v5
         with:
           # list of Docker images to use as base name for tags
@@ -39,6 +42,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          # Pull requests build the image purely to validate the Dockerfile;
+          # publishing happens only for pushes to master and version tags.
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
