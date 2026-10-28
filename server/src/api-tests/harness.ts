@@ -189,11 +189,14 @@ export function assertStatus<T>(response: ApiResponse<T>, status: number, contex
 }
 
 // Creates a small still image in the library. `filename` may include
-// subdirectories relative to the library root.
+// subdirectories relative to the library root. Uses ImageMagick's convert —
+// the binary set the server itself uses (GM.subClass({ imageMagick: true }))
+// and the production Docker image ships (alongside ffmpeg); GraphicsMagick
+// alone is not enough to run these tests.
 export async function createStill(libraryPath: string, filename: string, color: string, size = 64): Promise<void> {
   const target = Path.join(libraryPath, filename);
   FS.mkdirSync(Path.dirname(target), { recursive: true });
-  await execFileAsync('gm', ['convert', '-size', `${size}x${size}`, `xc:${color}`, target]);
+  await execFileAsync('convert', ['-size', `${size}x${size}`, `xc:${color}`, target]);
 }
 
 // Creates a tiny synthetic video in the library. `filename` may include
