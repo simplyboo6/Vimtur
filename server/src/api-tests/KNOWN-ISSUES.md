@@ -8,19 +8,15 @@ When an open item is fixed, its entry is removed.
 
 ## Open
 
-1. **Unknown playlist reads are a plain-text 200.** `GET /api/playlists/:id`
-   for an unknown id responds `OK` (text) with 200 instead of 404. Pinned in
-   `playlists.spec.ts`.
-
-2. **Streaming error responses carry a video/mp2t content type.** Pre-stream
+1. **Streaming error responses carry a video/mp2t content type.** Pre-stream
    JSON errors on `data.ts` respond with `Content-Type: video/mp2t` because
    the route sets it before the failure path. Pinned in `streaming.spec.ts`.
 
-3. **Still images are not rejected on the master playlist route.** `GET
+2. **Still images are not rejected on the master playlist route.** `GET
    /api/images/:hash/stream/index.m3u8` for a still returns a playlist; the
    media playlist route then fails with a 500. Pinned in `streaming.spec.ts`.
 
-4. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
+3. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
    `worker.ts` calls `FS.stat(filename)`, logging an ENOENT error every 30s
    when the database is `:memory:`. Harmless; noisy in API-test logs.
 
