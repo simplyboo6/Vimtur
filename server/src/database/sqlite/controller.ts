@@ -11,19 +11,20 @@ interface QueueItem {
 }
 
 // Read requests may fan out across every worker connection — WAL supports
-// concurrent readers. Everything else (run, exec, and transaction batches)
-// writes, and SQLite allows a single writer at a time: concurrent writers on
-// separate connections fail with "database is locked" (a deferred
-// transaction's upgrade to writer returns BUSY immediately instead of
-// waiting out the busy timeout), which has been observed losing parallel
-// indexer writes on a file-backed database.
+// concurrent readers, and secondary connections are preferred for them so the
+// first (writer) connection stays free for writes; see spawnWorker. Everything
+// else (run, exec, and transaction batches) writes, and SQLite allows a single
+// writer at a time: concurrent writers on separate connections fail with
+// "database is locked" (a deferred transaction's upgrade to writer returns
+// BUSY immediately instead of waiting out the busy timeout), which has been
+// observed losing parallel indexer writes on a file-backed database.
 function isWriteRequest(request: SqliteWorkerRequest | SqliteWorkerRequest[]): boolean {
   return Array.isArray(request) || request.type === 'run' || request.type === 'exec';
 }
 
 interface WorkerWrapper {
   worker: Worker;
-  busy?: boolean;
+  busy: boolean;
   takeWork: () => void;
 }
 
@@ -41,8 +42,10 @@ export class SqliteController {
   public constructor(filename: string) {
     this.filename = filename;
     // Each worker opens its own connection. Reads fan out across them (WAL
-    // supports concurrent readers), writes are serialised onto the first
-    // connection (see isWriteRequest). `:memory:` databases are per-connection,
+    // supports concurrent readers), preferring secondary connections so the
+    // first connection stays free for writes; writes are serialised onto the
+    // first connection (see isWriteRequest). `:memory:` databases are
+    // per-connection,
     // so in-memory mode must use a single worker or every worker would see a
     // separate empty database — the single connection also serialises writes
     // for free.
@@ -133,27 +136,45 @@ export class SqliteController {
       workerData: { filename: this.filename },
     });
 
+    // Created up-front so takeWork can report this worker's idleness while
+    // other workers decide what to pick up.
+    const wrapper: WorkerWrapper = { worker, busy: false, takeWork: () => undefined };
     let job: QueueItem | undefined = undefined;
     let error: unknown = undefined;
 
     const takeWork = () => {
-      if (!job) {
-        error = undefined;
-        // Writes go to the first worker only so they are serialised on a
-        // single connection; reads may run on any connection.
-        const isWriter = this.workers[0]?.worker === worker;
-        const index = this.queue.findIndex((item) => isWriter || !isWriteRequest(item.request));
-        if (index >= 0) {
-          const [item] = this.queue.splice(index, 1);
-          job = item;
-          worker.postMessage(job.request);
+      if (job) {
+        return;
+      }
+      error = undefined;
+      wrapper.busy = false;
+      // Writes go to the first worker only so they are serialised on a
+      // single connection; reads may run on any connection. Reads are
+      // preferred on secondary connections so the primary connection stays
+      // free for queued writes — a read occupying the primary delays every
+      // write behind it. The primary picks reads up itself only when every
+      // secondary is busy, or when it is the only worker (in-memory mode,
+      // single-cpu machines).
+      const isWriter = this.workers[0]?.worker === worker;
+      const hasIdleSecondary = this.workers.some((w, i) => i > 0 && !w.busy);
+      const index = this.queue.findIndex((item) => {
+        if (isWriteRequest(item.request)) {
+          return isWriter;
         }
+        return !isWriter || !hasIdleSecondary;
+      });
+      if (index >= 0) {
+        const [item] = this.queue.splice(index, 1);
+        job = item;
+        wrapper.busy = true;
+        worker.postMessage(job.request);
       }
     };
+    wrapper.takeWork = takeWork;
 
     worker
       .on('online', () => {
-        this.workers.push({ worker, takeWork });
+        this.workers.push(wrapper);
         takeWork();
       })
       .on('message', (result: SqliteWorkerResult[]) => {
