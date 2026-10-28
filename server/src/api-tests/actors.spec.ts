@@ -118,4 +118,23 @@ describe('Actors API', () => {
     const response = await client.post(`/api/images/${alpha}/actors`, {});
     expect(response.status).to.equal(400);
   });
+
+  it('attaching an actor that does not exist is a 404', async () => {
+    const response = await client.post(`/api/images/${gamma}/actors`, { name: 'does-not-exist' });
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+    expect(String((response.data as { message: string }).message)).to.include('No actor found');
+
+    // Neither the global actor nor an attachment was created.
+    const actors = assertOk(await client.get<string[]>('/api/actors'), 'GET /api/actors');
+    expect(actors).to.not.include('does-not-exist');
+    const media = await detail(client, gamma);
+    expect(media.actors).to.not.include('does-not-exist');
+  });
+
+  it('attaching to unknown media is a 404', async () => {
+    const response = await client.post('/api/images/unknown-hash/actors', { name: 'nope' });
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+  });
 });
