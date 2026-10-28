@@ -71,3 +71,43 @@ describe('Segment Generation', () => {
     expect(segments.standard).to.deep.equal([{ start: 0, end: 50 }]);
   });
 });
+
+describe('Segment Count Estimation', () => {
+  // Progress-reporting estimate: an upper bound on the real count (usually
+  // far lower) and degenerate/missing lengths still yield one whole-file unit.
+  it('Is an upper bound on the real segment count', () => {
+    expect(ImportUtils.estimateSegmentCount(0)).to.equal(1);
+    expect(ImportUtils.estimateSegmentCount(3)).to.equal(1);
+    expect(ImportUtils.estimateSegmentCount(NaN)).to.equal(1);
+    expect(ImportUtils.estimateSegmentCount(100)).to.equal(13);
+    expect(ImportUtils.estimateSegmentCount(8940)).to.equal(897);
+  });
+
+  it('Never underestimates what buildSegments produces', () => {
+    // Cross-check against the real splitter over the same keyframe fixtures,
+    // including the pathological case a naive length/gap bound gets wrong:
+    // near-zero first keyframe + just-over-gap spacing yields one more cut
+    // than gap count (11 real segments vs the 10 naive estimate for a 100s video).
+    const pathologicKeyframes: number[] = [];
+    for (let i = 0.5; i < 100; i += 10.5) {
+      pathologicKeyframes.push(i);
+    }
+    const fixtures: Array<[number[], number]> = [
+      [[], 60],
+      [[1, 3, 5], 8],
+      [[1, 4, NaN, -2, 0, 15, 25], 40],
+      [[2, 5, 7, 18, 20], 30],
+      [[30, 60], 89.5],
+      [[10], 50],
+      [pathologicKeyframes, 100],
+      [pathologicKeyframes, 100.5],
+      [pathologicKeyframes, 200],
+    ];
+    for (const [keyframes, length] of fixtures) {
+      expect(
+        ImportUtils.estimateSegmentCount(length),
+        `keyframes ${JSON.stringify(keyframes)} length ${length}`,
+      ).to.be.at.least(ImportUtils.buildSegments(keyframes, length).standard.length);
+    }
+  });
+});

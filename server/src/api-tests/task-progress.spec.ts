@@ -14,13 +14,22 @@
 //    updateStatus, so the final tick reported `max - 1` and no task's bar
 //    could ever reach 100%.
 //
+// `max` granularity is task-specific: most tasks count items (files), but
+// GENERATE-CACHE counts rough per-quality segment estimates (so very long
+// videos move the bar instead of freezing per video), and
+// VERIFY-VIDEO-CACHE counts per verified quality. video-a is small enough to
+// estimate a single unit, but video-b is deliberately 12s so its
+// GENERATE-CACHE work item estimates >1 unit and exercises the estimate
+// wiring rather than only the whole-file branch.
+//
 // The server is started with autoClearCompletedTasks disabled so completed
 // queue entries (with their final current/max) can be inspected over HTTP.
 //
 // The library is built up across the tests: video-a is indexed and fully
-// processed, then video-b (different size/duration so it hashes distinctly) is
-// added mid-session. All current/max assertions land in the final state where
-// the library is half-processed unless noted.
+// processed, then video-b (different size and 12s duration so it hashes
+// distinctly and estimates more than one cache unit) is added mid-session.
+// All current/max assertions land in the final state where the library is
+// half-processed unless noted.
 
 import FS from 'fs';
 import Path from 'path';
@@ -114,8 +123,15 @@ describe('Task progress reporting', () => {
 
   it('counts only uncached videos for GENERATE-CACHE (previously counted all videos)', async function (this: Mocha.Context) {
     this.timeout(240_000);
-    // First run: videoA genuinely needs its quality cache generated.
-    assertProgress(await runTaskToCompletion('GENERATE-CACHE'), 1);
+    // First run: videoA genuinely needs its quality cache generated. Its max
+    // is segment-granular: an estimated 1 segment (2s video) × 1 missing
+    // quality.
+    const entry = await runTaskToCompletion('GENERATE-CACHE');
+    assertProgress(entry, 1);
+
+    // The segment-level info texts must not permanently replace the task's
+    // description in the completed queue entry.
+    expect(entry.description).to.equal('Generate missing video caches');
     expect((await detail(client, videoA)).metadata?.qualityCache?.length ?? 0).to.equal(1);
 
     // Second run: everything cached, work set is empty. Pre-fix max was all
@@ -126,15 +142,17 @@ describe('Task progress reporting', () => {
 
   it('verifying a single cached video reports a matching work set (baseline)', async function (this: Mocha.Context) {
     this.timeout(120_000);
-    // Only videoA exists at this point and it has a quality cache, so the
-    // work set is the same size as the library here (baseline for later).
+    // Only videoA exists at this point, with one quality cache (the max is
+    // per verified quality, so 1 unit — the same size as the library here;
+    // baseline for later).
     assertProgress(await runTaskToCompletion('VERIFY-VIDEO-CACHE'), 1);
   });
 
   it('indexes the second video mid-session', async function (this: Mocha.Context) {
     this.timeout(120_000);
-    // Different size and duration so the content hash differs from videoA.
-    await createVideo(server.libraryPath, 'video-b.mp4', { duration: 3, size: 160 });
+    // Larger and longer (12s) so the content hash differs from videoA *and*
+    // its cache work estimates more than one segment unit.
+    await createVideo(server.libraryPath, 'video-b.mp4', { duration: 12, size: 160 });
     await runTaskToCompletion('SCAN');
     await runTaskToCompletion('INDEX');
 
@@ -156,8 +174,9 @@ describe('Task progress reporting', () => {
 
   it('counts only videos with quality caches for VERIFY-VIDEO-CACHE when the library is half-cached', async function (this: Mocha.Context) {
     this.timeout(120_000);
-    // videoB has no quality cache yet, so it must not contribute to the max.
-    // Pre-fix max counted every video (2).
+    // videoB has no quality cache yet, so it must not contribute to the max
+    // (per-quality units: videoA's single cache = 1). Pre-fix max counted
+    // every video (2).
     assertProgress(await runTaskToCompletion('VERIFY-VIDEO-CACHE'), 1);
   });
 
@@ -174,8 +193,11 @@ describe('Task progress reporting', () => {
 
   it('counts only the uncached video for GENERATE-CACHE mid-session (previously counted all videos)', async function (this: Mocha.Context) {
     this.timeout(240_000);
-    // Only videoB lacks a quality cache.
-    assertProgress(await runTaskToCompletion('GENERATE-CACHE'), 1);
+    // Only videoB lacks a quality cache. Its max is segment-granular: the
+    // 12s video estimates floor(12/10) + 3 = 4 segments × 1 missing quality,
+    // which exercises the estimate wiring rather than the single-unit
+    // whole-file branch videoA hit above.
+    assertProgress(await runTaskToCompletion('GENERATE-CACHE'), 4);
     expect((await detail(client, videoB)).metadata?.qualityCache?.length ?? 0).to.equal(1);
   });
 
