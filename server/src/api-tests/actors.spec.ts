@@ -34,7 +34,7 @@ describe('Actors API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('starts with no actors', async () => {

@@ -1,4 +1,4 @@
-import type { ListedTask, QueuedTask } from '@vimtur/common';
+import type { ListedTask, QueuedTask, Scanner } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
@@ -15,7 +15,7 @@ describe('Tasks API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('lists available tasks with ids and descriptions', async () => {
@@ -84,7 +84,7 @@ describe('Tasks API', () => {
     // one.png was created but never imported, so every scan leaves it pending.
     await waitForDrainedQueue(client); // ensure no task is mid-flight
     const summary = assertOk(
-      await client.get<{ newPaths: number; missingPaths: number }>('/api/tasks/SCAN/results'),
+      await client.get<Scanner.Summary>('/api/tasks/SCAN/results'),
       'GET /api/tasks/SCAN/results',
     );
     expect(summary).to.deep.equal({ newPaths: 1, missingPaths: 0 });

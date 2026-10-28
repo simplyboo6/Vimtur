@@ -64,7 +64,7 @@ describe('Search API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('returns the full library for empty constraints', async () => {

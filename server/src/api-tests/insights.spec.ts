@@ -39,7 +39,7 @@ describe('Insights API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('returns an empty list for an empty library', async () => {

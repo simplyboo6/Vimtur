@@ -35,7 +35,7 @@ describe('Streaming API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   const fetchText = async (path: string): Promise<{ status: number; body: string; contentType: string | null }> => {

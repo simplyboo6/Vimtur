@@ -1,10 +1,20 @@
 import FS from 'fs';
 
-import type { Media } from '@vimtur/common';
+import type { Scanner } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import { ApiClient, type ApiServer, assertOk, createStill, createVideo, runTaskAndWait, startServer } from './harness';
+import {
+  ApiClient,
+  type ApiServer,
+  assertOk,
+  createStill,
+  createVideo,
+  detail,
+  runTaskAndWait,
+  startServer,
+  subset,
+} from './harness';
 
 // The full import journey: seed files on disk, import them through the task
 // API, verify the media surface, then exercise the SCAN → INDEX and
@@ -18,25 +28,17 @@ describe('Import lifecycle', () => {
   // path (library-relative) → hash
   let pathToHash: Record<string, string>;
 
-  const detail = async (hash: string): Promise<Media> => {
-    return assertOk(await client.get<Media>(`/api/images/${hash}`), `GET /api/images/${hash}`);
-  };
-
-  const subset = async (constraints: object): Promise<string[]> => {
-    return assertOk(await client.post<string[]>('/api/images/subset', constraints), 'POST /api/images/subset');
-  };
-
   const refreshPathMap = async (): Promise<void> => {
     pathToHash = {};
-    for (const hash of await subset({})) {
-      const media = await detail(hash);
+    for (const hash of await subset(client, {})) {
+      const media = await detail(client, hash);
       pathToHash[media.path] = media.hash;
     }
   };
 
-  const scanResults = async (): Promise<{ newPaths: number; missingPaths: number }> => {
+  const scanResults = async (): Promise<Scanner.Summary> => {
     return assertOk(
-      await client.get<{ newPaths: number; missingPaths: number }>('/api/tasks/SCAN/results'),
+      await client.get<Scanner.Summary>('/api/tasks/SCAN/results'),
       'GET /api/tasks/SCAN/results',
     );
   };
@@ -52,17 +54,17 @@ describe('Import lifecycle', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('starts with an empty library', async () => {
-    expect(await subset({})).to.deep.equal([]);
+    expect(await subset(client, {})).to.deep.equal([]);
   });
 
   it('AUTO-IMPORT imports every supported file in the library', async () => {
     await runTaskAndWait(client, 'AUTO-IMPORT');
 
-    const hashes = await subset({});
+    const hashes = await subset(client, {});
     expect(hashes).to.have.lengthOf(4);
 
     await refreshPathMap();
@@ -70,7 +72,7 @@ describe('Import lifecycle', () => {
   });
 
   it('media detail is fully populated for stills', async () => {
-    const media = await detail(pathToHash['red.png']);
+    const media = await detail(client, pathToHash['red.png']);
     expect(media.hash).to.equal(pathToHash['red.png']);
     expect(media.path).to.equal('red.png');
     expect(media.dir).to.equal('.');
@@ -87,7 +89,7 @@ describe('Import lifecycle', () => {
   });
 
   it('media detail is fully populated for videos', async () => {
-    const media = await detail(pathToHash['clip.mp4']);
+    const media = await detail(client, pathToHash['clip.mp4']);
     expect(media.type).to.equal('video');
     expect(media.metadata?.width).to.be.above(0);
     expect(media.metadata?.height).to.be.above(0);
@@ -96,7 +98,7 @@ describe('Import lifecycle', () => {
   });
 
   it('nested files keep their relative directory', async () => {
-    const media = await detail(pathToHash['nested/blue.png']);
+    const media = await detail(client, pathToHash['nested/blue.png']);
     expect(media.dir).to.equal('nested');
   });
 
@@ -119,7 +121,7 @@ describe('Import lifecycle', () => {
   it('re-importing without changes leaves no pending scan results', async () => {
     await runTaskAndWait(client, 'AUTO-IMPORT');
 
-    expect(await subset({})).to.have.lengthOf(4);
+    expect(await subset(client, {})).to.have.lengthOf(4);
     await runTaskAndWait(client, 'SCAN');
     expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
   });
@@ -136,7 +138,7 @@ describe('Import lifecycle', () => {
     expect(newPaths).to.deep.equal(['yellow.png']);
 
     await runTaskAndWait(client, 'INDEX');
-    expect(await subset({})).to.have.lengthOf(5);
+    expect(await subset(client, {})).to.have.lengthOf(5);
     await refreshPathMap();
     expect(pathToHash['yellow.png']).to.be.a('string').and.to.have.lengthOf.at.least(1);
 
@@ -156,7 +158,7 @@ describe('Import lifecycle', () => {
     expect(missingPaths).to.deep.equal(['green.jpg']);
 
     await runTaskAndWait(client, 'DELETE-MISSING');
-    expect(await subset({})).to.have.lengthOf(4);
+    expect(await subset(client, {})).to.have.lengthOf(4);
     expect(await client.get(`/api/images/${pathToHash['green.jpg']}`)).to.have.property('status', 404);
 
     // DELETE-MISSING consumed the pending list.
@@ -167,7 +169,7 @@ describe('Import lifecycle', () => {
     const response = await client.delete(`/api/images/${pathToHash['red.png']}`);
     expect(response.status).to.equal(204);
 
-    expect(await subset({})).to.have.lengthOf(3);
+    expect(await subset(client, {})).to.have.lengthOf(3);
     expect(await client.get(`/api/images/${pathToHash['red.png']}`)).to.have.property('status', 404);
     expect(await client.get(`/api/images/${pathToHash['red.png']}/file`)).to.have.property('status', 404);
   });

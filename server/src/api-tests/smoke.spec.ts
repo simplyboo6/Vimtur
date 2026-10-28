@@ -14,7 +14,7 @@ describe('API smoke tests', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   describe('Version', () => {

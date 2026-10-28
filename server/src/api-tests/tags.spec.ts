@@ -34,7 +34,7 @@ describe('Tags API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('starts with no tags', async () => {
