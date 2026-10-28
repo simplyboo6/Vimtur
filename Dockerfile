@@ -29,6 +29,7 @@ RUN apk add --no-cache tini imagemagick ffmpeg pngquant jq gallery-dl yt-dlp sql
 
 RUN yt-dlp --version && gallery-dl --version && ffmpeg -version && ffprobe -version && pngquant --version
 
+COPY --from=build /app/version /app/version
 COPY --from=build /app/client/dist /app/client/dist
 COPY --from=build /app/server /app/server
 COPY --from=build /app/common /app/common
