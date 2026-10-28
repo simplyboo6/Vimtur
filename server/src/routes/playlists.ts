@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { BadRequest } from '../errors';
+import { BadRequest, NotFound } from '../errors';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
@@ -57,8 +57,13 @@ export async function create(db: Database): Promise<Router> {
   router.get(
     '/:id',
     wrap(async ({ req }) => {
+      const id = singleParam(req.params.id);
+      const playlist = await db.getPlaylist(id);
+      if (!playlist) {
+        throw new NotFound(`No playlist found with id: ${id}`);
+      }
       return {
-        data: await db.getPlaylist(singleParam(req.params.id)),
+        data: playlist,
       };
     }),
   );

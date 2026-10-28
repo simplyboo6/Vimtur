@@ -205,15 +205,16 @@ describe('Playlists API', () => {
     expect(await playlistSubset(playlistA.id)).to.deep.equal([hashes[2], hashes[3]]);
   });
 
-  // Accidental but current behaviour: an unknown playlist id reads back as a
-  // plain-text 200 ("OK"), and deleting one is a silent 204 no-op.
-  describe('Unknown playlist behaviour (current, accidental)', () => {
-    it('GET returns a plain-text 200', async () => {
+  // Unknown playlist reads are a 404; deleting one stays an idempotent
+  // no-op (see KNOWN-ISSUES.md "By design").
+  describe('Unknown playlist behaviour', () => {
+    it('GET is a 404 with a JSON error', async () => {
       const response = await client.get('/api/playlists/does-not-exist');
-      expect(response.status).to.equal(200);
+      expect(response.status).to.equal(404);
+      expect(response.data).to.have.property('message');
     });
 
-    it('DELETE returns a silent 204', async () => {
+    it('DELETE remains a silent 204', async () => {
       const response = await client.delete('/api/playlists/does-not-exist');
       expect(response.status).to.equal(204);
     });
