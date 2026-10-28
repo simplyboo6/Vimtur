@@ -1,0 +1,59 @@
+name: Tests CI
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+
+jobs:
+  api-tests:
+    name: API stability tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Enable corepack (Yarn 4)
+        run: corepack enable
+      # gm and ffmpeg generate the fixture media the suite imports; ffmpeg is
+      # preinstalled on the runner but installed explicitly so the requirement
+      # is documented in one place.
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphicsmagick ffmpeg
+      - name: Install dependencies
+        run: cd server && yarn link --relative ../common && yarn --immutable
+      # run-api-tests.sh builds the server (including generated schemas) and
+      # runs the HTTP-only API stability suite against SQLite.
+      - name: Run API tests
+        run: ./run-api-tests.sh
+
+  database-tests:
+    name: Database tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Enable corepack (Yarn 4)
+        run: corepack enable
+      - name: Install dependencies
+        run: cd server && yarn link --relative ../common && yarn --immutable
+      - name: Build server
+        run: cd server && yarn build
+      # run-tests.sh starts a disposable MongoDB container and runs the mocha
+      # suite against it.
+      - name: Run database tests
+        run: ./run-tests.sh
