@@ -62,6 +62,11 @@ export interface RawMedia {
   metadata_quality_cache: string | null; // JSON number[];
   metadata_max_copy: boolean | null;
   metadata_segments: string | null; // JSON SegmentMetadata;
+
+  // JSON string[]; aggregated from the `media_tags`/`media_actors` join tables,
+  // only present in the 'all' projection.
+  tags: string | null;
+  actors: string | null;
 }
 
 export const mediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast?: 'json' | 'bool' }> = [
@@ -83,6 +88,13 @@ export const mediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast?: 
   { db: 'auto_tags', js: 'autoTags', cast: 'json' },
   { db: 'clones', js: 'clones', cast: 'json' },
   { db: 'unrelated', js: 'unrelated', cast: 'json' },
+];
+// Field map for the 'all' projection: the `media` table columns plus the
+// tags/actors arrays aggregated from the join tables by `buildMediaQuery`.
+export const allMediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast?: 'json' | 'bool' }> = [
+  ...mediaFieldMap,
+  { db: 'tags', js: 'tags', cast: 'json' },
+  { db: 'actors', js: 'actors', cast: 'json' },
 ];
 const requiredMediaKeys = ['hash', 'path', 'dir', 'type', 'hashDate'] as const;
 
@@ -486,7 +498,12 @@ export function buildMediaQuery(
   }
   const columns =
     fields === 'all'
-      ? '`media`.*'
+      ? [
+          '`media`.*',
+          // Aggregated inline so the 'all' projection returns the full BaseMedia shape.
+          "COALESCE((SELECT json_group_array(`tag_id`) FROM `media_tags` WHERE `media_hash` = `media`.`hash`), '[]') AS `tags`",
+          "COALESCE((SELECT json_group_array(`actor_id`) FROM `media_actors` WHERE `media_hash` = `media`.`hash`), '[]') AS `actors`",
+        ].join(', ')
       : Object.keys(fields)
           .filter((key) => !!(fields as Record<string, number>)?.[key])
           .map((key) => {

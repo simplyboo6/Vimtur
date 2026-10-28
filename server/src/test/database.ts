@@ -1,10 +1,11 @@
 import 'source-map-support/register';
 
-import type { Media, Playlist } from '@vimtur/common';
+import type { BaseMedia, Media, Playlist } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
 import { SqliteConnector } from '../database/sqlite';
+import { SearchIndexer } from '../insights/tokens';
 import type { Database } from '../types/database';
 
 describe('Database Tests', () => {
@@ -138,6 +139,18 @@ describe('Database Tests', () => {
         },
       });
       expect(hashes.length).to.equal(1);
+    });
+
+    it('subsetFields (all) aggregates tags and actors', async () => {
+      const all = await database.subsetFields({}, 'all');
+      expect(all.length).to.equal(5);
+      const byHash = new Map(all.map((el) => [el.hash, el]));
+
+      expect(byHash.get('hash-0')?.tags).to.deep.equal(['tag-a', 'tag-b']);
+      expect(byHash.get('hash-1')?.tags).to.deep.equal(['tag-b', 'tag-c']);
+      // Media without join rows must come back as empty arrays, not undefined.
+      expect(byHash.get('hash-2')?.tags).to.deep.equal([]);
+      expect(byHash.get('hash-2')?.actors).to.deep.equal([]);
     });
 
     after(async () => {
@@ -547,6 +560,20 @@ describe('Database Tests', () => {
         await database.removeMediaFromPlaylist(media[2].hash, playlists[0].id);
         await checkPlaylistB();
       });
+    });
+  });
+
+  describe('Insights tokens', () => {
+    it('registerMedia tolerates missing tags/actors', () => {
+      const indexer = new SearchIndexer();
+      const tokens = indexer.registerMedia({
+        hash: 'hash-bare',
+        path: '/tmp/bare.jpg',
+        dir: '/tmp',
+        type: 'still',
+        hashDate: Date.now(),
+      } as BaseMedia);
+      expect(Object.keys(tokens)).to.deep.equal(['still']);
     });
   });
 

@@ -19,6 +19,7 @@ import { BadRequest, NotFound } from '../../errors';
 import { Database } from '../../types';
 import { SqliteController } from './controller';
 import {
+  allMediaFieldMap,
   buildMediaQuery,
   makeMediaUpdate,
   makeMediaUpsert,
@@ -285,7 +286,8 @@ export class SqliteConnector extends Database {
   public async subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]> {
     const { query, values } = buildMediaQuery(constraints, fields);
     const raw = await this.db.all<RawMedia>(query, values);
-    return raw.map((el) => rawToPartial<RawMedia, Media>(el, mediaFieldMap)) as BaseMedia[];
+    const fieldMap = fields === 'all' ? allMediaFieldMap : mediaFieldMap;
+    return raw.map((el) => rawToPartial<RawMedia, Media>(el, fieldMap)) as BaseMedia[];
   }
 
   // Actors

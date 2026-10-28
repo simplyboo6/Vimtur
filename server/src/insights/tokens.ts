@@ -904,10 +904,10 @@ function createMediaTokens(media: BaseMedia): Record<string, number> {
     5,
   );
 
-  for (const actor of media.actors) {
+  for (const actor of media.actors || []) {
     registerTokens(createStringTokens(actor), 7);
   }
-  for (const tag of media.tags) {
+  for (const tag of media.tags || []) {
     registerTokens(createStringTokens(tag), 7);
   }
   for (const tag of media.autoTags || []) {
