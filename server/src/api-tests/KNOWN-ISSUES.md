@@ -1,16 +1,12 @@
 # API test known issues
 
-Behaviours discovered while writing the API stability tests. "Open" items are
-genuine bugs to fix in the bug-fix phase; each lists the test pinning the
-current behaviour so a refactor cannot silently change it. Items under
-"By design" are intentional (or pinned deliberately) and have no fix planned.
-When an open item is fixed, its entry is removed.
+Behaviours discovered while writing the API stability tests. All open issues
+have been fixed (see git history); what remains under "By design" is
+intentional, or pinned deliberately so a refactor cannot silently change it.
 
 ## Open
 
-1. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
-   `worker.ts` calls `FS.stat(filename)`, logging an ENOENT error every 30s
-   when the database is `:memory:`. Harmless; noisy in API-test logs.
+(none)
 
 ## By design
 
