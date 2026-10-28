@@ -69,7 +69,15 @@ export class SqliteConnector extends Database {
     if (!rawMedia) {
       return undefined;
     }
-    const media = rawMediaToMedia(rawMedia);
+    let media: Omit<Media, 'tags' | 'actors' | 'playlists' | 'absolutePath'>;
+    try {
+      media = rawMediaToMedia(rawMedia);
+    } catch {
+      // Malformed/legacy rows (e.g. partial upserts from PATCHing unknown
+      // hashes) cannot be represented as Media; treat them as absent so
+      // reads 404 instead of throwing.
+      return undefined;
+    }
     const tags = await this.db.all<{
       tag_id: string;
     }>('SELECT `tag_id` FROM `media_tags` WHERE `media_hash` = ?', [hash]);

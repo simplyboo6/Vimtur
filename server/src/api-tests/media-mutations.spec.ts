@@ -71,12 +71,12 @@ describe('Media mutations API', () => {
     expect(response.data).to.have.property('message');
   });
 
-  // Accidental but current behaviour: saveMedia is an upsert, so PATCHing an
-  // unknown hash creates a partial record which then fails absolute-path
-  // resolution. A refactor must consciously change this.
-  it('PATCH on an unknown hash upserts a partial record (500)', async () => {
+  it('PATCH on an unknown hash is a 404', async () => {
     const response = await client.patch('/api/images/unknown-hash-mutations', { rating: 1 });
-    expect(response.status).to.equal(500);
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+    // The failed mutation must not have created a partial record.
+    expect(await client.get('/api/images/unknown-hash-mutations')).to.have.property('status', 404);
   });
 
   it('bulk-update applies an update to all matching media and reports the count', async () => {

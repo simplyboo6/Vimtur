@@ -138,13 +138,19 @@ export async function create(db: Database): Promise<Router> {
   router.patch(
     '/:hash',
     wrap(async ({ req }) => {
+      const hash = singleParam(req.params.hash);
+      const media = await db.getMedia(hash);
+      if (!media) {
+        throw new NotFound(`No media found with hash: ${hash}`);
+      }
+
       const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
 
       return {
-        data: await db.saveMedia(singleParam(req.params.hash), req.body),
+        data: await db.saveMedia(hash, req.body),
       };
     }),
   );
