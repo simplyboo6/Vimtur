@@ -171,6 +171,18 @@ describe('Playlists API', () => {
     expect(await playlistSubset(playlistA.id)).to.deep.equal([hashes[2], hashes[3]]);
   });
 
+  it('adding media to an unknown playlist is a 404', async () => {
+    const response = await client.put(`/api/images/${hashes[0]}/playlists/does-not-exist`);
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+  });
+
+  it('bulk-adding a subset to an unknown playlist is a 404', async () => {
+    const response = await client.put('/api/images/subset/playlists/does-not-exist', {});
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+  });
+
   it('a second playlist is fully isolated', async () => {
     playlistB = assertOk(await client.post<Playlist>('/api/playlists', { name: 'List B' }), 'POST /api/playlists');
     await client.put(`/api/images/${hashes[3]}/playlists/${playlistB.id}`);

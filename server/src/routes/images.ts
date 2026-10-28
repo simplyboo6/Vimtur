@@ -65,12 +65,18 @@ export async function create(db: Database): Promise<Router> {
   router.put(
     '/subset/playlists/:playlistId',
     wrap(async ({ req }) => {
+      const playlistId = singleParam(req.params.playlistId);
+      const playlist = await db.getPlaylist(playlistId);
+      if (!playlist) {
+        throw new NotFound(`No playlist found with id: ${playlistId}`);
+      }
+
       const constraints = parseSubsetBody(req.body);
       const subset = await db.subset(constraints);
 
       // Do sequentially to preserve sort order
       for (const hash of subset) {
-        await db.addMediaToPlaylist(hash, singleParam(req.params.playlistId));
+        await db.addMediaToPlaylist(hash, playlistId);
       }
     }),
   );
@@ -158,8 +164,19 @@ export async function create(db: Database): Promise<Router> {
   router.put(
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
+      const hash = singleParam(req.params.hash);
+      const playlistId = singleParam(req.params.playlistId);
+      const media = await db.getMedia(hash);
+      if (!media) {
+        throw new NotFound(`No media found with hash: ${hash}`);
+      }
+      const playlist = await db.getPlaylist(playlistId);
+      if (!playlist) {
+        throw new NotFound(`No playlist found with id: ${playlistId}`);
+      }
+
       return {
-        data: await db.addMediaToPlaylist(singleParam(req.params.hash), singleParam(req.params.playlistId)),
+        data: await db.addMediaToPlaylist(hash, playlistId),
       };
     }),
   );
@@ -189,7 +206,19 @@ export async function create(db: Database): Promise<Router> {
       if (typeof req.body.name !== 'string') {
         throw new BadRequest('name not specified');
       }
-      await db.addMediaTag(singleParam(req.params.hash), req.body.name);
+
+      const hash = singleParam(req.params.hash);
+      const media = await db.getMedia(hash);
+      if (!media) {
+        throw new NotFound(`No media found with hash: ${hash}`);
+      }
+
+      const tags = await db.getTags();
+      if (!tags.includes(req.body.name)) {
+        throw new NotFound(`No tag found with name: ${req.body.name}`);
+      }
+
+      await db.addMediaTag(hash, req.body.name);
     }),
   );
 
@@ -206,7 +235,19 @@ export async function create(db: Database): Promise<Router> {
       if (typeof req.body.name !== 'string') {
         throw new BadRequest('name not specified');
       }
-      await db.addMediaActor(singleParam(req.params.hash), req.body.name);
+
+      const hash = singleParam(req.params.hash);
+      const media = await db.getMedia(hash);
+      if (!media) {
+        throw new NotFound(`No media found with hash: ${hash}`);
+      }
+
+      const actors = await db.getActors();
+      if (!actors.includes(req.body.name)) {
+        throw new NotFound(`No actor found with name: ${req.body.name}`);
+      }
+
+      await db.addMediaActor(hash, req.body.name);
     }),
   );
 

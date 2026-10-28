@@ -122,4 +122,23 @@ describe('Tags API', () => {
     const response = await client.post(`/api/images/${alpha}/tags`, {});
     expect(response.status).to.equal(400);
   });
+
+  it('attaching a tag that does not exist is a 404', async () => {
+    const response = await client.post(`/api/images/${gamma}/tags`, { name: 'does-not-exist' });
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+    expect(String((response.data as { message: string }).message)).to.include('No tag found');
+
+    // Neither the global tag nor an attachment was created.
+    const tags = assertOk(await client.get<string[]>('/api/tags'), 'GET /api/tags');
+    expect(tags).to.not.include('does-not-exist');
+    const media = await detail(client, gamma);
+    expect(media.tags).to.not.include('does-not-exist');
+  });
+
+  it('attaching to unknown media is a 404', async () => {
+    const response = await client.post('/api/images/unknown-hash/tags', { name: 'nope' });
+    expect(response.status).to.equal(404);
+    expect(response.data).to.have.property('message');
+  });
 });

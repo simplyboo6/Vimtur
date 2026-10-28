@@ -106,8 +106,6 @@ describe('Media mutations API', () => {
   });
 
   it('bulk-update honours tag constraints', async () => {
-    // Tags must be created globally before they can be attached (the attach
-    // endpoint fails otherwise — see the known-issues list).
     assertOk(await client.post<string[]>('/api/tags', { tag: 'bulk-tag' }), 'POST /api/tags');
     assertOk(await client.post(`/api/images/${one}/tags`, { name: 'bulk-tag' }), 'POST /api/images/:hash/tags');
 

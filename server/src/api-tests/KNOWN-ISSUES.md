@@ -8,34 +8,24 @@ When an open item is fixed, its entry is removed.
 
 ## Open
 
-1. **Attaching a non-existent tag or actor 500s.** `POST /api/images/:hash/tags`
-   and `/actors` with a `name` that has no global tag/actor leak a raw FOREIGN
-   KEY constraint error as a 500. The client always creates them globally
-   first, masking this. (The pinning comment lives in `media-mutations.spec.ts`
-   on the bulk-update tag test.)
-
-2. **bulk-update with an empty update object 500s.** The UpdateMedia schema
+1. **bulk-update with an empty update object 500s.** The UpdateMedia schema
    accepts an empty object, but `saveBulkMedia` then throws "Nothing to
    update" as a 500 instead of rejecting with 400. Pinned in
    `media-mutations.spec.ts`.
 
-3. **Unknown playlist reads are a plain-text 200.** `GET /api/playlists/:id`
+2. **Unknown playlist reads are a plain-text 200.** `GET /api/playlists/:id`
    for an unknown id responds `OK` (text) with 200 instead of 404. Pinned in
    `playlists.spec.ts`.
 
-4. **Adding media to an unknown playlist 500s.** `PUT
-   /api/images/:hash/playlists/:id` with an unknown playlist leaks a FOREIGN
-   KEY error. (The FK path is the same as issue 1.)
-
-5. **Streaming error responses carry a video/mp2t content type.** Pre-stream
+3. **Streaming error responses carry a video/mp2t content type.** Pre-stream
    JSON errors on `data.ts` respond with `Content-Type: video/mp2t` because
    the route sets it before the failure path. Pinned in `streaming.spec.ts`.
 
-6. **Still images are not rejected on the master playlist route.** `GET
+4. **Still images are not rejected on the master playlist route.** `GET
    /api/images/:hash/stream/index.m3u8` for a still returns a playlist; the
    media playlist route then fails with a 500. Pinned in `streaming.spec.ts`.
 
-7. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
+5. **SQLite worker flush timer stats `:memory:`.** The 30s WAL-size flush in
    `worker.ts` calls `FS.stat(filename)`, logging an ENOENT error every 30s
    when the database is `:memory:`. Harmless; noisy in API-test logs.
 
