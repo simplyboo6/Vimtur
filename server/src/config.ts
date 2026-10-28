@@ -9,23 +9,30 @@ import StripJsonComments from 'strip-json-comments';
 import { Validator } from './utils/validator';
 
 function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
-  if (process.env[env]) {
-    console.log(`Using ${process.env[env]} from ${env}`);
-    let node = obj;
-    const path = dest.split('.');
-    for (let i = 0; i < path.length - 1; i++) {
-      if (!node[path[i]]) {
-        node[path[i]] = {};
-      }
-      node = node[path[i]];
-    }
-
-    let value: string | number = process.env[env];
-    if (!isNaN(Number(value))) {
-      value = Number(value);
-    }
-    node[path[path.length - 1]] = value;
+  // Single local read: without noUncheckedIndexedAccess the type lies that
+  // process.env[env] is always a string, so a non-null assertion here is
+  // flagged as unnecessary by the lint rule — but it can be undefined at
+  // runtime. Reading once into raw keeps the guard and both later uses on
+  // the same value instead of re-reading the environment three times.
+  const raw = process.env[env];
+  if (!raw) {
+    return;
   }
+  console.log(`Using ${raw} from ${env}`);
+  let node = obj;
+  const path = dest.split('.');
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!node[path[i]]) {
+      node[path[i]] = {};
+    }
+    node = node[path[i]];
+  }
+
+  let value: string | number = raw;
+  if (!isNaN(Number(value))) {
+    value = Number(value);
+  }
+  node[path[path.length - 1]] = value;
 }
 
 function readJsonSync(file: string): Configuration.Main {
