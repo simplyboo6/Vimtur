@@ -76,6 +76,10 @@ parentPort.on('message', (request: SqliteWorkerRequest[] | SqliteWorkerRequest |
           break;
         case 'flush':
           // Attempt to flush the WAL cache forcefully if the size is too big.
+          // In-memory databases have no WAL file to stat or checkpoint.
+          if (filename === ':memory:') {
+            break;
+          }
           FS.stat(filename, (err, stat) => {
             if (err) {
               console.error(err);
