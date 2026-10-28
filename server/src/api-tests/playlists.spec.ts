@@ -209,6 +209,21 @@ describe('Playlists API', () => {
     expect(await playlistSubset(playlistA.id)).to.deep.equal([hashes[2], hashes[3]]);
   });
 
+  // Playlist sizes are denormalised, so they must keep track of media
+  // deleted from the library itself, not just membership changes.
+  describe('Deleting media from the library', () => {
+    it('decrements the playlist size', async () => {
+      expect(await playlistSubset(playlistA.id)).to.deep.equal([hashes[2], hashes[3]]);
+
+      const response = await client.delete(`/api/images/${hashes[2]}`);
+      expect(response.status).to.equal(204);
+
+      expect(await playlistSubset(playlistA.id)).to.deep.equal([hashes[3]]);
+      const listed = assertOk(await client.get<Playlist[]>('/api/playlists'), 'GET /api/playlists');
+      expect(listed[0].size).to.equal(1);
+    });
+  });
+
   // Unknown playlist reads are a 404; deleting one stays an idempotent
   // no-op (see KNOWN-ISSUES.md "By design").
   describe('Unknown playlist behaviour', () => {
