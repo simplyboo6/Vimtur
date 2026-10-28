@@ -14,14 +14,16 @@ export async function setup(): Promise<Database> {
   switch (dbConfig.provider as string) {
     case 'mongodb':
       return MongoConnector.init();
-    case 'sqlite':
+    case 'sqlite': {
+      const path = (Config.get().database as Configuration.SqliteDbConfig | undefined)?.path;
       return SqliteConnector.init({
-        filename: Path.resolve(
-          (Config.get().database as Configuration.SqliteDbConfig | undefined)?.path ?? Config.get().cachePath,
-          'vimtur.db',
-        ),
+        // ':memory:' is a better-sqlite3 magic value, not a path; pass it through
+        // verbatim (used by API tests). Anything else is resolved against the
+        // cache path like before.
+        filename: path === ':memory:' ? path : Path.resolve(path ?? Config.get().cachePath, 'vimtur.db'),
         libraryPath: Config.get().libraryPath,
       });
+    }
     default:
       throw new Error(`Unsupported database type: ${dbConfig.provider}`);
   }
