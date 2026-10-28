@@ -34,7 +34,7 @@
 - Server runtime reads from `dist/`, not `src/` — after editing server or common code you must rebuild (`common` first, then `server`) before running or testing.
 - SQLite migrations live in `server/src/database/sqlite/migrations/` as numbered `.sql` files; a new migration must be added there and is picked up by `copy.sh` during build.
 - Config JSON allows comments (`strip-json-comments`); schemas are strict (`--required --noExtraProps`), so new config fields must be added to the `common` types.
-- CI (`.github/workflows/docker-image.yml`) only validates the Docker build on master; Docker images publish to `simplyboo6/vimtur` from master and tags.
+- CI: `.github/workflows/tests.yml` runs the API stability and database suites on PRs and master pushes. `.github/workflows/docker-image.yml` builds the Docker image on PRs to validate the Dockerfile without publishing, and publishes to `simplyboo6/vimtur` from master and tags.
 - `create-schemas.sh` hash-caches its output on the *source .d.ts hashes only*, so bumping TypeScript or typescript-json-schema does NOT trigger regeneration — delete `.schema-build-info` first or you compare stale artifacts and can "pass" while actually generating different schemas.
 - Dev (`yarn build`) and prod (`yarn build:prod`) client builds write the same `client/dist/`, and the server serves it — a dev build clobbers the production bundle; re-run `build:prod` after any dev build.
 - Native dependencies (`better-sqlite3`, `@tensorflow/tfjs-node`) recompile per Node major bump; Yarn 4 does this automatically on install (`YN0007: must be built...`), but the build needs python3/g++/make.
