@@ -71,6 +71,36 @@ describe('Media mutations API', () => {
     expect(response.data).to.have.property('message');
   });
 
+  it('PATCH with an empty update object is a 400', async () => {
+    const response = await client.patch(`/api/images/${one}`, {});
+    expect(response.status).to.equal(400);
+    expect(response.data).to.have.property('message');
+  });
+
+  it('PATCH with an empty metadata object is a 400', async () => {
+    // An empty metadata sub-object passes the all-optional schema but maps to
+    // no writable column; it is rejected rather than failing in the connector.
+    const response = await client.patch(`/api/images/${one}`, { metadata: {} });
+    expect(response.status).to.equal(400);
+    expect(response.data).to.have.property('message');
+  });
+
+  it('PATCH accepts meaningful falsy values', async () => {
+    // Zero, false and empty arrays are real updates (they clear/set fields),
+    // unlike empty objects.
+    const updated = assertOk(
+      await client.patch<Media>(`/api/images/${one}`, { rating: 0 }),
+      'PATCH /api/images/:hash',
+    );
+    expect(updated.rating).to.equal(0);
+
+    const cleared = assertOk(
+      await client.patch<Media>(`/api/images/${one}`, { rating: 3 }),
+      'PATCH /api/images/:hash',
+    );
+    expect(cleared.rating).to.equal(3);
+  });
+
   it('PATCH on an unknown hash is a 404', async () => {
     const response = await client.patch('/api/images/unknown-hash-mutations', { rating: 1 });
     expect(response.status).to.equal(404);
@@ -137,6 +167,15 @@ describe('Media mutations API', () => {
     // The UpdateMedia schema is all-optional, so an empty update object is
     // rejected explicitly instead of failing deep in the query builders.
     const response = await client.patch('/api/images/bulk-update', { constraints: {}, update: {} });
+    expect(response.status).to.equal(400);
+    expect(response.data).to.have.property('message');
+  });
+
+  it('bulk-update with an update of only empty objects is a 400', async () => {
+    const response = await client.patch('/api/images/bulk-update', {
+      constraints: { hash: { equalsAny: [one] } },
+      update: { metadata: {} },
+    });
     expect(response.status).to.equal(400);
     expect(response.data).to.have.property('message');
   });

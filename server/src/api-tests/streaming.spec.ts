@@ -132,7 +132,7 @@ describe('Streaming API', () => {
     expect(response.body).to.include('#EXT-X-PLAYLIST-TYPE:VOD');
   });
 
-  // Non-video media has no stream; both playlist routes reject it up front.
+  // Non-video media has no stream; all three streaming routes reject it up front.
   describe('Non-video media', () => {
     it('master playlist is a 400 for stills', async () => {
       const response = await fetchText(`/api/images/${stillHash}/stream/index.m3u8`);
@@ -144,6 +144,13 @@ describe('Streaming API', () => {
       const response = await fetchText(`/api/images/${stillHash}/stream/64/index.m3u8`);
       expect(response.status).to.equal(400);
       expect(response.body).to.include('non-video');
+    });
+
+    it('segments are a 400 for stills', async () => {
+      const response = await client.get(`/api/images/${stillHash}/stream/64/data.ts?start=0&end=2`);
+      expect(response.status).to.equal(400);
+      expect(response.data).to.have.property('message');
+      expect(String((response.data as { message: string }).message)).to.include('non-video');
     });
   });
 

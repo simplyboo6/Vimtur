@@ -21,6 +21,21 @@ const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
 const RESOLUTION_VALIDATOR = Validator.load('MediaResolution');
 const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load('PlaylistEntryUpdate');
 
+// The UpdateMedia schema is all-optional, so an update can pass schema
+// validation while carrying nothing writable (e.g. an empty `metadata`
+// object — its sub-fields are what actually get persisted). Arrays and nulls
+// count as writable because clearing a field is a real update; nested plain
+// objects only count when they contain something writable themselves.
+function hasWritableUpdate(value: unknown): boolean {
+  if (Array.isArray(value) || value === null) {
+    return true;
+  }
+  if (typeof value !== 'object') {
+    return true;
+  }
+  return Object.values(value).some((child) => hasWritableUpdate(child));
+}
+
 // Streaming endpoints write the response body directly, so errors are only reportable
 // before the first byte is sent. After that the connection can only be ended early.
 function respondStreamError(res: Response, status: number, message: string): void {
@@ -110,10 +125,7 @@ export async function create(db: Database): Promise<Router> {
       }
 
       const request: BulkUpdate = req.body;
-      // The UpdateMedia schema is all-optional, so an empty update passes
-      // validation but nothing can be written; reject it here rather than
-      // failing deep in the query builders with a 500.
-      if (Object.keys(request.update).length === 0) {
+      if (!hasWritableUpdate(request.update)) {
         throw new BadRequest('No fields to update');
       }
       request.constraints.corrupted = false;
@@ -163,6 +175,12 @@ export async function create(db: Database): Promise<Router> {
       const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
+      }
+      // An update that carries nothing writable would reach the connector as
+      // an empty change set (a raw SQL error on SQLite, an empty $set on
+      // MongoDB); reject it here where the request is still known.
+      if (!hasWritableUpdate(req.body)) {
+        throw new BadRequest('No fields to update');
       }
 
       return {
@@ -407,6 +425,9 @@ export async function create(db: Database): Promise<Router> {
       const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
         throw new NotFound('media not found');
+      }
+      if (media.type !== 'video') {
+        throw new BadRequest('Cannot stream non-video media');
       }
 
       // data.ts is the newer cache/streaming method.
