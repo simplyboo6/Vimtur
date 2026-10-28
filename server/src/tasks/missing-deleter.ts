@@ -37,7 +37,8 @@ export function getTask(database: Database): RouterTask {
           await database.removeMedia(hash, false);
 
           console.log(`Removed ${hash} - ${path}`);
-          updateStatus(current++, results.length);
+          current += 1;
+          updateStatus(current, results.length);
         },
         { parallel: 8 },
         () => {

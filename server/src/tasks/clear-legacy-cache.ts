@@ -13,7 +13,9 @@ export function getTask(database: Database): RouterTask {
     runner: (updateStatus: TaskRunnerCallback) => {
       return execute(
         async () => {
-          const videos = await database.subset({ type: { equalsAll: ['video'] } });
+          // Only media with a quality cache can have a legacy cache, so the
+          // reported maximum reflects the work set rather than the library.
+          const videos = await database.subset({ type: { equalsAll: ['video'] }, cached: true });
           updateStatus(0, videos.length);
           return {
             iterable: videos,
@@ -31,6 +33,7 @@ export function getTask(database: Database): RouterTask {
           try {
             const media = await database.getMedia(hash);
             if (!media || !media.metadata || !media.metadata.qualityCache) {
+              // The cached subset should have caught this, but be safe.
               return;
             }
 
@@ -51,7 +54,8 @@ export function getTask(database: Database): RouterTask {
               });
             }
           } finally {
-            updateStatus(init.current++, init.max);
+            init.current += 1;
+            updateStatus(init.current, init.max);
           }
         },
         { parallel: BATCH_SIZE },

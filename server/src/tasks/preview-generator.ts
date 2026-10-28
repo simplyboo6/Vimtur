@@ -54,7 +54,8 @@ export function getTask(database: Database): RouterTask {
             await database.saveMedia(hash, { corrupted: true });
             throw new Error(`Error generating preview for ${hash}.`, { cause: err });
           } finally {
-            updateStatus(init.current++, init.max);
+            init.current += 1;
+            updateStatus(init.current, init.max);
           }
         },
         { parallel: PREVIEW_BATCH_SIZE },

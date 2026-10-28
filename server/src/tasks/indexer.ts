@@ -70,7 +70,8 @@ export class Indexer {
         } catch (err) {
           console.error('Failed to index file', file, err);
         }
-        statusCallback(current++, files.length);
+        current += 1;
+        statusCallback(current, files.length);
       },
       { parallel: 8 },
       () => {

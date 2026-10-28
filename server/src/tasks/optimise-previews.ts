@@ -55,7 +55,8 @@ export function getTask(database: Database): RouterTask {
             console.log(`Error optimising preview for ${hash}.`, err);
             throw new Error(`Error optimising preview for ${hash}.`, { cause: err });
           } finally {
-            updateStatus(init.current++, init.max);
+            init.current += 1;
+            updateStatus(init.current, init.max);
           }
         },
         { parallel: PREVIEW_BATCH_SIZE },
