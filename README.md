@@ -33,6 +33,7 @@ This will start an instance of the program listening on (http://localhost:3523)[
 ## Notes
 
 - Requirements (outside of Docker)
+  - Node 24 or newer (the SQLite backend uses the built-in `node:sqlite`).
   - ffmpeg for transcoding and thumbnails.
   - graphicsmagick for extracting EXIF data.
 - Caching data is optional (disabled by default) and takes a lot of space. All videos are transcoded to be h264 and HLS compatible on the fly. Enabling caching will allow faster load times.
