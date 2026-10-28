@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { formatPercent } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
 import { ActorService } from 'services/actor.service';
 import { ConfirmationService } from 'services/confirmation.service';
+import { AlertService } from 'services/alert.service';
 import { Configuration, Scanner, QueuedTask, ListedTask, TaskArgs, TaskArgDefinition } from '@vimtur/common';
 import { TasksService } from 'app/services/tasks.service';
 import { Subscription, timer, combineLatest } from 'rxjs';
@@ -22,6 +24,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   private tagService: TagService;
   private actorService: ActorService;
   private confirmationService: ConfirmationService;
+  private alertService: AlertService;
 
   private subscriptions: Subscription[] = [];
 
@@ -58,12 +61,14 @@ export class ConfigComponent implements OnInit, OnDestroy {
     confirmationService: ConfirmationService,
     actorService: ActorService,
     tasksService: TasksService,
+    alertService: AlertService,
   ) {
     this.configService = configService;
     this.tagService = tagService;
     this.confirmationService = confirmationService;
     this.actorService = actorService;
     this.tasksService = tasksService;
+    this.alertService = alertService;
   }
 
   public ngOnInit() {
@@ -201,11 +206,19 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public addTag() {
-    console.debug('addTag', this.addTagModel);
-    if (!this.addTagModel) {
+    const tag = this.addTagModel;
+    console.debug('addTag', tag);
+    if (!tag) {
       return;
     }
-    this.tagService.addTag(this.addTagModel).subscribe();
+    this.tagService.addTag(tag).subscribe(
+      () => undefined,
+      (err: HttpErrorResponse) => {
+        console.error(err);
+        const message = (err && err.error && err.error.message) || `Failed to add tag '${tag}'`;
+        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+      },
+    );
   }
 
   public deleteTag() {
@@ -225,11 +238,19 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public addActor() {
-    console.debug('addActor', this.addActorModel);
-    if (!this.addActorModel) {
+    const actor = this.addActorModel;
+    console.debug('addActor', actor);
+    if (!actor) {
       return;
     }
-    this.actorService.addActor(this.addActorModel).subscribe();
+    this.actorService.addActor(actor).subscribe(
+      () => undefined,
+      (err: HttpErrorResponse) => {
+        console.error(err);
+        const message = (err && err.error && err.error.message) || `Failed to add actor '${actor}'`;
+        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
+      },
+    );
   }
 
   public deleteActor() {

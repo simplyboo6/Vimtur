@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { EMPTY, Observable, ReplaySubject } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, ReplaySubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { AlertService } from 'app/services/alert.service';
 
 const HTTP_OPTIONS = {
@@ -41,9 +41,9 @@ export class ActorService {
   }
 
   // Returns the create request so callers can chain follow-up work (e.g.
-  // attaching the actor to media) off its completion. On failure the user is
-  // alerted here and the observable completes without emitting, so chained
-  // work is skipped.
+  // attaching the actor to media) off its completion. Success side effects
+  // (alerting and updating the local actor list) happen here; errors are
+  // left to the subscriber to handle.
   public addActor(actor: string): Observable<string[]> {
     return this.httpClient.post<string[]>(`/api/actors`, { actor }, HTTP_OPTIONS).pipe(
       tap(res => {
@@ -54,12 +54,6 @@ export class ActorService {
         });
         this.actorReplay.next(res);
         this.actors = res;
-      }),
-      catchError((err: HttpErrorResponse) => {
-        console.error(err);
-        const message = (err && err.error && err.error.message) || `Failed to add actor '${actor}'`;
-        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
-        return EMPTY;
       }),
     );
   }

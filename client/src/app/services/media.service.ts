@@ -230,8 +230,8 @@ export class MediaService {
       // create must complete first. Chain the attach off it rather than
       // firing both requests at once, where they can arrive out of order.
       const create$: Observable<unknown> = this.actorService.actors.includes(name) ? of(null) : this.actorService.addActor(name);
-      // If the create failed the actor service has already alerted the user
-      // and the observable completed without emitting, skipping the attach.
+      // A create failure propagates through the chain into the error handler
+      // below, which alerts and skips the attach.
       create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/actors`, { name }, HTTP_OPTIONS))).subscribe(
         () => {
           media.actors.push(name);
@@ -308,8 +308,8 @@ export class MediaService {
       // must complete first. Chain the attach off it rather than firing both
       // requests at once, where they can arrive out of order.
       const create$: Observable<unknown> = this.tagService.tags.includes(name) ? of(null) : this.tagService.addTag(name);
-      // If the create failed the tag service has already alerted the user and
-      // the observable completed without emitting, skipping the attach.
+      // A create failure propagates through the chain into the error handler
+      // below, which alerts and skips the attach.
       create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/tags`, { name }, HTTP_OPTIONS))).subscribe(
         () => {
           media.tags.push(name);

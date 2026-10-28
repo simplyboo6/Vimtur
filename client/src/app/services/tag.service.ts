@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { EMPTY, Observable, ReplaySubject } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, ReplaySubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { AlertService } from 'app/services/alert.service';
 
 const HTTP_OPTIONS = {
@@ -43,21 +43,15 @@ export class TagService {
   }
 
   // Returns the create request so callers can chain follow-up work (e.g.
-  // attaching the tag to media) off its completion. On failure the user is
-  // alerted here and the observable completes without emitting, so chained
-  // work is skipped.
+  // attaching the tag to media) off its completion. Success side effects
+  // (alerting and updating the local tag list) happen here; errors are left
+  // to the subscriber to handle.
   public addTag(tag: string): Observable<string[]> {
     return this.httpClient.post<string[]>(`/api/tags`, { tag }, HTTP_OPTIONS).pipe(
       tap(res => {
         this.alertService.show({ type: 'info', message: `Added tag '${tag}'`, autoClose: 3000 });
         this.tagReplay.next(res);
         this.tags = res;
-      }),
-      catchError((err: HttpErrorResponse) => {
-        console.error(err);
-        const message = (err && err.error && err.error.message) || `Failed to add tag '${tag}'`;
-        this.alertService.show({ type: 'warning', message, autoClose: 5000 });
-        return EMPTY;
       }),
     );
   }
