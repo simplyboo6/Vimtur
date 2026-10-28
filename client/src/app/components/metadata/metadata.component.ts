@@ -8,6 +8,13 @@ import { switchMap } from 'rxjs/operators';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
+import { FormsModule } from '@angular/forms';
+import { NgbRating } from '@ng-bootstrap/ng-bootstrap/rating';
+import { SelectComponent } from '../select/select.component';
+import { SelectOptionComponent } from '../select-option/select-option.component';
+import { LoadingComponent } from '../loading/loading.component';
+import { DatePipe } from '@angular/common';
+import { FormatArrayPipe } from '../../shared/format-array.pipe';
 
 interface MediaModel extends UpdateMedia {
   tags?: string[];
@@ -27,7 +34,7 @@ interface MetadataField {
   templateUrl: './metadata.component.html',
   styleUrls: ['./metadata.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FormsModule, NgbRating, SelectComponent, SelectOptionComponent, LoadingComponent, DatePipe, FormatArrayPipe],
 })
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;

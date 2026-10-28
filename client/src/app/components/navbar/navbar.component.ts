@@ -4,7 +4,7 @@ import { UiService } from 'services/ui.service';
 import { GalleryService, Page } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, RouterLink } from '@angular/router';
 import { Subscription, Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import {
@@ -19,6 +19,10 @@ import {
   faDiamondTurnRight,
   IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { NgbCollapse } from '@ng-bootstrap/ng-bootstrap/collapse';
+import { FormsModule } from '@angular/forms';
+import { AsyncPipe } from '@angular/common';
 
 interface NavItemButton {
   type: 'button';
@@ -42,7 +46,7 @@ type NavItem = NavItemButton | NavItemPaginator;
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FaIconComponent, NgbCollapse, RouterLink, FormsModule, AsyncPipe],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   protected tagsOpen = false;

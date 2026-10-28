@@ -5,6 +5,9 @@ import { Subscription, timer } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
 import Hls, { ErrorData } from 'hls.js';
+import { ResizedDirective } from '../../shared/resized.directive';
+import { PreviewComponent } from '../preview/preview.component';
+import { NgTemplateOutlet } from '@angular/common';
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
@@ -48,7 +51,7 @@ interface VideoPlayerState {
   templateUrl: './video-player.component.html',
   styleUrls: ['./video-player.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [ResizedDirective, PreviewComponent, NgTemplateOutlet],
 })
 export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, OnChanges {
   @ViewChild('videoElement', { static: false }) public videoElement: any;

@@ -7,7 +7,6 @@ import { SubsetConstraints } from '@vimtur/common';
   templateUrl: './confirm-bulk-update.component.html',
   styleUrls: ['./confirm-bulk-update.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
 })
 export class ConfirmBulkUpdateComponent {
   public constraints?: SubsetConstraints;

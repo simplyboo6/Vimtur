@@ -1,23 +1,19 @@
-import { enableProdMode, ApplicationRef } from '@angular/core';
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
-import { enableDebugTools } from '@angular/platform-browser';
+import { enableProdMode } from '@angular/core';
+import { bootstrapApplication, enableDebugTools } from '@angular/platform-browser';
 
-import { AppModule } from './app/app.module';
+import { AppComponent } from './app/components/app/app.component';
+import { appConfig } from './app/app.config';
 import { environment } from './environments/environment';
 
 if (environment.production) {
   enableProdMode();
-  platformBrowserDynamic()
-    .bootstrapModule(AppModule)
-    .catch(err => console.error(err));
-} else {
-  platformBrowserDynamic()
-    .bootstrapModule(AppModule)
-    .then(moduleRef => {
-      const applicationRef = moduleRef.injector.get(ApplicationRef);
-      const componentRef = applicationRef.components[0];
-      // allows to run `ng.profiler.timeChangeDetection();`
-      enableDebugTools(componentRef);
-    })
-    .catch(err => console.log(err));
 }
+bootstrapApplication(AppComponent, appConfig)
+  .then(applicationRef => {
+    // allows to run `ng.profiler.timeChangeDetection();`
+    if (!environment.production) {
+      enableDebugTools(applicationRef.components[0]);
+    }
+  })
+  // Dev-serve needs console.log so the error isn't swallowed by the HMR overlay.
+  .catch(err => (environment.production ? console.error : console.log)(err));

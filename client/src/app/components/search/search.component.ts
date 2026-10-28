@@ -8,13 +8,17 @@ import { Subscription, combineLatest, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Playlist } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
+import { FormsModule } from '@angular/forms';
+import { SelectComponent } from '../select/select.component';
+import { SelectOptionComponent } from '../select-option/select-option.component';
+import { LoadingComponent } from '../loading/loading.component';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FormsModule, SelectComponent, SelectOptionComponent, LoadingComponent],
 })
 export class SearchComponent implements OnInit, OnDestroy {
   private readonly tagService: TagService;

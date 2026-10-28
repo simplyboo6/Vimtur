@@ -16,9 +16,10 @@ import {
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { Subscription, timer, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 import { isMobile } from 'is-mobile';
 import { ConfigService } from 'services/config.service';
+import { AsyncPipe } from '@angular/common';
 
 interface BasicSelectOption {
   name: string;
@@ -37,7 +38,7 @@ interface BasicSelectOption {
     },
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FormsModule, AsyncPipe],
 })
 export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {
   @Input() public placeholder?: string;

@@ -2,10 +2,7 @@ import { Subscription } from 'rxjs';
 import { Directive, ElementRef, EventEmitter, OnInit, Output, OnDestroy } from '@angular/core';
 import { ResizeService } from 'services/resize.service';
 
-@Directive({
-  selector: '[appResized]',
-  standalone: false,
-})
+@Directive({ selector: '[appResized]' })
 export class ResizedDirective implements OnInit, OnDestroy {
   @Output() public readonly resized = new EventEmitter<void>();
 

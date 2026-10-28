@@ -10,6 +10,12 @@ import { Subscription, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ListItem, toListItems } from 'app/shared/types';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { FormsModule } from '@angular/forms';
+import { NgbRating } from '@ng-bootstrap/ng-bootstrap/rating';
+import { NgTemplateOutlet } from '@angular/common';
+import { SelectComponent } from '../select/select.component';
+import { SelectOptionComponent } from '../select-option/select-option.component';
 
 const DEFAULT_COLUMN_COUNT = 1;
 
@@ -24,7 +30,7 @@ interface MetadataModel {
   templateUrl: './tag-panel.component.html',
   styleUrls: ['./tag-panel.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FaIconComponent, FormsModule, NgbRating, NgTemplateOutlet, SelectComponent, SelectOptionComponent],
 })
 export class TagPanelComponent implements OnInit, OnDestroy, AfterViewChecked {
   public readonly faPlus = faPlus;

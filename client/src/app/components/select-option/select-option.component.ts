@@ -1,12 +1,13 @@
 import { Component, Input, EventEmitter, Output, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { getUid } from 'app/shared/uid';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-select-option[value]',
   templateUrl: './select-option.component.html',
   styleUrls: ['./select-option.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false,
+  imports: [FormsModule],
 })
 export class SelectOptionComponent {
   public readonly uid = getUid();
