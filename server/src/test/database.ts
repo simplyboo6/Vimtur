@@ -334,6 +334,26 @@ describe('Database Tests', () => {
       }
     });
 
+    it('counts media cheaply and tracks deletions', async () => {
+      const base = await database.countMedia();
+
+      await database.saveMedia('hash-count-test', {
+        hash: 'hash-count-test',
+        path: '/tmp/count-test.jpg',
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+      });
+      expect(await database.countMedia()).to.equal(base + 1);
+
+      // ignoreInImport=false removes the row outright, keeping the count unchanged after.
+      await database.removeMedia('hash-count-test', false);
+      expect(await database.countMedia()).to.equal(base);
+    });
+
     describe('Media deleted from the library', () => {
       it('decrements the size of every playlist that held the media', async () => {
         await database.addMediaToPlaylist(media[0].hash, playlists[0].id);

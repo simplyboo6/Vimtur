@@ -27,6 +27,13 @@ export class TaskManager extends EventEmitter {
       throw new BadRequest(`No task with id: ${id}`);
     }
 
+    // The HTTP layer cannot distinguish "no arguments" from an empty
+    // argument list: POST bodies without a real argument array (e.g. `{}`)
+    // would otherwise be correctly rejected by validation but only after
+    // replacing the task, surfacing as a silent 200. Normalising both to
+    // the empty form means defaulting (and missing-args) errors stay where
+    // the per-task validation decides them.
+    const taskArgs = args !== undefined && args !== null && Object.keys(args).length === 0 ? [] : args;
     if (this.taskQueue.length >= MAX_TASK_QUEUE_SIZE) {
       throw new BadRequest('Queue exceeds maximum size');
     }
@@ -54,7 +61,7 @@ export class TaskManager extends EventEmitter {
       running: false,
       aborted: false,
       complete: false,
-      args: args as undefined | TaskArgs,
+      args: taskArgs as undefined | TaskArgs,
     });
 
     if (!this.taskQueue[0].running) {
@@ -159,17 +166,32 @@ export class TaskManager extends EventEmitter {
       }
     }
 
-    queuedTask.promise = task.runner((current, max, info) => {
-      queuedTask.current = current;
-      queuedTask.max = max;
-      queuedTask.description = info || queuedTask.description;
+    // The runner may throw synchronously (e.g. stale task prerequisites).
+    // Callers may invoke this from a prior task's promise continuation, so
+    // an escaping throw would become an unhandled rejection and leave this
+    // entry marked running forever, wedging the whole queue.
+    try {
+      queuedTask.promise = task.runner((current, max, info) => {
+        queuedTask.current = current;
+        queuedTask.max = max;
+        queuedTask.description = info || queuedTask.description;
 
-      const emit = current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
-      if (emit) {
-        this.lastEmitTime = Date.now();
-        this.emit('queue', this.taskQueue);
-      }
-    }, queuedTask.args);
+        const emit = current === 0 || current >= max - 1 || Date.now() - this.lastEmitTime > EMIT_TIME;
+        if (emit) {
+          this.lastEmitTime = Date.now();
+          this.emit('queue', this.taskQueue);
+        }
+      }, queuedTask.args);
+    } catch (errUnknown: unknown) {
+      const err = asError(errUnknown);
+      queuedTask.error = err.message;
+      queuedTask.running = false;
+      queuedTask.complete = true;
+      this.emit('end', queuedTask);
+      this.emit('queue', this.taskQueue);
+      this.execute();
+      return;
+    }
 
     console.log(`Task started: ${queuedTask.id}`);
     this.emit('start', queuedTask);

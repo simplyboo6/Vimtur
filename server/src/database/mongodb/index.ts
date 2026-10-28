@@ -618,6 +618,10 @@ export class MongoConnector extends Database {
     return result.matchedCount;
   }
 
+  public async countMedia(): Promise<number> {
+    return this.db.collection('media').countDocuments();
+  }
+
   public async saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media> {
     // Filter out various old fields we no longer require.
     // This one is generated on get media and may be accidentally passed back.
