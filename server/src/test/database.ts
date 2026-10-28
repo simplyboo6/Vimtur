@@ -334,6 +334,36 @@ describe('Database Tests', () => {
       }
     });
 
+    describe('Media deleted from the library', () => {
+      it('decrements the size of every playlist that held the media', async () => {
+        await database.addMediaToPlaylist(media[0].hash, playlists[0].id);
+        await database.addMediaToPlaylist(media[0].hash, playlists[1].id);
+        await database.addMediaToPlaylist(media[1].hash, playlists[1].id);
+
+        await database.removeMedia(media[0].hash, false);
+
+        expect((await database.getPlaylist(playlists[0].id))!.size).to.equal(0);
+        expect((await database.getPlaylist(playlists[1].id))!.size).to.equal(1);
+      });
+
+      it('leaves sizes untouched when the media was in no playlist', async () => {
+        await database.addMediaToPlaylist(media[0].hash, playlists[0].id);
+
+        await database.removeMedia(media[4].hash, false);
+
+        expect((await database.getPlaylist(playlists[0].id))!.size).to.equal(1);
+      });
+
+      it('does not leave a playlist thumbnail pointing at deleted media', async () => {
+        const playlist = await database.addPlaylist({ name: 'Thumb test' });
+        await database.updatePlaylist(playlist.id, { thumbnail: media[0].hash });
+
+        await database.removeMedia(media[0].hash, false);
+
+        expect((await database.getPlaylist(playlist.id))!.thumbnail).to.equal(undefined);
+      });
+    });
+
     describe('Ordered existing playlist', () => {
       beforeEach(async () => {
         for (const m of media) {
