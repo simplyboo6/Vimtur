@@ -7,7 +7,11 @@ import { CollectionService } from 'app/services/collection.service';
 import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray, CdkDropList, CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { NgTemplateOutlet } from '@angular/common';
+import { LazyComponent } from '../lazy/lazy.component';
+import { ActionsComponent } from '../actions/actions.component';
+import { LoadingComponent } from '../loading/loading.component';
 
 export const MAX_LOADED = 20;
 
@@ -21,7 +25,7 @@ interface MediaTitle {
   templateUrl: './playlist.component.html',
   styleUrls: ['./playlist.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [NgTemplateOutlet, CdkDropList, CdkDrag, LazyComponent, CdkDragHandle, ActionsComponent, LoadingComponent],
 })
 export class PlaylistComponent implements OnInit, OnDestroy {
   @Input() public playlist?: Playlist;

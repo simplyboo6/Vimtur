@@ -1,16 +1,20 @@
 import { Component, OnInit, HostListener, ChangeDetectionStrategy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { AsyncPipe } from '@angular/common';
 import { CollectionService } from 'services/collection.service';
 import { ConfigService } from 'services/config.service';
 import { GalleryService } from 'services/gallery.service';
 import { UiService } from 'services/ui.service';
+import { LoadingComponent } from '../loading/loading.component';
+import { NavbarComponent } from '../navbar/navbar.component';
+import { AlertOverlayComponent } from '../alert-overlay/alert-overlay.component';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [RouterOutlet, AsyncPipe, LoadingComponent, NavbarComponent, AlertOverlayComponent],
 })
 export class AppComponent implements OnInit {
   protected readonly collectionService: CollectionService;

@@ -23,7 +23,6 @@ const SLIDE_INTERVAL = 500;
   templateUrl: './preview.component.html',
   styleUrls: ['./preview.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
 })
 export class PreviewComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('canvasElement', { static: false }) public canvasElement: any;

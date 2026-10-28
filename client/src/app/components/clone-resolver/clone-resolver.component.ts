@@ -5,6 +5,9 @@ import { CollectionService } from 'services/collection.service';
 import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
+import { NgTemplateOutlet } from '@angular/common';
+import { LoadingComponent } from '../loading/loading.component';
+import { RouterLink } from '@angular/router';
 
 interface CloneMedia extends Media {
   isClone?: boolean;
@@ -15,7 +18,7 @@ interface CloneMedia extends Media {
   templateUrl: './clone-resolver.component.html',
   styleUrls: ['./clone-resolver.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [NgTemplateOutlet, LoadingComponent, RouterLink],
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {
   public readonly getTitle = getTitle;

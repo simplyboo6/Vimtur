@@ -2,13 +2,14 @@ import { Component, Input, OnInit, OnDestroy, ChangeDetectionStrategy } from '@a
 import { Observable, of, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CollectionService } from 'app/services/collection.service';
+import { AsyncPipe } from '@angular/common';
 
 @Component({
   selector: 'app-loading',
   templateUrl: './loading.component.html',
   styleUrls: ['./loading.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [AsyncPipe],
 })
 export class LoadingComponent implements OnInit, OnDestroy {
   @Input() public title?: string;

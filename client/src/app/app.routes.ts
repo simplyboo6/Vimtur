@@ -1,5 +1,5 @@
-import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { Routes } from '@angular/router';
+
 import { ViewerComponent } from './components/viewer/viewer.component';
 import { ConfigComponent } from './components/config/config.component';
 import { MetadataComponent } from './components/metadata/metadata.component';
@@ -9,7 +9,7 @@ import { InsightsComponent } from './components/insights/insights.component';
 import { CloneResolverComponent } from './components/clone-resolver/clone-resolver.component';
 import { PlaylistsComponent } from './components/playlists/playlists.component';
 
-const routes: Routes = [
+export const routes: Routes = [
   { path: '', redirectTo: '/gallery', pathMatch: 'full' },
   { path: 'viewer', component: ViewerComponent },
   { path: 'config', component: ConfigComponent },
@@ -20,13 +20,3 @@ const routes: Routes = [
   { path: 'clone-resolver', component: CloneResolverComponent },
   { path: 'playlists', component: PlaylistsComponent },
 ];
-
-@NgModule({
-  imports: [
-    RouterModule.forRoot(routes, {
-      scrollPositionRestoration: 'enabled',
-    }),
-  ],
-  exports: [RouterModule],
-})
-export class AppRoutingModule {}

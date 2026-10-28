@@ -8,6 +8,11 @@ import { CollectionService } from 'app/services/collection.service';
 import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
+import { PlaylistComponent } from '../playlist/playlist.component';
+import { FormsModule } from '@angular/forms';
+import { PreviewComponent } from '../preview/preview.component';
+import { ActionsComponent } from '../actions/actions.component';
+import { LoadingComponent } from '../loading/loading.component';
 
 export interface PreviewPlaylist extends Playlist {
   media?: Media;
@@ -22,7 +27,7 @@ export interface MediaVisibility extends Media {
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [PlaylistComponent, FormsModule, PreviewComponent, ActionsComponent, LoadingComponent],
 })
 export class PlaylistsComponent implements OnInit, OnDestroy {
   public readonly getTitle = getTitle;

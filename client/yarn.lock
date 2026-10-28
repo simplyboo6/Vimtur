@@ -265,17 +265,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/animations@npm:^22.2.3":
-  version: 22.2.3
-  resolution: "@angular/animations@npm:22.2.3"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@angular/core": 22.2.3
-  checksum: 10c0/73218bb24fecf9af299c519908d2659355b26a0656b9cb96d19cb87ecf63cd86a614758649f5aaf0b6c2188a14dfc3bd30288a2fcc404af2975fcdc5641f057b
-  languageName: node
-  linkType: hard
-
 "@angular/build@npm:22.2.4":
   version: 22.2.4
   resolution: "@angular/build@npm:22.2.4"
@@ -505,20 +494,6 @@ __metadata:
     localize-migrate: tools/bundles/src/migrate/cli.js
     localize-translate: tools/bundles/src/translate/cli.js
   checksum: 10c0/40a22717cfeb4a203520b8faacb7fba5fd8cb0b27a0c213d42a9d2af10b5028e1dc06d8affec7168854248eb5c23d189c4bb921cba8cfa6a1e643a1f181bc180
-  languageName: node
-  linkType: hard
-
-"@angular/platform-browser-dynamic@npm:^22.2.3":
-  version: 22.2.3
-  resolution: "@angular/platform-browser-dynamic@npm:22.2.3"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@angular/common": 22.2.3
-    "@angular/compiler": 22.2.3
-    "@angular/core": 22.2.3
-    "@angular/platform-browser": 22.2.3
-  checksum: 10c0/fc2a0e7937b5520c324643bb11407841e032e20fad2f12aad4094cf5b9c364f9d75ae41dc81bd61ac6e88e31e89eb7d9c56abcc9eb21a533b294acf199e09169
   languageName: node
   linkType: hard
 
@@ -5230,7 +5205,6 @@ __metadata:
     "@angular-eslint/eslint-plugin-template": "npm:22"
     "@angular-eslint/schematics": "npm:22"
     "@angular-eslint/template-parser": "npm:22"
-    "@angular/animations": "npm:^22.2.3"
     "@angular/cdk": "npm:22.2.4"
     "@angular/cli": "npm:^22.2.4"
     "@angular/common": "npm:^22.2.3"
@@ -5241,7 +5215,6 @@ __metadata:
     "@angular/language-service": "npm:^22.2.3"
     "@angular/localize": "npm:22.2.3"
     "@angular/platform-browser": "npm:^22.2.3"
-    "@angular/platform-browser-dynamic": "npm:^22.2.3"
     "@angular/router": "npm:^22.2.3"
     "@fortawesome/angular-fontawesome": "npm:5.1"
     "@fortawesome/fontawesome-svg-core": "npm:^6.5.0"

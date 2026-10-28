@@ -5,13 +5,17 @@ import { ConfigService } from 'services/config.service';
 import { Subscription } from 'rxjs';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
+import { TagPanelComponent } from '../tag-panel/tag-panel.component';
+import { VideoPlayerComponent } from '../video-player/video-player.component';
+import { LoadingComponent } from '../loading/loading.component';
+import { FormatArrayPipe } from '../../shared/format-array.pipe';
 
 @Component({
   selector: 'app-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [TagPanelComponent, VideoPlayerComponent, LoadingComponent, FormatArrayPipe],
 })
 export class ViewerComponent implements OnInit, OnDestroy {
   public tagsOpen = false;

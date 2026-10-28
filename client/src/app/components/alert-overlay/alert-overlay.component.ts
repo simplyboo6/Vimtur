@@ -1,13 +1,14 @@
 import { Component, OnInit, NgZone, ChangeDetectionStrategy } from '@angular/core';
 import { Alert } from 'app/shared/types';
 import { AlertService } from 'app/services/alert.service';
+import { NgbAlert } from '@ng-bootstrap/ng-bootstrap/alert';
 
 @Component({
   selector: 'app-alert-overlay',
   templateUrl: './alert-overlay.component.html',
   styleUrls: ['./alert-overlay.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [NgbAlert],
 })
 export class AlertOverlayComponent implements OnInit {
   private alertService: AlertService;

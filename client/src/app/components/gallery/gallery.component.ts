@@ -4,13 +4,16 @@ import { CollectionService } from 'services/collection.service';
 import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
+import { RouterLink } from '@angular/router';
+import { PreviewComponent } from '../preview/preview.component';
+import { LoadingComponent } from '../loading/loading.component';
 
 @Component({
   selector: 'app-gallery',
   templateUrl: './gallery.component.html',
   styleUrls: ['./gallery.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [RouterLink, PreviewComponent, LoadingComponent],
 })
 export class GalleryComponent implements OnInit, OnDestroy {
   public media?: Media[] = [];

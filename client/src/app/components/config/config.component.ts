@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { formatPercent } from '@angular/common';
+import { formatPercent, NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
@@ -11,13 +11,17 @@ import { TasksService } from 'app/services/tasks.service';
 import { Subscription, timer, combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ListItem } from 'app/shared/types';
+import { FormsModule } from '@angular/forms';
+import { SelectComponent } from '../select/select.component';
+import { SelectOptionComponent } from '../select-option/select-option.component';
+import { LoadingComponent } from '../loading/loading.component';
 
 @Component({
   selector: 'app-config',
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  imports: [FormsModule, NgTemplateOutlet, SelectComponent, SelectOptionComponent, LoadingComponent],
 })
 export class ConfigComponent implements OnInit, OnDestroy {
   private configService: ConfigService;
