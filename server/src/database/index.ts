@@ -18,7 +18,7 @@ export async function setup(): Promise<Database> {
     case 'sqlite': {
       const path = (Config.get().database as Configuration.SqliteDbConfig | undefined)?.path;
       if (path !== undefined && isInMemoryDatabase(path)) {
-        // ':memory:' is a better-sqlite3 magic value, not a path; pass it
+        // ':memory:' is a node:sqlite magic filename, not a path; pass it
         // through verbatim (used by API tests).
         return SqliteConnector.init({ filename: path, libraryPath: Config.get().libraryPath });
       }
