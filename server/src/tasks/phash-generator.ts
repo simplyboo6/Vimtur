@@ -26,6 +26,7 @@ export function getTask(database: Database): RouterTask {
             phashed: false,
             thumbnail: true,
           });
+          updateStatus(0, mediaList.length);
 
           return {
             iterable: mediaList,
@@ -50,7 +51,8 @@ export function getTask(database: Database): RouterTask {
           const hashString = await hasher.hash(path);
           await database.saveMedia(media.hash, { phash: hashString });
 
-          updateStatus(init.current++, init.max);
+          init.current += 1;
+          updateStatus(init.current, init.max);
         },
         { parallel: BATCH_SIZE },
       );

@@ -16,13 +16,27 @@ export function getTask(db: Database): RouterTask {
             corrupted: false,
             type: { equalsAll: ['video'] },
           });
-          updateStatus(0, videos.length);
+          // Filter to videos that are actually missing metadata so the
+          // reported maximum is the amount of work this session will do
+          // rather than the size of the library.
+          const workSet: string[] = [];
+          for (const hash of videos) {
+            const media = await db.getMedia(hash);
+            if (!media) {
+              continue;
+            }
+            if (media.metadata?.album && media.metadata?.artist && media.metadata?.title) {
+              continue;
+            }
+            workSet.push(hash);
+          }
+          updateStatus(0, workSet.length);
 
           return {
-            iterable: videos,
+            iterable: workSet,
             init: {
               current: 0,
-              max: videos.length,
+              max: workSet.length,
             },
           };
         },
@@ -60,7 +74,8 @@ export function getTask(db: Database): RouterTask {
             await db.saveMedia(hash, { corrupted: true });
             throw new Error(`Error getting metadata for ${hash}.`, { cause: err });
           } finally {
-            updateStatus(init.current++, init.max);
+            init.current += 1;
+            updateStatus(init.current, init.max);
           }
         },
         { parallel: BATCH_SIZE },

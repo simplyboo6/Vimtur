@@ -78,7 +78,8 @@ export function getTask(database: Database): RouterTask[] {
               );
               await database.saveMedia(hash, { autoTags: results.probabilities });
             } finally {
-              updateStatus(init.current++, init.max);
+              init.current += 1;
+              updateStatus(init.current, init.max);
             }
           },
           { parallel, continueOnError: true },

@@ -1,8 +1,25 @@
+import type { BaseMedia } from '@vimtur/common';
 import { execute } from 'proper-job';
 
 import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
+
+// An item is in this run's work set when its keyframe-derived stream segments
+// are missing and the cached quality list doesn't cover every streaming
+// quality (in which case segments are never needed for streaming). This is
+// used to size the task's max, so the reported maximum is the amount of work
+// this session will do rather than the size of the library.
+function needsKeyframes(media: BaseMedia): boolean {
+  if (media.metadata?.segments) {
+    return false;
+  }
+  const qualityCache = media.metadata?.qualityCache;
+  if (qualityCache && Config.get().transcoder.streamQualities.every((quality) => qualityCache.includes(quality))) {
+    return false;
+  }
+  return true;
+}
 
 export function getTask(database: Database): RouterTask {
   return {
@@ -16,13 +33,20 @@ export function getTask(database: Database): RouterTask {
             indexed: true,
             duplicateOf: { exists: false },
           });
-          updateStatus(0, hashes.length);
+          const workSet: string[] = [];
+          for (const hash of hashes) {
+            const media = await database.getMedia(hash);
+            if (media?.metadata && needsKeyframes(media)) {
+              workSet.push(hash);
+            }
+          }
+          updateStatus(0, workSet.length);
 
           return {
-            iterable: hashes,
+            iterable: workSet,
             init: {
               current: 0,
-              max: hashes.length,
+              max: workSet.length,
             },
           };
         },
@@ -31,43 +55,23 @@ export function getTask(database: Database): RouterTask {
             throw new Error('init not defined');
           }
 
-          const media = await database.getMedia(hash);
-          if (!media) {
-            console.log('Unexpectedly couldnt find media', hash);
-            return;
-          }
-          if (!media.metadata) {
-            console.log('Skipping precache for non-indexed media', hash);
-            return;
-          }
-
-          let generateSegments = !media.metadata.segments;
-          if (generateSegments && media.metadata.qualityCache) {
-            const streamQualities = Config.get().transcoder.streamQualities;
-            let hasAll = true;
-            // Check if it's cached at every streaming quality, if it is then don't
-            // bother precaching.
-            for (const quality of streamQualities) {
-              if (!media.metadata.qualityCache.includes(quality)) {
-                hasAll = false;
-                break;
-              }
+          try {
+            const media = await database.getMedia(hash);
+            if (!media || !media.metadata) {
+              console.log('Skipping precache for non-indexed media', hash);
+              return;
             }
-            if (hasAll) {
-              generateSegments = false;
-            }
-          }
 
-          if (generateSegments) {
             const segments = await ImportUtils.generateSegments(media);
             await database.saveMedia(media.hash, {
               metadata: {
                 segments,
               },
             });
+          } finally {
+            init.current += 1;
+            updateStatus(init.current, init.max);
           }
-
-          updateStatus(init.current++, init.max);
         },
       );
     },

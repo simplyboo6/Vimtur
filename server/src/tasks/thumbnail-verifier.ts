@@ -42,7 +42,8 @@ export function getTask(database: Database): RouterTask {
             await database.saveMedia(media.hash, { thumbnail: false, thumbnailOptimised: false });
           }
 
-          updateStatus(init.current++, init.max);
+          init.current += 1;
+          updateStatus(init.current, init.max);
         },
         { parallel: THUMBNAIL_BATCH_SIZE },
       );

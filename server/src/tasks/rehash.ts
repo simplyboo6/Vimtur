@@ -76,7 +76,8 @@ export function getTask(database: Database): RouterTask {
             await database.saveMedia(media.hash, { hash });
           }
 
-          updateStatus(init.current++, init.max);
+          init.current += 1;
+          updateStatus(init.current, init.max);
         },
         { parallel: 8 },
       );
