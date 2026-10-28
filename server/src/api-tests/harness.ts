@@ -38,9 +38,12 @@ export interface ApiServer {
   stop(): Promise<void>;
 }
 
+// Set while a server is running so failure messages below can include the
+// server's own log. Tests run sequentially per file, so one slot is enough.
+let activeServerLogPath: string | undefined;
+
 export async function startServer(options: StartServerOptions = {}): Promise<ApiServer> {
-  const tmpBase = FS.existsSync('/tmp/opencode') ? '/tmp/opencode' : OS.tmpdir();
-  const root = FS.mkdtempSync(Path.join(tmpBase, 'vimtur-api-'));
+  const root = FS.mkdtempSync(Path.join(OS.tmpdir(), 'vimtur-api-'));
   const libraryPath = Path.join(root, 'library');
   const cachePath = Path.join(root, 'cache');
   const dbMode = options.dbMode ?? 'memory';
@@ -86,6 +89,7 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
       });
       const spawned = child;
       await waitUntilReady(port, child, logPath);
+      activeServerLogPath = logPath;
       return {
         port,
         baseUrl: `http://127.0.0.1:${port}`,
@@ -256,7 +260,11 @@ export async function waitForDrainedQueue(client: ApiClient, options: { timeoutM
     const queue = assertOk(response, 'GET /api/tasks/queue');
     const failed = queue.filter((task) => task.error);
     if (failed.length > 0) {
-      throw new Error(`Task(s) failed: ${failed.map((task) => `${task.id}: ${task.error}`).join('; ')}`);
+      throw new Error(
+        `Task(s) failed: ${failed.map((task) => `${task.id}: ${task.error}`).join('; ')}\n--- server.log ---\n${logTail(
+          activeServerLogPath ?? '',
+        )}`,
+      );
     }
     if (queue.length === 0) {
       return;
@@ -321,7 +329,9 @@ async function stopServer(child: ChildProcess, root: string): Promise<void> {
       await waitForExit(child, 5_000).catch(() => undefined);
     }
   }
-  FS.rmSync(root, { recursive: true, force: true });
+  if (!process.env['API_TEST_KEEP_TMP']) {
+    FS.rmSync(root, { recursive: true, force: true });
+  }
 }
 
 function killProcessGroup(pid: number, signal: NodeJS.Signals): void {
@@ -352,6 +362,9 @@ function waitForExit(child: ChildProcess, timeoutMs: number): Promise<void> {
 }
 
 function logTail(logPath: string, lines = 40): string {
+  if (!logPath) {
+    return '(no server log available)';
+  }
   try {
     const content = FS.readFileSync(logPath, 'utf8');
     const all = content.split('\n');

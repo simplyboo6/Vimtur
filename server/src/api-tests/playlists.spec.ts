@@ -13,6 +13,10 @@ import {
   subset,
 } from './harness';
 
+// These tests form a scripted sequence: the hashes under test are assigned
+// in earlier tests and consumed by later ones, so a failure early in the
+// file may cascade into confusing errors below. Mocha runs this file in
+// declaration order; do not use .only here.
 describe('Playlists API', () => {
   let server: ApiServer;
   let client: ApiClient;
@@ -54,7 +58,7 @@ describe('Playlists API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('starts with no playlists', async () => {

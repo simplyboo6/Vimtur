@@ -10,6 +10,17 @@ interface QueueItem {
   reject: (err: Error) => void;
 }
 
+// Read requests may fan out across every worker connection — WAL supports
+// concurrent readers. Everything else (run, exec, and transaction batches)
+// writes, and SQLite allows a single writer at a time: concurrent writers on
+// separate connections fail with "database is locked" (a deferred
+// transaction's upgrade to writer returns BUSY immediately instead of
+// waiting out the busy timeout), which has been observed losing parallel
+// indexer writes on a file-backed database.
+function isWriteRequest(request: SqliteWorkerRequest | SqliteWorkerRequest[]): boolean {
+  return Array.isArray(request) || request.type === 'run' || request.type === 'exec';
+}
+
 interface WorkerWrapper {
   worker: Worker;
   busy?: boolean;
@@ -29,9 +40,12 @@ export class SqliteController {
 
   public constructor(filename: string) {
     this.filename = filename;
-    // Each worker opens its own connection. File databases are shared through
-    // WAL, but `:memory:` databases are per-connection, so in-memory mode must
-    // use a single worker or every worker would see a separate empty database.
+    // Each worker opens its own connection. Reads fan out across them (WAL
+    // supports concurrent readers), writes are serialised onto the first
+    // connection (see isWriteRequest). `:memory:` databases are per-connection,
+    // so in-memory mode must use a single worker or every worker would see a
+    // separate empty database — the single connection also serialises writes
+    // for free.
     const workerCount = isInMemoryDatabase(filename) ? 1 : OS.cpus().length;
     for (let i = 0; i < workerCount; i++) {
       this.spawnWorker();
@@ -125,8 +139,13 @@ export class SqliteController {
     const takeWork = () => {
       if (!job) {
         error = undefined;
-        job = this.queue.shift();
-        if (job) {
+        // Writes go to the first worker only so they are serialised on a
+        // single connection; reads may run on any connection.
+        const isWriter = this.workers[0]?.worker === worker;
+        const index = this.queue.findIndex((item) => isWriter || !isWriteRequest(item.request));
+        if (index >= 0) {
+          const [item] = this.queue.splice(index, 1);
+          job = item;
           worker.postMessage(job.request);
         }
       }

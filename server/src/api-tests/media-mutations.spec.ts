@@ -41,7 +41,7 @@ describe('Media mutations API', () => {
   });
 
   after(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('PATCH updates a rating and returns the updated media', async () => {
@@ -185,6 +185,9 @@ describe('Media mutations API', () => {
     expect(response.status).to.equal(400);
   });
 
+  // These tests form a scripted sequence: the clone-resolution block below
+  // depends on state set by the tests above it. Mocha runs this file in
+  // declaration order; do not use .only here.
   describe('Clone resolution', () => {
     it('rejects resolution without clones', async () => {
       const response = await client.post(`/api/images/${three}/resolve`, { aliases: [], unrelated: [] });
@@ -228,5 +231,76 @@ describe('Media mutations API', () => {
       });
       expect(response.status).to.equal(404);
     });
+  });
+});
+
+// The rest of this file (and suite) runs every server against ':memory:' —
+// a single SQLite worker with no WAL. Production ships a file-backed
+// multi-worker database, so this block re-runs the mutation-heavy flows
+// against that configuration, which is the one that can expose worker-queue
+// races.
+describe('Media mutations API (file-backed database)', () => {
+  let fileServer: ApiServer;
+  let fileClient: ApiClient;
+  let alpha: string;
+  let beta: string;
+
+  before(async () => {
+    fileServer = await startServer({ dbMode: 'file' });
+    fileClient = new ApiClient(fileServer.baseUrl);
+
+    await createStill(fileServer.libraryPath, 'file-alpha.png', 'red');
+    await createStill(fileServer.libraryPath, 'file-beta.png', 'green');
+    await runTaskAndWait(fileClient, 'AUTO-IMPORT');
+
+    const hashes = await subset(fileClient, {});
+    expect(hashes).to.have.lengthOf(2);
+    const alphaHashes = await subset(fileClient, { path: { likeAny: ['alpha'] } });
+    expect(alphaHashes).to.have.lengthOf(1);
+    alpha = (await detail(fileClient, alphaHashes[0])).hash;
+    const betaHashes = await subset(fileClient, { path: { likeAny: ['beta'] } });
+    expect(betaHashes).to.have.lengthOf(1);
+    beta = (await detail(fileClient, betaHashes[0])).hash;
+  });
+
+  after(async () => {
+    await fileServer?.stop();
+  });
+
+  it('PATCH updates a rating and survives a re-read', async () => {
+    assertOk(await fileClient.patch<Media>(`/api/images/${alpha}`, { rating: 4 }), 'PATCH /api/images/:hash');
+    expect((await detail(fileClient, alpha)).rating).to.equal(4);
+  });
+
+  it('PATCH with an empty update object is a 400', async () => {
+    const response = await fileClient.patch(`/api/images/${alpha}`, {});
+    expect(response.status).to.equal(400);
+  });
+
+  it('PATCH on an unknown hash is a 404', async () => {
+    const response = await fileClient.patch('/api/images/unknown-hash-file-mode', { rating: 1 });
+    expect(response.status).to.equal(404);
+  });
+
+  it('bulk-update applies to matching media', async () => {
+    const count = assertOk(
+      await fileClient.patch<number>('/api/images/bulk-update', {
+        constraints: { hash: { equalsAny: [alpha, beta] } },
+        update: { rating: 1 },
+      }),
+      'PATCH /api/images/bulk-update',
+    );
+    expect(count).to.equal(2);
+  });
+
+  it('attaching a pre-created tag works and attaching an unknown tag is a 404', async () => {
+    assertOk(await fileClient.post<string[]>('/api/tags', { tag: 'file-mode-tag' }), 'POST /api/tags');
+    expect(await fileClient.post(`/api/images/${alpha}/tags`, { name: 'file-mode-tag' })).to.have.property(
+      'status',
+      204,
+    );
+
+    const response = await fileClient.post(`/api/images/${alpha}/tags`, { name: 'never-created' });
+    expect(response.status).to.equal(404);
   });
 });

@@ -28,3 +28,10 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    playlists, unknown media-playlist entries, and cancelling unknown queue
    entries respond 2xx without error. Pinned in `tags.spec.ts`,
    `actors.spec.ts`, `playlists.spec.ts` and `tasks.spec.ts`.
+
+5. **Attaching a tag or actor requires the global record to exist.** The
+   attachment endpoints 404 ("No tag/actor found with name: X") rather than
+   creating an implicit empty record, because global tags and actors carry
+   more data than their name. The client chains create → attach (see
+   `TagService.addTag` / `MediaService.addTagRaw`). Pinned in `tags.spec.ts`
+   and `actors.spec.ts`.
