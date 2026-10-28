@@ -96,6 +96,14 @@ export const allMediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast
   { db: 'tags', js: 'tags', cast: 'json' },
   { db: 'actors', js: 'actors', cast: 'json' },
 ];
+// The better-sqlite3 magic filename for an in-memory database. Every worker
+// opens its own connection, so in-memory databases are per-connection: the
+// connector passes the value through verbatim, the controller runs a single
+// worker, and no WAL maintenance applies.
+export function isInMemoryDatabase(filename: string): boolean {
+  return filename === ':memory:';
+}
+
 const requiredMediaKeys = ['hash', 'path', 'dir', 'type', 'hashDate'] as const;
 
 export const searchFieldMap: Array<{ db: keyof RawMedia; js: keyof SubsetConstraints }> = [

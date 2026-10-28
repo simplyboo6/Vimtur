@@ -1,6 +1,7 @@
 import OS from 'os';
 import Path from 'path';
 import { Worker } from 'worker_threads';
+import { isInMemoryDatabase } from './utils';
 import type { SqliteWorkerRequest, SqliteWorkerResult } from './worker';
 
 interface QueueItem {
@@ -24,28 +25,34 @@ export class SqliteController {
   private queue: QueueItem[] = [];
   private workers: WorkerWrapper[] = [];
   private filename: string;
-  private interval: NodeJS.Timeout;
+  private interval?: NodeJS.Timeout;
 
   public constructor(filename: string) {
     this.filename = filename;
     // Each worker opens its own connection. File databases are shared through
     // WAL, but `:memory:` databases are per-connection, so in-memory mode must
     // use a single worker or every worker would see a separate empty database.
-    const workerCount = filename === ':memory:' ? 1 : OS.cpus().length;
+    const workerCount = isInMemoryDatabase(filename) ? 1 : OS.cpus().length;
     for (let i = 0; i < workerCount; i++) {
       this.spawnWorker();
     }
 
-    this.interval = setInterval(() => {
-      const wrapper = this.workers[0];
-      if (wrapper) {
-        wrapper.worker.postMessage({ type: 'flush' });
-      }
-    }, 30000);
+    // The WAL-size flush is meaningless for an in-memory database (no file to
+    // stat, nothing to checkpoint), so don't even start the timer for one.
+    if (!isInMemoryDatabase(filename)) {
+      this.interval = setInterval(() => {
+        const wrapper = this.workers[0];
+        if (wrapper) {
+          wrapper.worker.postMessage({ type: 'flush' });
+        }
+      }, 30000);
+    }
   }
 
   public close(): void {
-    clearInterval(this.interval);
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     for (const wrapper of this.workers) {
       wrapper.worker.postMessage({ type: 'exit' });
     }
