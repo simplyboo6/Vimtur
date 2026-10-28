@@ -11,7 +11,11 @@ on:
 jobs:
   api-tests:
     name: API stability tests
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest: latest moved to Ubuntu 26 (Oct 2026),
+    # whose apt ffmpeg/graphicsmagick are newer than the server supports and
+    # broke every fixture import. 24.04 matches the binary versions the suite
+    # is verified against; bump deliberately alongside the Docker image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -22,9 +26,7 @@ jobs:
           node-version: "24"
       - name: Enable corepack (Yarn 4)
         run: corepack enable
-      # gm and ffmpeg generate the fixture media the suite imports; ffmpeg is
-      # preinstalled on the runner but installed explicitly so the requirement
-      # is documented in one place.
+      # gm and ffmpeg generate the fixture media the suite imports.
       - name: Install test dependencies
         run: |
           sudo apt-get update
@@ -38,7 +40,8 @@ jobs:
 
   database-tests:
     name: Database tests
-    runs-on: ubuntu-latest
+    # See api-tests above for why this is pinned to 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
