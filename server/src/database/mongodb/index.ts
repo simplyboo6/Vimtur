@@ -53,6 +53,7 @@ const MEDIA_VALIDATOR = Validator.load('BaseMedia');
 export class MongoConnector extends Database {
   private server: MongoClient;
   private db: Db;
+  private transactionSupport?: boolean;
 
   public static async init(): Promise<Database> {
     const server = await MongoConnector.connect();
@@ -206,20 +207,57 @@ export class MongoConnector extends Database {
   }
 
   public async removePlaylist(id: string): Promise<void> {
-    const media = this.db.collection<MediaDoc>('media');
-    await media.updateMany(
-      {
-        'playlists._id': new ObjectId(id),
-      },
-      {
-        $pull: {
-          playlists: { _id: new ObjectId(id) },
-        },
-      },
-    );
+    const playlistId = new ObjectId(id);
 
-    const playlists = this.db.collection('playlists');
-    await playlists.deleteOne({ _id: new ObjectId(id) });
+    const pullMemberships = async (): Promise<void> => {
+      await this.db.collection<MediaDoc>('media').updateMany(
+        {
+          'playlists._id': playlistId,
+        },
+        {
+          $pull: {
+            playlists: { _id: playlistId },
+          },
+        },
+      );
+    };
+
+    const deletePlaylist = async (): Promise<void> => {
+      await this.db.collection('playlists').deleteOne({ _id: playlistId });
+    };
+
+    if (await this.supportsTransactions()) {
+      // Replica sets and sharded clusters can make this atomic, so neither
+      // step can be skipped by a crash or a client disconnect.
+      const session = this.server.startSession();
+      try {
+        await session.withTransaction(async () => {
+          await pullMemberships();
+          await deletePlaylist();
+        });
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      // Standalone mongod has no transaction support. The playlist document
+      // is deleted last so a crash in between leaves an empty playlist
+      // document (harmless, and cleaned up by a retry) rather than media
+      // entries pointing at a deleted playlist.
+      await pullMemberships();
+      await deletePlaylist();
+    }
+  }
+
+  // Transactions are only available on replica sets and sharded clusters;
+  // probing such that standalone deployments (incl. the test container)
+  // take the sequential fallback.
+  private async supportsTransactions(): Promise<boolean> {
+    if (this.transactionSupport === undefined) {
+      const hello = await this.db.admin().command({ hello: 1 });
+      const isMongos = (hello as { msg?: string }).msg?.includes('isdbgrid') ?? false;
+      this.transactionSupport = Boolean(hello.setName) || isMongos;
+    }
+    return this.transactionSupport;
   }
 
   public async updatePlaylist(id: string, request: PlaylistUpdate): Promise<void> {
@@ -425,7 +463,7 @@ export class MongoConnector extends Database {
           thumbnail: hash,
         },
         {
-          $unset: { hash: '' },
+          $unset: { thumbnail: '' },
         },
       );
     }
