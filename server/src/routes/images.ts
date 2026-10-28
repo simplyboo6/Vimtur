@@ -223,8 +223,7 @@ export async function create(db: Database): Promise<Router> {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      const tags = await db.getTags();
-      if (!tags.includes(req.body.name)) {
+      if (!(await db.hasTag(req.body.name))) {
         throw new NotFound(`No tag found with name: ${req.body.name}`);
       }
 
@@ -252,8 +251,7 @@ export async function create(db: Database): Promise<Router> {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      const actors = await db.getActors();
-      if (!actors.includes(req.body.name)) {
+      if (!(await db.hasActor(req.body.name))) {
         throw new NotFound(`No actor found with name: ${req.body.name}`);
       }
 

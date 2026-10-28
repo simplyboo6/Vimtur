@@ -312,6 +312,10 @@ export class SqliteConnector extends Database {
     return raw.map((el) => el.id);
   }
 
+  public async hasActor(name: string): Promise<boolean> {
+    return Boolean(await this.db.get('SELECT 1 FROM `actors` WHERE `id` = ?', [name]));
+  }
+
   // Tags
   public async addTag(name: string): Promise<void> {
     await this.db.run('INSERT OR IGNORE INTO `tags` (`id`) VALUES (?)', [name]);
@@ -324,6 +328,10 @@ export class SqliteConnector extends Database {
   public async getTags(): Promise<string[]> {
     const raw = await this.db.all<{ id: string }>('SELECT * FROM `tags`');
     return raw.map((el) => el.id);
+  }
+
+  public async hasTag(name: string): Promise<boolean> {
+    return Boolean(await this.db.get('SELECT 1 FROM `tags` WHERE `id` = ?', [name]));
   }
 
   // Playlists

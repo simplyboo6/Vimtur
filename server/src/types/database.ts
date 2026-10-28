@@ -47,11 +47,15 @@ export abstract class Database {
   public abstract addActor(name: string): Promise<void>;
   public abstract removeActor(name: string): Promise<void>;
   public abstract getActors(): Promise<string[]>;
+  // Existence check for validating attachments without loading every name.
+  public abstract hasActor(name: string): Promise<boolean>;
 
   // Tags
   public abstract addTag(name: string): Promise<void>;
   public abstract removeTag(name: string): Promise<void>;
   public abstract getTags(): Promise<string[]>;
+  // Existence check for validating attachments without loading every name.
+  public abstract hasTag(name: string): Promise<boolean>;
 
   // Playlists
   public abstract addPlaylist(request: PlaylistCreate): Promise<Playlist>;

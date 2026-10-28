@@ -128,6 +128,11 @@ export class MongoConnector extends Database {
     return rows.map((el) => el.name).sort();
   }
 
+  public async hasTag(name: string): Promise<boolean> {
+    const tags = this.db.collection<Tag>('tags');
+    return Boolean(await tags.countDocuments({ name }, { limit: 1 }));
+  }
+
   public async addTag(tag: string): Promise<void> {
     const tags = this.db.collection<Tag>('tags');
     try {
@@ -154,6 +159,11 @@ export class MongoConnector extends Database {
     const actors = this.db.collection<Actor>('actors');
     const rows = await actors.find({}).toArray();
     return rows.map((el) => el.name).sort();
+  }
+
+  public async hasActor(name: string): Promise<boolean> {
+    const actors = this.db.collection<Actor>('actors');
+    return Boolean(await actors.countDocuments({ name }, { limit: 1 }));
   }
 
   public async addActor(actor: string): Promise<void> {
