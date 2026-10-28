@@ -72,10 +72,12 @@ export class SqliteConnector extends Database {
     let media: Omit<Media, 'tags' | 'actors' | 'playlists' | 'absolutePath'>;
     try {
       media = rawMediaToMedia(rawMedia);
-    } catch {
+    } catch (err) {
       // Malformed/legacy rows (e.g. partial upserts from PATCHing unknown
       // hashes) cannot be represented as Media; treat them as absent so
-      // reads 404 instead of throwing.
+      // reads 404 instead of throwing. Warn because internal callers (cache
+      // and task generation) will silently skip this media otherwise.
+      console.warn(`Skipping malformed media row ${hash}:`, err instanceof Error ? err.message : err);
       return undefined;
     }
     const tags = await this.db.all<{

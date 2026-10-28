@@ -5,6 +5,7 @@ import type { Database } from '../types';
 
 import { MongoConnector } from './mongodb';
 import { SqliteConnector } from './sqlite';
+import { isInMemoryDatabase } from './sqlite/utils';
 
 export async function setup(): Promise<Database> {
   const dbConfig = Config.get().database;
@@ -16,11 +17,13 @@ export async function setup(): Promise<Database> {
       return MongoConnector.init();
     case 'sqlite': {
       const path = (Config.get().database as Configuration.SqliteDbConfig | undefined)?.path;
+      if (path !== undefined && isInMemoryDatabase(path)) {
+        // ':memory:' is a better-sqlite3 magic value, not a path; pass it
+        // through verbatim (used by API tests).
+        return SqliteConnector.init({ filename: path, libraryPath: Config.get().libraryPath });
+      }
       return SqliteConnector.init({
-        // ':memory:' is a better-sqlite3 magic value, not a path; pass it through
-        // verbatim (used by API tests). Anything else is resolved against the
-        // cache path like before.
-        filename: path === ':memory:' ? path : Path.resolve(path ?? Config.get().cachePath, 'vimtur.db'),
+        filename: Path.resolve(path ?? Config.get().cachePath, 'vimtur.db'),
         libraryPath: Config.get().libraryPath,
       });
     }
