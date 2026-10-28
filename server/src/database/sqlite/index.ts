@@ -161,7 +161,21 @@ export class SqliteConnector extends Database {
         await this.addDeleted(media);
       }
     }
-    await this.db.run('DELETE FROM `media` WHERE `hash` = ?', [hash]);
+    await this.db.transaction((transaction) => {
+      // The foreign key on `media_playlists` cascades the membership rows
+      // away with the media, so the denormalised playlist sizes must be
+      // updated in the same transaction as the delete. Recounting before
+      // the delete needs to exclude the hash that is going, as it is the
+      // only row the cascade will remove.
+      transaction.run(
+        'UPDATE `playlists` SET `size` = (SELECT COUNT(*) FROM `media_playlists` WHERE `playlist_id` = `playlists`.`id` AND `media_hash` != ?) WHERE `id` IN (SELECT `playlist_id` FROM `media_playlists` WHERE `media_hash` = ?)',
+        [hash, hash],
+      );
+      // A user-set playlist thumbnail would otherwise dangle onto media
+      // that no longer exists.
+      transaction.run('UPDATE `playlists` SET `thumbnail` = NULL WHERE `thumbnail` = ?', [hash]);
+      transaction.run('DELETE FROM `media` WHERE `hash` = ?', [hash]);
+    });
   }
 
   public async addDeleted(deleted: DeletedMedia): Promise<void> {
