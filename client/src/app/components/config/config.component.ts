@@ -205,7 +205,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
     if (!this.addTagModel) {
       return;
     }
-    this.tagService.addTag(this.addTagModel);
+    this.tagService.addTag(this.addTagModel).subscribe();
   }
 
   public deleteTag() {
@@ -229,7 +229,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
     if (!this.addActorModel) {
       return;
     }
-    this.actorService.addActor(this.addActorModel);
+    this.actorService.addActor(this.addActorModel).subscribe();
   }
 
   public deleteActor() {

@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subscription, forkJoin } from 'rxjs';
-import { take, map } from 'rxjs/operators';
+import { Observable, BehaviorSubject, Subscription, forkJoin, of } from 'rxjs';
+import { take, map, switchMap } from 'rxjs/operators';
 import { Media, UpdateMetadata, UpdateMedia, SubsetConstraints, MediaResolution, MediaPlaylist } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { TagService } from 'app/services/tag.service';
@@ -226,20 +226,23 @@ export class MediaService {
     const name = this.getValue(value);
 
     if (!media.actors.includes(name)) {
-      if (!this.actorService.actors.includes(name)) {
-        this.actorService.addActor(name);
-      }
-      media.actors.push(name);
-
-      const hash = media.hash;
-      console.log('addActor', hash, name);
-      this.httpClient.post(`/api/images/${hash}/actors`, { name }, HTTP_OPTIONS).subscribe(
-        () => console.debug('actor added', hash, name),
+      // The attach endpoint 404s if the actor doesn't exist yet, so the
+      // create must complete first. Chain the attach off it rather than
+      // firing both requests at once, where they can arrive out of order.
+      const create$: Observable<unknown> = this.actorService.actors.includes(name) ? of(null) : this.actorService.addActor(name);
+      // If the create failed the actor service has already alerted the user
+      // and the observable completed without emitting, skipping the attach.
+      create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/actors`, { name }, HTTP_OPTIONS))).subscribe(
+        () => {
+          media.actors.push(name);
+          this.mediaReplay.next(media);
+          console.debug('actor added', media.hash, name);
+        },
         err => {
-          console.error('failed to add actor', hash, name, err);
+          console.error('failed to add actor', media.hash, name, err);
           this.alertService.show({
             type: 'danger',
-            message: `Failed to add actor: ${hash}: ${name}`,
+            message: `Failed to add actor: ${media.hash}: ${name}`,
           });
         },
       );
@@ -301,21 +304,23 @@ export class MediaService {
     const name = this.getValue(value);
 
     if (!media.tags.includes(name)) {
-      if (!this.tagService.tags.includes(name)) {
-        this.tagService.addTag(name);
-      }
-
-      media.tags.push(name);
-
-      const hash = media.hash;
-      console.log('addTag', hash, name);
-      this.httpClient.post(`/api/images/${hash}/tags`, { name }, HTTP_OPTIONS).subscribe(
-        () => console.debug('tag added', hash, name),
+      // The attach endpoint 404s if the tag doesn't exist yet, so the create
+      // must complete first. Chain the attach off it rather than firing both
+      // requests at once, where they can arrive out of order.
+      const create$: Observable<unknown> = this.tagService.tags.includes(name) ? of(null) : this.tagService.addTag(name);
+      // If the create failed the tag service has already alerted the user and
+      // the observable completed without emitting, skipping the attach.
+      create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/tags`, { name }, HTTP_OPTIONS))).subscribe(
+        () => {
+          media.tags.push(name);
+          this.mediaReplay.next(media);
+          console.debug('tag added', media.hash, name);
+        },
         err => {
-          console.error('failed to add tag', hash, name, err);
+          console.error('failed to add tag', media.hash, name, err);
           this.alertService.show({
             type: 'danger',
-            message: `Failed to add tag: ${hash}: ${name}`,
+            message: `Failed to add tag: ${media.hash}: ${name}`,
           });
         },
       );
