@@ -236,6 +236,33 @@ export class ImportUtils {
     return output;
   }
 
+  // Rough per-quality segment-count estimate for progress reporting, without
+  // probing keyframes. Segments are the (at most one) head piece plus one per
+  // cut plus the tail; cuts only occur at keyframe gaps exceeding
+  // MAX_SEGMENT_GAP_SECONDS, but a near-zero first keyframe allows up to
+  // floor(length / gap) + 1 cuts, so the total above is a true upper bound
+  // (the real count is usually far lower). Deliberately wrong on the high
+  // side — long videos keep the bar moving instead of the count being
+  // exactly right.
+  public static estimateSegmentCount(lengthSeconds: number): number {
+    if (!Number.isFinite(lengthSeconds) || lengthSeconds < MAX_SEGMENT_GAP_SECONDS) {
+      return 1;
+    }
+    return Math.floor(lengthSeconds / MAX_SEGMENT_GAP_SECONDS) + 3;
+  }
+
+  // The cache work a media would produce this session: qualities still to
+  // transcode (missing) and cached ones to remove (redundant). Shared so task
+  // work-set sizing stays in lockstep with Transcoder.transcodeMedia.
+  public static getCacheWork(media: BaseMedia, cacheQualities?: number[]): { missing: Quality[]; redundant: number[] } {
+    const desiredCaches = ImportUtils.getMediaDesiredQualities(media, cacheQualities);
+    const actualCaches = media.metadata?.qualityCache ?? [];
+    return {
+      missing: desiredCaches.filter((quality) => !actualCaches.includes(quality.quality)),
+      redundant: ImportUtils.getRedundanctCaches(desiredCaches, actualCaches),
+    };
+  }
+
   public static setNice(pid: number, priority: number): void {
     const renice = ChildProcess.spawn('renice', [`${priority}`, `${pid}`]);
     renice.on('exit', (code: number) => {

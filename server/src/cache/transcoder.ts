@@ -12,6 +12,19 @@ import type { Database } from '../types';
 
 import { ImportUtils, Quality } from './import-utils';
 
+// Progress granularity for cache generation callbacks: emitted per copied/
+// transcoded segment within each quality, so callers (tasks) can report
+// sub-media progress for very long videos.
+export interface TranscodeProgressInfo {
+  qualityIndex: number;
+  qualityCount: number;
+  doneSegments: number;
+  totalSegments: number;
+  text?: string;
+}
+
+export type TranscodeProgressCallback = (info: TranscodeProgressInfo) => void;
+
 export class Transcoder {
   private database: Database;
   public constructor(database: Database) {
@@ -198,29 +211,27 @@ export class Transcoder {
     });
   }
 
-  public async transcodeMedia(media: Media): Promise<void> {
+  public async transcodeMedia(media: Media, onProgress?: TranscodeProgressCallback): Promise<void> {
     if (!media.metadata) {
       throw new Error(`Can't transcode media set without metadata`);
     }
 
-    const desiredCaches = ImportUtils.getMediaDesiredQualities(media, Config.get().transcoder.cacheQualities);
-    const actualCaches = media.metadata.qualityCache ?? [];
-    const missingQualities: Quality[] = [];
-    for (const quality of desiredCaches) {
-      if (!actualCaches.find((el) => quality.quality === el)) {
-        missingQualities.push(quality);
-      }
-    }
+    const { missing: missingQualities, redundant } = ImportUtils.getCacheWork(
+      media,
+      Config.get().transcoder.cacheQualities,
+    );
 
     if (missingQualities.length) {
       console.log(`${media.hash}: ${missingQualities.length} missing quality caches detected.`);
       await ImportUtils.mkdir(`${Config.get().cachePath}/${media.hash}`);
-      for (const quality of missingQualities) {
-        await this.transcodeMediaToQuality(media, quality);
+      for (const [qualityIndex, quality] of missingQualities.entries()) {
+        await this.transcodeMediaToQuality(media, quality, onProgress, {
+          qualityIndex,
+          qualityCount: missingQualities.length,
+        });
       }
     }
     // Find redundant caches.
-    const redundant = ImportUtils.getRedundanctCaches(desiredCaches, actualCaches);
     if (redundant.length) {
       console.log(`${media.hash}: ${redundant.length} redundant caches detected.`);
       for (const quality of redundant) {
@@ -275,7 +286,12 @@ export class Transcoder {
     return segments;
   }
 
-  private async transcodeMediaToQuality(media: Media, requestedQuality: Quality): Promise<void> {
+  private async transcodeMediaToQuality(
+    media: Media,
+    requestedQuality: Quality,
+    onProgress?: TranscodeProgressCallback,
+    progressContext?: { qualityIndex: number; qualityCount: number },
+  ): Promise<void> {
     if (!media.metadata) {
       throw new Error(`Can't transcode media without metadata`);
     }
@@ -298,7 +314,8 @@ export class Transcoder {
     }
 
     const segmentMetadata = await this.getStreamSegments(media);
-    for (let i = 0; i < segmentMetadata.standard.length; i++) {
+    const totalSegments = segmentMetadata.standard.length;
+    for (let i = 0; i < totalSegments; i++) {
       const segment = segmentMetadata.standard[i];
       if (!segment) {
         throw new Error('Segment array modified during cache generation');
@@ -307,18 +324,34 @@ export class Transcoder {
         segment.end
       }`;
       const exists = await ImportUtils.exists(filename);
-      if (exists) {
-        continue;
+      if (!exists) {
+        await this.streamMedia(
+          media,
+          segment.start,
+          segment.end,
+          FS.createWriteStream(filename),
+          requestedQuality.quality,
+          false,
+        );
       }
 
-      await this.streamMedia(
-        media,
-        segment.start,
-        segment.end,
-        FS.createWriteStream(filename),
-        requestedQuality.quality,
-        false,
-      );
+      // Already-cached segments resolve immediately, so re-runs burst through
+      // them instead of sitting at a flat percentage.
+      if (onProgress && progressContext) {
+        // Progress must never be able to fail the transcode (a throwing
+        // callback would land in the caller's catch and mark good media as
+        // corrupted), so it is swallowed here.
+        try {
+          onProgress({
+            ...progressContext,
+            doneSegments: i + 1,
+            totalSegments,
+            text: `${media.path}: segment ${i + 1}/${totalSegments} (${media.metadata.height}p→${targetHeight}p)`,
+          });
+        } catch (err) {
+          console.warn(`Progress callback failed for ${media.hash}`, err);
+        }
+      }
     }
 
     console.log(`Saving metadata for ${media.absolutePath}`);
