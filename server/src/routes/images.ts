@@ -106,6 +106,12 @@ export async function create(db: Database): Promise<Router> {
       }
 
       const request: BulkUpdate = req.body;
+      // The UpdateMedia schema is all-optional, so an empty update passes
+      // validation but nothing can be written; reject it here rather than
+      // failing deep in the query builders with a 500.
+      if (Object.keys(request.update).length === 0) {
+        throw new BadRequest('No fields to update');
+      }
       request.constraints.corrupted = false;
       request.constraints.indexed = true;
 

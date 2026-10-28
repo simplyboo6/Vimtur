@@ -133,12 +133,11 @@ describe('Media mutations API', () => {
     expect(count).to.equal(3);
   });
 
-  it('bulk-update with an empty update object is a 500', async () => {
-    // Accidental but current behaviour: the schema allows an empty update
-    // (all fields optional) but the bulk operation then fails with
-    // "Nothing to update" as a 500 rather than a 400.
+  it('bulk-update with an empty update object is a 400', async () => {
+    // The UpdateMedia schema is all-optional, so an empty update object is
+    // rejected explicitly instead of failing deep in the query builders.
     const response = await client.patch('/api/images/bulk-update', { constraints: {}, update: {} });
-    expect(response.status).to.equal(500);
+    expect(response.status).to.equal(400);
     expect(response.data).to.have.property('message');
   });
 
