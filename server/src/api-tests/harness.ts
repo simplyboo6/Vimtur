@@ -27,6 +27,9 @@ export interface StartServerOptions {
   // sqlite controller runs with a single worker. 'file' boots with a
   // throwaway SQLite file inside the temp root.
   dbMode?: 'memory' | 'file';
+  // Extra user-config (Configuration.Partial) merged into the generated
+  // config.json (CONFIG_PATH) the server reads at boot.
+  config?: Record<string, unknown>;
 }
 
 export interface ApiServer {
@@ -59,7 +62,7 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
   // The user config layer keeps runs offline and fast: TensorFlow needs
   // python/g++/make and internet access on first use, and phash is CPU-heavy.
   const configPath = Path.join(root, 'config.json');
-  FS.writeFileSync(configPath, JSON.stringify({ enableTensorFlow: false, enablePhash: false }));
+  FS.writeFileSync(configPath, JSON.stringify({ enableTensorFlow: false, enablePhash: false, ...options.config }));
 
   const logPath = Path.join(root, 'server.log');
   // From dist/api-tests the server entrypoint and generated schemas are
