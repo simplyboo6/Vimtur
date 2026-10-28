@@ -41,6 +41,35 @@ describe('Tasks API', () => {
     expect(queue).to.deep.equal([]);
   });
 
+  it('a task that throws synchronously is recorded and does not wedge the queue', async () => {
+    // Deliberately placed before every SCAN below, so Scanner.results is
+    // still unset and INDEX throws synchronously in its runner. That error
+    // used to escape as an unhandled rejection, leaving the entry running
+    // forever and blocking the whole queue until restart.
+    const id = assertOk(await client.post<string>('/api/tasks/queue/INDEX', {}), 'POST /api/tasks/queue/INDEX');
+
+    let message = 'INDEX was expected to fail';
+    try {
+      await waitForDrainedQueue(client);
+    } catch (err: unknown) {
+      // waitForDrainedQueue rejects on any errored task with its message,
+      // which is the deterministic completion signal here.
+      message = err instanceof Error ? err.message : String(err);
+    }
+    expect(message).to.include('A scan must be run first');
+
+    const queue = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
+    const failed = queue.find((task) => task.id === id);
+    expect(failed?.error).to.include('A scan must be run first');
+    expect(failed?.running).to.equal(false);
+
+    // The queue works afterwards: clear the failed instance and drain again.
+    expect((await client.delete(`/api/tasks/queue/${id}`)).status).to.equal(204);
+    await waitForDrainedQueue(client);
+    const remaining = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
+    expect(remaining).to.deep.equal([]);
+  });
+
   it('queueing returns a task id of TYPE-N', async () => {
     const id = assertOk(await client.post<string>('/api/tasks/queue/SCAN', {}), 'POST /api/tasks/queue/SCAN');
     expect(id).to.equal('SCAN-0');

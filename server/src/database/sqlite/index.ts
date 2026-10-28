@@ -100,6 +100,11 @@ export class SqliteConnector extends Database {
     };
   }
 
+  public async countMedia(): Promise<number> {
+    const raw = await this.db.get<{ count: number }>('SELECT COUNT(*) AS `count` FROM `media`');
+    return raw?.count ?? 0;
+  }
+
   public async saveMedia(hash: string, update: UpdateMedia | BaseMedia): Promise<Media> {
     const { query, values } = makeMediaUpsert(hash, update);
     await this.db.transaction((transaction) => {

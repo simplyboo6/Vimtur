@@ -16,6 +16,9 @@ import type {
 export abstract class Database {
   // Media
   public abstract getMedia(hash: string): Promise<Media | undefined>;
+  // Cheap row count used by batch-deletion safety checks, unlike
+  // subsetFields which loads every media row into memory.
+  public abstract countMedia(): Promise<number>;
   public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
   public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;

@@ -157,7 +157,10 @@ describe('Import lifecycle', () => {
     );
     expect(missingPaths).to.deep.equal(['green.jpg']);
 
-    await runTaskAndWait(client, 'DELETE-MISSING');
+    // This tiny library is 5 media large at this point, so a single missing
+    // file exceeds the 10% threshold and the explicit opt-out safety mode is
+    // required here.
+    await runTaskAndWait(client, 'DELETE-MISSING', ['allow-all']);
     expect(await subset(client, {})).to.have.lengthOf(4);
     expect(await client.get(`/api/images/${pathToHash['green.jpg']}`)).to.have.property('status', 404);
 

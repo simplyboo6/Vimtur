@@ -16,20 +16,41 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    ignored. The client relies on these defaults. Pinned in `search.spec.ts`.
 
 2. **SCAN results report pending work, not the last scan.** `SCAN/results`
-   shows what is *not yet consumed* by INDEX / DELETE-MISSING; both tasks
-   clear their list when they run. Documented in `import-lifecycle.spec.ts`
-   as the client may depend on it.
+   shows what is *not yet consumed* by INDEX / DELETE-MISSING. INDEX always
+   clears the new-files list when it runs, and DELETE-MISSING clears the
+   missing list once deletion actually starts — but a DELETE-MISSING run
+   refused by the safety limit keeps the list so it can be retried without a
+   new SCAN. A SCAN that fails (e.g. the library volume is unavailable)
+   leaves the previous scan's results untouched. Documented in
+   `import-lifecycle.spec.ts` and pinned in `delete-missing-safety.spec.ts`.
 
-3. **Task ids reuse `-N` suffixes.** After a task completes and is cleared,
+3. **DELETE-MISSING refuses to delete more than 10% of the database in its
+   default (strict) safety mode**, and requires the explicit `allow-all`
+   argument to override. POST bodies for tasks that define arguments must be
+   arrays (e.g. `['allow-all']` or `[]`); `{}` is normalised to "no
+   arguments". Pinned in `delete-missing-safety.spec.ts`; see issue #129.
+
+4. **SCAN deliberately fails on unreadable or absent library paths.** If
+   `libraryPath` cannot be read, is not a directory, or has directories the
+   walk cannot open, the scan fails instead of proceeding, because files
+   unknown to the scan would be reported (and are deletable) as missing.
+   There is no override: a deliberately emptied library cannot have its
+   entries cleared through SCAN → DELETE-MISSING and must be removed one by
+   one through the media API. Also note the server never creates
+   `DATA_PATH`/`libraryPath` itself, so a fresh install with a missing
+   directory now fails its first AUTO-IMPORT until it is created. See issue
+   #129.
+
+5. **Task ids reuse `-N` suffixes.** After a task completes and is cleared,
    its suffix is free again, so `SCAN-0` can recur across the server's
    lifetime. Pinned in `tasks.spec.ts`.
 
-4. **Deletes are idempotent no-ops.** Deleting unknown tags, actors or
+6. **Deletes are idempotent no-ops.** Deleting unknown tags, actors or
    playlists, unknown media-playlist entries, and cancelling unknown queue
    entries respond 2xx without error. Pinned in `tags.spec.ts`,
    `actors.spec.ts`, `playlists.spec.ts` and `tasks.spec.ts`.
 
-5. **Attaching a tag or actor requires the global record to exist.** The
+7. **Attaching a tag or actor requires the global record to exist.** The
    attachment endpoints 404 ("No tag/actor found with name: X") rather than
    creating an implicit empty record, because global tags and actors carry
    more data than their name. The client chains create → attach (see

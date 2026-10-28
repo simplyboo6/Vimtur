@@ -151,10 +151,26 @@ export class ConfigComponent implements OnInit, OnDestroy {
     return 'Yes';
   }
 
-  public startAction() {
-    if (this.task) {
-      this.tasksService.startAction(this.task.id, this.task.args ? this.args : undefined);
+  public async startAction() {
+    // Captured before the confirmation await so a task-selection change
+    // under the modal can't start something other than what was confirmed.
+    const task = this.task;
+    if (!task) {
+      return;
     }
+    // DELETE-MISSING is the only task that unlinks library files, and its
+    // dangerous mode skips the server-side volume-wipe protection. Make
+    // selecting it a deliberate decision rather than one click.
+    const dangerous = task.id === 'DELETE-MISSING' && this.args[0] === 'allow-all';
+    if (dangerous) {
+      const confirmed = await this.confirmationService.confirm(
+        'Delete media for every file missing from the library, regardless of how many? This cannot be undone.',
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+    this.tasksService.startAction(task.id, task.args ? this.args : undefined);
   }
 
   public updateArgs(): void {
