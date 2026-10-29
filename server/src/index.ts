@@ -2,6 +2,7 @@
 import Http, { Server } from 'http';
 import Path from 'path';
 
+import type { Configuration } from '@vimtur/common';
 import BodyParser from 'body-parser';
 import Compression from 'compression';
 import DeepMerge from 'deepmerge';
@@ -111,8 +112,8 @@ async function createServer(db: Database): Promise<Server> {
     wrap(async ({ req }) => {
       // Because the new config overrides the existing one when saved
       // they must be merged first to preserve properties.
-      const merged = DeepMerge.all([await db.getUserConfig(), req.body], {
-        arrayMerge: (_, sourceArray) => sourceArray,
+      const merged = DeepMerge.all<Configuration.Partial>([await db.getUserConfig(), req.body], {
+        arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
       });
       Config.setUserOverlay(merged);
       await db.saveUserConfig(merged);

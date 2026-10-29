@@ -36,7 +36,8 @@ function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
 }
 
 function readJsonSync(file: string): Configuration.Main {
-  return JSON.parse(StripJsonComments(FS.readFileSync(file).toString()));
+  // The JSON is user-provided; it is validated against the schema in Config.setLayers().
+  return JSON.parse(StripJsonComments(FS.readFileSync(file).toString())) as Configuration.Main;
 }
 
 function getVersion(): string {
@@ -132,7 +133,9 @@ class Config {
   }
 
   private static getEnvironmentLayer(): Configuration.Main {
-    const config: any = {};
+    // Filled via mapEnv() with dotted paths that only exist per variable, so it cannot be
+    // built as an object literal. It is validated against the schema in Config.setLayers().
+    const config: Record<string, unknown> = {};
     // General config
     mapEnv('PORT', config, 'port');
     mapEnv('DATA_PATH', config, 'libraryPath');
@@ -147,7 +150,7 @@ class Config {
     // SQLite
     mapEnv('DATABASE_PATH', config, 'database.path');
 
-    return config;
+    return config as unknown as Configuration.Main;
   }
 
   private static getUserLayer(): Configuration.Partial {
@@ -181,9 +184,9 @@ class Config {
     }
     layerArray.push(...layers);
 
-    const merged: Configuration.Main = DeepMerge.all(layerArray, {
-      arrayMerge: (_, sourceArray) => sourceArray,
-    }) as any;
+    const merged = DeepMerge.all(layerArray, {
+      arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
+    }) as Configuration.Main;
     // Remove duplicate items in the qualities array.
     merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort((a, b) => a - b);
     merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort((a, b) => a - b);

@@ -88,16 +88,10 @@ describe('Media mutations API', () => {
   it('PATCH accepts meaningful falsy values', async () => {
     // Zero, false and empty arrays are real updates (they clear/set fields),
     // unlike empty objects.
-    const updated = assertOk(
-      await client.patch<Media>(`/api/images/${one}`, { rating: 0 }),
-      'PATCH /api/images/:hash',
-    );
+    const updated = assertOk(await client.patch<Media>(`/api/images/${one}`, { rating: 0 }), 'PATCH /api/images/:hash');
     expect(updated.rating).to.equal(0);
 
-    const cleared = assertOk(
-      await client.patch<Media>(`/api/images/${one}`, { rating: 3 }),
-      'PATCH /api/images/:hash',
-    );
+    const cleared = assertOk(await client.patch<Media>(`/api/images/${one}`, { rating: 3 }), 'PATCH /api/images/:hash');
     expect(cleared.rating).to.equal(3);
   });
 

@@ -72,7 +72,9 @@ if (isAvxSupported()) {
         rgbPixels[i * 3 + channel] = rgbaPixels[i * 4 + channel];
       }
     }
-    return tfjs.tensor3d(rgbPixels, [decoded.height, decoded.width, 3], 'int32');
+    // tfjs comes out of require() as any; tensor3d's runtime output is the shared Tensor3D
+    // interface, which both driver branches of this module agree on.
+    return tfjs.tensor3d(rgbPixels, [decoded.height, decoded.width, 3], 'int32') as TFJS.Tensor3D;
   }
   module.exports = {
     ...tfjs,
