@@ -1,6 +1,6 @@
 .dropdown {
-  & > button > svg {
-    width: 2rem;
+  & > button > fa-icon {
+    font-size: 2rem;
   }
 
   & > .dropdown-menu {

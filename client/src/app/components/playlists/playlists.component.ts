@@ -8,6 +8,8 @@ import { CollectionService } from 'app/services/collection.service';
 import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faPhotoFilm } from '@fortawesome/free-solid-svg-icons';
 import { PlaylistComponent } from '../playlist/playlist.component';
 import { FormsModule } from '@angular/forms';
 import { PreviewComponent } from '../preview/preview.component';
@@ -27,9 +29,10 @@ export interface MediaVisibility extends Media {
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [PlaylistComponent, FormsModule, PreviewComponent, ActionsComponent, LoadingComponent],
+  imports: [PlaylistComponent, FormsModule, PreviewComponent, ActionsComponent, LoadingComponent, FaIconComponent],
 })
 export class PlaylistsComponent implements OnInit, OnDestroy {
+  public readonly faPhotoFilm = faPhotoFilm;
   public readonly getTitle = getTitle;
   public readonly getSubtitle = getSubtitle;
   public playlists?: PreviewPlaylist[];

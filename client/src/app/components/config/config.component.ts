@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { formatPercent, NgTemplateOutlet } from '@angular/common';
+import { formatPercent } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
@@ -12,6 +12,8 @@ import { Subscription, timer, combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ListItem } from 'app/shared/types';
 import { FormsModule } from '@angular/forms';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
 import { SelectComponent } from '../select/select.component';
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { LoadingComponent } from '../loading/loading.component';
@@ -21,9 +23,10 @@ import { LoadingComponent } from '../loading/loading.component';
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [FormsModule, NgTemplateOutlet, SelectComponent, SelectOptionComponent, LoadingComponent],
+  imports: [FormsModule, FaIconComponent, SelectComponent, SelectOptionComponent, LoadingComponent],
 })
 export class ConfigComponent implements OnInit, OnDestroy {
+  public readonly faCircleXmark = faCircleXmark;
   private configService: ConfigService;
   private tagService: TagService;
   private actorService: ActorService;

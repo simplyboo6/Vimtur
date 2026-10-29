@@ -8,7 +8,8 @@ import { Subscription } from 'rxjs';
 import { ListItem } from 'app/shared/types';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
 import { CdkDragDrop, moveItemInArray, CdkDropList, CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
-import { NgTemplateOutlet } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faArrowLeft, faGrip } from '@fortawesome/free-solid-svg-icons';
 import { LazyComponent } from '../lazy/lazy.component';
 import { ActionsComponent } from '../actions/actions.component';
 import { LoadingComponent } from '../loading/loading.component';
@@ -25,10 +26,12 @@ interface MediaTitle {
   templateUrl: './playlist.component.html',
   styleUrls: ['./playlist.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [NgTemplateOutlet, CdkDropList, CdkDrag, LazyComponent, CdkDragHandle, ActionsComponent, LoadingComponent],
+  imports: [FaIconComponent, CdkDropList, CdkDrag, LazyComponent, CdkDragHandle, ActionsComponent, LoadingComponent],
 })
 export class PlaylistComponent implements OnInit, OnDestroy {
   @Input() public playlist?: Playlist;
+  public readonly faGrip = faGrip;
+  public readonly faArrowLeft = faArrowLeft;
   public readonly getTitle = getTitle;
   public readonly getSubtitle = getTitle;
   public actions?: ListItem<LazyMedia>[][];

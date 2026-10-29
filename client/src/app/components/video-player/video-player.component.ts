@@ -7,7 +7,17 @@ import { isMobile } from 'is-mobile';
 import Hls, { ErrorData } from 'hls.js';
 import { ResizedDirective } from '../../shared/resized.directive';
 import { PreviewComponent } from '../preview/preview.component';
-import { NgTemplateOutlet } from '@angular/common';
+import {
+  faCog,
+  faDownLeftAndUpRightToCenter,
+  faUpRightAndDownLeftFromCenter,
+  faPause,
+  faPlay,
+  faSpinner,
+  faVolumeHigh,
+  faVolumeXmark,
+} from '@fortawesome/free-solid-svg-icons';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
@@ -51,7 +61,7 @@ interface VideoPlayerState {
   templateUrl: './video-player.component.html',
   styleUrls: ['./video-player.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [ResizedDirective, PreviewComponent, NgTemplateOutlet],
+  imports: [ResizedDirective, PreviewComponent, FaIconComponent],
 })
 export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, OnChanges {
   @ViewChild('videoElement', { static: false }) public videoElement: any;
@@ -63,6 +73,14 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
   };
   public qualitySelectorOpen = false;
   public readonly isMobile = isMobile();
+  public readonly faPlay = faPlay;
+  public readonly faPause = faPause;
+  public readonly faCog = faCog;
+  public readonly faUpRightAndDownLeftFromCenter = faUpRightAndDownLeftFromCenter;
+  public readonly faDownLeftAndUpRightToCenter = faDownLeftAndUpRightToCenter;
+  public readonly faVolumeHigh = faVolumeHigh;
+  public readonly faVolumeXmark = faVolumeXmark;
+  public readonly faSpinner = faSpinner;
 
   private configService: ConfigService;
   private alertService: AlertService;

@@ -23,13 +23,16 @@
   background-color: transparent;
   border: none;
 
-  & > svg {
-    height: 1.5rem;
+  // fa-icon sizes its SVG at 1em tall (font-size) letterboxed into a 1.25em-wide
+  // box — the sizing model comes from the v7 CSS vendored inside
+  // @fortawesome/angular-fontawesome, not the declared fontawesome-svg-core 6.x.
+  & > fa-icon {
+    font-size: 1.5rem;
     margin: auto;
     color: white;
   }
 
-  &:hover > svg {
+  &:hover > fa-icon {
     color: var(--bs-primary);
   }
 }
@@ -68,17 +71,19 @@
       background-color: rgba(0, 0, 0, 0.2);
       border-radius: 50%;
 
-      & > .play {
+      // Fills the 10rem overlay circle's 4rem content box, as the inline SVG did.
+      & > fa-icon {
+        font-size: 4rem;
+        color: white;
+        opacity: 0.7;
+      }
+
+      & > fa-icon.play {
         margin-left: 0.5rem;
       }
 
-      & > .spinner {
+      & > fa-icon.spinner {
         animation: spin 2s linear infinite;
-      }
-
-      & > svg {
-        color: white;
-        opacity: 0.7;
       }
     }
 

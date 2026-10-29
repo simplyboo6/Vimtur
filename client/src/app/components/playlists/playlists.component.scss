@@ -19,7 +19,9 @@
 }
 
 .thumbnail {
-  height: 120px;
+  // fa-icon renders the SVG at 1em tall, so this sizes the fallback icon to match
+  // the 120px thumbnail box the previews render in.
+  font-size: 7.5rem;
   opacity: 0.4;
 }
 

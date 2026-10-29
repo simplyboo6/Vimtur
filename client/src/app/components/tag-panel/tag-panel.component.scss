@@ -33,10 +33,10 @@
 .btn {
   padding: 0;
   margin-left: 0.25rem;
-  & > svg {
+  & > fa-icon {
     margin: 0;
     padding: 0.25rem;
-    width: 1.5rem;
+    font-size: 1.5rem;
   }
 }
 

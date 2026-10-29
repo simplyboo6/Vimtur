@@ -18,14 +18,18 @@ img {
   height: 2rem;
   pointer-events: none;
 
-  & > svg {
+  & > fa-icon {
+    font-size: 2rem;
+    // FA's injected CSS defaults the SVG box to 1.25em wide, which letterboxes the
+    // square glyph rightwards off the badge box's top-left anchor.
+    --fa-width: auto;
     opacity: 0.4;
     color: var(--bs-secondary);
   }
 }
 
 .check-circle.checked {
-  & > svg {
+  & > fa-icon {
     opacity: 1;
     color: var(--bs-primary);
   }

@@ -6,6 +6,9 @@ import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 import { getTitle, getSubtitle } from 'app/shared/media-formatting';
 import { NgTemplateOutlet } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faCircle } from '@fortawesome/free-regular-svg-icons';
+import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { LoadingComponent } from '../loading/loading.component';
 import { RouterLink } from '@angular/router';
 
@@ -18,9 +21,11 @@ interface CloneMedia extends Media {
   templateUrl: './clone-resolver.component.html',
   styleUrls: ['./clone-resolver.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [NgTemplateOutlet, LoadingComponent, RouterLink],
+  imports: [FaIconComponent, NgTemplateOutlet, LoadingComponent, RouterLink],
 })
 export class CloneResolverComponent implements OnInit, OnDestroy {
+  public readonly faCircle = faCircle;
+  public readonly faCircleCheck = faCircleCheck;
   public readonly getTitle = getTitle;
   public readonly getSubtitle = getSubtitle;
   public media?: Media;
