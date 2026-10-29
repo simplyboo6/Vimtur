@@ -17,7 +17,9 @@ export interface ExpressArgs {
   next: NextFunction;
 }
 
-export type Handler<T, A> = (args: ExpressArgs & A) => Promise<T>;
+// Handlers may return plain values or Promises; wrapHandler awaits both. Sync
+// handlers are useful where nothing awaits inside and no awaiting caller wraps them.
+export type Handler<T, A> = (args: ExpressArgs & A) => T | Promise<T>;
 export type Extractor<A> = (args: ExpressArgs) => A;
 
 const empty = {};

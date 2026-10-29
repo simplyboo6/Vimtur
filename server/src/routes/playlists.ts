@@ -9,7 +9,7 @@ import { Validator } from '../utils/validator';
 const PLAYLIST_CREATE_VALIDATOR = Validator.load('PlaylistCreate');
 const PLAYLIST_UPDATE_VALIDATOR = Validator.load('PlaylistUpdate');
 
-export async function create(db: Database): Promise<Router> {
+export function create(db: Database): Router {
   const router = Router();
 
   router.get(

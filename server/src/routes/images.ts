@@ -50,7 +50,7 @@ function respondStreamError(res: Response, status: number, message: string): voi
   }
 }
 
-export async function create(db: Database): Promise<Router> {
+export function create(db: Database): Router {
   const router = Router();
 
   const transcoder = new Transcoder(db);

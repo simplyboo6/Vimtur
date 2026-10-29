@@ -35,12 +35,12 @@ async function createServer(db: Database): Promise<Server> {
   app.use(BodyParser.json());
   app.use(Utils.authConnector);
 
-  app.use('/api/images', await ImageRouter.create(db));
-  app.use('/api/tags', await TagRouter.create(db));
-  app.use('/api/actors', await ActorRouter.create(db));
-  app.use('/api/insights', await InsightsRouter.create(db));
+  app.use('/api/images', ImageRouter.create(db));
+  app.use('/api/tags', TagRouter.create(db));
+  app.use('/api/actors', ActorRouter.create(db));
+  app.use('/api/insights', InsightsRouter.create(db));
   app.use('/api/tasks', await TasksRouter.create(db, io));
-  app.use('/api/playlists', await PlaylistRouter.create(db));
+  app.use('/api/playlists', PlaylistRouter.create(db));
 
   app.get('/api/version', (_req: Request, res: Response) => {
     res.send(VERSION_NAME);
@@ -97,7 +97,7 @@ async function createServer(db: Database): Promise<Server> {
 
   app.get(
     '/api/config',
-    wrap(async () => {
+    wrap(() => {
       const config = { ...Config.get() };
       delete config.database;
       return {

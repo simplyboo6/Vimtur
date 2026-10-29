@@ -474,7 +474,7 @@ export class ImportUtils {
     return segments;
   }
 
-  public static async generateStreamPlaylist(media: Media, segments: SegmentMetadata): Promise<string> {
+  public static generateStreamPlaylist(media: Media, segments: SegmentMetadata): string {
     if (!media.metadata) {
       throw new Error('Cannot generate playlist for media without metadatata');
     }

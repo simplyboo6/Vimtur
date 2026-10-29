@@ -101,7 +101,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
 
   router.get(
     '/',
-    wrap(async () => {
+    wrap(() => {
       return {
         data: taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)),
       };
@@ -110,7 +110,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
 
   router.get(
     '/queue',
-    wrap(async () => {
+    wrap(() => {
       return {
         data: taskManager.getQueue(),
       };
@@ -119,7 +119,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
 
   router.post(
     '/queue/:id',
-    wrap(async ({ req }) => {
+    wrap(({ req }) => {
       return {
         data: taskManager.start(singleParam(req.params.id), req.body),
       };
@@ -128,7 +128,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
 
   router.delete(
     '/queue/:id',
-    wrap(async ({ req }) => {
+    wrap(({ req }) => {
       taskManager.cancel(singleParam(req.params.id));
     }),
   );
