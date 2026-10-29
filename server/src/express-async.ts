@@ -46,7 +46,7 @@ function sendResponse(req: Request, res: Response, status: number, response?: un
   // Buffers when passed through stringify arrive in a structure like:
   // { type: 'Buffer', data: [10, 20, 30] }
   // This checks if it meets that format and re-encodes the buffer as base64.
-  const reviver = (_: string, value: unknown): unknown => {
+  function bufferBase64Reviver(_key: string, value: unknown): unknown {
     if (typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'Buffer') {
       const data = (value as { data?: unknown }).data;
       if (Array.isArray(data)) {
@@ -54,12 +54,12 @@ function sendResponse(req: Request, res: Response, status: number, response?: un
       }
     }
     return value;
-  };
+  }
   switch (type) {
     case 'application/json': // Fallthrough
     case '*/*':
       res.set('Content-Type', 'application/json');
-      res.status(status).send(Buffer.from(JSON.stringify(response, reviver), 'utf8'));
+      res.status(status).send(Buffer.from(JSON.stringify(response, bufferBase64Reviver), 'utf8'));
       break;
     default:
       throw new BadRequest(`Unexpected content type: ${type}`);

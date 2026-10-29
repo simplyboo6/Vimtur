@@ -653,12 +653,8 @@ export class MongoConnector extends Database {
       // If it's a new one then pre-validate it to show better errors. The
       // media body is the stored document's shape, which MEDIA_VALIDATOR's
       // BaseMedia schema claims.
-      const result = MEDIA_VALIDATOR.validate({ ...withoutGeneratedFields(media), hash });
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-
-      await collection.insertOne(result.data);
+      const insert = MEDIA_VALIDATOR.validate({ ...withoutGeneratedFields(media), hash });
+      await collection.insertOne(insert);
     }
 
     return (await this.getMedia(hash))!;

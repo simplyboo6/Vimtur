@@ -3,9 +3,7 @@ import Path from 'path';
 
 import Ajv, { ValidateFunction } from 'ajv';
 
-export type ValidatorResult<T extends object = object> =
-  | { success: true; data: T }
-  | { success: false; errorText: string };
+import { BadRequest } from '../errors';
 
 const ROOT_DIR = Path.resolve(__dirname, '..');
 const SCHEMA_PATH = process.env['SCHEMA_PATH'] ?? `${ROOT_DIR}/schemas`;
@@ -37,16 +35,18 @@ export class Validator<T extends object = object> {
     return new Validator<U>(ajv, ajv.compile(schemaJson));
   }
 
-  public validate(data: unknown): ValidatorResult<T> {
+  public validate(data: unknown): T {
     const success = this.validator(data);
     if (!success) {
-      return { success: false, errorText: this.ajv.errorsText(this.validator.errors) };
+      // Consumers of this class fail requests that carry invalid bodies, so a
+      // validation failure is a client error carrying the Ajv text.
+      throw new BadRequest(this.ajv.errorsText(this.validator.errors));
     }
     // The claim that `data` is a `T` rests purely on this Ajv run: the loaded
     // schema was generated from T (Validator.load<T>), and coerceTypes mutates
     // the value in place, so `data` is the validated value itself. This is
     // the only place a request body's shape is claimed without hand-written
     // narrowing behind it.
-    return { success: true, data: data as T };
+    return data as T;
   }
 }

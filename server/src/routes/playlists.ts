@@ -1,7 +1,7 @@
 import type { PlaylistCreate, PlaylistUpdate } from '@vimtur/common';
 import { Router } from 'express';
 
-import { BadRequest, NotFound } from '../errors';
+import { NotFound } from '../errors';
 import { wrap } from '../express-async';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
@@ -25,13 +25,9 @@ export function create(db: Database): Router {
   router.post(
     '/',
     wrap(async ({ req }) => {
-      const result = PLAYLIST_CREATE_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-
+      const create = PLAYLIST_CREATE_VALIDATOR.validate(req.body);
       return {
-        data: await db.addPlaylist(result.data),
+        data: await db.addPlaylist(create),
       };
     }),
   );
@@ -46,12 +42,8 @@ export function create(db: Database): Router {
   router.patch(
     '/:id',
     wrap(async ({ req }) => {
-      const result = PLAYLIST_UPDATE_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-
-      await db.updatePlaylist(singleParam(req.params.id), result.data);
+      const update = PLAYLIST_UPDATE_VALIDATOR.validate(req.body);
+      await db.updatePlaylist(singleParam(req.params.id), update);
     }),
   );
 
