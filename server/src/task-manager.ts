@@ -216,11 +216,13 @@ export class TaskManager extends EventEmitter {
         }
       })
       .catch((errUnknown: unknown) => {
+        // asError passes Error instances through unchanged, so `err` carries
+        // the original ExecutorError shape when it has one.
         const err = asError(errUnknown);
         console.error(`Task failed: ${queuedTask.id}`, err);
-        if (errUnknown instanceof ExecutorError) {
-          if (errUnknown.result.errors.length < MAX_FORMATTED_ERRORS) {
-            queuedTask.error = errUnknown.result.errors.map((error) => error.message).join('. ');
+        if (err instanceof ExecutorError) {
+          if (err.result.errors.length < MAX_FORMATTED_ERRORS) {
+            queuedTask.error = err.result.errors.map((error) => error.message).join('. ');
           } else {
             queuedTask.error = err.message;
           }

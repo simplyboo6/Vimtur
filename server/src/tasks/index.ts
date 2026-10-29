@@ -14,8 +14,10 @@ function getTaskLoaders(dir: string): TaskLoader[] {
     .filter((file) => file.endsWith('.js') && file !== Path.basename(__filename))
     .map((file) => {
       try {
-        // eslint-disable-next-line
-        const loader: TaskLoaderOptionalTask = require(`${dir}/${file}`);
+        // Task loaders are runtime files from the tasks directory, not
+        // build-time dependencies, so require() is the load mechanism.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const loader = require(`${dir}/${file}`) as TaskLoaderOptionalTask;
         if (!loader.getTask) {
           // Not a task loader.
           return undefined;

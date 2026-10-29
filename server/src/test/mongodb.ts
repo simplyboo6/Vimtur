@@ -1,8 +1,9 @@
 import 'source-map-support/register';
 
-import type { Media } from '@vimtur/common';
+import type { Media, SegmentMetadata } from '@vimtur/common';
 import { expect } from 'chai';
 import { after, afterEach, before, describe, it } from 'mocha';
+import type { Db } from 'mongodb';
 
 import Config from '../config';
 import { MongoConnector } from '../database/mongodb';
@@ -36,6 +37,69 @@ describeMongo('Database Tests: MongoDB', () => {
 
   after(async () => {
     await database.close();
+  });
+
+  // Pins the update-document shape that saveMedia/saveBulkMedia store: the
+  // helpers that flatten metadata and strip generated fields are not
+  // exercised through the API surface, so assert the stored document directly.
+  const getRawMediaDocument = async (hash: string): Promise<Record<string, unknown> | null> => {
+    const connector = database as unknown as { db: Db };
+    return connector.db.collection('media').findOne({ hash });
+  };
+
+  describe('Update flattening', () => {
+    afterEach(async () => {
+      await database.testCleanup();
+    });
+
+    it('merges metadata fields per-entry without over-writing the existing ones', async () => {
+      const segments: SegmentMetadata = { standard: [{ start: 0, end: 10 }] };
+      await database.saveMedia('meta-merge', {
+        hash: 'meta-merge',
+        path: '/tmp/meta-merge.jpg',
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { width: 640, height: 480, segments },
+      });
+
+      await database.saveMedia('meta-merge', { metadata: { artist: 'someone' } });
+
+      const media = await database.getMedia('meta-merge');
+      expect(media?.metadata?.artist).to.equal('someone');
+      expect(media?.metadata?.width).to.equal(640);
+      expect(media?.metadata?.height).to.equal(480);
+      expect(media?.metadata?.segments).to.deep.equal(segments);
+    });
+
+    it('persists falsy-but-real field values (rating 0)', async () => {
+      await createMedia('rating-zero');
+      await database.saveMedia('rating-zero', { rating: 0 });
+      const media = await database.getMedia('rating-zero');
+      expect(media?.rating).to.equal(0);
+    });
+
+    it('strips generated fields on save-back and keeps absent playlists absent', async () => {
+      const media = await createMedia('save-back');
+      // A full API response shape written back, as saveMedia's signature allows.
+      await database.saveMedia('save-back', media);
+
+      const raw = await getRawMediaDocument('save-back');
+      expect(raw).to.not.equal(null);
+      expect(raw?.absolutePath).to.equal(undefined);
+      expect(raw?.transcode).to.equal(undefined);
+      expect(raw?.cached).to.equal(undefined);
+      expect(raw?.playlists).to.equal(undefined);
+      expect(raw?.['metadata.width']).to.equal(undefined);
+
+      // A stored literal `playlists: null` would break the $addToSet path.
+      const playlist = await database.addPlaylist({ name: 'After export' });
+      await database.addMediaToPlaylist('save-back', playlist.id);
+      const after = await database.getMedia('save-back');
+      expect(after?.playlists?.map((entry) => entry.id)).to.deep.equal([playlist.id]);
+    });
   });
 
   describe('Playlist integrity', () => {
