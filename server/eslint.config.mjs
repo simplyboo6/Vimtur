@@ -33,7 +33,7 @@ export default defineConfig([
             // The code base leans on "any" in a few external util call sites;
             // these stay warnings until those are cleaned up. See the lint
             // warning baseline when touching this list.
-            "@typescript-eslint/no-unsafe-call": "warn",
+            "@typescript-eslint/no-unsafe-call": "error",
             "@typescript-eslint/no-unsafe-member-access": "warn",
             "@typescript-eslint/no-explicit-any": "warn",
             "@typescript-eslint/no-unsafe-argument": "warn",

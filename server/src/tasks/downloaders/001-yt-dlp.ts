@@ -34,10 +34,10 @@ export function getDownloader(): Downloader {
         let fileCount = 0;
         let lastPercent = 0;
 
-        proc.stdout.on('data', (data) => {
+        proc.stdout.on('data', (data: Buffer) => {
           const line = data.toString().trim();
           if (line.startsWith('[download]') && !aborted) {
-            const progressString = line.split(' ').filter((seg: string) => Boolean(seg))[1];
+            const progressString = line.split(' ').filter((seg) => Boolean(seg))[1];
             if (progressString.endsWith('%')) {
               const currentPercent = Number(progressString.slice(0, -1));
               if (currentPercent < lastPercent) {
@@ -50,8 +50,8 @@ export function getDownloader(): Downloader {
         });
 
         let err = '';
-        proc.stderr.on('data', (data) => {
-          err += data;
+        proc.stderr.on('data', (data: Buffer) => {
+          err += data.toString();
         });
 
         proc.on('exit', (code) => {

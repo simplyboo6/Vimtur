@@ -41,10 +41,13 @@ export default TFJS;
 
 if (isAvxSupported()) {
   console.log('AVX supported. Using native TensorFlow.');
-  // eslint-disable-next-line
-  const tfjs = require('@tensorflow/tfjs-node');
+  // The native driver is CJS-only; require it eagerly and cast to the package's own typings.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tfjs = require('@tensorflow/tfjs-node') as typeof import('@tensorflow/tfjs-node');
 
   function decodeImage(buffer: Buffer): TFJS.Tensor3D {
+    // decodeImage's typings cannot narrow the tensor rank from the literal
+    // channel count; three channels always yields a Tensor3D.
     return tfjs.node.decodeImage(buffer, 3) as TFJS.Tensor3D;
   }
 
@@ -57,8 +60,8 @@ if (isAvxSupported()) {
   console.warn(
     'Warning: AVX unsupported. Using JS only TensorFlow. Ignore the message claiming you can speed it up, this will be slow.',
   );
-  // eslint-disable-next-line
-  const tfjs = require('@tensorflow/tfjs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tfjs = require('@tensorflow/tfjs') as typeof import('@tensorflow/tfjs');
 
   // Input buffer must be a png. This is about 10x slower than
   // TensorFlow.node.decodeImage.
@@ -72,9 +75,9 @@ if (isAvxSupported()) {
         rgbPixels[i * 3 + channel] = rgbaPixels[i * 4 + channel];
       }
     }
-    // tfjs comes out of require() as any; tensor3d's runtime output is the shared Tensor3D
-    // interface, which both driver branches of this module agree on.
-    return tfjs.tensor3d(rgbPixels, [decoded.height, decoded.width, 3], 'int32') as TFJS.Tensor3D;
+    // tfjs's tensor3d is typed against the shared Tensor3D interface, which both
+    // driver branches of this module agree on.
+    return tfjs.tensor3d(rgbPixels, [decoded.height, decoded.width, 3], 'int32');
   }
   module.exports = {
     ...tfjs,

@@ -104,31 +104,47 @@ export class ImportUtils {
   }
 
   public static async getVideoMetadata(absolutePath: string): Promise<Metadata> {
-    // The ffprobe typings are broken with promisify.
-    const data = await Util.promisify(FFMpeg.ffprobe as any)(absolutePath);
+    // ffprobe's typings only expose callback overloads, which promisify's
+    // typing cannot resolve, so bind the (file, callback) shape explicitly.
+    const probeFile = Util.promisify(
+      FFMpeg.ffprobe as unknown as (
+        file: string,
+        callback: (err: Error | null, data: FFMpeg.FfprobeData) => void,
+      ) => void,
+    );
+    const data = await probeFile(absolutePath);
 
-    const mediaData = data.streams.find((stream: any) => stream.codec_type === 'video');
+    const mediaData = data.streams.find((stream) => stream.codec_type === 'video');
     if (!mediaData) {
       throw new Error('No video streams found to extract metadata from');
     }
 
     const externalMetadata = await ImportUtils.getFileExternalMetadata(absolutePath);
 
+    const width = mediaData.width ?? mediaData.coded_width;
+    const height = mediaData.height ?? mediaData.coded_height;
+    const duration = data.format.duration;
+    if (width === undefined || height === undefined || duration === undefined) {
+      throw new Error(`Probe result is missing dimensions or duration: ${absolutePath}`);
+    }
+
+    // ffprobe tag values are mostly strings; numbers turn up for date-ish values.
+    const tag = (key: string): string | undefined => {
+      const value = data.format.tags?.[key];
+      return value === undefined ? undefined : String(value);
+    };
+
     const metadata: Metadata = {
-      length: Math.ceil(data.format.duration),
+      length: Math.ceil(duration),
       qualityCache: [],
-      width: mediaData.width || mediaData.coded_width,
-      height: mediaData.height || mediaData.coded_height,
+      width,
+      height,
       codec: mediaData.codec_name,
       ...(data.format.tags
         ? {
-            artist:
-              data.format.tags.artist ||
-              data.format.tags.album_artist ||
-              data.format.tags.ARTIST ||
-              externalMetadata.artist,
-            album: data.format.tags.album || data.format.tags.ALBUM || externalMetadata.album,
-            title: data.format.tags.title || data.format.tags.TITLE || externalMetadata.title,
+            artist: tag('artist') || tag('album_artist') || tag('ARTIST') || externalMetadata.artist,
+            album: tag('album') || tag('ALBUM') || externalMetadata.album,
+            title: tag('title') || tag('TITLE') || externalMetadata.title,
           }
         : externalMetadata),
     };
