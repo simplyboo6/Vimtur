@@ -51,8 +51,10 @@ async function main(): Promise<void> {
       console.warn(`Could not fetch media (removed from set): ${hash}`);
       continue;
     }
-    delete (media as any).absolutePath;
-    delete (media as any)._id;
+    // absolutePath is generated on every read and _id is internal to the
+    // database; exports only contain the stored fields.
+    delete (media as { absolutePath?: string }).absolutePath;
+    delete (media as { _id?: unknown })._id;
     output.media.push(media);
   }
 
