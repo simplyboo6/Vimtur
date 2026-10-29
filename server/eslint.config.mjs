@@ -30,12 +30,12 @@ export default defineConfig([
             },
         },
         rules: {
-            // The code base leans on "any" in a few external util call sites;
-            // these stay warnings until those are cleaned up. See the lint
-            // warning baseline when touching this list.
+            // The full type-safety set was promoted from warnings to errors in
+            // #134, one rule per commit. Findings are fixed rather than
+            // suppressed; suppressions are only ever scoped disables with a reason.
             "@typescript-eslint/no-unsafe-call": "error",
             "@typescript-eslint/no-unsafe-member-access": "error",
-            "@typescript-eslint/no-explicit-any": "warn",
+            "@typescript-eslint/no-explicit-any": "error",
             "@typescript-eslint/no-unsafe-argument": "error",
             "@typescript-eslint/no-unsafe-assignment": "error",
             "@typescript-eslint/no-unsafe-return": "error",

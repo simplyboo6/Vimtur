@@ -1,7 +1,7 @@
 import Path from 'path';
 
 import type { Media } from '@vimtur/common';
-import { execute, ExecutorPromise } from 'proper-job';
+import { execute, ExecutorPromise, ExecutorResults } from 'proper-job';
 
 import { createHash } from '../cache/hash';
 import { ImportUtils } from '../cache/import-utils';
@@ -41,7 +41,7 @@ export class Indexer {
     };
   }
 
-  public indexFiles(statusCallback: (current: number, max: number) => void): ExecutorPromise<any> {
+  public indexFiles(statusCallback: (current: number, max: number) => void): ExecutorPromise<ExecutorResults<void>> {
     if (!Scanner.results) {
       throw new Error('A scan must be run first');
     }
