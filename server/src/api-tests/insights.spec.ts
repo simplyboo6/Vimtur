@@ -26,10 +26,7 @@ describe('Insights API', () => {
       await createStill(server.libraryPath, `bulk-${i}.png`, COLORS[i % COLORS.length], 16 + i);
     }
     await runTaskAndWait(client, 'AUTO-IMPORT');
-    bulkHashes = assertOk(
-      await client.post<string[]>('/api/images/subset', {}),
-      'POST /api/images/subset',
-    ).sort();
+    bulkHashes = assertOk(await client.post<string[]>('/api/images/subset', {}), 'POST /api/images/subset').sort();
     expect(bulkHashes).to.have.lengthOf(COUNT);
   };
 

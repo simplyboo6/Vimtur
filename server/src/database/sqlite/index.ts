@@ -403,7 +403,7 @@ export class SqliteConnector extends Database {
     if (!row) {
       return {};
     }
-    return JSON.parse(row.value);
+    return JSON.parse(row.value) as Configuration.Partial;
   }
   public async saveUserConfig(config: Configuration.Partial): Promise<void> {
     await this.db.run("INSERT OR REPLACE INTO `config` (`key`, `value`) VALUES('user', ?)", [JSON.stringify(config)]);

@@ -27,13 +27,6 @@ const noOpExtractor: Extractor<Record<string, unknown>> = () => empty;
 
 export type WrapHandler<A> = Handler<any, A>;
 
-export function jsonReviver(_: any, value: any): any {
-  if (typeof value === 'object' && value.type === 'Buffer' && value.data) {
-    return Buffer.from(value.data, 'base64');
-  }
-  return value;
-}
-
 function sendResponse(req: Request, res: Response, status: number, response?: any): void {
   if (response === undefined) {
     res.sendStatus(status);
@@ -50,23 +43,23 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
       type = '*/*';
     }
   }
+  // Buffers when passed through stringify arrive in a structure like:
+  // { type: 'Buffer', data: [10, 20, 30] }
+  // This checks if it meets that format and re-encodes the buffer as base64.
+  const reviver = (_: string, value: unknown): unknown => {
+    if (typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'Buffer') {
+      const data = (value as { data?: unknown }).data;
+      if (Array.isArray(data)) {
+        return { type: 'Buffer', data: Buffer.from(data as number[]).toString('base64') };
+      }
+    }
+    return value;
+  };
   switch (type) {
     case 'application/json': // Fallthrough
     case '*/*':
       res.set('Content-Type', 'application/json');
-      res.status(status).send(
-        Buffer.from(
-          JSON.stringify(response, (_, value) => {
-            // Buffers when bassed through stringify send up in a structure like:
-            // { type: 'Buffer', data: [10, 20, 30] }
-            // This expression checks if it meets that format and if it does, it strigifes the buffer as base64.
-            return value && value.type === 'Buffer' && Array.isArray(value.data)
-              ? { type: 'Buffer', data: Buffer.from(value.data).toString('base64') }
-              : value;
-          }),
-          'utf8',
-        ),
-      );
+      res.status(status).send(Buffer.from(JSON.stringify(response, reviver), 'utf8'));
       break;
     default:
       throw new BadRequest(`Unexpected content type: ${type}`);

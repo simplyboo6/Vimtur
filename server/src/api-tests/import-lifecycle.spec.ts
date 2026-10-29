@@ -37,10 +37,7 @@ describe('Import lifecycle', () => {
   };
 
   const scanResults = async (): Promise<Scanner.Summary> => {
-    return assertOk(
-      await client.get<Scanner.Summary>('/api/tasks/SCAN/results'),
-      'GET /api/tasks/SCAN/results',
-    );
+    return assertOk(await client.get<Scanner.Summary>('/api/tasks/SCAN/results'), 'GET /api/tasks/SCAN/results');
   };
 
   before(async () => {
