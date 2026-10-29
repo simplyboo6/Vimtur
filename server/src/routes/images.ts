@@ -241,7 +241,7 @@ export function create(db: Database): Router {
     '/:hash/tags',
     wrap(async ({ req }) => {
       // The request body is free-form JSON with the tag under `name`.
-      const name = req.body.name as string;
+      const { name } = req.body as { name?: string };
       if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }
@@ -271,7 +271,7 @@ export function create(db: Database): Router {
     '/:hash/actors',
     wrap(async ({ req }) => {
       // The request body is free-form JSON with the actor under `name`.
-      const name = req.body.name as string;
+      const { name } = req.body as { name?: string };
       if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }

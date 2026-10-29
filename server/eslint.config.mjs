@@ -34,7 +34,7 @@ export default defineConfig([
             // these stay warnings until those are cleaned up. See the lint
             // warning baseline when touching this list.
             "@typescript-eslint/no-unsafe-call": "error",
-            "@typescript-eslint/no-unsafe-member-access": "warn",
+            "@typescript-eslint/no-unsafe-member-access": "error",
             "@typescript-eslint/no-explicit-any": "warn",
             "@typescript-eslint/no-unsafe-argument": "error",
             "@typescript-eslint/no-unsafe-assignment": "error",
