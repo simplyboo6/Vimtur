@@ -42,10 +42,10 @@ describeMongo('Database Tests: MongoDB', () => {
   // Pins the update-document shape that saveMedia/saveBulkMedia store: the
   // helpers that flatten metadata and strip generated fields are not
   // exercised through the API surface, so assert the stored document directly.
-  const getRawMediaDocument = async (hash: string): Promise<Record<string, unknown> | null> => {
+  async function getRawMediaDocument(hash: string): Promise<Record<string, unknown> | null> {
     const connector = database as unknown as { db: Db };
     return connector.db.collection('media').findOne({ hash });
-  };
+  }
 
   describe('Update flattening', () => {
     afterEach(async () => {

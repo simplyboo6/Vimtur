@@ -193,10 +193,9 @@ class Config {
     merged.transcoder.cacheQualities = [...new Set(merged.transcoder.cacheQualities)].sort((a, b) => a - b);
     merged.transcoder.streamQualities = [...new Set(merged.transcoder.streamQualities)].sort((a, b) => a - b);
 
-    const validationResult = this.validator.validate(merged);
-    if (!validationResult.success) {
-      throw new Error(validationResult.errorText);
-    }
+    // The merged config is validated here; validate() throws a BadRequest
+    // carrying the Ajv error text when a layer breaks the schema.
+    this.validator.validate(merged);
 
     // On the first call store the layers as the write-once base layers.
     if (!this.baseLayers) {

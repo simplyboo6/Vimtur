@@ -55,22 +55,17 @@ export function create(db: Database): Router {
 
   const transcoder = new Transcoder(db);
 
-  // The bodies come in as free-form parsed JSON; validate() takes unknown, so
-  // no cast is needed, and SUBSET_VALIDATOR's schema claims the shape. It
-  // needs to stay in sync with SubsetConstraints.
-  const parseSubsetBody = (body: unknown): SubsetConstraints => {
-    const result = SUBSET_VALIDATOR.validate(body);
-    if (!result.success) {
-      throw new BadRequest(result.errorText);
-    }
-
-    const constraints = result.data;
+  // The bodies come in as free-form parsed JSON; validate() takes unknown and
+  // SUBSET_VALIDATOR's schema claims the shape. It needs to stay in sync with
+  // SubsetConstraints.
+  function parseSubsetBody(body: unknown): SubsetConstraints {
+    const constraints = SUBSET_VALIDATOR.validate(body);
     constraints.corrupted = false;
     constraints.indexed = true;
     constraints.duplicateOf = { exists: false };
 
     return constraints;
-  };
+  }
 
   router.post(
     '/subset',
@@ -122,12 +117,7 @@ export function create(db: Database): Router {
   router.patch(
     '/bulk-update',
     wrap(async ({ req }) => {
-      const result = BULK_UPDATE_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-
-      const request = result.data;
+      const request = BULK_UPDATE_VALIDATOR.validate(req.body);
       if (!hasWritableUpdate(request.update)) {
         throw new BadRequest('No fields to update');
       }
@@ -175,19 +165,16 @@ export function create(db: Database): Router {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
+      const update = MEDIA_UPDATE_VALIDATOR.validate(req.body);
       // An update that carries nothing writable would reach the connector as
       // an empty change set (a raw SQL error on SQLite, an empty $set on
       // MongoDB); reject it here where the request is still known.
-      if (!hasWritableUpdate(result.data)) {
+      if (!hasWritableUpdate(update)) {
         throw new BadRequest('No fields to update');
       }
 
       return {
-        data: await db.saveMedia(hash, result.data),
+        data: await db.saveMedia(hash, update),
       };
     }),
   );
@@ -215,12 +202,8 @@ export function create(db: Database): Router {
   router.patch(
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
-      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-
-      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), result.data);
+      const update = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
+      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), update);
     }),
   );
 
@@ -235,7 +218,7 @@ export function create(db: Database): Router {
     '/:hash/tags',
     wrap(async ({ req }) => {
       // The request body is free-form JSON with the tag under `name`.
-      const { name } = req.body as { name?: string };
+      const { name } = req.body as { name?: unknown };
       if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }
@@ -265,7 +248,7 @@ export function create(db: Database): Router {
     '/:hash/actors',
     wrap(async ({ req }) => {
       // The request body is free-form JSON with the actor under `name`.
-      const { name } = req.body as { name?: string };
+      const { name } = req.body as { name?: unknown };
       if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }
@@ -351,11 +334,7 @@ export function create(db: Database): Router {
         throw new BadRequest('Media has no clones');
       }
 
-      const result = RESOLUTION_VALIDATOR.validate(req.body);
-      if (!result.success) {
-        throw new BadRequest(result.errorText);
-      }
-      const resolution = result.data;
+      const resolution = RESOLUTION_VALIDATOR.validate(req.body);
 
       // Verify that aliases + unrelated contains everything in clones.
       const allRequested = [...resolution.aliases, ...resolution.unrelated];
