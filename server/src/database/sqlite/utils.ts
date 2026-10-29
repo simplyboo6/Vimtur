@@ -148,7 +148,7 @@ export function rawToPartial<T, K>(
         if (typeof value !== 'string') {
           throw new Error(`Attempt to parse non-string JSON value: ${String(map.js)} - ${String(value)}`);
         }
-        intermediate[map.js] = JSON.parse(value);
+        intermediate[map.js] = JSON.parse(value) as undefined;
         break;
       default:
         intermediate[map.js] = value as unknown as undefined;

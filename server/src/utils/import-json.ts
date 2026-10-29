@@ -31,10 +31,15 @@ async function importMedia(db: Database, media: BaseMedia, version?: number): Pr
 
   // Sometimes path can even be missing...
   if (!media.path) {
-    if ((media as any).absolutePath) {
+    // absolutePath is an API-response-only field. Older dumps store it in
+    // place of path; fall back to it, otherwise fail the import with a real
+    // message rather than resolving `undefined` down the line. (This branch
+    // used to throw in the opposite case and assign an undefined path.)
+    const extended = media as { absolutePath?: string };
+    if (!extended.absolutePath) {
       throw new Error('Media missing path and absolutePath');
     }
-    media.path = (media as any).absolutePath;
+    media.path = extended.absolutePath;
   }
   // Sometimes the path can be the absolute path rather than the relative.
   const path = Path.resolve(media.path);

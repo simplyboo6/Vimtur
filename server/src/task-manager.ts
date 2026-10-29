@@ -215,11 +215,12 @@ export class TaskManager extends EventEmitter {
           }
         }
       })
-      .catch((err) => {
+      .catch((errUnknown: unknown) => {
+        const err = asError(errUnknown);
         console.error(`Task failed: ${queuedTask.id}`, err);
-        if (err instanceof ExecutorError) {
-          if (err.result.errors.length < MAX_FORMATTED_ERRORS) {
-            queuedTask.error = err.result.errors.map((error) => error.message).join('. ');
+        if (errUnknown instanceof ExecutorError) {
+          if (errUnknown.result.errors.length < MAX_FORMATTED_ERRORS) {
+            queuedTask.error = errUnknown.result.errors.map((error) => error.message).join('. ');
           } else {
             queuedTask.error = err.message;
           }

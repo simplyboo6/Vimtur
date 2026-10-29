@@ -8,7 +8,7 @@ import StripJsonComments from 'strip-json-comments';
 
 import { Validator } from './utils/validator';
 
-function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
+function mapEnv(env: string, obj: Record<string, unknown>, dest: string): void {
   // Single local read: without noUncheckedIndexedAccess the type lies that
   // process.env[env] is always a string, so a non-null assertion here is
   // flagged as unnecessary by the lint rule — but it can be undefined at
@@ -19,13 +19,14 @@ function mapEnv(env: string, obj: Record<string, any>, dest: string): void {
     return;
   }
   console.log(`Using ${raw} from ${env}`);
-  let node = obj;
+  let node: Record<string, unknown> = obj;
   const path = dest.split('.');
   for (let i = 0; i < path.length - 1; i++) {
     if (!node[path[i]]) {
       node[path[i]] = {};
     }
-    node = node[path[i]];
+    // Thus far only config objects have ever been stored under the intermediate paths.
+    node = node[path[i]] as Record<string, unknown>;
   }
 
   let value: string | number = raw;

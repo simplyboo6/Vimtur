@@ -165,7 +165,11 @@ export class ImportUtils {
 
   public static async getImageMetadata(absolutePath: string): Promise<Metadata> {
     const gm = GM.subClass({ imageMagick: true })(absolutePath);
-    const size: Record<string, number> = (await Util.promisify(gm.size.bind(gm))()) as any;
+    // gm's typings only expose callback overloads; bind the (callback, Dimensions)
+    // shape explicitly for promisify.
+    const size = await Util.promisify(
+      gm.size.bind(gm) as unknown as (callback: (err: Error | null, dimensions: GM.Dimensions) => void) => void,
+    )();
     const externalMetadata = await ImportUtils.getFileExternalMetadata(absolutePath);
     return {
       ...externalMetadata,
@@ -545,7 +549,11 @@ export class ImportUtils {
   public static async isExifRotated(path: string): Promise<boolean> {
     try {
       const gm = GM.subClass({ imageMagick: true })(path);
-      const orientation: string = (await Util.promisify(gm.orientation.bind(gm))()) as any;
+      // gm's typings only expose callback overloads; bind the (callback, string)
+      // shape explicitly for promisify.
+      const orientation = await Util.promisify(
+        gm.orientation.bind(gm) as unknown as (callback: (err: Error | null, orientation: string) => void) => void,
+      )();
       switch (orientation.toLowerCase()) {
         case 'topleft':
         case 'unknown':

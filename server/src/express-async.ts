@@ -19,13 +19,13 @@ export interface ExpressArgs {
 
 // Handlers may return plain values or Promises; wrapHandler awaits both. Sync
 // handlers are useful where nothing awaits inside and no awaiting caller wraps them.
-export type Handler<T, A> = (args: ExpressArgs & A) => T | Promise<T>;
-export type Extractor<A> = (args: ExpressArgs) => A;
+export type Handler<T, A extends object = Record<string, unknown>> = (args: ExpressArgs & A) => T | Promise<T>;
+export type Extractor<A extends object> = (args: ExpressArgs) => A;
 
 const empty = {};
 const noOpExtractor: Extractor<Record<string, unknown>> = () => empty;
 
-export type WrapHandler<A> = Handler<any, A>;
+export type WrapHandler<A extends object = Record<string, unknown>> = Handler<any, A>;
 
 function sendResponse(req: Request, res: Response, status: number, response?: any): void {
   if (response === undefined) {
@@ -66,14 +66,16 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
   }
 }
 
-export function wrapHandler<A>(handler: WrapHandler<A>, extractor: Extractor<A>, sendResult: boolean): RequestHandler {
+export function wrapHandler<A extends object>(handler: WrapHandler<A>, extractor: Extractor<A>, sendResult: boolean): RequestHandler {
   return (req, res, next) => {
     (async () => {
       const express: ExpressArgs = { req, res, next };
-      const result = await handler({
+      // Handlers respond with RestResult-style payloads or just side effects, but
+      // WrapHandler is still inferred as `any` at this seam.
+      const result = (await handler({
         ...express,
         ...extractor(express),
-      });
+      })) as RestResult | undefined;
 
       if (sendResult) {
         if (result) {

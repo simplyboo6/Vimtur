@@ -14,7 +14,7 @@ import {
   SubsetFields,
   UpdateMedia,
 } from '@vimtur/common';
-import { Db, MongoClient, ObjectId } from 'mongodb';
+import { Db, Document, MongoClient, ObjectId } from 'mongodb';
 
 import Config from '../../config';
 import { BadRequest, NotFound } from '../../errors';
@@ -46,6 +46,38 @@ interface MediaDoc extends Omit<BaseMedia, 'playlists'> {
 
 interface ConfigDoc extends Configuration.Partial {
   _id?: string;
+}
+
+type MediaUpdate = Record<string, unknown> & { metadata?: Record<string, unknown> };
+
+// Generated on the API surface (reads) but never stored; writes may still
+// pass them back, so they are stripped from every update.
+const GENERATED_FIELDS = ['absolutePath', 'transcode', 'cached'] as const;
+
+function withoutGeneratedFields(document: UpdateMedia | BaseMedia): MediaUpdate {
+  const update: MediaUpdate = {};
+  for (const [key, value] of Object.entries(document)) {
+    if ((GENERATED_FIELDS as readonly string[]).includes(key)) {
+      continue;
+    }
+    update[key] = value;
+  }
+  return update;
+}
+
+// Map all metadata keys to write individually rather than as a whole
+// sub-document, so existing per-field state (like segment caches) is not
+// over-written when the media already exists.
+function flattenMediaUpdate(document: UpdateMedia | BaseMedia): MediaUpdate {
+  const update = withoutGeneratedFields(document);
+  const { metadata } = update;
+  if (metadata) {
+    for (const [key, value] of Object.entries(metadata)) {
+      update[`metadata.${key}`] = value;
+    }
+    delete update.metadata;
+  }
+  return update;
 }
 
 const MEDIA_VALIDATOR = Validator.load('BaseMedia');
@@ -593,28 +625,10 @@ export class MongoConnector extends Database {
 
     const collection = this.db.collection('media');
 
-    // Filter out various old fields we no longer require.
-    // This one is generated on get media and may be accidentally passed back.
-    const oldMedia = media as any;
-    if (oldMedia.absolutePath !== undefined) {
-      delete oldMedia.absolutePath;
-    }
-    if (oldMedia.transcode !== undefined) {
-      delete oldMedia.transcode;
-    }
-    if (oldMedia.cached !== undefined) {
-      delete oldMedia.cached;
-    }
-
-    // Map all metadata keys to avoid over-writes, if the media already exists.
-    if (media.metadata) {
-      for (const key of Object.keys(media.metadata)) {
-        (media as any)[`metadata.${key}`] = (media.metadata as any)[key];
-      }
-      delete media.metadata;
-    }
-
-    const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: media });
+    // The flattened update contains dynamically generated `metadata.<key>`
+    // dotted paths, which the collection's static field typing can't express.
+    const update = flattenMediaUpdate(media) as unknown as Document;
+    const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: update });
     return result.matchedCount;
   }
 
@@ -623,38 +637,21 @@ export class MongoConnector extends Database {
   }
 
   public async saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media> {
-    // Filter out various old fields we no longer require.
-    // This one is generated on get media and may be accidentally passed back.
-    const oldMedia = media as any;
-    if (oldMedia.absolutePath !== undefined) {
-      delete oldMedia.absolutePath;
-    }
-    if (oldMedia.transcode !== undefined) {
-      delete oldMedia.transcode;
-    }
-    if (oldMedia.cached !== undefined) {
-      delete oldMedia.cached;
-    }
-
     const collection = this.db.collection<BaseMedia>('media');
     if (await this.getMedia(hash)) {
-      // Map all metadata keys to avoid over-writes, if the media already exists.
-      if (media.metadata) {
-        for (const key of Object.keys(media.metadata)) {
-          (media as any)[`metadata.${key}`] = (media.metadata as any)[key];
-        }
-        delete media.metadata;
-      }
-      await collection.updateOne({ hash }, { $set: media as any });
+      // The flattened update contains dynamically generated `metadata.<key>`
+      // dotted paths, which the collection's static field typing can't express.
+      const update = flattenMediaUpdate(media) as unknown as BaseMedia;
+      await collection.updateOne({ hash }, { $set: update });
     } else {
-      (media as BaseMedia).hash = hash;
       // If it's a new one then pre-validate it to show better errors.
-      const result = MEDIA_VALIDATOR.validate(media);
+      const insert = { ...withoutGeneratedFields(media), hash } as BaseMedia;
+      const result = MEDIA_VALIDATOR.validate(insert);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
 
-      await collection.insertOne(media as any);
+      await collection.insertOne(insert);
     }
 
     return (await this.getMedia(hash))!;

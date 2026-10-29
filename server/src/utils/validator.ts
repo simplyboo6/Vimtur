@@ -15,10 +15,11 @@ export class Validator {
   private validator: ValidateFunction;
   private ajv: Ajv;
 
-  public static loadSchema(name: string, version?: string): any {
+  public static loadSchema(name: string, version?: string): object {
     const path = version ? `${SCHEMA_PATH}/${name}.${version}.json` : `${SCHEMA_PATH}/${name}.json`;
     const rawSchema = FS.readFileSync(path);
-    return JSON.parse(rawSchema.toString());
+    // The schema shape is owned by ajv's compile() below, which validates it.
+    return JSON.parse(rawSchema.toString()) as object;
   }
 
   public static load(name: string, version?: string): Validator {
