@@ -66,7 +66,11 @@ function sendResponse(req: Request, res: Response, status: number, response?: an
   }
 }
 
-export function wrapHandler<A extends object>(handler: WrapHandler<A>, extractor: Extractor<A>, sendResult: boolean): RequestHandler {
+export function wrapHandler<A extends object>(
+  handler: WrapHandler<A>,
+  extractor: Extractor<A>,
+  sendResult: boolean,
+): RequestHandler {
   return (req, res, next) => {
     (async () => {
       const express: ExpressArgs = { req, res, next };

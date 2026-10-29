@@ -20,10 +20,12 @@ export function create(db: Database): Router {
   router.post(
     '/',
     wrap(async ({ req }) => {
-      if (!req.body.tag) {
+      // The request body is free-form JSON with the tag under `tag`.
+      const tag = req.body.tag as string;
+      if (!tag) {
         throw new BadRequest('No tag specified');
       }
-      await db.addTag(req.body.tag);
+      await db.addTag(tag);
       return {
         data: await db.getTags(),
       };

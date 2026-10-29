@@ -54,7 +54,7 @@ function getVersion(): string {
 
 export const VERSION_NAME = getVersion();
 
-const DEFAULTS: any = {
+const DEFAULTS: Partial<Configuration.Main> = {
   port: 3523,
   // Enabled pHash generation during auto-import.
   enablePhash: false,

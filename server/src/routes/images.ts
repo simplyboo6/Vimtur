@@ -1,6 +1,6 @@
 import Path from 'path';
 
-import type { BulkUpdate, MediaResolution, SubsetConstraints } from '@vimtur/common';
+import type { BulkUpdate, MediaResolution, PlaylistEntryUpdate, SubsetConstraints, UpdateMedia } from '@vimtur/common';
 import type { Response } from 'express';
 import { Router } from 'express';
 import PathIsInside from 'path-is-inside';
@@ -55,7 +55,9 @@ export function create(db: Database): Router {
 
   const transcoder = new Transcoder(db);
 
-  const parseSubsetBody = (body: object): SubsetConstraints => {
+  // The bodies mirror this helper's (SUBSET_VALIDATOR's) generated schema; the
+  // calls cast the free-form JSON body over to it.
+  const parseSubsetBody = (body: SubsetConstraints): SubsetConstraints => {
     const result = SUBSET_VALIDATOR.validate(body);
     if (!result.success) {
       throw new BadRequest(result.errorText!);
@@ -72,7 +74,7 @@ export function create(db: Database): Router {
   router.post(
     '/subset',
     wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body);
+      const constraints = parseSubsetBody(req.body as SubsetConstraints);
 
       console.log('Search request.', constraints);
       return {
@@ -90,7 +92,7 @@ export function create(db: Database): Router {
         throw new NotFound(`No playlist found with id: ${playlistId}`);
       }
 
-      const constraints = parseSubsetBody(req.body);
+      const constraints = parseSubsetBody(req.body as SubsetConstraints);
       const subset = await db.subset(constraints);
 
       // Do sequentially to preserve sort order
@@ -103,7 +105,7 @@ export function create(db: Database): Router {
   router.delete(
     '/subset/playlists/:playlistId',
     wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body);
+      const constraints = parseSubsetBody(req.body as SubsetConstraints);
       const subset = await db.subset(constraints);
 
       await execute(
@@ -175,19 +177,21 @@ export function create(db: Database): Router {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
+      // The body mirrors the generated MEDIA_UPDATE_VALIDATOR schema (UpdateMedia).
+      const body = req.body as UpdateMedia;
+      const result = MEDIA_UPDATE_VALIDATOR.validate(body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
       // An update that carries nothing writable would reach the connector as
       // an empty change set (a raw SQL error on SQLite, an empty $set on
       // MongoDB); reject it here where the request is still known.
-      if (!hasWritableUpdate(req.body)) {
+      if (!hasWritableUpdate(body)) {
         throw new BadRequest('No fields to update');
       }
 
       return {
-        data: await db.saveMedia(hash, req.body),
+        data: await db.saveMedia(hash, body),
       };
     }),
   );
@@ -215,12 +219,14 @@ export function create(db: Database): Router {
   router.patch(
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
-      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
+      // The body mirrors the generated PLAYLIST_ENTRY_UPDATE_VALIDATOR schema.
+      const body = req.body as PlaylistEntryUpdate;
+      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
 
-      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), req.body);
+      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), body);
     }),
   );
 
@@ -234,7 +240,9 @@ export function create(db: Database): Router {
   router.post(
     '/:hash/tags',
     wrap(async ({ req }) => {
-      if (typeof req.body.name !== 'string') {
+      // The request body is free-form JSON with the tag under `name`.
+      const name = req.body.name as string;
+      if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }
 
@@ -244,11 +252,11 @@ export function create(db: Database): Router {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      if (!(await db.hasTag(req.body.name))) {
-        throw new NotFound(`No tag found with name: ${req.body.name}`);
+      if (!(await db.hasTag(name))) {
+        throw new NotFound(`No tag found with name: ${name}`);
       }
 
-      await db.addMediaTag(hash, req.body.name);
+      await db.addMediaTag(hash, name);
     }),
   );
 
@@ -262,7 +270,9 @@ export function create(db: Database): Router {
   router.post(
     '/:hash/actors',
     wrap(async ({ req }) => {
-      if (typeof req.body.name !== 'string') {
+      // The request body is free-form JSON with the actor under `name`.
+      const name = req.body.name as string;
+      if (typeof name !== 'string') {
         throw new BadRequest('name not specified');
       }
 
@@ -272,11 +282,11 @@ export function create(db: Database): Router {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      if (!(await db.hasActor(req.body.name))) {
-        throw new NotFound(`No actor found with name: ${req.body.name}`);
+      if (!(await db.hasActor(name))) {
+        throw new NotFound(`No actor found with name: ${name}`);
       }
 
-      await db.addMediaActor(hash, req.body.name);
+      await db.addMediaActor(hash, name);
     }),
   );
 
@@ -345,12 +355,13 @@ export function create(db: Database): Router {
         throw new BadRequest('Media has no clones');
       }
 
-      const result = RESOLUTION_VALIDATOR.validate(req.body);
+      // The body mirrors the generated RESOLUTION_VALIDATOR schema.
+      const request = req.body as MediaResolution;
+      const result = RESOLUTION_VALIDATOR.validate(request);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
 
-      const request = req.body as MediaResolution;
       // Verify that aliases + unrelated contains everything in clones.
       const allRequested = [...request.aliases, ...request.unrelated];
       // If we can find a clone that isn't in the request body...

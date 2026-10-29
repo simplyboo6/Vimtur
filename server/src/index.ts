@@ -112,9 +112,14 @@ async function createServer(db: Database): Promise<Server> {
     wrap(async ({ req }) => {
       // Because the new config overrides the existing one when saved
       // they must be merged first to preserve properties.
-      const merged = DeepMerge.all<Configuration.Partial>([await db.getUserConfig(), req.body], {
-        arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
-      });
+      // The overlay is JSON the API accepts in one piece; Config.setLayers()
+      // schema-validates the merged result.
+      const merged = DeepMerge.all<Configuration.Partial>(
+        [await db.getUserConfig(), req.body as Configuration.Partial],
+        {
+          arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
+        },
+      );
       Config.setUserOverlay(merged);
       await db.saveUserConfig(merged);
       const config = { ...Config.get() };
