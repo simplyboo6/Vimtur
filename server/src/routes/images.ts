@@ -119,12 +119,15 @@ export function create(db: Database): Router {
   router.patch(
     '/bulk-update',
     wrap(async ({ req }) => {
-      const result = BULK_UPDATE_VALIDATOR.validate(req.body);
+      // The update is given in both directions by the generated schema, so the
+      // cast body mirrors BULK_UPDATE_VALIDATOR's schema.
+      const body = req.body as BulkUpdate;
+      const result = BULK_UPDATE_VALIDATOR.validate(body);
       if (!result.success) {
         throw new BadRequest(result.errorText!);
       }
 
-      const request: BulkUpdate = req.body;
+      const request: BulkUpdate = body;
       if (!hasWritableUpdate(request.update)) {
         throw new BadRequest('No fields to update');
       }

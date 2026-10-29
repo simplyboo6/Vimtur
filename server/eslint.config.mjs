@@ -37,7 +37,7 @@ export default defineConfig([
             "@typescript-eslint/no-unsafe-member-access": "warn",
             "@typescript-eslint/no-explicit-any": "warn",
             "@typescript-eslint/no-unsafe-argument": "warn",
-            "@typescript-eslint/no-unsafe-assignment": "warn",
+            "@typescript-eslint/no-unsafe-assignment": "error",
             "@typescript-eslint/no-unsafe-return": "error",
             "@typescript-eslint/require-await": "error",
 

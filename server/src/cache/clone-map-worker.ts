@@ -9,8 +9,8 @@ if (!parentPort || !workerData) {
   throw new Error('Worker missing fields');
 }
 
-// Type the input data.
-const job: Job = workerData;
+// Type the input data, trusting the Job shape built by the spawner in clone-map.ts.
+const job = workerData as Job;
 
 // Wrapper to enforce typing of response.
 function postResult(result: JobResult): void {
