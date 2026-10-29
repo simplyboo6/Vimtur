@@ -20,10 +20,12 @@ export function create(db: Database): Router {
   router.post(
     '/',
     wrap(async ({ req }) => {
-      if (!req.body.actor) {
+      // The request body is free-form JSON with the actor under `actor`.
+      const actor = req.body.actor as string;
+      if (!actor) {
         throw new BadRequest('No actor specified');
       }
-      await db.addActor(req.body.actor);
+      await db.addActor(actor);
       return {
         data: await db.getActors(),
       };
