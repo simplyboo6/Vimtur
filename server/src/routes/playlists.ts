@@ -7,8 +7,8 @@ import type { Database } from '../types';
 import { singleParam } from '../utils';
 import { Validator } from '../utils/validator';
 
-const PLAYLIST_CREATE_VALIDATOR = Validator.load('PlaylistCreate');
-const PLAYLIST_UPDATE_VALIDATOR = Validator.load('PlaylistUpdate');
+const PLAYLIST_CREATE_VALIDATOR = Validator.load<PlaylistCreate>('PlaylistCreate');
+const PLAYLIST_UPDATE_VALIDATOR = Validator.load<PlaylistUpdate>('PlaylistUpdate');
 
 export function create(db: Database): Router {
   const router = Router();
@@ -25,15 +25,13 @@ export function create(db: Database): Router {
   router.post(
     '/',
     wrap(async ({ req }) => {
-      // The body mirrors the generated PLAYLIST_CREATE_VALIDATOR schema.
-      const body = req.body as PlaylistCreate;
-      const result = PLAYLIST_CREATE_VALIDATOR.validate(body);
+      const result = PLAYLIST_CREATE_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
 
       return {
-        data: await db.addPlaylist(body),
+        data: await db.addPlaylist(result.data),
       };
     }),
   );
@@ -48,14 +46,12 @@ export function create(db: Database): Router {
   router.patch(
     '/:id',
     wrap(async ({ req }) => {
-      // The body mirrors the generated PLAYLIST_UPDATE_VALIDATOR schema.
-      const body = req.body as PlaylistUpdate;
-      const result = PLAYLIST_UPDATE_VALIDATOR.validate(body);
+      const result = PLAYLIST_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
 
-      await db.updatePlaylist(singleParam(req.params.id), body);
+      await db.updatePlaylist(singleParam(req.params.id), result.data);
     }),
   );
 

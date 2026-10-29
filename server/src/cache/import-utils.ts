@@ -59,8 +59,7 @@ function getExternalMetadataField(obj: ExternalMetadata, field: keyof ExternalMe
 // ffprobe emits "N/A"/null for values it cannot measure; keep those out before
 // any of them get stored as NaN/0 metadata. The predicate also narrows the
 // optional ffprobe field types.
-const isRealNumber = (value: number | undefined | string): value is number =>
-  typeof value === 'number' && Number.isFinite(value);
+const isRealNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 export class ImportUtils {
   public static async getFileCreationTime(path: string): Promise<number> {

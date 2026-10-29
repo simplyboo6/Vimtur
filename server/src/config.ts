@@ -117,12 +117,12 @@ const DEFAULTS: Partial<Configuration.Main> = {
 };
 
 class Config {
-  private validator: Validator;
+  private validator: Validator<Configuration.Main>;
   private merged?: Configuration.Main;
   private baseLayers?: Configuration.Partial[];
 
   public static init(): Config {
-    const validator = Validator.load('Configuration.Main');
+    const validator = Validator.load<Configuration.Main>('Configuration.Main');
     // Load the constant layers, all of these together should validate.
     // They may be overwritten at runtime though.
     const userConfig = Config.getUserLayer();
@@ -164,7 +164,7 @@ class Config {
     return readJsonSync(path);
   }
 
-  private constructor(validator: Validator) {
+  private constructor(validator: Validator<Configuration.Main>) {
     this.validator = validator;
   }
 
@@ -195,7 +195,7 @@ class Config {
 
     const validationResult = this.validator.validate(merged);
     if (!validationResult.success) {
-      throw new Error(validationResult.errorText ?? 'Merged configuration schema failed to validate.');
+      throw new Error(validationResult.errorText);
     }
 
     // On the first call store the layers as the write-once base layers.

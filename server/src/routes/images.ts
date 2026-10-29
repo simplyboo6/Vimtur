@@ -15,11 +15,11 @@ import type { Database } from '../types';
 import { asError, deleteCache, deleteMedia, singleParam } from '../utils';
 import { Validator } from '../utils/validator';
 
-const SUBSET_VALIDATOR = Validator.load('SubsetConstraints');
-const BULK_UPDATE_VALIDATOR = Validator.load('BulkUpdate');
-const MEDIA_UPDATE_VALIDATOR = Validator.load('UpdateMedia');
-const RESOLUTION_VALIDATOR = Validator.load('MediaResolution');
-const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load('PlaylistEntryUpdate');
+const SUBSET_VALIDATOR = Validator.load<SubsetConstraints>('SubsetConstraints');
+const BULK_UPDATE_VALIDATOR = Validator.load<BulkUpdate>('BulkUpdate');
+const MEDIA_UPDATE_VALIDATOR = Validator.load<UpdateMedia>('UpdateMedia');
+const RESOLUTION_VALIDATOR = Validator.load<MediaResolution>('MediaResolution');
+const PLAYLIST_ENTRY_UPDATE_VALIDATOR = Validator.load<PlaylistEntryUpdate>('PlaylistEntryUpdate');
 
 // The UpdateMedia schema is all-optional, so an update can pass schema
 // validation while carrying nothing writable (e.g. an empty `metadata`
@@ -55,15 +55,16 @@ export function create(db: Database): Router {
 
   const transcoder = new Transcoder(db);
 
-  // The bodies mirror this helper's (SUBSET_VALIDATOR's) generated schema; the
-  // calls cast the free-form JSON body over to it.
-  const parseSubsetBody = (body: SubsetConstraints): SubsetConstraints => {
+  // The bodies come in as free-form parsed JSON; validate() takes unknown, so
+  // no cast is needed, and SUBSET_VALIDATOR's schema claims the shape. It
+  // needs to stay in sync with SubsetConstraints.
+  const parseSubsetBody = (body: unknown): SubsetConstraints => {
     const result = SUBSET_VALIDATOR.validate(body);
     if (!result.success) {
-      throw new BadRequest(result.errorText!);
+      throw new BadRequest(result.errorText);
     }
 
-    const constraints: SubsetConstraints = body;
+    const constraints = result.data;
     constraints.corrupted = false;
     constraints.indexed = true;
     constraints.duplicateOf = { exists: false };
@@ -74,7 +75,7 @@ export function create(db: Database): Router {
   router.post(
     '/subset',
     wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body as SubsetConstraints);
+      const constraints = parseSubsetBody(req.body);
 
       console.log('Search request.', constraints);
       return {
@@ -92,7 +93,7 @@ export function create(db: Database): Router {
         throw new NotFound(`No playlist found with id: ${playlistId}`);
       }
 
-      const constraints = parseSubsetBody(req.body as SubsetConstraints);
+      const constraints = parseSubsetBody(req.body);
       const subset = await db.subset(constraints);
 
       // Do sequentially to preserve sort order
@@ -105,7 +106,7 @@ export function create(db: Database): Router {
   router.delete(
     '/subset/playlists/:playlistId',
     wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body as SubsetConstraints);
+      const constraints = parseSubsetBody(req.body);
       const subset = await db.subset(constraints);
 
       await execute(
@@ -121,15 +122,12 @@ export function create(db: Database): Router {
   router.patch(
     '/bulk-update',
     wrap(async ({ req }) => {
-      // The update is given in both directions by the generated schema, so the
-      // cast body mirrors BULK_UPDATE_VALIDATOR's schema.
-      const body = req.body as BulkUpdate;
-      const result = BULK_UPDATE_VALIDATOR.validate(body);
+      const result = BULK_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
 
-      const request: BulkUpdate = body;
+      const request = result.data;
       if (!hasWritableUpdate(request.update)) {
         throw new BadRequest('No fields to update');
       }
@@ -177,21 +175,19 @@ export function create(db: Database): Router {
         throw new NotFound(`No media found with hash: ${hash}`);
       }
 
-      // The body mirrors the generated MEDIA_UPDATE_VALIDATOR schema (UpdateMedia).
-      const body = req.body as UpdateMedia;
-      const result = MEDIA_UPDATE_VALIDATOR.validate(body);
+      const result = MEDIA_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
       // An update that carries nothing writable would reach the connector as
       // an empty change set (a raw SQL error on SQLite, an empty $set on
       // MongoDB); reject it here where the request is still known.
-      if (!hasWritableUpdate(body)) {
+      if (!hasWritableUpdate(result.data)) {
         throw new BadRequest('No fields to update');
       }
 
       return {
-        data: await db.saveMedia(hash, body),
+        data: await db.saveMedia(hash, result.data),
       };
     }),
   );
@@ -219,14 +215,12 @@ export function create(db: Database): Router {
   router.patch(
     '/:hash/playlists/:playlistId',
     wrap(async ({ req }) => {
-      // The body mirrors the generated PLAYLIST_ENTRY_UPDATE_VALIDATOR schema.
-      const body = req.body as PlaylistEntryUpdate;
-      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(body);
+      const result = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
 
-      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), body);
+      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), result.data);
     }),
   );
 
@@ -357,21 +351,20 @@ export function create(db: Database): Router {
         throw new BadRequest('Media has no clones');
       }
 
-      // The body mirrors the generated RESOLUTION_VALIDATOR schema.
-      const request = req.body as MediaResolution;
-      const result = RESOLUTION_VALIDATOR.validate(request);
+      const result = RESOLUTION_VALIDATOR.validate(req.body);
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
+      const resolution = result.data;
 
       // Verify that aliases + unrelated contains everything in clones.
-      const allRequested = [...request.aliases, ...request.unrelated];
+      const allRequested = [...resolution.aliases, ...resolution.unrelated];
       // If we can find a clone that isn't in the request body...
       if (media.clones.find((c) => !allRequested.includes(c))) {
         throw new BadRequest('Resolver body does not resolve all clones');
       }
 
-      for (const hash of request.aliases) {
+      for (const hash of resolution.aliases) {
         // For each alias set duplicateOf to this media, mark the cache as not cached
         // and delete the cache for it.
         await deleteCache(hash);
@@ -386,7 +379,7 @@ export function create(db: Database): Router {
       }
 
       // Update the media to set clones to undefined and add unrelated to unrelated.
-      await db.saveMedia(media.hash, { clones: [], unrelated: request.unrelated });
+      await db.saveMedia(media.hash, { clones: [], unrelated: resolution.unrelated });
     }),
   );
 

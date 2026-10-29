@@ -80,7 +80,7 @@ function flattenMediaUpdate(document: UpdateMedia | BaseMedia): MediaUpdate {
   return update;
 }
 
-const MEDIA_VALIDATOR = Validator.load('BaseMedia');
+const MEDIA_VALIDATOR = Validator.load<BaseMedia>('BaseMedia');
 
 export class MongoConnector extends Database {
   private server: MongoClient;
@@ -598,7 +598,7 @@ export class MongoConnector extends Database {
     const result = await media.findOne({ hash });
     if (result) {
       // The _id is internal to the database; the rest of the document is the API shape.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure only exists to strip _id
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure exposes the stored document without _id
       const { _id, playlists, ...document } = result;
       return {
         ...document,
@@ -650,14 +650,15 @@ export class MongoConnector extends Database {
       const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
       await collection.updateOne({ hash }, { $set: update });
     } else {
-      // If it's a new one then pre-validate it to show better errors.
-      const insert = { ...withoutGeneratedFields(media), hash } as BaseMedia;
-      const result = MEDIA_VALIDATOR.validate(insert);
+      // If it's a new one then pre-validate it to show better errors. The
+      // media body is the stored document's shape, which MEDIA_VALIDATOR's
+      // BaseMedia schema claims.
+      const result = MEDIA_VALIDATOR.validate({ ...withoutGeneratedFields(media), hash });
       if (!result.success) {
-        throw new BadRequest(result.errorText!);
+        throw new BadRequest(result.errorText);
       }
 
-      await collection.insertOne(insert);
+      await collection.insertOne(result.data);
     }
 
     return (await this.getMedia(hash))!;
