@@ -56,6 +56,12 @@ function getExternalMetadataField(obj: ExternalMetadata, field: keyof ExternalMe
   }
 }
 
+// ffprobe emits "N/A"/null for values it cannot measure; keep those out before
+// any of them get stored as NaN/0 metadata. The predicate also narrows the
+// optional ffprobe field types.
+const isRealNumber = (value: number | undefined | string): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
 export class ImportUtils {
   public static async getFileCreationTime(path: string): Promise<number> {
     const stat = await Util.promisify(FS.stat)(path);
@@ -124,7 +130,7 @@ export class ImportUtils {
     const width = mediaData.width ?? mediaData.coded_width;
     const height = mediaData.height ?? mediaData.coded_height;
     const duration = data.format.duration;
-    if (width === undefined || height === undefined || duration === undefined) {
+    if (!isRealNumber(width) || !isRealNumber(height) || !isRealNumber(duration)) {
       throw new Error(`Probe result is missing dimensions or duration: ${absolutePath}`);
     }
 

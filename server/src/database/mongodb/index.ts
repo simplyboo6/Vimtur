@@ -14,7 +14,7 @@ import {
   SubsetFields,
   UpdateMedia,
 } from '@vimtur/common';
-import { Db, Document, MongoClient, ObjectId } from 'mongodb';
+import { Db, MatchKeysAndValues, MongoClient, ObjectId } from 'mongodb';
 
 import Config from '../../config';
 import { BadRequest, NotFound } from '../../errors';
@@ -52,12 +52,12 @@ type MediaUpdate = Record<string, unknown> & { metadata?: Record<string, unknown
 
 // Generated on the API surface (reads) but never stored; writes may still
 // pass them back, so they are stripped from every update.
-const GENERATED_FIELDS = ['absolutePath', 'transcode', 'cached'] as const;
+const GENERATED_FIELDS: readonly string[] = ['absolutePath', 'transcode', 'cached'];
 
 function withoutGeneratedFields(document: UpdateMedia | BaseMedia): MediaUpdate {
   const update: MediaUpdate = {};
   for (const [key, value] of Object.entries(document)) {
-    if ((GENERATED_FIELDS as readonly string[]).includes(key)) {
+    if (GENERATED_FIELDS.includes(key)) {
       continue;
     }
     update[key] = value;
@@ -599,16 +599,22 @@ export class MongoConnector extends Database {
     if (result) {
       // The _id is internal to the database; the rest of the document is the API shape.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure only exists to strip _id
-      const { _id, ...document } = result;
+      const { _id, playlists, ...document } = result;
       return {
         ...document,
         absolutePath: Path.resolve(Config.get().libraryPath, document.path),
-        // Documents joined in with a $lookup pipeline carry the joined playlist's
-        // ObjectId; the API surface keeps the string id.
-        playlists: document.playlists?.map((playlist) => ({
-          id: playlist._id.toHexString(),
-          order: playlist.order,
-        })),
+        // Documents joined in with a $lookup pipeline carry the joined
+        // playlist's ObjectId; the API surface keeps the string id. The key is
+        // omitted entirely when the media is not in any playlist, because a
+        // null written back through `saveMedia` would corrupt the array.
+        ...(playlists
+          ? {
+              playlists: playlists.map((playlist) => ({
+                id: playlist._id.toHexString(),
+                order: playlist.order,
+              })),
+            }
+          : {}),
       };
     }
     return undefined;
@@ -626,8 +632,8 @@ export class MongoConnector extends Database {
     const collection = this.db.collection('media');
 
     // The flattened update contains dynamically generated `metadata.<key>`
-    // dotted paths, which the collection's static field typing can't express.
-    const update = flattenMediaUpdate(media) as unknown as Document;
+    // dotted paths, which are not part of the collection's static field typing.
+    const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
     const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: update });
     return result.matchedCount;
   }
@@ -640,8 +646,8 @@ export class MongoConnector extends Database {
     const collection = this.db.collection<BaseMedia>('media');
     if (await this.getMedia(hash)) {
       // The flattened update contains dynamically generated `metadata.<key>`
-      // dotted paths, which the collection's static field typing can't express.
-      const update = flattenMediaUpdate(media) as unknown as BaseMedia;
+      // dotted paths, which are not part of the collection's static field typing.
+      const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
       await collection.updateOne({ hash }, { $set: update });
     } else {
       // If it's a new one then pre-validate it to show better errors.

@@ -36,9 +36,10 @@ function mapEnv(env: string, obj: Record<string, unknown>, dest: string): void {
   node[path[path.length - 1]] = value;
 }
 
-function readJsonSync(file: string): Configuration.Main {
-  // The JSON is user-provided; it is validated against the schema in Config.setLayers().
-  return JSON.parse(StripJsonComments(FS.readFileSync(file).toString())) as Configuration.Main;
+function readJsonSync(file: string): Configuration.Partial {
+  // The JSON's shape is user-provided; it is merged and validated against the
+  // schema in Config.setLayers(), so tracking it as a partial is accurate.
+  return JSON.parse(StripJsonComments(FS.readFileSync(file).toString())) as Configuration.Partial;
 }
 
 function getVersion(): string {
@@ -133,9 +134,9 @@ class Config {
     return config;
   }
 
-  private static getEnvironmentLayer(): Configuration.Main {
+  private static getEnvironmentLayer(): Configuration.Partial {
     // Filled via mapEnv() with dotted paths that only exist per variable, so it cannot be
-    // built as an object literal. It is validated against the schema in Config.setLayers().
+    // built as an object literal. It is merged and validated against the schema in Config.setLayers().
     const config: Record<string, unknown> = {};
     // General config
     mapEnv('PORT', config, 'port');
@@ -151,7 +152,7 @@ class Config {
     // SQLite
     mapEnv('DATABASE_PATH', config, 'database.path');
 
-    return config as unknown as Configuration.Main;
+    return config;
   }
 
   private static getUserLayer(): Configuration.Partial {
