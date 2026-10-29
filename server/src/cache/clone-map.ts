@@ -2,7 +2,7 @@ import OS from 'os';
 import Path from 'path';
 import { Worker } from 'worker_threads';
 
-import { execute, ExecutorPromise } from 'proper-job';
+import { execute, ExecutorPromise, ExecutorResults } from 'proper-job';
 
 import type { Database } from '../types';
 import { asError } from '../utils';
@@ -55,7 +55,7 @@ function stringArrayEqual(a: string[], b: string[]): boolean {
 export function generateImageCloneMap(
   database: Database,
   updateStatus: (current: number, max: number) => void,
-): ExecutorPromise<any> {
+): ExecutorPromise<ExecutorResults<void>> {
   return execute(
     async () => {
       // Now find all phashed

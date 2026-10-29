@@ -8,7 +8,7 @@ const DEFAULT_FORMAT = 'application/json';
 
 export interface RestResult {
   status?: number;
-  data?: any;
+  data?: unknown;
 }
 
 export interface ExpressArgs {
@@ -25,9 +25,9 @@ export type Extractor<A extends object> = (args: ExpressArgs) => A;
 const empty = {};
 const noOpExtractor: Extractor<Record<string, unknown>> = () => empty;
 
-export type WrapHandler<A extends object = Record<string, unknown>> = Handler<any, A>;
+export type WrapHandler<A extends object = Record<string, unknown>> = Handler<void | RestResult, A>;
 
-function sendResponse(req: Request, res: Response, status: number, response?: any): void {
+function sendResponse(req: Request, res: Response, status: number, response?: unknown): void {
   if (response === undefined) {
     res.sendStatus(status);
     return;
@@ -74,15 +74,13 @@ export function wrapHandler<A extends object>(
   return (req, res, next) => {
     (async () => {
       const express: ExpressArgs = { req, res, next };
-      // Handlers respond with RestResult-style payloads or just side effects, but
-      // WrapHandler is still inferred as `any` at this seam.
-      const result = (await handler({
+      const result = await handler({
         ...express,
         ...extractor(express),
-      })) as RestResult | undefined;
+      });
 
       if (sendResult) {
-        if (result) {
+        if (result !== undefined) {
           sendResponse(req, res, result.status || 200, result.data);
         } else {
           res.sendStatus(204);

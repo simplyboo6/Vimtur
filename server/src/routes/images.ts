@@ -302,9 +302,10 @@ export function create(db: Database): Router {
     wrap(async ({ req, res }) => {
       const media = await db.getMedia(singleParam(req.params.hash));
       if (!media) {
-        return res.status(404).json({
+        res.status(404).json({
           message: `No media found with hash: ${singleParam(req.params.hash)}`,
         });
+        return;
       }
 
       if (req.query.download) {
@@ -334,11 +335,12 @@ export function create(db: Database): Router {
             }
           }
         }
-        return res.sendFile(absPath);
+        res.sendFile(absPath);
+        return;
       } catch (errUnknown: unknown) {
         const err = asError(errUnknown);
         console.error('Error reading file', err);
-        return res.status(503).json({ message: err.message });
+        res.status(503).json({ message: err.message });
       }
     }, false),
   );
