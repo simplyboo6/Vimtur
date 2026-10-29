@@ -25,7 +25,12 @@ export function getTask(database: Database): RouterTask {
         name: 'Safety',
         values: [
           { id: 'strict', name: `Refuse if missing files exceed ${MAX_MISSING_PERCENT}% of the library` },
-          { id: 'allow-all', name: 'Allow deleting any number of files (dangerous)' },
+          {
+            id: 'allow-all',
+            name: 'Allow deleting any number of files (dangerous)',
+            confirm:
+              'Delete media for every file missing from the library, regardless of how many? This cannot be undone.',
+          },
         ],
       },
     ],

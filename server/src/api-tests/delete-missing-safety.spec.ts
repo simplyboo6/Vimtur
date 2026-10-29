@@ -67,8 +67,11 @@ describe('DELETE-MISSING safety', () => {
     expect(deleteMissing, 'DELETE-MISSING listed').to.be.an('object');
     const arg = deleteMissing!.args?.[0];
     expect(arg?.type).to.equal('select');
-    const modes = arg && arg.type === 'select' ? arg.values.map((value) => value.id) : [];
-    expect(modes).to.deep.equal(['strict', 'allow-all']);
+    const values = arg && arg.type === 'select' ? arg.values : [];
+    expect(values.map((value) => value.id)).to.deep.equal(['strict', 'allow-all']);
+    // The client asks for a modal confirmation for values that declare one.
+    expect(values[0].confirm).to.equal(undefined);
+    expect(values[1].confirm).to.include('cannot be undone');
   });
 
   it('imports all created media', async () => {

@@ -152,22 +152,28 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   public async startAction() {
-    // Captured before the confirmation await so a task-selection change
+    // Captured before the confirmation awaits so a task-selection change
     // under the modal can't start something other than what was confirmed.
     const task = this.task;
     if (!task) {
       return;
     }
-    // DELETE-MISSING is the only task that unlinks library files, and its
-    // dangerous mode skips the server-side volume-wipe protection. Make
-    // selecting it a deliberate decision rather than one click.
-    const dangerous = task.id === 'DELETE-MISSING' && this.args[0] === 'allow-all';
-    if (dangerous) {
-      const confirmed = await this.confirmationService.confirm(
-        'Delete media for every file missing from the library, regardless of how many? This cannot be undone.',
-      );
-      if (!confirmed) {
-        return;
+    // Select values can require that the user accepts a confirmation message
+    // (e.g. 'allow-all' on DELETE-MISSING makes the task delete files beyond
+    // the server-side safety limit), so check the selected values generically.
+    const definitions = task.args ?? [];
+    for (let i = 0; i < definitions.length; i++) {
+      const definition = definitions[i];
+      const selectedId = this.args[i];
+      if (!definition || definition.type !== 'select' || selectedId === undefined) {
+        continue;
+      }
+      const selected = definition.values.find(value => value.id === selectedId);
+      if (selected?.confirm) {
+        const confirmed = await this.confirmationService.confirm(selected.confirm);
+        if (!confirmed) {
+          return;
+        }
       }
     }
     this.tasksService.startAction(task.id, task.args ? this.args : undefined);
