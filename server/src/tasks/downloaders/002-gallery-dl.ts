@@ -13,7 +13,7 @@ export function getDownloader(): Downloader {
         let aborted = false;
         let fileCount = 0;
 
-        proc.stdout.on('data', (data) => {
+        proc.stdout.on('data', (data: Buffer) => {
           const line = data.toString().trim();
           if (!line.startsWith('[') && !aborted) {
             fileCount++;
@@ -22,8 +22,8 @@ export function getDownloader(): Downloader {
         });
 
         let err = '';
-        proc.stderr.on('data', (data) => {
-          err += data;
+        proc.stderr.on('data', (data: Buffer) => {
+          err += data.toString();
         });
 
         proc.on('exit', (code) => {

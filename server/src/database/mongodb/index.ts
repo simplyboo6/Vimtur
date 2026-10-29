@@ -562,21 +562,21 @@ export class MongoConnector extends Database {
   }
 
   public async getMedia(hash: string): Promise<Media | undefined> {
-    const media = this.db.collection<BaseMedia>('media');
+    const media = this.db.collection<MediaDoc>('media');
     const result = await media.findOne({ hash });
     if (result) {
-      delete (result as any)._id;
+      // The _id is internal to the database; the rest of the document is the API shape.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure only exists to strip _id
+      const { _id, ...document } = result;
       return {
-        ...result,
-        absolutePath: Path.resolve(Config.get().libraryPath, result.path),
-        ...(result.playlists
-          ? {
-              playlists: result.playlists.map((playlist) => ({
-                id: (playlist as any)._id.toHexString(),
-                order: playlist.order,
-              })),
-            }
-          : {}),
+        ...document,
+        absolutePath: Path.resolve(Config.get().libraryPath, document.path),
+        // Documents joined in with a $lookup pipeline carry the joined playlist's
+        // ObjectId; the API surface keeps the string id.
+        playlists: document.playlists?.map((playlist) => ({
+          id: playlist._id.toHexString(),
+          order: playlist.order,
+        })),
       };
     }
     return undefined;
