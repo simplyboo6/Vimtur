@@ -4,7 +4,7 @@ import { wrap } from '../express-async';
 import { convertToArray, Insights } from '../insights';
 import type { Database } from '../types';
 
-export async function create(db: Database): Promise<Router> {
+export function create(db: Database): Router {
   const router = Router();
 
   const insights = new Insights(db);

@@ -154,7 +154,7 @@ export function getTask(db: Database): RouterTask {
   const router = Router();
   router.get(
     '/results',
-    wrap(async () => {
+    wrap(() => {
       return {
         data: Scanner.results
           ? {
@@ -171,7 +171,7 @@ export function getTask(db: Database): RouterTask {
 
   router.get(
     '/results/missing',
-    wrap(async () => {
+    wrap(() => {
       return {
         data: Scanner.results ? Scanner.results.missingPaths : [],
       };
@@ -180,7 +180,7 @@ export function getTask(db: Database): RouterTask {
 
   router.get(
     '/results/new',
-    wrap(async () => {
+    wrap(() => {
       return {
         data: Scanner.results ? Scanner.results.newPaths : [],
       };

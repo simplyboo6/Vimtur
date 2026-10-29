@@ -5,7 +5,7 @@ import { wrap } from '../express-async';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
 
-export async function create(db: Database): Promise<Router> {
+export function create(db: Database): Router {
   const router = Router();
 
   router.get(
