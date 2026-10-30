@@ -83,10 +83,6 @@ export const AUTO_TAG_MODELS: readonly ModelDefinition[] = [
   },
 ];
 
-export function DEFAULT_AUTO_TAG_MODEL(): ModelDefinition {
-  return AUTO_TAG_MODELS[0];
-}
-
 const AUTO_TAG_DIR_SUBPATH = 'autotag';
 
 function autoTagDir(): string {
@@ -159,6 +155,9 @@ async function isCached(destination: string, definition: ModelDefinition): Promi
     return false;
   }
   try {
+    // Verified against the registry URLs: the Hugging Face -> CDN redirect
+    // target answers HEAD with the model's Content-Length, so the cached
+    // size is comparable across runs.
     return (await remoteSize(definition.url)) === size;
   } catch {
     // An unreachable source with a present model is fine: the feature is

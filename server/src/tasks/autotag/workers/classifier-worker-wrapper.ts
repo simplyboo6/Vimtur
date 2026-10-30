@@ -41,9 +41,6 @@ export class ClassifierWorkerWrapper {
   constructor() {
     this.worker = new Worker(Path.resolve(__dirname, 'classifier-worker.js'), {
       env: SHARE_ENV,
-      // Silence stdout and stderr.
-      stdout: true,
-      stderr: true,
     });
     this.worker.on('message', (response: ClassifierWorkerResponse) => {
       const entry = this.pending.get(response.id);
