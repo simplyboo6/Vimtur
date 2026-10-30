@@ -5,7 +5,7 @@ import type { Database, RouterTask } from '../../types';
 export function getTask(database: Database): RouterTask {
   return {
     id: 'RESET-AUTOTAGS',
-    description: 'Auto-Tag - Removes TensorFlow generated tags from all media',
+    description: 'Auto-Tag - Removes generated tags from all media',
     runner: () => {
       return execute(
         async () => {

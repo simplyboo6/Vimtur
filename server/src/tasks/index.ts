@@ -31,7 +31,7 @@ function getTaskLoaders(dir: string): TaskLoader[] {
     .filter((loader) => loader !== undefined);
 }
 
-const taskLoaders = [...getTaskLoaders(__dirname), ...getTaskLoaders(`${__dirname}/tensorflow`)];
+const taskLoaders = [...getTaskLoaders(__dirname), ...getTaskLoaders(`${__dirname}/autotag`)];
 
 export function getTasks(database: Database): RouterTask[] {
   return (

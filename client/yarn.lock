@@ -4352,12 +4352,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vimtur/common@file:../common::locator=client%40workspace%3A.":
-  version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=19367c&locator=client%40workspace%3A."
-  checksum: 10c0/ddb4fa12b299519da7c6760c620d175489f0c3846455faaddc31aebe3b9ee01cf671d202c01d616baed2f1096fe06d8b40aa7c6da26f3e9ee12ba0dae9e5dd90
+"@vimtur/common@portal:../common::locator=client%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@vimtur/common@portal:../common::locator=client%40workspace%3A."
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "@vitejs/plugin-basic-ssl@npm:2.3.0":
   version: 2.3.0

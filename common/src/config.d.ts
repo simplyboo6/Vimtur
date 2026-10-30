@@ -89,9 +89,9 @@ export namespace Configuration {
     transcoder: Transcoder;
     // Enable pHash generation for stills as part of import.
     enablePhash: boolean;
-    // Enable TensorFlow classification of stills as part of import.
-    // Note this uses the default MobileNet V2 model.
-    enableTensorFlow: boolean;
+    // Enable auto-tagging of stills as part of import.
+    // Note this uses the default image classification model (MobileNet V2).
+    enableAutoTags: boolean;
     user: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.
