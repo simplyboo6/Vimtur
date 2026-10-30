@@ -13,7 +13,7 @@ import IO from 'socket.io';
 // Local
 import Config, { VERSION_NAME } from './config';
 import { setup as setupDb } from './database';
-import { wrap } from './express-async';
+import { BadRequest } from './errors';
 import { errorHandler } from './middleware/error-handler';
 
 // Routes
@@ -26,6 +26,7 @@ import * as TasksRouter from './routes/tasks';
 import type { Database } from './types';
 import { asError } from './utils';
 import * as Utils from './utils';
+import { sendResponse } from './utils/send-response';
 
 async function createServer(db: Database): Promise<Server> {
   const app = Express();
@@ -83,53 +84,35 @@ async function createServer(db: Database): Promise<Server> {
   // wildcard always yields an array of decoded segments (not a single string), so join
   // them back into the same cache-relative path the old `:file` param provided.
   app.get('/cache{/*splat}', (req, res) => {
-    try {
-      const file = req.params.splat?.join('/') ?? '';
-      const absPath = Path.resolve(Config.get().cachePath, file);
-      if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
-        throw new Error('File is not inside cache directory');
-      }
-      res.set('Cache-Control', 'public, max-age=604800, immutable');
-      return res.sendFile(absPath);
-    } catch (errUnknown: unknown) {
-      const err = asError(errUnknown);
-      return res.status(400).json({ message: err.message, type: 'config' });
+    const file = req.params.splat?.join('/') ?? '';
+    const absPath = Path.resolve(Config.get().cachePath, file);
+    if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
+      throw new BadRequest('File is not inside cache directory');
     }
+    res.set('Cache-Control', 'public, max-age=604800, immutable');
+    res.sendFile(absPath);
   });
 
-  app.get(
-    '/api/config',
-    wrap(() => {
-      const config = { ...Config.get() };
-      delete config.database;
-      return {
-        data: config,
-      };
-    }),
-  );
+  app.get('/api/config', (req, res) => {
+    const config = { ...Config.get() };
+    delete config.database;
+    sendResponse(req, res, 200, config);
+  });
 
-  app.post(
-    '/api/config',
-    wrap(async ({ req }) => {
-      // Because the new config overrides the existing one when saved
-      // they must be merged first to preserve properties.
-      // The overlay is JSON the API accepts in one piece; Config.setLayers()
-      // schema-validates the merged result.
-      const merged = DeepMerge.all<Configuration.Partial>(
-        [await db.getUserConfig(), req.body as Configuration.Partial],
-        {
-          arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
-        },
-      );
-      Config.setUserOverlay(merged);
-      await db.saveUserConfig(merged);
-      const config = { ...Config.get() };
-      delete config.database;
-      return {
-        data: config,
-      };
-    }),
-  );
+  app.post('/api/config', async (req, res) => {
+    // Because the new config overrides the existing one when saved
+    // they must be merged first to preserve properties.
+    // The overlay is JSON the API accepts in one piece; Config.setLayers()
+    // schema-validates the merged result.
+    const merged = DeepMerge.all<Configuration.Partial>([await db.getUserConfig(), req.body as Configuration.Partial], {
+      arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
+    });
+    Config.setUserOverlay(merged);
+    await db.saveUserConfig(merged);
+    const config = { ...Config.get() };
+    delete config.database;
+    sendResponse(req, res, 200, config);
+  });
 
   app.get('/', (_, res: Response) => {
     res.redirect('/web/');
