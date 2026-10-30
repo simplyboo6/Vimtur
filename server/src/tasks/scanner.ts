@@ -10,9 +10,9 @@ import Walk from 'walk';
 // Local
 import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
-import { wrap } from '../express-async';
 import type { Database, RouterTask } from '../types';
 import { asError } from '../utils';
+import { sendResponse } from '../utils/send-response';
 
 type FilterResults = Types.Scanner.FilterResults;
 
@@ -152,40 +152,30 @@ export class Scanner {
 
 export function getTask(db: Database): RouterTask {
   const router = Router();
-  router.get(
-    '/results',
-    wrap(() => {
-      return {
-        data: Scanner.results
-          ? {
-              newPaths: Scanner.results.newPaths.length,
-              missingPaths: Scanner.results.missingPaths.length,
-            }
-          : {
-              newPaths: 0,
-              missingPaths: 0,
-            },
-      };
-    }),
-  );
+  router.get('/results', (req, res) => {
+    sendResponse(
+      req,
+      res,
+      200,
+      Scanner.results
+        ? {
+            newPaths: Scanner.results.newPaths.length,
+            missingPaths: Scanner.results.missingPaths.length,
+          }
+        : {
+            newPaths: 0,
+            missingPaths: 0,
+          },
+    );
+  });
 
-  router.get(
-    '/results/missing',
-    wrap(() => {
-      return {
-        data: Scanner.results ? Scanner.results.missingPaths : [],
-      };
-    }),
-  );
+  router.get('/results/missing', (req, res) => {
+    sendResponse(req, res, 200, Scanner.results ? Scanner.results.missingPaths : []);
+  });
 
-  router.get(
-    '/results/new',
-    wrap(() => {
-      return {
-        data: Scanner.results ? Scanner.results.newPaths : [],
-      };
-    }),
-  );
+  router.get('/results/new', (req, res) => {
+    sendResponse(req, res, 200, Scanner.results ? Scanner.results.newPaths : []);
+  });
 
   return {
     id: 'SCAN',
