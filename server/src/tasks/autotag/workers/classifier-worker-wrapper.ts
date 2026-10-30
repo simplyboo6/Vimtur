@@ -41,6 +41,11 @@ export class ClassifierWorkerWrapper {
   constructor() {
     this.worker = new Worker(Path.resolve(__dirname, 'classifier-worker.js'), {
       env: SHARE_ENV,
+      // `true` stops the worker's stdout/stderr being piped to the parent
+      // process (the default pipes them), keeping native warnings like
+      // onnxruntime's out of the server logs.
+      stdout: true,
+      stderr: true,
     });
     this.worker.on('message', (response: ClassifierWorkerResponse) => {
       const entry = this.pending.get(response.id);
