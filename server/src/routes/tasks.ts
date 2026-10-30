@@ -3,11 +3,11 @@ import { execute } from 'proper-job';
 import type SocketIO from 'socket.io';
 
 import Config from '../config';
-import { wrap } from '../express-async';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
+import { sendResponse } from '../utils/send-response';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -99,39 +99,27 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     io.sockets.emit('task-queue', data);
   });
 
-  router.get(
-    '/',
-    wrap(() => {
-      return {
-        data: taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)),
-      };
-    }),
-  );
+  router.get('/', (req, res) => {
+    sendResponse(
+      req,
+      res,
+      200,
+      taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)),
+    );
+  });
 
-  router.get(
-    '/queue',
-    wrap(() => {
-      return {
-        data: taskManager.getQueue(),
-      };
-    }),
-  );
+  router.get('/queue', (req, res) => {
+    sendResponse(req, res, 200, taskManager.getQueue());
+  });
 
-  router.post(
-    '/queue/:id',
-    wrap(({ req }) => {
-      return {
-        data: taskManager.start(singleParam(req.params.id), req.body),
-      };
-    }),
-  );
+  router.post('/queue/:id', (req, res) => {
+    sendResponse(req, res, 200, taskManager.start(singleParam(req.params.id), req.body));
+  });
 
-  router.delete(
-    '/queue/:id',
-    wrap(({ req }) => {
-      taskManager.cancel(singleParam(req.params.id));
-    }),
-  );
+  router.delete('/queue/:id', (req, res) => {
+    taskManager.cancel(singleParam(req.params.id));
+    res.sendStatus(204);
+  });
 
   return router;
 }
