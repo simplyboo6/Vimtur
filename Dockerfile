@@ -32,8 +32,8 @@ FROM node:24-slim AS runtime
 
 # The downloader CLIs update frequently and are not packaged; they install
 # into their own venv to keep the system Python clean and reproducible.
-# yt-dlp wants an external JS runtime for some extractors (e.g. YouTube);
-# without one those hosts will not work.
+# yt-dlp needs a JavaScript runtime for some extractors (e.g. YouTube);
+# Node (already present in this image) covers that for the common cases.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini imagemagick ffmpeg pngquant jq sqlite3 python3-minimal python3-venv && \
     python3 -m venv /opt/pip-venv && \

@@ -106,8 +106,11 @@ async function createServer(db: Database): Promise<Server> {
     const merged = DeepMerge.all<Configuration.Partial>([await db.getUserConfig(), req.body as Configuration.Partial], {
       arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
     });
-    Config.setUserOverlay(merged);
-    await db.saveUserConfig(merged);
+    // setUserOverlay returns the post-rename overlay; storing that makes the
+    // deprecated names disappear from the database instead of persisting
+    // forever behind the boot-time mapping.
+    const stored = Config.setUserOverlay(merged);
+    await db.saveUserConfig(stored);
     const config = { ...Config.get() };
     delete config.database;
     res.status(200).json(config);

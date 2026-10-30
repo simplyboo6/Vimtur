@@ -216,16 +216,21 @@ class Config {
     return this.merged;
   }
 
-  public setUserOverlay(config: Configuration.Partial): void {
-    this.setLayers([config]);
+  public setUserOverlay(config: Configuration.Partial): Configuration.Partial {
+    // Returns the post-rename overlay: callers that persist the overlay
+    // (the config API) should store the mapped form so the deprecated keys
+    // eventually disappear from storage and the map can retire.
+    const [mapped] = this.setLayers([config]);
+    return mapped;
   }
 
-  private setLayers(layers: Configuration.Partial[]): void {
+  private setLayers(layers: Configuration.Partial[]): Configuration.Partial[] {
     const layerArray: Configuration.Partial[] = [];
     if (this.baseLayers) {
       layerArray.push(...this.baseLayers);
     }
-    layerArray.push(...layers.map((layer) => Config.mapRenamedKeys(layer)));
+    const mappedLayers = layers.map((layer) => Config.mapRenamedKeys(layer));
+    layerArray.push(...mappedLayers);
 
     const merged = DeepMerge.all(layerArray, {
       arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
@@ -250,6 +255,7 @@ class Config {
     }
     // Otherwise don't store the layers because they're stored in the database.
     this.merged = merged;
+    return mappedLayers;
   }
 }
 

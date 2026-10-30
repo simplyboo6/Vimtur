@@ -67,6 +67,11 @@ export function getTask(database: Database): RouterTask[] {
             const modelFile = await ensureModelDownloaded(modelDefinition);
             loadClasses();
 
+            // Restart the status text so the queue row stops claiming a
+            // download that has finished (the description override applies
+            // until another updateStatus sets text).
+            updateStatus(0, hashes.length, 'Classifying images...');
+
             // Only begin creating runners when the pool completes.
             const pool = new ScalingConnectionPool(
               () => {
