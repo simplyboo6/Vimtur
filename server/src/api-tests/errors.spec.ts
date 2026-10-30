@@ -59,8 +59,11 @@ describe('Error envelope', () => {
 
   it('unknown errors map to a 500 carrying the message', async () => {
     // POSTing an array where a Configuration.Partial object is required makes
-    // the config handler throw a plain Error deep in the merge; the central
-    // handler warns and maps it to 500 with the message, as wrap() did.
+    // the config handler throw a plain Error while merging the request body
+    // (POST /api/config's DeepMerge.all call); the central handler warns and
+    // maps it to 500 with the message, as wrap() did. If that merge site
+    // ever starts throwing a BaseRequestError instead, this pin legitimately
+    // flips to 400 — nothing else about the middleware changes then.
     // Note the failing write happens before anything is persisted.
     const response = await client.post('/api/config', []);
     expect(response.status).to.equal(500);
@@ -90,8 +93,8 @@ describe('Error envelope', () => {
   });
 
   it('maps stream pre-byte failures to the normal JSON error body', async () => {
-    // Note: a still never reaches the segment range validation, but it still
-    // proves a pre-byte handler throw arrives as the standard JSON body.
+    // Non-video media is rejected outright by the streaming handler, proving
+    // a pre-byte handler throw arrives as the standard JSON body.
     const response = await client.get(`/api/images/${alpha}/stream/128/data.ts?start=0&end=2`);
     expect(response.status).to.equal(400);
     expect(response.data).to.deep.equal({ message: 'Cannot stream non-video media' });
@@ -103,5 +106,22 @@ describe('Error envelope', () => {
     const response = await rawRequest('GET', '/cache/..%2Fdata.txt');
     expect(response.status).to.equal(400);
     expect(response.body).to.equal(JSON.stringify({ message: 'File is not inside cache directory' }));
+  });
+
+  it('serves sendFile failures as JSON, not the express default page', async () => {
+    // Errors forwarded by res.sendFile (missing files) reach the middleware
+    // with their status attached, so the default HTML error page — which
+    // would otherwise print a stack trace — becomes a JSON body instead.
+    // Paths appear verbatim in the message; the whole library path is
+    // public API on a no-auth install, so this leaks nothing new.
+    const missing = await rawRequest('GET', '/cache/does-not-exist.png');
+    expect(missing.status).to.equal(404);
+    expect(missing.contentType).to.include('application/json');
+    const missingBody = JSON.parse(missing.body) as { message: string };
+    expect(missingBody.message).to.include('ENOENT');
+
+    const webMissing = await rawRequest('GET', '/web/dist/definitely-missing.js');
+    expect(webMissing.status).to.equal(404);
+    expect(webMissing.contentType).to.include('application/json');
   });
 });

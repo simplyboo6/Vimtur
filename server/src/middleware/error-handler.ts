@@ -11,11 +11,15 @@ import { sendResponse } from '../utils/send-response';
 // unexpected 500 (warned), and both send { message }.
 //
 // Not all errors reaching this middleware come from handlers. Middleware that
-// runs before the routes (body-parser, http-auth, express's own sendFile) also
-// forward here and carry a status on the error object, which Express's default
-// handler used to honour — respect it so those stay 4xx instead of becoming
-// unknown-error 500s.
+// runs before the routes (body-parser, http-auth) and the sendFile fallback in
+// express's `send` also forward here and carry a status on the error object,
+// which Express's default handler used to honour — respect it so those stay
+// 4xx instead of becoming unknown-error 500s.
 export const errorHandler: ErrorRequestHandler = (errUnknown, req, res, next) => {
+  // asError() normalises non-Error throwables into a fresh Error without
+  // their extra fields, so read any carried-over status off the original
+  // value, not the normalised error.
+  const attached = errUnknown as { status?: unknown; statusCode?: unknown };
   const err = asError(errUnknown);
 
   // Handlers that write the body directly (HLS segments, media files) may
@@ -28,9 +32,16 @@ export const errorHandler: ErrorRequestHandler = (errUnknown, req, res, next) =>
 
   // sendResponse throws BadRequest when the Accept/Content-Type header cannot
   // be negotiated; reporting that failure as a 503 comes before the normal
-  // mapping.
+  // mapping. This is also where a plain res.json()-style error body would
+  // fail for stream responses; images.ts has its own respondStreamError for
+  // that case so a status is only attempted while the response is still
+  // changeable there.
   if (err.message.startsWith('Unexpected content type')) {
-    console.error('Unable to send error response because of unexpected content type', req.header('content-type'));
+    console.error(
+      'Unable to send error response because of unexpected content type',
+      req.header('accept'),
+      req.header('content-type'),
+    );
     res.sendStatus(503);
     return;
   }
@@ -39,12 +50,14 @@ export const errorHandler: ErrorRequestHandler = (errUnknown, req, res, next) =>
   if (err instanceof BaseRequestError) {
     status = err.statusCode;
   } else {
-    // Errors thrown outside the routes (e.g. body-parser) carry their status
-    // as `status` or `statusCode`, which is what Express's default handler
-    // used to honour.
-    const known = (err as { status?: unknown }).status ?? (err as { statusCode?: unknown }).statusCode;
+    const known = attached.status ?? attached.statusCode;
     if (typeof known === 'number' && known >= 400 && known < 600) {
       status = known;
+      // Expected client-side failures (4xx) stay quiet; an upstream-looking
+      // 5xx still gets context in the logs.
+      if (known >= 500) {
+        console.warn('Error carrying HTTP status', known, ',', err);
+      }
     } else {
       console.warn('Unknown Error', err);
     }

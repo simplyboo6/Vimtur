@@ -62,8 +62,12 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    central error handler as the `/api` routes; the historical extras field
    never had a consumer. Pinned in `errors.spec.ts`.
 
-9. **All error bodies are JSON `{message}`, including pre-route failures.**
-   Unparseable JSON request bodies (body-parser) respond 400 with a JSON
-   `{message}` body instead of the blank/HTML default Express error page, and
-   any error arriving with a status already attached keeps it. Pinned in
-   `errors.spec.ts` and `src/test/error-handler.ts`.
+9. **Errors from the central middleware are always JSON `{message}`.** The
+   mapping middleware (issue #138) covers handler throws and anything
+   forwarded by pre-route middleware or `res.sendFile` (unparseable JSON
+   bodies respond 400 with a JSON body instead of the default HTML page;
+   missing cache/web files respond 404 JSON with the filesystem error text —
+   the library path is public API on a no-auth install, so this leaks
+   nothing new). Express's own unmatched-route 404 still returns the default
+   HTML error page from `finalhandler`. Pinned in `errors.spec.ts` and
+   `src/test/error-handler.ts`.
