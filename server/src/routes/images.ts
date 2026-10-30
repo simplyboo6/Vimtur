@@ -38,6 +38,10 @@ function hasWritableUpdate(value: unknown): boolean {
 
 // Streaming endpoints write the response body directly, so errors are only reportable
 // before the first byte is sent. After that the connection can only be ended early.
+// This deliberately coexists with the central error middleware
+// (middleware/error-handler.ts): middleware-level errors delegate to
+// next(err) once headers are sent, which ends the whole response, while a
+// stream that failed mid-body can only end its own truncated body here.
 function respondStreamError(res: Response, status: number, message: string): void {
   if (!res.headersSent) {
     // The stream routes set a video/mp2t content type before streaming, which
@@ -269,11 +273,13 @@ export function create(db: Database): Router {
       res.sendFile(absPath);
     } catch (errUnknown: unknown) {
       // The image manipulation path can throw before the response starts;
-      // anything after that is streamable file sending, whose failures are
-      // handled by express on the response itself.
+      // anything after that is stream-capable file sending, whose failures
+      // are handled by express on the response itself.
       const err = asError(errUnknown);
       console.error('Error reading file', err);
-      res.status(503).json({ message: err.message });
+      // Same reasoning as the stream routes: the status is only changeable
+      // before the first byte, and respondStreamError handles both cases.
+      respondStreamError(res, 503, err.message);
     }
   });
 

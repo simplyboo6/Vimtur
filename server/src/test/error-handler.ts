@@ -32,8 +32,9 @@ function fakeResponse(): FakeResponse {
       res.headers[name] = value;
     },
     status: (code: number) => {
+      // Mutation-like Express: setting a status alone writes nothing, so
+      // headersSent stays false until something is actually sent.
       res.statusCode = code;
-      res.headersSent = true;
       return res;
     },
     send: (body: unknown) => {
@@ -96,6 +97,24 @@ describe('Error handler middleware', () => {
     err.status = 400;
     callError(res, err);
     expect(res.statusCode).to.equal(400);
+  });
+
+  it('reads carried statuses off the thrown value, not the normalised error', () => {
+    // asError() turns non-Error throwables into a fresh Error and drops their
+    // extras; a plain object carrying status must still map via that status.
+    const res = fakeResponse();
+    callError(res, { status: 404, message: 'gone' });
+    expect(res.statusCode).to.equal(404);
+    expect(JSON.parse(res.body as string)).to.deep.equal({ message: 'gone' });
+
+    const statusCodeCarrier = fakeResponse();
+    callError(statusCodeCarrier, { statusCode: 413, message: 'entity too large' });
+    expect(statusCodeCarrier.statusCode).to.equal(413);
+
+    // A status outside the HTTP error range is not trusted as a mapping.
+    const ignored = fakeResponse();
+    callError(ignored, { status: 200, message: 'lies' });
+    expect(ignored.statusCode).to.equal(500);
   });
 
   it('defers to the default handler when headers are already sent', () => {
