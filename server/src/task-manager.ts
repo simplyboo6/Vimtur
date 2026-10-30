@@ -131,16 +131,17 @@ export class TaskManager extends EventEmitter {
     queuedTask.running = true;
 
     if (task.args) {
+      // Args may be omitted entirely when queueing (e.g. tasks started by other
+      // task runners). Definitions without `required` are the runner's
+      // responsibility to default; the per-entry checks below still validate
+      // whatever was queued.
+      const queuedArgs: TaskArgs = queuedTask.args ?? [];
       try {
-        if (!queuedTask.args) {
-          throw new Error('missing args');
-        }
-        console.log('Task Args', queuedTask.args);
-        if (!Array.isArray(queuedTask.args)) {
+        if (!Array.isArray(queuedArgs)) {
           throw new Error('args is not an array');
         }
         for (let i = 0; i < task.args.length; i++) {
-          if (queuedTask.args[i] === undefined) {
+          if (queuedArgs[i] === undefined) {
             if (task.args[i].required) {
               throw new Error(`missing args ${i} (${task.args[i].name})`);
             } else {
@@ -149,7 +150,7 @@ export class TaskManager extends EventEmitter {
           }
           switch (task.args[i].type) {
             case 'string':
-              if (typeof queuedTask.args[i] !== 'string') {
+              if (typeof queuedArgs[i] !== 'string') {
                 throw new Error(`argument (${task.args[i].name}) must be a string`);
               }
           }

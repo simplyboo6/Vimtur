@@ -59,10 +59,10 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
     FS.mkdirSync(dbDir, { recursive: true });
   }
 
-  // The user config layer keeps runs offline and fast: TensorFlow needs
-  // python/g++/make and internet access on first use, and phash is CPU-heavy.
+  // The user config layer keeps runs offline and fast: auto-tagging needs
+  // internet access on first use (a model download), and phash is CPU-heavy.
   const configPath = Path.join(root, 'config.json');
-  FS.writeFileSync(configPath, JSON.stringify({ enableTensorFlow: false, enablePhash: false, ...options.config }));
+  FS.writeFileSync(configPath, JSON.stringify({ enableAutoTags: false, enablePhash: false, ...options.config }));
 
   const logPath = Path.join(root, 'server.log');
   // From dist/api-tests the server entrypoint and generated schemas are

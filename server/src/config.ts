@@ -59,7 +59,7 @@ const DEFAULTS: Partial<Configuration.Main> = {
   port: 3523,
   // Enabled pHash generation during auto-import.
   enablePhash: false,
-  enableTensorFlow: true,
+  enableAutoTags: true,
   database: { provider: 'sqlite' },
   transcoder: {
     // Copy data to speedup setup.

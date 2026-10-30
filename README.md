@@ -7,7 +7,7 @@
 - Web-based mobile-friendly interface
 - Video, gif and image support
 - Tagging media
-- Auto-Tagging of images using TensorFlow
+- Auto-Tagging of images using image classification (ONNX Runtime)
 - Various forms of searching (weighted keyword, tag selection, etc)
 - Metadata support for Artist/Album/Title/[People/Actors]
 - Auto-scraped metadata from files where possible
@@ -44,8 +44,11 @@ This will start an instance of the program listening on (http://localhost:3523)[
 - The keyword search supports quotes ("magic phrase" for sentences and negation (-) on words and sentences).
 - When doing the keyword search there's a limit of 1200 results.
 - All code is TypeScript and the UI framework is Angular.
-- TensorFlow will run on the CPU. If you have AVX support on your CPU it uses native code and depending on the model and your CPU classifies in the range of 45ms. If your CPU does not support AVX it uses the JS only library and each classification will take in the range of 5s. However, it does use worker threads to make use of multi-core CPUs.
-- TensorFlow currently requires internet connectivity the first time a model is used. It fetches the list of ImageNet classes and the selected pre-trained model when it starts. Media is all classified locally. Further classifications with that model will use the cached download.
+- Auto-tagging runs entirely on the CPU with prebuilt ONNX Runtime binaries; typical models classify in the tens of
+  milliseconds per image depending on the model and CPU class.
+- Auto-tagging requires internet connectivity the first time a model is used. The model is downloaded from the ONNX Model
+  Zoo mirror and verified by checksum before use. Media is all classified locally. Further classifications with that
+  model will use the cached download.
 - The downloaders can be found under the Download Files task under the Config tab.
 
 ### Github Sponsors

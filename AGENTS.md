@@ -27,7 +27,7 @@
 
 - Native run uses env vars (see `env-sqlite.sh`): `PORT`, `DATABASE` (`sqlite` default | `mongodb`), `DATABASE_URI`/`DATABASE_DB` for mongo, plus `DATA_PATH` (media library) and `CACHE_PATH` (must be outside `DATA_PATH`). These override `config.json` (format: `Configuration.Main` in `common/src/config.d.ts`; example in `server/config.json.example`).
 - Requires system binaries outside Docker: `ffmpeg`, ImageMagick (`convert`/`identify` — the `gm` node module is configured with `imageMagick: true`), and optionally `pngquant`, `gallery-dl`, `yt-dlp`.
-- `@tensorflow/tfjs-node` needs python3/g++/make to build and internet access on first model use.
+- `onnxruntime-node` ships prebuilt binaries (no compile toolchain); set `ONNXRUNTIME_NODE_INSTALL=skip` when installing to bypass the CUDA provider download (~271MB dead weight without a GPU). First model use needs internet access (models come from the ONNX Model Zoo mirror); afterwards they're cached under `CACHE_PATH/autotag`.
 
 ## API response and error conventions (from #152 / #138)
 
@@ -45,7 +45,7 @@
 - CI: `.github/workflows/tests.yml` runs the API stability and database suites on PRs and master pushes. `.github/workflows/docker-image.yml` builds the Docker image on PRs to validate the Dockerfile without publishing, and publishes to `simplyboo6/vimtur` from master and tags.
 - `create-schemas.sh` hash-caches its output on the *source .d.ts hashes only*, so bumping TypeScript or typescript-json-schema does NOT trigger regeneration — delete `.schema-build-info` first or you compare stale artifacts and can "pass" while actually generating different schemas.
 - Dev (`yarn build`) and prod (`yarn build:prod`) client builds write the same `client/dist/`, and the server serves it — a dev build clobbers the production bundle; re-run `build:prod` after any dev build.
-- `@tensorflow/tfjs-node` is the only remaining native dependency; it recompiles per Node major bump and Yarn 4 does this automatically on install (`YN0007: must be built...`), but the build needs python3/g++/make. The SQLite backend uses the built-in `node:sqlite` (`DatabaseSync`, Node 24+ required) — no native compilation, and its worker runs explicit `BEGIN`/`COMMIT`/`ROLLBACK` for transaction batches since `node:sqlite` has no `db.transaction()` helper.
+- `onnxruntime-node` ships prebuilt glibc binaries (Alpine/musl is unsupported — the Docker base is `node:24-slim` for this reason) and recompiles nothing per Node bump, but Yarn 4 depends on `ONNXRUNTIME_NODE_INSTALL=skip` being set (it cannot read the npm-config route). The SQLite backend uses the built-in `node:sqlite` (`DatabaseSync`, Node 24+ required) — no native compilation, and its worker runs explicit `BEGIN`/`COMMIT`/`ROLLBACK` for transaction batches since `node:sqlite` has no `db.transaction()` helper.
 - The MongoDB driver major must match supported servers (driver 7: servers 4.4–8); `run-tests.sh` takes `MONGO_TEST_IMAGE` to point the disposable container at any of them (defaults to `mongo:4.4` because MongoDB ≥5 requires AVX hardware).
 
 ## Video streaming architecture (visible in `server/src/routes/images.ts`, `server/src/cache/`, `client/src/app/components/video-player/`)

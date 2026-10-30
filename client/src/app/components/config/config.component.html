@@ -568,22 +568,21 @@
           </span>
         </div>
       </div>
-      <!-- enableTensorFlow -->
+      <!-- enableAutoTags -->
       <div class="form-check">
         <input
           type="checkbox"
           class="form-check-input"
-          id="config-enable-tensorflow"
-          [(ngModel)]="config.enableTensorFlow"
-          (ngModelChange)="updateConfig('enableTensorFlow', $event)"
+          id="config-enable-autotags"
+          [(ngModel)]="config.enableAutoTags"
+          (ngModelChange)="updateConfig('enableAutoTags', $event)"
         />
-        <label class="form-check-label" for="config-enable-tensorflow">Enable TensorFlow image classification using MobileNet V2 during import?</label>
+        <label class="form-check-label" for="config-enable-autotags">Enable auto-tagging of images using MobileNet V2 during import?</label>
         <div>
           <span class="text-muted">
-            Enabling this setting will use TensorFlow's MobileNet V2 model to auto-generate tags for all images during the import process. These are vague and
-            while can be seen they can only be used during a keyword search and have a low weighting. Even if it is disabled here it can still be triggered
-            manually from the tasks dropdown. Note: If you have an old CPU that does not support AVX instructions (see startup log) then this setting will do
-            nothing.
+            Enabling this setting will use the MobileNet V2 model to auto-generate tags for all images during the import process. These are vague and while can
+            be seen they can only be used during a keyword search and have a low weighting. Even if it is disabled here it can still be triggered manually from
+            the tasks dropdown.
           </span>
         </div>
       </div>

@@ -5,6 +5,7 @@ import type SocketIO from 'socket.io';
 import Config from '../config';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
+import { DEFAULT_TASK_ID } from '../tasks/autotag/classify';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
 
@@ -47,8 +48,8 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
           if (Config.get().enablePhash && taskManager.hasTask('GENERATE-PHASHES')) {
             taskManager.start('GENERATE-PHASHES');
           }
-          if (Config.get().enableTensorFlow && taskManager.hasTask('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140')) {
-            taskManager.start('TENSORFLOW-CLASSIFY-MOBILE-NET-V2-140');
+          if (Config.get().enableAutoTags && taskManager.hasTask(DEFAULT_TASK_ID)) {
+            taskManager.start(DEFAULT_TASK_ID);
           }
           return Promise.resolve([]);
         },
