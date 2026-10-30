@@ -3,13 +3,12 @@ import { Router } from 'express';
 import { BadRequest } from '../errors';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
-import { sendResponse } from '../utils/send-response';
 
 export function create(db: Database): Router {
   const router = Router();
 
-  router.get('/', async (req, res) => {
-    sendResponse(req, res, 200, await db.getTags());
+  router.get('/', async (_req, res) => {
+    res.status(200).json(await db.getTags());
   });
 
   router.post('/', async (req, res) => {
@@ -19,12 +18,12 @@ export function create(db: Database): Router {
       throw new BadRequest('No tag specified');
     }
     await db.addTag(tag);
-    sendResponse(req, res, 200, await db.getTags());
+    res.status(200).json(await db.getTags());
   });
 
   router.delete('/:tag', async (req, res) => {
     await db.removeTag(singleParam(req.params.tag));
-    sendResponse(req, res, 200, await db.getTags());
+    res.status(200).json(await db.getTags());
   });
 
   return router;

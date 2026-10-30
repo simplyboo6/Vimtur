@@ -70,16 +70,17 @@ describe('Error envelope', () => {
     expect(response.data).to.have.property('message');
   });
 
-  it('responds 503 with a plain-text body to an un-negotiable Accept header', async () => {
-    const response = await rawRequest('GET', '/api/tags', { accept: 'text/html' });
-    expect(response.status).to.equal(503);
-    expect(response.body).to.equal('Service Unavailable');
-  });
+  it('answers data requests with JSON whatever Accept header is sent', async () => {
+    // There is no content negotiation: the old sendResponse helper 503'd
+    // non-JSON Accept headers; plain res.json responses go out as JSON
+    // regardless.
+    const specific = await rawRequest('GET', '/api/tags', { accept: 'application/json' });
+    expect(specific.status).to.equal(200);
+    expect(specific.contentType).to.equal('application/json; charset=utf-8');
 
-  it('keeps the data wire format plain JSON for acceptable content types', async () => {
-    const response = await rawRequest('GET', '/api/tags', { accept: 'application/json' });
-    expect(response.status).to.equal(200);
-    expect(response.contentType).to.equal('application/json; charset=utf-8');
+    const unrelated = await rawRequest('GET', '/api/tags', { accept: 'text/html' });
+    expect(unrelated.status).to.equal(200);
+    expect(unrelated.contentType).to.equal('application/json; charset=utf-8');
   });
 
   it('parses unparseable JSON bodies as 400, not 500', async () => {

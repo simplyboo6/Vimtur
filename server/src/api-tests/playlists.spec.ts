@@ -67,7 +67,10 @@ describe('Playlists API', () => {
   });
 
   it('creates a playlist with a UUID-style id and zero size', async () => {
-    const created = assertOk(await client.post<Playlist>('/api/playlists', { name: 'List A' }), 'POST /api/playlists');
+    const response = await client.post<Playlist>('/api/playlists', { name: 'List A' });
+    // 201: the POST returns a representation of the created playlist.
+    expect(response.status).to.equal(201);
+    const created = assertOk(response, 'POST /api/playlists');
     expect(created.name).to.equal('List A');
     expect(created.size).to.equal(0);
     expect(created.id).to.be.a('string').and.to.have.lengthOf.at.least(8);

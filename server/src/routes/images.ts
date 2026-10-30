@@ -12,7 +12,6 @@ import Config from '../config';
 import { BadRequest, NotFound } from '../errors';
 import type { Database } from '../types';
 import { asError, deleteCache, deleteMedia, singleParam } from '../utils';
-import { sendResponse } from '../utils/send-response';
 import { Validator } from '../utils/validator';
 
 const SUBSET_VALIDATOR = Validator.load<SubsetConstraints>('SubsetConstraints');
@@ -75,7 +74,7 @@ export function create(db: Database): Router {
     const constraints = parseSubsetBody(req.body);
 
     console.log('Search request.', constraints);
-    sendResponse(req, res, 200, await db.subset(constraints));
+    res.status(200).json(await db.subset(constraints));
   });
 
   router.put('/subset/playlists/:playlistId', async (req, res) => {
@@ -118,7 +117,7 @@ export function create(db: Database): Router {
     request.constraints.indexed = true;
 
     console.log('Bulk update', request);
-    sendResponse(req, res, 200, await db.saveBulkMedia(request.constraints, request.update));
+    res.status(200).json(await db.saveBulkMedia(request.constraints, request.update));
   });
 
   router.get('/:hash', async (req, res) => {
@@ -127,7 +126,7 @@ export function create(db: Database): Router {
     if (!media) {
       throw new NotFound(`No media found with hash: ${hash}`);
     }
-    sendResponse(req, res, 200, media);
+    res.status(200).json(media);
   });
 
   router.delete('/:hash', async (req, res) => {
@@ -156,7 +155,7 @@ export function create(db: Database): Router {
       throw new BadRequest('No fields to update');
     }
 
-    sendResponse(req, res, 200, await db.saveMedia(hash, update));
+    res.status(200).json(await db.saveMedia(hash, update));
   });
 
   router.put('/:hash/playlists/:playlistId', async (req, res) => {
@@ -171,7 +170,10 @@ export function create(db: Database): Router {
       throw new NotFound(`No playlist found with id: ${playlistId}`);
     }
 
-    sendResponse(req, res, 200, await db.addMediaToPlaylist(hash, playlistId));
+    // Returns the playlist entry: the client parses this response into
+    // mediaService.addPlaylist (and the PUT is an idempotent add, so the
+    // repeat case cannot claim 201).
+    res.status(200).json(await db.addMediaToPlaylist(hash, playlistId));
   });
 
   router.patch('/:hash/playlists/:playlistId', async (req, res) => {

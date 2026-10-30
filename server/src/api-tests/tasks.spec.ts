@@ -71,8 +71,10 @@ describe('Tasks API', () => {
   });
 
   it('queueing returns a task id of TYPE-N', async () => {
-    const id = assertOk(await client.post<string>('/api/tasks/queue/SCAN', {}), 'POST /api/tasks/queue/SCAN');
-    expect(id).to.equal('SCAN-0');
+    const response = await client.post<string>('/api/tasks/queue/SCAN', {});
+    // 202: the task is accepted for asynchronous processing, not done.
+    expect(response.status).to.equal(202);
+    expect(response.data).to.equal('SCAN-0');
     await waitForDrainedQueue(client);
   });
 
