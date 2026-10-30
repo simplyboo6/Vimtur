@@ -11,7 +11,7 @@ import { Transcoder } from '../cache/transcoder';
 import Config from '../config';
 import { BadRequest, NotFound } from '../errors';
 import type { Database } from '../types';
-import { asError, deleteCache, deleteMedia, singleParam } from '../utils';
+import { asError, deleteCache, deleteMedia, IMMUTABLE_CACHE_CONTROL, singleParam } from '../utils';
 import { Validator } from '../utils/validator';
 
 const SUBSET_VALIDATOR = Validator.load<SubsetConstraints>('SubsetConstraints');
@@ -73,7 +73,6 @@ export function create(db: Database): Router {
   router.post('/subset', async (req, res) => {
     const constraints = parseSubsetBody(req.body);
 
-    console.log('Search request.', constraints);
     res.status(200).json(await db.subset(constraints));
   });
 
@@ -116,7 +115,6 @@ export function create(db: Database): Router {
     request.constraints.corrupted = false;
     request.constraints.indexed = true;
 
-    console.log('Bulk update', request);
     res.status(200).json(await db.saveBulkMedia(request.constraints, request.update));
   });
 
@@ -384,7 +382,7 @@ export function create(db: Database): Router {
       if (media.metadata?.qualityCache?.includes(quality)) {
         const absPath = `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`;
 
-        res.set('Cache-Control', 'public, max-age=604800, immutable');
+        res.set('Cache-Control', IMMUTABLE_CACHE_CONTROL);
         res.set('Content-Type', 'video/mp2t');
 
         // Callback so a file deleted from the cache mid-send doesn't fall through to

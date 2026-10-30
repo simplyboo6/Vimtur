@@ -1,4 +1,4 @@
-import type { ErrorRequestHandler } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 import { BaseRequestError } from '../errors/base';
 import { asError } from '../utils';
@@ -10,7 +10,7 @@ import { asError } from '../utils';
 // unexpected 500 (warned), and both send { message }. There is no content
 // negotiation: error bodies go out through res.json() whatever the client
 // asked for in Accept.
-export const errorHandler: ErrorRequestHandler = (errUnknown, _req, res, next) => {
+export function errorHandler(errUnknown: unknown, _req: Request, res: Response, next: NextFunction): void {
   // asError() normalises non-Error throwables into a fresh Error without
   // their extras, so read any carried-over status off the raw thrown value.
   const attached = errUnknown as { status?: unknown; statusCode?: unknown };
@@ -47,4 +47,4 @@ export const errorHandler: ErrorRequestHandler = (errUnknown, _req, res, next) =
   }
 
   res.status(status).json({ message: err.message });
-};
+}
