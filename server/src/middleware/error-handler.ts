@@ -9,6 +9,12 @@ import { sendResponse } from '../utils/send-response';
 // catch itself. Response bodies follow the existing error contract:
 // BaseRequestError subclasses map to their status code, anything else is an
 // unexpected 500 (warned), and both send { message }.
+//
+// Not all errors reaching this middleware come from handlers. Middleware that
+// runs before the routes (body-parser, http-auth, express's own sendFile) also
+// forward here and carry a status on the error object, which Express's default
+// handler used to honour — respect it so those stay 4xx instead of becoming
+// unknown-error 500s.
 export const errorHandler: ErrorRequestHandler = (errUnknown, req, res, next) => {
   const err = asError(errUnknown);
 
