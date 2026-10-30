@@ -1,10 +1,8 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
-import { BadRequest } from './errors';
 import { BaseRequestError } from './errors/base';
 import { asError } from './utils';
-
-const DEFAULT_FORMAT = 'application/json';
+import { sendResponse } from './utils/send-response';
 
 export interface RestResult {
   status?: number;
@@ -26,45 +24,6 @@ const empty = {};
 const noOpExtractor: Extractor<Record<string, unknown>> = () => empty;
 
 export type WrapHandler<A extends object = Record<string, unknown>> = Handler<void | RestResult, A>;
-
-function sendResponse(req: Request, res: Response, status: number, response?: unknown): void {
-  if (response === undefined) {
-    res.sendStatus(status);
-    return;
-  }
-
-  let type = req.header('accept') ?? req.header('content-type') ?? DEFAULT_FORMAT;
-  // To cope with type being a list of things.
-  if (type.includes(',')) {
-    if (type.includes('application/json')) {
-      type = 'application/json';
-    }
-    if (type.includes('*/*')) {
-      type = '*/*';
-    }
-  }
-  // Buffers when passed through stringify arrive in a structure like:
-  // { type: 'Buffer', data: [10, 20, 30] }
-  // This checks if it meets that format and re-encodes the buffer as base64.
-  function bufferBase64Reviver(_key: string, value: unknown): unknown {
-    if (typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'Buffer') {
-      const data = (value as { data?: unknown }).data;
-      if (Array.isArray(data)) {
-        return { type: 'Buffer', data: Buffer.from(data as number[]).toString('base64') };
-      }
-    }
-    return value;
-  }
-  switch (type) {
-    case 'application/json': // Fallthrough
-    case '*/*':
-      res.set('Content-Type', 'application/json');
-      res.status(status).send(Buffer.from(JSON.stringify(response, bufferBase64Reviver), 'utf8'));
-      break;
-    default:
-      throw new BadRequest(`Unexpected content type: ${type}`);
-  }
-}
 
 export function wrapHandler<A extends object>(
   handler: WrapHandler<A>,
@@ -108,6 +67,12 @@ export function wrapHandler<A extends object>(
   };
 }
 
+/**
+ * @deprecated Use a plain `async (req, res)` handler that throws
+ * `BadRequest`/`NotFound` — Express 5 forwards failures to the central
+ * error-handler middleware (`middleware/error-handler.ts`), so handlers can use
+ * `sendResponse` (utils/send-response.ts) directly and let errors bubble up.
+ */
 export function wrap(handler: WrapHandler<Record<string, unknown>>, sendResult = true): RequestHandler {
   return wrapHandler(handler, noOpExtractor, sendResult);
 }

@@ -14,6 +14,7 @@ import IO from 'socket.io';
 import Config, { VERSION_NAME } from './config';
 import { setup as setupDb } from './database';
 import { wrap } from './express-async';
+import { errorHandler } from './middleware/error-handler';
 
 // Routes
 import * as ActorRouter from './routes/actors';
@@ -133,6 +134,10 @@ async function createServer(db: Database): Promise<Server> {
   app.get('/', (_, res: Response) => {
     res.redirect('/web/');
   });
+
+  // Central error middleware: sits after every handler so Express 5's
+  // rejection/throw forwarding reaches it.
+  app.use(errorHandler);
 
   return server;
 }
