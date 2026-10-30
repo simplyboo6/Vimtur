@@ -10,9 +10,9 @@ import { ImportUtils } from '../cache/import-utils';
 import { Transcoder } from '../cache/transcoder';
 import Config from '../config';
 import { BadRequest, NotFound } from '../errors';
-import { wrap } from '../express-async';
 import type { Database } from '../types';
 import { asError, deleteCache, deleteMedia, singleParam } from '../utils';
+import { sendResponse } from '../utils/send-response';
 import { Validator } from '../utils/validator';
 
 const SUBSET_VALIDATOR = Validator.load<SubsetConstraints>('SubsetConstraints');
@@ -67,406 +67,350 @@ export function create(db: Database): Router {
     return constraints;
   }
 
-  router.post(
-    '/subset',
-    wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body);
+  router.post('/subset', async (req, res) => {
+    const constraints = parseSubsetBody(req.body);
 
-      console.log('Search request.', constraints);
-      return {
-        data: await db.subset(constraints),
-      };
-    }),
-  );
+    console.log('Search request.', constraints);
+    sendResponse(req, res, 200, await db.subset(constraints));
+  });
 
-  router.put(
-    '/subset/playlists/:playlistId',
-    wrap(async ({ req }) => {
-      const playlistId = singleParam(req.params.playlistId);
-      const playlist = await db.getPlaylist(playlistId);
-      if (!playlist) {
-        throw new NotFound(`No playlist found with id: ${playlistId}`);
-      }
+  router.put('/subset/playlists/:playlistId', async (req, res) => {
+    const playlistId = singleParam(req.params.playlistId);
+    const playlist = await db.getPlaylist(playlistId);
+    if (!playlist) {
+      throw new NotFound(`No playlist found with id: ${playlistId}`);
+    }
 
-      const constraints = parseSubsetBody(req.body);
-      const subset = await db.subset(constraints);
+    const constraints = parseSubsetBody(req.body);
+    const subset = await db.subset(constraints);
 
-      // Do sequentially to preserve sort order
-      for (const hash of subset) {
-        await db.addMediaToPlaylist(hash, playlistId);
-      }
-    }),
-  );
+    // Do sequentially to preserve sort order
+    for (const hash of subset) {
+      await db.addMediaToPlaylist(hash, playlistId);
+    }
+    res.sendStatus(204);
+  });
 
-  router.delete(
-    '/subset/playlists/:playlistId',
-    wrap(async ({ req }) => {
-      const constraints = parseSubsetBody(req.body);
-      const subset = await db.subset(constraints);
+  router.delete('/subset/playlists/:playlistId', async (req, res) => {
+    const constraints = parseSubsetBody(req.body);
+    const subset = await db.subset(constraints);
 
-      await execute(
-        subset,
-        async (hash) => {
-          await db.removeMediaFromPlaylist(hash, singleParam(req.params.playlistId));
-        },
-        { parallel: 8 },
-      );
-    }),
-  );
+    await execute(
+      subset,
+      async (hash) => {
+        await db.removeMediaFromPlaylist(hash, singleParam(req.params.playlistId));
+      },
+      { parallel: 8 },
+    );
+    res.sendStatus(204);
+  });
 
-  router.patch(
-    '/bulk-update',
-    wrap(async ({ req }) => {
-      const request = BULK_UPDATE_VALIDATOR.validate(req.body);
-      if (!hasWritableUpdate(request.update)) {
-        throw new BadRequest('No fields to update');
-      }
-      request.constraints.corrupted = false;
-      request.constraints.indexed = true;
+  router.patch('/bulk-update', async (req, res) => {
+    const request = BULK_UPDATE_VALIDATOR.validate(req.body);
+    if (!hasWritableUpdate(request.update)) {
+      throw new BadRequest('No fields to update');
+    }
+    request.constraints.corrupted = false;
+    request.constraints.indexed = true;
 
-      console.log('Bulk update', request);
-      return {
-        data: await db.saveBulkMedia(request.constraints, request.update),
-      };
-    }),
-  );
+    console.log('Bulk update', request);
+    sendResponse(req, res, 200, await db.saveBulkMedia(request.constraints, request.update));
+  });
 
-  router.get(
-    '/:hash',
-    wrap(async ({ req }) => {
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
-      }
-      return {
-        data: media,
-      };
-    }),
-  );
+  router.get('/:hash', async (req, res) => {
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
+    sendResponse(req, res, 200, media);
+  });
 
-  router.delete(
-    '/:hash',
-    wrap(async ({ req }) => {
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
-      }
-      await deleteMedia(media);
-      await db.removeMedia(singleParam(req.params.hash), true);
-    }),
-  );
+  router.delete('/:hash', async (req, res) => {
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
+    await deleteMedia(media);
+    await db.removeMedia(hash, true);
+    res.sendStatus(204);
+  });
 
-  router.patch(
-    '/:hash',
-    wrap(async ({ req }) => {
-      const hash = singleParam(req.params.hash);
-      const media = await db.getMedia(hash);
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${hash}`);
-      }
+  router.patch('/:hash', async (req, res) => {
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
 
-      const update = MEDIA_UPDATE_VALIDATOR.validate(req.body);
-      // An update that carries nothing writable would reach the connector as
-      // an empty change set (a raw SQL error on SQLite, an empty $set on
-      // MongoDB); reject it here where the request is still known.
-      if (!hasWritableUpdate(update)) {
-        throw new BadRequest('No fields to update');
-      }
+    const update = MEDIA_UPDATE_VALIDATOR.validate(req.body);
+    // An update that carries nothing writable would reach the connector as
+    // an empty change set (a raw SQL error on SQLite, an empty $set on
+    // MongoDB); reject it here where the request is still known.
+    if (!hasWritableUpdate(update)) {
+      throw new BadRequest('No fields to update');
+    }
 
-      return {
-        data: await db.saveMedia(hash, update),
-      };
-    }),
-  );
+    sendResponse(req, res, 200, await db.saveMedia(hash, update));
+  });
 
-  router.put(
-    '/:hash/playlists/:playlistId',
-    wrap(async ({ req }) => {
-      const hash = singleParam(req.params.hash);
-      const playlistId = singleParam(req.params.playlistId);
-      const media = await db.getMedia(hash);
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${hash}`);
-      }
-      const playlist = await db.getPlaylist(playlistId);
-      if (!playlist) {
-        throw new NotFound(`No playlist found with id: ${playlistId}`);
-      }
+  router.put('/:hash/playlists/:playlistId', async (req, res) => {
+    const hash = singleParam(req.params.hash);
+    const playlistId = singleParam(req.params.playlistId);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
+    const playlist = await db.getPlaylist(playlistId);
+    if (!playlist) {
+      throw new NotFound(`No playlist found with id: ${playlistId}`);
+    }
 
-      return {
-        data: await db.addMediaToPlaylist(hash, playlistId),
-      };
-    }),
-  );
+    sendResponse(req, res, 200, await db.addMediaToPlaylist(hash, playlistId));
+  });
 
-  router.patch(
-    '/:hash/playlists/:playlistId',
-    wrap(async ({ req }) => {
-      const update = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
-      await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), update);
-    }),
-  );
+  router.patch('/:hash/playlists/:playlistId', async (req, res) => {
+    const update = PLAYLIST_ENTRY_UPDATE_VALIDATOR.validate(req.body);
+    await db.updateMediaPlaylistOrder(singleParam(req.params.hash), singleParam(req.params.playlistId), update);
+    res.sendStatus(204);
+  });
 
-  router.delete(
-    '/:hash/playlists/:playlistId',
-    wrap(async ({ req }) => {
-      await db.removeMediaFromPlaylist(singleParam(req.params.hash), singleParam(req.params.playlistId));
-    }),
-  );
+  router.delete('/:hash/playlists/:playlistId', async (req, res) => {
+    await db.removeMediaFromPlaylist(singleParam(req.params.hash), singleParam(req.params.playlistId));
+    res.sendStatus(204);
+  });
 
-  router.post(
-    '/:hash/tags',
-    wrap(async ({ req }) => {
-      // The request body is free-form JSON with the tag under `name`.
-      const { name } = req.body as { name?: unknown };
-      if (typeof name !== 'string') {
-        throw new BadRequest('name not specified');
-      }
+  router.post('/:hash/tags', async (req, res) => {
+    // The request body is free-form JSON with the tag under `name`.
+    const { name } = req.body as { name?: unknown };
+    if (typeof name !== 'string') {
+      throw new BadRequest('name not specified');
+    }
 
-      const hash = singleParam(req.params.hash);
-      const media = await db.getMedia(hash);
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${hash}`);
-      }
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
 
-      if (!(await db.hasTag(name))) {
-        throw new NotFound(`No tag found with name: ${name}`);
-      }
+    if (!(await db.hasTag(name))) {
+      throw new NotFound(`No tag found with name: ${name}`);
+    }
 
-      await db.addMediaTag(hash, name);
-    }),
-  );
+    await db.addMediaTag(hash, name);
+    res.sendStatus(204);
+  });
 
-  router.delete(
-    '/:hash/tags/:name',
-    wrap(async ({ req }) => {
-      await db.removeMediaTag(singleParam(req.params.hash), singleParam(req.params.name));
-    }),
-  );
+  router.delete('/:hash/tags/:name', async (req, res) => {
+    await db.removeMediaTag(singleParam(req.params.hash), singleParam(req.params.name));
+    res.sendStatus(204);
+  });
 
-  router.post(
-    '/:hash/actors',
-    wrap(async ({ req }) => {
-      // The request body is free-form JSON with the actor under `name`.
-      const { name } = req.body as { name?: unknown };
-      if (typeof name !== 'string') {
-        throw new BadRequest('name not specified');
-      }
+  router.post('/:hash/actors', async (req, res) => {
+    // The request body is free-form JSON with the actor under `name`.
+    const { name } = req.body as { name?: unknown };
+    if (typeof name !== 'string') {
+      throw new BadRequest('name not specified');
+    }
 
-      const hash = singleParam(req.params.hash);
-      const media = await db.getMedia(hash);
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${hash}`);
-      }
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
 
-      if (!(await db.hasActor(name))) {
-        throw new NotFound(`No actor found with name: ${name}`);
-      }
+    if (!(await db.hasActor(name))) {
+      throw new NotFound(`No actor found with name: ${name}`);
+    }
 
-      await db.addMediaActor(hash, name);
-    }),
-  );
+    await db.addMediaActor(hash, name);
+    res.sendStatus(204);
+  });
 
-  router.delete(
-    '/:hash/actors/:name',
-    wrap(async ({ req }) => {
-      await db.removeMediaActor(singleParam(req.params.hash), singleParam(req.params.name));
-    }),
-  );
+  router.delete('/:hash/actors/:name', async (req, res) => {
+    await db.removeMediaActor(singleParam(req.params.hash), singleParam(req.params.name));
+    res.sendStatus(204);
+  });
 
-  router.get(
-    '/:hash/file',
-    wrap(async ({ req, res }) => {
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        res.status(404).json({
-          message: `No media found with hash: ${singleParam(req.params.hash)}`,
-        });
-        return;
-      }
+  router.get('/:hash/file', async (req, res) => {
+    const media = await db.getMedia(singleParam(req.params.hash));
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
+    }
 
-      if (req.query.download) {
-        const filename = media.path.split('/').pop();
-        res.set('Content-Disposition', `attachment; filename="${filename}"`);
-      }
+    if (req.query.download) {
+      const filename = media.path.split('/').pop();
+      res.set('Content-Disposition', `attachment; filename="${filename}"`);
+    }
 
-      try {
-        const absPath = Path.resolve(Config.get().libraryPath, media.path);
-        if (media.type === 'gif' || media.type === 'still') {
-          const maxWidth = req.query.maxWidth ? Number(req.query.maxWidth) : undefined;
-          const resize = maxWidth && media.metadata && media.metadata.width > maxWidth;
-          const manipulate = resize || (await ImportUtils.isExifRotated(absPath));
-          if (manipulate) {
-            const scale =
-              resize && media.metadata && maxWidth
-                ? {
-                    width: maxWidth,
-                    height: (media.metadata.height / media.metadata.width) * maxWidth,
-                  }
-                : undefined;
-            try {
-              ImportUtils.loadImageAutoOrient(absPath, res, scale);
-              return;
-            } catch (err) {
-              console.error('Failed to send rotated image', absPath, err);
-            }
+    try {
+      const absPath = Path.resolve(Config.get().libraryPath, media.path);
+      if (media.type === 'gif' || media.type === 'still') {
+        const maxWidth = req.query.maxWidth ? Number(req.query.maxWidth) : undefined;
+        const resize = maxWidth && media.metadata && media.metadata.width > maxWidth;
+        const manipulate = resize || (await ImportUtils.isExifRotated(absPath));
+        if (manipulate) {
+          const scale =
+            resize && media.metadata && maxWidth
+              ? {
+                  width: maxWidth,
+                  height: (media.metadata.height / media.metadata.width) * maxWidth,
+                }
+              : undefined;
+          try {
+            ImportUtils.loadImageAutoOrient(absPath, res, scale);
+            return;
+          } catch (err) {
+            console.error('Failed to send rotated image', absPath, err);
           }
         }
-        res.sendFile(absPath);
-        return;
-      } catch (errUnknown: unknown) {
-        const err = asError(errUnknown);
-        console.error('Error reading file', err);
-        res.status(503).json({ message: err.message });
       }
-    }, false),
-  );
+      res.sendFile(absPath);
+    } catch (errUnknown: unknown) {
+      // The image manipulation path can throw before the response starts;
+      // anything after that is streamable file sending, whose failures are
+      // handled by express on the response itself.
+      const err = asError(errUnknown);
+      console.error('Error reading file', err);
+      res.status(503).json({ message: err.message });
+    }
+  });
 
-  router.post(
-    '/:hash/resolve',
-    wrap(async ({ req }) => {
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
+  router.post('/:hash/resolve', async (req, res) => {
+    const media = await db.getMedia(singleParam(req.params.hash));
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${singleParam(req.params.hash)}`);
+    }
+
+    if (!media.clones) {
+      throw new BadRequest('Media has no clones');
+    }
+
+    const resolution = RESOLUTION_VALIDATOR.validate(req.body);
+
+    // Verify that aliases + unrelated contains everything in clones.
+    const allRequested = [...resolution.aliases, ...resolution.unrelated];
+    // If we can find a clone that isn't in the request body...
+    if (media.clones.find((c) => !allRequested.includes(c))) {
+      throw new BadRequest('Resolver body does not resolve all clones');
+    }
+
+    for (const hash of resolution.aliases) {
+      // For each alias set duplicateOf to this media, mark the cache as not cached
+      // and delete the cache for it.
+      await deleteCache(hash);
+
+      // In some cases this may replace an image that already has duplicates.
+      // So for each of the aliases update any media the have duplicateOf pointing
+      // as the alias to this media.
+      await db.saveBulkMedia({ duplicateOf: { equalsAll: [hash] } }, { duplicateOf: media.hash });
+
+      // Update the clone to mark it as a duplicate.
+      await db.saveMedia(hash, { duplicateOf: media.hash });
+    }
+
+    // Update the media to set clones to undefined and add unrelated to unrelated.
+    await db.saveMedia(media.hash, { clones: [], unrelated: resolution.unrelated });
+    res.sendStatus(204);
+  });
+
+  router.get('/:hash/stream/index.m3u8', async (req, res) => {
+    const media = await db.getMedia(singleParam(req.params.hash));
+    if (!media) {
+      throw new NotFound('media not found');
+    }
+    if (media.type !== 'video') {
+      throw new BadRequest('Cannot stream non-video media');
+    }
+
+    const masterPlaylist = ImportUtils.generateStreamMasterPlaylist(media);
+    res.set('Content-Type', 'application/vnd.apple.mpegurl');
+    res.end(Buffer.from(masterPlaylist));
+  });
+
+  router.get('/:hash/stream/:quality/index.m3u8', async (req, res) => {
+    const quality = Number(req.params.quality);
+    if (isNaN(quality)) {
+      throw new BadRequest('quality must be a number');
+    }
+
+    const media = await db.getMedia(singleParam(req.params.hash));
+    if (!media) {
+      throw new NotFound('media not found');
+    }
+    if (media.type !== 'video') {
+      throw new BadRequest('Cannot stream non-video media');
+    }
+
+    const playlist = await transcoder.getStreamPlaylist(media, quality);
+    res.set('Content-Type', 'application/vnd.apple.mpegurl');
+    res.end(Buffer.from(playlist));
+  });
+
+  router.get('/:hash/stream/:quality/:file', async (req, res) => {
+    const file = singleParam(req.params.file);
+    const quality = Number(req.params.quality);
+    if (isNaN(quality)) {
+      throw new BadRequest('quality must be a number');
+    }
+
+    const media = await db.getMedia(singleParam(req.params.hash));
+    if (!media) {
+      throw new NotFound('media not found');
+    }
+    if (media.type !== 'video') {
+      throw new BadRequest('Cannot stream non-video media');
+    }
+
+    // data.ts is the newer cache/streaming method.
+    if (file === 'data.ts') {
+      const start = Number(req.query.start);
+      const end = Number(req.query.end);
+
+      if (isNaN(start) || isNaN(end)) {
+        throw new BadRequest('start and end must be set to numbers');
       }
 
-      if (!media.clones) {
-        throw new BadRequest('Media has no clones');
-      }
+      // This is the new cache method.
+      if (media.metadata?.qualityCache?.includes(quality)) {
+        const absPath = `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`;
 
-      const resolution = RESOLUTION_VALIDATOR.validate(req.body);
+        res.set('Cache-Control', 'public, max-age=604800, immutable');
+        res.set('Content-Type', 'video/mp2t');
 
-      // Verify that aliases + unrelated contains everything in clones.
-      const allRequested = [...resolution.aliases, ...resolution.unrelated];
-      // If we can find a clone that isn't in the request body...
-      if (media.clones.find((c) => !allRequested.includes(c))) {
-        throw new BadRequest('Resolver body does not resolve all clones');
-      }
-
-      for (const hash of resolution.aliases) {
-        // For each alias set duplicateOf to this media, mark the cache as not cached
-        // and delete the cache for it.
-        await deleteCache(hash);
-
-        // In some cases this may replace an image that already has duplicates.
-        // So for each of the aliases update any media the have duplicateOf pointing
-        // as the alias to this media.
-        await db.saveBulkMedia({ duplicateOf: { equalsAll: [hash] } }, { duplicateOf: media.hash });
-
-        // Update the clone to mark it as a duplicate.
-        await db.saveMedia(hash, { duplicateOf: media.hash });
-      }
-
-      // Update the media to set clones to undefined and add unrelated to unrelated.
-      await db.saveMedia(media.hash, { clones: [], unrelated: resolution.unrelated });
-    }),
-  );
-
-  router.get(
-    '/:hash/stream/index.m3u8',
-    wrap(async ({ req, res }) => {
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound('media not found');
-      }
-      if (media.type !== 'video') {
-        throw new BadRequest('Cannot stream non-video media');
-      }
-
-      const masterPlaylist = ImportUtils.generateStreamMasterPlaylist(media);
-      res.set('Content-Type', 'application/vnd.apple.mpegurl');
-      res.end(Buffer.from(masterPlaylist));
-    }, false),
-  );
-
-  router.get(
-    '/:hash/stream/:quality/index.m3u8',
-    wrap(async ({ req, res }) => {
-      const quality = Number(req.params.quality);
-      if (isNaN(quality)) {
-        throw new BadRequest('quality must be a number');
-      }
-
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound('media not found');
-      }
-      if (media.type !== 'video') {
-        throw new BadRequest('Cannot stream non-video media');
-      }
-
-      const playlist = await transcoder.getStreamPlaylist(media, quality);
-      res.set('Content-Type', 'application/vnd.apple.mpegurl');
-      res.end(Buffer.from(playlist));
-    }, false),
-  );
-
-  router.get(
-    '/:hash/stream/:quality/:file',
-    wrap(async ({ req, res }) => {
-      const file = singleParam(req.params.file);
-      const quality = Number(req.params.quality);
-      if (isNaN(quality)) {
-        throw new BadRequest('quality must be a number');
-      }
-
-      const media = await db.getMedia(singleParam(req.params.hash));
-      if (!media) {
-        throw new NotFound('media not found');
-      }
-      if (media.type !== 'video') {
-        throw new BadRequest('Cannot stream non-video media');
-      }
-
-      // data.ts is the newer cache/streaming method.
-      if (file === 'data.ts') {
-        const start = Number(req.query.start);
-        const end = Number(req.query.end);
-
-        if (isNaN(start) || isNaN(end)) {
-          throw new BadRequest('start and end must be set to numbers');
-        }
-
-        // This is the new cache method.
-        if (media.metadata?.qualityCache?.includes(quality)) {
-          const absPath = `${Config.get().cachePath}/${media.hash}/${quality}p/data.ts?start=${start}&end=${end}`;
-
-          res.set('Cache-Control', 'public, max-age=604800, immutable');
-          res.set('Content-Type', 'video/mp2t');
-
-          // Callback so a file deleted from the cache mid-send doesn't fall through to
-          // express returning a HTML error page.
-          res.sendFile(absPath, (sendErr?: Error) => {
-            if (!sendErr) {
-              return;
-            }
-            console.error('Failed to send cached segment', absPath, sendErr);
-            respondStreamError(res, 404, `Failed to send segment: ${sendErr.message}`);
-          });
-        } else {
-          // On-demand transcodes may be truncated if the transcode fails, so they aren't cached
-          // by the browser. hls.js caches the fragments it has loaded for the session anyway.
-          res.set('Cache-Control', 'no-store');
-          res.set('Content-Type', 'video/mp2t');
-
-          transcoder.streamMedia(media, start, end, res, quality, true).catch((err) => {
-            console.error('Error streaming media', err);
-            respondStreamError(res, 503, err instanceof Error ? err.message : 'Failed to stream media');
-          });
-        }
+        // Callback so a file deleted from the cache mid-send doesn't fall through to
+        // express returning a HTML error page.
+        res.sendFile(absPath, (sendErr?: Error) => {
+          if (!sendErr) {
+            return;
+          }
+          console.error('Failed to send cached segment', absPath, sendErr);
+          respondStreamError(res, 404, `Failed to send segment: ${sendErr.message}`);
+        });
       } else {
-        // This is support for the old cache method.
-        if (!file.startsWith('index') || !file.endsWith('.ts')) {
-          throw new BadRequest('Invalid filename to fetch from cache');
-        }
-        const absPath = Path.resolve(Config.get().cachePath, singleParam(req.params.hash), `${quality}p`, file);
-        if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
-          throw new BadRequest('Requested file not inside cache');
-        }
-        res.sendFile(absPath);
+        // On-demand transcodes may be truncated if the transcode fails, so they aren't cached
+        // by the browser. hls.js caches the fragments it has loaded for the session anyway.
+        res.set('Cache-Control', 'no-store');
+        res.set('Content-Type', 'video/mp2t');
+
+        transcoder.streamMedia(media, start, end, res, quality, true).catch((err) => {
+          console.error('Error streaming media', err);
+          respondStreamError(res, 503, err instanceof Error ? err.message : 'Failed to stream media');
+        });
       }
-    }, false),
-  );
+    } else {
+      // This is support for the old cache method.
+      if (!file.startsWith('index') || !file.endsWith('.ts')) {
+        throw new BadRequest('Invalid filename to fetch from cache');
+      }
+      const absPath = Path.resolve(Config.get().cachePath, singleParam(req.params.hash), `${quality}p`, file);
+      if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
+        throw new BadRequest('Requested file not inside cache');
+      }
+      res.sendFile(absPath);
+    }
+  });
 
   return router;
 }
