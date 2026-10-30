@@ -1,46 +1,31 @@
 import { Router } from 'express';
 
 import { BadRequest } from '../errors';
-import { wrap } from '../express-async';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
+import { sendResponse } from '../utils/send-response';
 
 export function create(db: Database): Router {
   const router = Router();
 
-  router.get(
-    '/',
-    wrap(async () => {
-      return {
-        data: await db.getTags(),
-      };
-    }),
-  );
+  router.get('/', async (req, res) => {
+    sendResponse(req, res, 200, await db.getTags());
+  });
 
-  router.post(
-    '/',
-    wrap(async ({ req }) => {
-      // The request body is free-form JSON with the tag under `tag`.
-      const { tag } = req.body as { tag?: unknown };
-      if (typeof tag !== 'string' || !tag) {
-        throw new BadRequest('No tag specified');
-      }
-      await db.addTag(tag);
-      return {
-        data: await db.getTags(),
-      };
-    }),
-  );
+  router.post('/', async (req, res) => {
+    // The request body is free-form JSON with the tag under `tag`.
+    const { tag } = req.body as { tag?: unknown };
+    if (typeof tag !== 'string' || !tag) {
+      throw new BadRequest('No tag specified');
+    }
+    await db.addTag(tag);
+    sendResponse(req, res, 200, await db.getTags());
+  });
 
-  router.delete(
-    '/:tag',
-    wrap(async ({ req }) => {
-      await db.removeTag(singleParam(req.params.tag));
-      return {
-        data: await db.getTags(),
-      };
-    }),
-  );
+  router.delete('/:tag', async (req, res) => {
+    await db.removeTag(singleParam(req.params.tag));
+    sendResponse(req, res, 200, await db.getTags());
+  });
 
   return router;
 }
