@@ -56,3 +56,14 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    more data than their name. The client chains create → attach (see
    `TagService.addTag` / `MediaService.addTagRaw`). Pinned in `tags.spec.ts`
    and `actors.spec.ts`.
+
+8. **Cache path rejections drop the `type: 'config'` field.** Cache file
+   paths escaping the cache directory respond 400 `{message}` from the same
+   central error handler as the `/api` routes; the historical extras field
+   never had a consumer. Pinned in `errors.spec.ts`.
+
+9. **All error bodies are JSON `{message}`, including pre-route failures.**
+   Unparseable JSON request bodies (body-parser) respond 400 with a JSON
+   `{message}` body instead of the blank/HTML default Express error page, and
+   any error arriving with a status already attached keeps it. Pinned in
+   `errors.spec.ts` and `src/test/error-handler.ts`.
