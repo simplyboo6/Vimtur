@@ -55,6 +55,7 @@ describe('Tags API', () => {
 
   it('attaches tags to media and reflects them in detail', async () => {
     const response = await client.post(`/api/images/${alpha}/tags`, { name: 'landscape' });
+    // The attachment is created but nothing is returned, so it is a 204.
     expect(response.status).to.equal(204);
 
     const media = await detail(client, alpha);

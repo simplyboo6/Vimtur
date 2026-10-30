@@ -55,6 +55,7 @@ describe('Actors API', () => {
 
   it('attaches actors to media and reflects them in detail', async () => {
     const response = await client.post(`/api/images/${alpha}/actors`, { name: 'alice' });
+    // The attachment is created but nothing is returned, so it is a 204.
     expect(response.status).to.equal(204);
     const media = await detail(client, alpha);
     expect(media.actors).to.deep.equal(['alice']);

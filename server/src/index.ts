@@ -24,7 +24,7 @@ import * as PlaylistRouter from './routes/playlists';
 import * as TagRouter from './routes/tags';
 import * as TasksRouter from './routes/tasks';
 import type { Database } from './types';
-import { asError } from './utils';
+import { asError, IMMUTABLE_CACHE_CONTROL } from './utils';
 import * as Utils from './utils';
 
 async function createServer(db: Database): Promise<Server> {
@@ -88,7 +88,7 @@ async function createServer(db: Database): Promise<Server> {
     if (!PathIsInside(absPath, Path.resolve(Config.get().cachePath))) {
       throw new BadRequest('File is not inside cache directory');
     }
-    res.set('Cache-Control', 'public, max-age=604800, immutable');
+    res.set('Cache-Control', IMMUTABLE_CACHE_CONTROL);
     res.sendFile(absPath);
   });
 

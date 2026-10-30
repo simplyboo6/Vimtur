@@ -18,7 +18,7 @@ export function create(db: Database): Router {
       throw new BadRequest('No tag specified');
     }
     await db.addTag(tag);
-    res.status(200).json(await db.getTags());
+    res.status(201).json(await db.getTags());
   });
 
   router.delete('/:tag', async (req, res) => {

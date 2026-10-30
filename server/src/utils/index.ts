@@ -71,6 +71,12 @@ export async function deleteMedia(media: Media): Promise<void> {
   console.log(`${media.absolutePath} removed`);
 }
 
+// Cache-Control header for immutable on-disk artefacts (cache segments and
+// cache-directory files): their content is keyed to an exact request, so they
+// can be cached for a week by any intermediary (segments on demand are given
+// no-store instead so failed transcodes cannot stick).
+export const IMMUTABLE_CACHE_CONTROL = 'public, max-age=604800, immutable';
+
 export function asError(obj: unknown): Error {
   if (typeof obj === 'object') {
     if (obj instanceof Error) {

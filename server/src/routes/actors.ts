@@ -18,7 +18,7 @@ export function create(db: Database): Router {
       throw new BadRequest('No actor specified');
     }
     await db.addActor(actor);
-    res.status(200).json(await db.getActors());
+    res.status(201).json(await db.getActors());
   });
 
   router.delete('/:actor', async (req, res) => {
