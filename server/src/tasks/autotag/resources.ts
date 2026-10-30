@@ -7,5 +7,9 @@ import OS from 'os';
  * scheduler, so both the pool size and each session's intra-op threads derive
  * from this one cap: intra-op threads converge to the remainder of the core
  * count, see classifier-worker.ts.
+ *
+ * availableParallelism() (Node 20+) rather than cpus().length so cgroup
+ * quotas and CPU affinity constraints are respected in containerised
+ * deployments.
  */
-export const MAX_INSTANCES = Math.min(4, OS.cpus().length);
+export const MAX_INSTANCES = Math.min(4, OS.availableParallelism());

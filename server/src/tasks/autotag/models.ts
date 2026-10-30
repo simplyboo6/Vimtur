@@ -118,6 +118,38 @@ export async function ensureModelDownloaded(definition: ModelDefinition): Promis
   return destination;
 }
 
+/**
+ * Streams the download into `partialPath` while hashing it, then verifies the
+ * definition's sha256. On any failure the partial name is removed so nothing
+ * incomplete is left for a later run to mistake for model data.
+ */
+async function downloadAndVerify(definition: ModelDefinition, partialPath: string): Promise<void> {
+  try {
+    const response = await fetch(definition.url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
+    if (!response.ok) {
+      // Reading the error body is what lets the process log describe it.
+      const text = await response.text();
+      throw new Error(`Model download failed: ${response.status}: ${text}`);
+    }
+    if (!response.body) {
+      throw new Error('Model download failed: response has no body');
+    }
+    const hasher = new HashingStream();
+    await pipeline(
+      Readable.fromWeb(response.body as unknown as import('stream/web').ReadableStream),
+      hasher,
+      FS.createWriteStream(partialPath),
+    );
+    const hash = hasher.digest();
+    if (hash !== definition.sha256) {
+      throw new Error(`Model download hash mismatch: expected ${definition.sha256} got ${hash}`);
+    }
+  } catch (err: unknown) {
+    FS.rmSync(partialPath, { force: true, recursive: true });
+    throw err;
+  }
+}
+
 async function isCached(destination: string, definition: ModelDefinition): Promise<boolean> {
   if (!FS.existsSync(destination)) {
     return false;
@@ -165,33 +197,6 @@ class HashingStream extends Transform {
 
   public digest(): string {
     return this.hash.digest('hex');
-  }
-}
-
-async function downloadAndVerify(definition: ModelDefinition, destination: string): Promise<void> {
-  try {
-    const response = await fetch(definition.url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
-    if (!response.ok) {
-      // Reading the error body is what lets the process log describe it.
-      const text = await response.text();
-      throw new Error(`Model download failed: ${response.status}: ${text}`);
-    }
-    if (!response.body) {
-      throw new Error('Model download failed: response has no body');
-    }
-    const hasher = new HashingStream();
-    const write = FS.createWriteStream(destination);
-    await pipeline(Readable.fromWeb(response.body as unknown as import('stream/web').ReadableStream), hasher, write);
-    write.close();
-    const hash = hasher.digest();
-    if (hash !== definition.sha256) {
-      throw new Error(`Model download hash mismatch: expected ${definition.sha256} got ${hash}`);
-    }
-  } catch (err: unknown) {
-    // Any failure (aborted read, disk full, hash mismatch) must not leave the
-    // temporary name behind for a later run to mistake for model data.
-    FS.rmSync(destination, { force: true, recursive: true });
-    throw err;
   }
 }
 

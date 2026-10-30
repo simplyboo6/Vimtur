@@ -1,3 +1,5 @@
+import FS from 'node:fs';
+import Path from 'node:path';
 import type { QueuedTask } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe } from 'mocha';
@@ -5,6 +7,7 @@ import { describe } from 'mocha';
 import {
   ApiClient,
   type ApiServer,
+  assertOk,
   createStill,
   detail,
   queueTask,
@@ -92,9 +95,17 @@ describe('Auto-tags round-trip', () => {
   it('queues with no args (the auto-import path) and finds an empty work set', async function (this: Mocha.Context) {
     this.timeout(60_000);
     // No thumbnails have been generated in this fixture, so the work set is
-    // empty and no model download can be triggered; the task must still
-    // complete cleanly thanks to runner-side arg defaults.
+    // empty; the task must still complete cleanly thanks to runner-side arg
+    // defaults.
     await runTaskAndWait(client, 'AUTO-TAG-MOBILE-NET-V2');
+    // Enforceable guard that the empty work set really skipped the classifier:
+    // a run that classified anything would have downloaded a model here,
+    // silently turning this API test network-dependent.
+    const autotagDir = Path.resolve(server.cachePath, 'autotag');
+    const downloaded = FS.existsSync(autotagDir)
+      ? FS.readdirSync(autotagDir, { withFileTypes: true }).filter((entry) => entry.isFile())
+      : [];
+    expect(downloaded.map((entry) => entry.name)).to.deep.equal([]);
   });
 
   it('rejects an invalid Existing tags mode with a task error', async function (this: Mocha.Context) {
@@ -108,5 +119,50 @@ describe('Auto-tags round-trip', () => {
     await runTaskAndWait(client, 'RESET-AUTOTAGS');
     expect((await detail(client, stillHash)).autoTags).to.equal(undefined);
     expect(await subset(client, { keywordSearch: 'tabby' })).to.deep.equal([]);
+  });
+});
+
+// The #131 rename (enableTensorFlow -> enableAutoTags) must not brick
+// pre-rename installs: legacy keys arrive both in config.json (the layer
+// the harness generates) and via POST /api/config, and neither may reach
+// schema validation unmapped.
+describe('Config enableTensorFlow rename mapping', () => {
+  let server: ApiServer;
+  let client: ApiClient;
+
+  before(async function (this: Mocha.Context) {
+    this.timeout(120_000);
+    // The harness plants enableAutoTags: false unless it is explicitly
+    // overridden; undefined values are dropped by JSON.stringify, so this
+    // config.json carries only the pre-rename key, which is exactly what a
+    // pre-#131 install looks like.
+    server = await startServer({ config: { enableAutoTags: undefined, enableTensorFlow: true } });
+    client = new ApiClient(server.baseUrl);
+  });
+
+  after(async () => {
+    await server?.stop();
+  });
+
+  it('boots with the legacy key and serves the renamed value', async function (this: Mocha.Context) {
+    this.timeout(30_000);
+    const config = assertOk(
+      await client.get<{ enableAutoTags?: boolean; enableTensorFlow?: boolean }>('/api/config'),
+      'GET /api/config',
+    );
+    expect(config.enableAutoTags).to.equal(true);
+    expect(config.enableTensorFlow).to.equal(undefined);
+  });
+
+  it('maps a legacy key posted to the API', async function (this: Mocha.Context) {
+    this.timeout(30_000);
+    const config = assertOk(
+      await client.post<{ enableAutoTags?: boolean; enableTensorFlow?: boolean }>('/api/config', {
+        enableTensorFlow: false,
+      }),
+      'POST /api/config',
+    );
+    expect(config.enableAutoTags).to.equal(false);
+    expect(config.enableTensorFlow).to.equal(undefined);
   });
 });

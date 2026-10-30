@@ -29,7 +29,14 @@ interface LoadedModel {
 let loaded: LoadedModel | undefined;
 
 async function loadModel(definition: ModelDefinition, modelPath: string): Promise<LoadedModel> {
-  const session = await createSession(definition, modelPath);
+  // A pool has one model for its lifetime; a swapped id means the worker was
+  // reused across runs. Release the previous session so its pinned model
+  // memory (hundreds of MB for the large models) isn't held at the same time.
+  if (loaded) {
+    await loaded.session.release();
+    loaded = undefined;
+  }
+  const session = await createSession(modelPath);
   return {
     definition,
     input: session.inputNames[0],
@@ -39,18 +46,14 @@ async function loadModel(definition: ModelDefinition, modelPath: string): Promis
   };
 }
 
-async function createSession(definition: ModelDefinition, modelPath: string): Promise<ort.InferenceSession> {
-  if (loaded && loaded.definition.id === definition.id) {
-    const replaced = loaded;
-    loaded = undefined;
-    await replaced.session.release();
-  }
+async function createSession(modelPath: string): Promise<ort.InferenceSession> {
   // Each session pins the model's memory and threads; spreading the cores so
   // the instances don't quadratic-oversubscribe mirrors the pool sizing in
   // resources.ts. The CPU provider is pinned (rather than defaulting) so a
   // host that installed the optional GPU providers does not move many
-  // parallel sessions onto one GPU.
-  const intraOpNumThreads = Math.max(1, Math.floor(OS.cpus().length / MAX_INSTANCES));
+  // parallel sessions onto one GPU. availableParallelism() respects cgroup
+  // quotas and CPU affinity, matching MAX_INSTANCES on limited containers.
+  const intraOpNumThreads = Math.max(1, Math.floor(OS.availableParallelism() / MAX_INSTANCES));
   return ort.InferenceSession.create(modelPath, {
     executionProviders: ['cpu'],
     intraOpNumThreads,

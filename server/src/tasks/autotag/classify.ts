@@ -4,7 +4,7 @@ import { execute, ScalingConnectionPool } from 'proper-job';
 import { Transcoder } from '../../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
 
-import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, type ModelDefinition, modelPath } from './models';
+import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, type ModelDefinition } from './models';
 import { MAX_INSTANCES } from './resources';
 import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 
@@ -64,7 +64,7 @@ export function getTask(database: Database): RouterTask[] {
             // attempt parallel downloads, and so the runner can hand the
             // verified path to the workers. loadClasses() is a fail-fast of
             // the bundled label asset before any worker spins up.
-            await ensureModelDownloaded(modelDefinition);
+            const modelFile = await ensureModelDownloaded(modelDefinition);
             loadClasses();
 
             // Only begin creating runners when the pool completes.
@@ -83,7 +83,7 @@ export function getTask(database: Database): RouterTask[] {
                 current: 0,
                 max: hashes.length,
                 pool,
-                modelFile: modelPath(modelDefinition),
+                modelFile,
               },
             };
           },
