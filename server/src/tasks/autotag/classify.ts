@@ -1,32 +1,22 @@
-import OS from 'os';
-
 import type { TaskArgs } from '@vimtur/common';
 import { execute, ScalingConnectionPool } from 'proper-job';
 
 import { Transcoder } from '../../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
 
-import {
-  AUTO_TAG_MODELS,
-  DEFAULT_AUTO_TAG_MODEL,
-  ensureModelDownloaded,
-  loadClasses,
-  type ModelDefinition,
-} from './models';
+import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, type ModelDefinition, modelPath } from './models';
+import { MAX_INSTANCES } from './resources';
 import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 
-// The task referenced when auto-import triggers classification.
-export const DEFAULT_TASK_ID = `AUTO-TAG-${DEFAULT_AUTO_TAG_MODEL().id}`;
-
-// Task argument positions, indexed against TaskArgDefinitions above the runner.
+// Task argument positions, indexed against the single-entry args definition
+// declared per task role below the runner.
 const ARG_MODE = 0;
 
 const MODE_SKIP_EXISTING = 'skip-existing';
 const MODE_REPLACE = 'replace';
 
-const parallel = OS.cpus().length;
-
-// One task is registered per available model.
+// One task is registered per available model. The default model's task id is
+// prefixed by DEFAULT_TASK_ID imported from task-ids.ts.
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);
 
@@ -69,10 +59,11 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            updateStatus(0, hashes.length);
-
-            // This pre-downloads the model so that the workers don't each
-            // attempt parallel downloads.
+            updateStatus(0, hashes.length, 'Downloading model...');
+            // This pre-downloads the model once so the workers don't each
+            // attempt parallel downloads, and so the runner can hand the
+            // verified path to the workers. loadClasses() is a fail-fast of
+            // the bundled label asset before any worker spins up.
             await ensureModelDownloaded(modelDefinition);
             loadClasses();
 
@@ -82,7 +73,7 @@ export function getTask(database: Database): RouterTask[] {
                 return new ClassifierWorkerWrapper();
               },
               {
-                maxInstances: parallel,
+                maxInstances: MAX_INSTANCES,
               },
             );
 
@@ -92,6 +83,7 @@ export function getTask(database: Database): RouterTask[] {
                 current: 0,
                 max: hashes.length,
                 pool,
+                modelFile: modelPath(modelDefinition),
               },
             };
           },
@@ -106,7 +98,11 @@ export function getTask(database: Database): RouterTask[] {
 
             try {
               const labels = await init.pool.run((instance) =>
-                instance.classify(modelDefinition, transcoder.getThumbnailPath(media)),
+                instance.classify({
+                  definition: modelDefinition,
+                  modelPath: init.modelFile,
+                  absolutePath: transcoder.getThumbnailPath(media),
+                }),
               );
               await database.saveMedia(hash, { autoTags: labels });
             } finally {
@@ -114,7 +110,7 @@ export function getTask(database: Database): RouterTask[] {
               updateStatus(init.current, init.max);
             }
           },
-          { parallel, continueOnError: true },
+          { parallel: MAX_INSTANCES, continueOnError: true },
           (init) => init?.pool?.quit(),
         );
       },

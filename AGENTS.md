@@ -27,7 +27,7 @@
 
 - Native run uses env vars (see `env-sqlite.sh`): `PORT`, `DATABASE` (`sqlite` default | `mongodb`), `DATABASE_URI`/`DATABASE_DB` for mongo, plus `DATA_PATH` (media library) and `CACHE_PATH` (must be outside `DATA_PATH`). These override `config.json` (format: `Configuration.Main` in `common/src/config.d.ts`; example in `server/config.json.example`).
 - Requires system binaries outside Docker: `ffmpeg`, ImageMagick (`convert`/`identify` — the `gm` node module is configured with `imageMagick: true`), and optionally `pngquant`, `gallery-dl`, `yt-dlp`.
-- `onnxruntime-node` ships prebuilt binaries (no compile toolchain); set `ONNXRUNTIME_NODE_INSTALL=skip` when installing to bypass the CUDA provider download (~271MB dead weight without a GPU). First model use needs internet access (models come from the ONNX Model Zoo mirror); afterwards they're cached under `CACHE_PATH/autotag`.
+- `onnxruntime-node` ships prebuilt binaries (no compile toolchain); export `ONNXRUNTIME_NODE_INSTALL=skip` before `yarn install` (Yarn cannot read the npm-config route) to bypass the CUDA provider download (~271MB dead weight without a GPU). First model use needs internet access (models come from the ONNX Model Zoo mirror); afterwards they're cached under `CACHE_PATH/autotag`.
 
 ## API response and error conventions (from #152 / #138)
 

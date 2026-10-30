@@ -17,6 +17,10 @@ jobs:
     # is verified against; bump deliberately alongside the Docker image.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Skip onnxruntime-node's postinstall CUDA provider download: the suite
+    # runs on CPU and the nuget fetch is ~271MB of dead weight without a GPU.
+    env:
+      ONNXRUNTIME_NODE_INSTALL: skip
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,6 +50,8 @@ jobs:
     # See api-tests above for why this is pinned to 24.04.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      ONNXRUNTIME_NODE_INSTALL: skip
     steps:
       - name: Checkout
         uses: actions/checkout@v4

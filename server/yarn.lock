@@ -1142,11 +1142,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vimtur/common@portal:../common::locator=Vimtur%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@vimtur/common@portal:../common::locator=Vimtur%40workspace%3A."
+"@vimtur/common@file:../common::locator=Vimtur%40workspace%3A.":
+  version: 5.0.0
+  resolution: "@vimtur/common@file:../common#../common::hash=7d1324&locator=Vimtur%40workspace%3A."
+  checksum: 10c0/4c81a53dad927ea94d451ee1f52e6ef86a3a9f57cb25ce7d5521e930eb235927090e6d0c8799d0d3136c999d5a3ef62eb18753c7db08109ca846607d32cf5f61
   languageName: node
-  linkType: soft
+  linkType: hard
 
 "Vimtur@workspace:.":
   version: 0.0.0-use.local

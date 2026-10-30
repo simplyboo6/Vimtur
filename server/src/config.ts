@@ -121,6 +121,47 @@ class Config {
   private merged?: Configuration.Main;
   private baseLayers?: Configuration.Partial[];
 
+  // The auto-tagging feature was retuned in #131 and with it the config key
+  // was renamed. Configs written before that rename carry the old name in
+  // config.json and in the database overlay, and the merged config is
+  // validated with noAdditionalProperties: without this map those installs
+  // fail validation and never boot. The old name is carried forward as its
+  // new equivalent for one migration window.
+  private static RENAMED_KEYS: Record<string, string> = {
+    enableTensorFlow: 'enableAutoTags',
+  };
+
+  private static renamedLogged = new Set<string>();
+
+  private static mapRenamedKeys(layer: Configuration.Partial): Configuration.Partial {
+    // Non-object layers (e.g. a POST body that is a JSON array) are returned
+    // untouched so any DeepMerge/TypeError path they trigger downstream is
+    // unchanged from pre-rename behaviour.
+    if (Array.isArray(layer) || typeof layer !== 'object' || layer === null) {
+      return layer;
+    }
+    // A rename is applied to a copy so callers' layer objects are not mutated
+    // (the database overlay is cached by the database layer). The intersection
+    // view adds index access so the rename keys can be moved around.
+    type RemapableLayer = Configuration.Partial & Record<string, unknown>;
+    const record = layer as RemapableLayer;
+    const mapped: RemapableLayer = { ...record };
+    for (const [from, to] of Object.entries(Config.RENAMED_KEYS)) {
+      if (mapped[from] === undefined) {
+        continue;
+      }
+      if (mapped[to] === undefined) {
+        mapped[to] = mapped[from];
+      }
+      delete mapped[from];
+      if (!Config.renamedLogged.has(from) && process.env['TEST_MODE'] !== '1') {
+        console.warn(`Configuration key '${from}' was renamed to '${String(to)}'; the existing value was moved.`);
+        Config.renamedLogged.add(from);
+      }
+    }
+    return mapped;
+  }
+
   public static init(): Config {
     const validator = Validator.load<Configuration.Main>('Configuration.Main');
     // Load the constant layers, all of these together should validate.
@@ -184,7 +225,7 @@ class Config {
     if (this.baseLayers) {
       layerArray.push(...this.baseLayers);
     }
-    layerArray.push(...layers);
+    layerArray.push(...layers.map((layer) => Config.mapRenamedKeys(layer)));
 
     const merged = DeepMerge.all(layerArray, {
       arrayMerge: (_: object[], sourceArray: object[]): object[] => sourceArray,
@@ -203,7 +244,9 @@ class Config {
       if (PathIsInside(Path.resolve(merged.cachePath), Path.resolve(merged.libraryPath))) {
         throw new Error('Cache folder cannot be inside the library');
       }
-      this.baseLayers = layers;
+      // The renamed (post-map) versions: storing the raw arguments would
+      // re-introduce the legacy keys into every later overlay merge.
+      this.baseLayers = layerArray;
     }
     // Otherwise don't store the layers because they're stored in the database.
     this.merged = merged;

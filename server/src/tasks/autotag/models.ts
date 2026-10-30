@@ -1,6 +1,8 @@
 import Crypto from 'node:crypto';
 import FS from 'node:fs';
 import Path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import { ImportUtils } from '../../cache/import-utils';
 import Config from '../../config';
@@ -49,7 +51,7 @@ const ZOO_IMAGENET_PREPROCESS: Preprocessing = {
 // (https://huggingface.co/onnxmodelzoo); the original github.com/onnx/models
 // repository is archive-only for downloads. Every model is ImageNet-1k
 // classification over the standard 1000 classes, in NCHW float32 layout.
-export const AUTO_TAG_MODELS: ModelDefinition[] = [
+export const AUTO_TAG_MODELS: readonly ModelDefinition[] = [
   // The first one is used when triggered from auto-import.
   {
     id: 'MOBILE-NET-V2',
@@ -85,10 +87,15 @@ export function DEFAULT_AUTO_TAG_MODEL(): ModelDefinition {
   return AUTO_TAG_MODELS[0];
 }
 
-const AUTO_TAG_DIR = Path.resolve(Config.get().cachePath, 'autotag');
+const AUTO_TAG_DIR_SUBPATH = 'autotag';
+
+function autoTagDir(): string {
+  // Resolved per call: the cache path can change through config overlays.
+  return Path.resolve(Config.get().cachePath, AUTO_TAG_DIR_SUBPATH);
+}
 
 export function modelPath(definition: ModelDefinition): string {
-  return Path.resolve(AUTO_TAG_DIR, `${definition.id}.onnx`);
+  return Path.resolve(autoTagDir(), `${definition.id}.onnx`);
 }
 
 /**
@@ -98,7 +105,7 @@ export function modelPath(definition: ModelDefinition): string {
  * be mistaken for a complete model.
  */
 export async function ensureModelDownloaded(definition: ModelDefinition): Promise<string> {
-  await ImportUtils.mkdir(AUTO_TAG_DIR);
+  await ImportUtils.mkdir(autoTagDir());
   const destination = modelPath(definition);
   if (await isCached(destination, definition)) {
     return destination;
@@ -128,8 +135,17 @@ async function isCached(destination: string, definition: ModelDefinition): Promi
   }
 }
 
+// Blob-model downloads: the response is streamed into the partial file and
+// hashed on the way through, so nothing holds two copies of a 178MB model in
+// memory. Generous because the largest registry model is ~180MB on slow links.
+const HEAD_TIMEOUT_MS = 30_000;
+const DOWNLOAD_TIMEOUT_MS = 600_000;
+
+type NodeCallback = (err?: Error | null, data?: Buffer) => void;
+
 async function remoteSize(url: string): Promise<number | undefined> {
-  const res = await fetch(url, { method: 'HEAD' });
+  // HEAD only; the body is never used.
+  const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(HEAD_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`Model size request failed: ${res.status}`);
   }
@@ -137,23 +153,44 @@ async function remoteSize(url: string): Promise<number | undefined> {
   return length ? Number(length) : undefined;
 }
 
+// Streams the body hashing every chunk in flight, without materialising the
+// whole body.
+class HashingStream extends Transform {
+  private readonly hash = Crypto.createHash('sha256');
+
+  public override _transform(chunk: Buffer, _encoding: BufferEncoding, callback: NodeCallback): void {
+    this.hash.update(chunk);
+    callback(null, chunk);
+  }
+
+  public digest(): string {
+    return this.hash.digest('hex');
+  }
+}
+
 async function downloadAndVerify(definition: ModelDefinition, destination: string): Promise<void> {
-  const res = await fetch(definition.url);
-  if (!res.ok) {
-    const text = await res.text(); // Only here: reading consumes the body.
-    throw new Error(`Model download failed: ${res.status}: ${text}`);
-  }
-  const data = Buffer.from(await res.arrayBuffer());
-  const hash = Crypto.createHash('sha256').update(data).digest('hex');
-  if (hash !== definition.sha256) {
-    throw new Error(`Model download hash mismatch: expected ${definition.sha256} got ${hash}`);
-  }
   try {
-    FS.writeFileSync(destination, data);
+    const response = await fetch(definition.url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
+    if (!response.ok) {
+      // Reading the error body is what lets the process log describe it.
+      const text = await response.text();
+      throw new Error(`Model download failed: ${response.status}: ${text}`);
+    }
+    if (!response.body) {
+      throw new Error('Model download failed: response has no body');
+    }
+    const hasher = new HashingStream();
+    const write = FS.createWriteStream(destination);
+    await pipeline(Readable.fromWeb(response.body as unknown as import('stream/web').ReadableStream), hasher, write);
+    write.close();
+    const hash = hasher.digest();
+    if (hash !== definition.sha256) {
+      throw new Error(`Model download hash mismatch: expected ${definition.sha256} got ${hash}`);
+    }
   } catch (err: unknown) {
-    // A mid-write failure (disk full, permissions) must not leave the
+    // Any failure (aborted read, disk full, hash mismatch) must not leave the
     // temporary name behind for a later run to mistake for model data.
-    FS.rmSync(`${destination}.part`, { force: true });
+    FS.rmSync(destination, { force: true, recursive: true });
     throw err;
   }
 }
