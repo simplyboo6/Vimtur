@@ -1,10 +1,12 @@
+import OS from 'os';
 import { parentPort } from 'worker_threads';
 
 import * as ort from 'onnxruntime-node';
 
 import { asError } from '../../../utils';
-import { ensureModelDownloaded, loadClasses, type ModelDefinition } from '../models';
+import { loadClasses, type ModelDefinition } from '../models';
 import { preprocessImage, topLabels } from '../preprocess';
+import { MAX_INSTANCES } from '../resources';
 import type {
   ClassifierWorkerError,
   ClassifierWorkerRequest,
@@ -26,11 +28,8 @@ interface LoadedModel {
 
 let loaded: LoadedModel | undefined;
 
-async function loadModel(definition: ModelDefinition): Promise<LoadedModel> {
-  // The session lives inside the worker so the main process never holds the
-  // runtime, whether or not auto-tagging runs.
-  const modelFile = await ensureModelDownloaded(definition);
-  const session = await ort.InferenceSession.create(modelFile);
+async function loadModel(definition: ModelDefinition, modelPath: string): Promise<LoadedModel> {
+  const session = await createSession(definition, modelPath);
   return {
     definition,
     input: session.inputNames[0],
@@ -40,9 +39,28 @@ async function loadModel(definition: ModelDefinition): Promise<LoadedModel> {
   };
 }
 
+async function createSession(definition: ModelDefinition, modelPath: string): Promise<ort.InferenceSession> {
+  if (loaded && loaded.definition.id === definition.id) {
+    const replaced = loaded;
+    loaded = undefined;
+    await replaced.session.release();
+  }
+  // Each session pins the model's memory and threads; spreading the cores so
+  // the instances don't quadratic-oversubscribe mirrors the pool sizing in
+  // resources.ts. The CPU provider is pinned (rather than defaulting) so a
+  // host that installed the optional GPU providers does not move many
+  // parallel sessions onto one GPU.
+  const intraOpNumThreads = Math.max(1, Math.floor(OS.cpus().length / MAX_INSTANCES));
+  return ort.InferenceSession.create(modelPath, {
+    executionProviders: ['cpu'],
+    intraOpNumThreads,
+    interOpNumThreads: 1,
+  });
+}
+
 async function onMessage(message: ClassifierWorkerRequest): Promise<string[]> {
   if (!loaded || loaded.definition.id !== message.definition.id) {
-    loaded = await loadModel(message.definition);
+    loaded = await loadModel(message.definition, message.modelPath);
   }
 
   const preprocessing = message.definition.preprocess;
@@ -55,18 +73,20 @@ async function onMessage(message: ClassifierWorkerRequest): Promise<string[]> {
   return topLabels(logits, loaded.classes, 5);
 }
 
+const port = parentPort;
+
 // Wrapper to enforce typing of response.
 function postResult(result: ClassifierWorkerResponse): void {
-  parentPort!.postMessage(result);
+  port.postMessage(result);
 }
 
-parentPort.on('message', (message: ClassifierWorkerRequest) => {
+port.on('message', (message: ClassifierWorkerRequest) => {
   onMessage(message)
     .then((labels) => {
       postResult({ id: message.id, labels } satisfies ClassifierWorkerSuccess);
     })
     .catch((errUnknown: unknown) => {
       const err = asError(errUnknown);
-      postResult({ id: message.id, err: err.message } satisfies ClassifierWorkerError);
+      postResult({ id: message.id, err: err.message, stack: err.stack } satisfies ClassifierWorkerError);
     });
 });

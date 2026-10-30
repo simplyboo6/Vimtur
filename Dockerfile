@@ -30,10 +30,16 @@ RUN echo "$VERSION_NAME" > /app/version
 # ships prebuilt bindings linked against glibc; Alpine/musl is unsupported.
 FROM node:24-slim AS runtime
 
+# The downloader CLIs update frequently and are not packaged; they install
+# into their own venv to keep the system Python clean and reproducible.
+# yt-dlp wants an external JS runtime for some extractors (e.g. YouTube);
+# without one those hosts will not work.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini imagemagick ffmpeg pngquant jq sqlite3 python3-minimal python3-pip && \
-    pip install --no-cache-dir --break-system-packages yt-dlp gallery-dl && \
+    tini imagemagick ffmpeg pngquant jq sqlite3 python3-minimal python3-venv && \
+    python3 -m venv /opt/pip-venv && \
+    /opt/pip-venv/bin/pip install --no-cache-dir yt-dlp gallery-dl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV PATH=/opt/pip-venv/bin:$PATH
 
 RUN yt-dlp --version && gallery-dl --version && ffmpeg -version && ffprobe -version && pngquant --version
 

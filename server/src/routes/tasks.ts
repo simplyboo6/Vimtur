@@ -5,7 +5,7 @@ import type SocketIO from 'socket.io';
 import Config from '../config';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
-import { DEFAULT_TASK_ID } from '../tasks/autotag/classify';
+import { DEFAULT_TASK_ID } from '../tasks/autotag/task-ids';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
 

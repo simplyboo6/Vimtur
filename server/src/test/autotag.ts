@@ -1,6 +1,7 @@
 import Crypto from 'node:crypto';
 import FS from 'node:fs';
 import HTTP from 'node:http';
+import Path from 'node:path';
 
 import { expect } from 'chai';
 import { after, before, describe, it } from 'mocha';
@@ -110,6 +111,48 @@ describe('Auto-Tag preprocessing', () => {
     expect(output[PREPROCESS.cropSize * PREPROCESS.cropSize]).to.be.greaterThan(1);
     expect(output[2 * PREPROCESS.cropSize * PREPROCESS.cropSize]).to.be.greaterThan(1);
   });
+
+  it('Handles stored images whose EXIF orientation transposes width and height', async () => {
+    // Bundled fixture: a 100x50 stored JPEG carrying orientation 6, so its
+    // display is 50x100. Repro source (MIT): test_6.jpg from
+    // https://github.com/rasteiner/exif-orientation-test-images. The display
+    // matches the preprocessed model input exactly, so the resize is a
+    // pass-through and the comparison is pure geometry.
+    const preprocessing: ModelDefinition['preprocess'] = {
+      resizeShorterSide: 50,
+      cropSize: 40,
+      mean: PREPROCESS.mean,
+      std: PREPROCESS.std,
+    };
+    const fixture = FS.readFileSync(Path.resolve(__dirname, 'fixtures', 'exif-orientation-6.jpg'));
+    const output = await preprocessImage(fixture, preprocessing);
+
+    // The independent reference is what the correctly oriented image contains
+    // under the centre crop. Sampling the whole field (not just the centre)
+    // discriminates between the rotated and stored geometries; those systems'
+    // pixels differ almost everywhere in this fixture.
+    const display = await Sharp(fixture).rotate().raw().toBuffer({ resolveWithObject: true });
+    expect(display.info.width, 'reference display width').to.equal(50);
+    expect(display.info.height, 'reference display height').to.equal(100);
+    const plane = preprocessing.cropSize * preprocessing.cropSize;
+    const cropLeft = (display.info.width - preprocessing.cropSize) / 2;
+    const cropTop = (display.info.height - preprocessing.cropSize) / 2;
+    let checked = 0;
+    for (let y = 0; y < preprocessing.cropSize; y += 4) {
+      for (let x = 0; x < preprocessing.cropSize; x += 4) {
+        for (let c = 0; c < 3; c++) {
+          const displayIndex = ((cropTop + y) * display.info.width + (cropLeft + x)) * 3 + c;
+          const expected = (display.data[displayIndex] / 255 - preprocessing.mean[c]) / preprocessing.std[c];
+          const actual = output[c * plane + y * preprocessing.cropSize + x];
+          // JPEG can shift a sampled primary by one pixel value (1/255),
+          // which is ~0.05 after normalisation.
+          expect(actual, `plane ${c} pixel (${x}, ${y})`).to.be.closeTo(expected, 0.08);
+          checked += 1;
+        }
+      }
+    }
+    expect(checked, 'sampled pixels').to.be.at.least(300);
+  });
 });
 
 const TEST_BYTES = Buffer.from('0123456789'.repeat(4));
@@ -181,12 +224,26 @@ describe('Auto-Tag model download', () => {
 
   it('Reuses the cached file on later calls without re-downloading', async function time() {
     this.timeout(10_000);
-    const model = remote('/good/model.onnx', 'TEST-MODEL-HAPPY');
+    // Self-contained: populate the cache here so the test also stands alone.
+    const model = remote('/good/model.onnx', 'TEST-MODEL-REUSE');
+    await ensureModelDownloaded(model);
     const before = requestCount;
     const path = await ensureModelDownloaded(model);
     expect(FS.readFileSync(path).equals(TEST_BYTES)).to.equal(true);
     // A HEAD staleness probe is fine, but no second body fetch may occur.
     expect(requestCount - before).to.be.at.most(1);
+  });
+
+  it('Cleans up the partial name when writing it fails', async function time() {
+    this.timeout(10_000);
+    const model = remote('/good/model.onnx', 'TEST-MODEL-WRITE');
+    // A directory at the partial path forces the write open to fail, which
+    // exercises the cleanup branch rather than the (earlier) hash check.
+    FS.mkdirSync(`${modelPath(model)}.part`, { recursive: true });
+    const err = await errorOf(() => ensureModelDownloaded(model));
+    expect(err?.message).to.not.equal(undefined);
+    expect(FS.existsSync(`${modelPath(model)}.part`)).to.equal(false);
+    expect(FS.existsSync(modelPath(model))).to.equal(false);
   });
 
   it('Refuses to cache a download whose hash disagrees', async function time() {

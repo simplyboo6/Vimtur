@@ -11,16 +11,19 @@ import type { Preprocessing } from './models';
 export async function preprocessImage(source: string | Buffer, preprocessing: Preprocessing): Promise<Float32Array> {
   const { resizeShorterSide, cropSize, mean, std } = preprocessing;
 
-  // Thumbnails may be missing EXIF orientation; rotate() corrects for it so
-  // the crop sees what the model would have been validated against.
+  // rotate() reorients into the display orientation. metadata() still reports
+  // the stored dimensions though, so orientations ≥ 5 (transposing) need their
+  // width and height swapped, otherwise the resize distorts before the crop.
   const oriented = Sharp(source).rotate();
   const meta = await oriented.metadata();
   if (!meta.width || !meta.height) {
     throw new Error(`Cannot read image dimensions from ${meta.format ?? 'image'} input`);
   }
-  const shorter = Math.min(meta.width, meta.height);
-  const width = Math.round((meta.width * resizeShorterSide) / shorter);
-  const height = Math.round((meta.height * resizeShorterSide) / shorter);
+  const rawWidth = (meta.orientation ?? 1) >= 5 ? meta.height : meta.width;
+  const rawHeight = (meta.orientation ?? 1) >= 5 ? meta.width : meta.height;
+  const shorter = Math.min(rawWidth, rawHeight);
+  const width = Math.round((rawWidth * resizeShorterSide) / shorter);
+  const height = Math.round((rawHeight * resizeShorterSide) / shorter);
 
   // Both sides end up at least resizeShorterSide pixels, so this centre crop
   // always has room. Layout below assumes RGB.
@@ -47,9 +50,10 @@ export async function preprocessImage(source: string | Buffer, preprocessing: Pr
 }
 
 /**
- * Picks the `count` highest labels. Models output logits (or softmax
- * probabilities); softmaxing double-softmaxed output is order-preserving, so
- * the ranking is correct either way. Only the label strings are persisted.
+ * Picks the `count` highest labels. Registry models emit logits (some emit
+ * probabilities); because softmax is monotonic, the ranking is the same for
+ * either, so no softmax is needed before ranking. Only the label strings are
+ * persisted; scores are dropped.
  */
 export function topLabels(logits: ArrayLike<number>, classes: readonly string[], count: number): string[] {
   if (logits.length !== classes.length) {
