@@ -1,5 +1,6 @@
 import Crypto from 'node:crypto';
 import FS from 'node:fs';
+import OS from 'node:os';
 import Path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -95,6 +96,20 @@ export function modelPath(definition: ModelDefinition): string {
 }
 
 /**
+ * Auto-tagging runs one worker per pool instance, and each worker pins its own
+ * inference session: model memory (a ResNet-101 session is on the order of
+ * 500MB) plus a thread pool. An instance per CPU core fits neither RAM nor the
+ * scheduler, so both the pool size (here, the runner) and each session's
+ * intra-op threads (classifier-worker.ts) derive from this one cap:
+ * intra-op threads converge to the remainder of the core count.
+ *
+ * availableParallelism() (Node 20+) rather than cpus().length so cgroup
+ * quotas and CPU affinity constraints are respected in containerised
+ * deployments.
+ */
+export const MAX_INSTANCES = Math.min(4, OS.availableParallelism());
+
+/**
  * Downloads the model unless a previously downloaded file of the same reported
  * size exists. The download is verified against the definition's sha256 and
  * only then renamed onto its final path, so an interrupted download can never
@@ -141,7 +156,21 @@ async function downloadAndVerify(definition: ModelDefinition, partialPath: strin
       throw new Error(`Model download hash mismatch: expected ${definition.sha256} got ${hash}`);
     }
   } catch (err: unknown) {
-    FS.rmSync(partialPath, { force: true, recursive: true });
+    // Any failure (aborted read, disk full, hash mismatch) must not leave the
+    // partial name behind for a later run to mistake for model data. Only the
+    // two shapes the partial can have are removed: an actual file, or the
+    // empty directory a failed open can leave behind (see the write-failure
+    // unit test). Nothing is ever deleted recursively, so even a corrupted
+    // path cannot take out directory contents by mistake.
+    try {
+      FS.unlinkSync(partialPath);
+    } catch {
+      try {
+        FS.rmdirSync(partialPath);
+      } catch {
+        // Neither a file nor an empty directory; leave it for diagnostics.
+      }
+    }
     throw err;
   }
 }

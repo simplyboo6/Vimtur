@@ -4,9 +4,8 @@ import { parentPort } from 'worker_threads';
 import * as ort from 'onnxruntime-node';
 
 import { asError } from '../../../utils';
-import { loadClasses, type ModelDefinition } from '../models';
+import { loadClasses, MAX_INSTANCES, type ModelDefinition } from '../models';
 import { preprocessImage, topLabels } from '../preprocess';
-import { MAX_INSTANCES } from '../resources';
 import type {
   ClassifierWorkerError,
   ClassifierWorkerRequest,
@@ -49,7 +48,7 @@ async function loadModel(definition: ModelDefinition, modelPath: string): Promis
 async function createSession(modelPath: string): Promise<ort.InferenceSession> {
   // Each session pins the model's memory and threads; spreading the cores so
   // the instances don't quadratic-oversubscribe mirrors the pool sizing in
-  // resources.ts. The CPU provider is pinned (rather than defaulting) so a
+  // models.ts. The CPU provider is pinned (rather than defaulting) so a
   // host that installed the optional GPU providers does not move many
   // parallel sessions onto one GPU. availableParallelism() respects cgroup
   // quotas and CPU affinity, matching MAX_INSTANCES on limited containers.

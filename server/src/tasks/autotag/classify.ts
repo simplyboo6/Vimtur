@@ -4,8 +4,7 @@ import { execute, ScalingConnectionPool } from 'proper-job';
 import { Transcoder } from '../../cache/transcoder';
 import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
 
-import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, type ModelDefinition } from './models';
-import { MAX_INSTANCES } from './resources';
+import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, MAX_INSTANCES, type ModelDefinition } from './models';
 import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 
 // Task argument positions, indexed against the single-entry args definition
@@ -15,8 +14,7 @@ const ARG_MODE = 0;
 const MODE_SKIP_EXISTING = 'skip-existing';
 const MODE_REPLACE = 'replace';
 
-// One task is registered per available model. The default model's task id is
-// prefixed by DEFAULT_TASK_ID imported from task-ids.ts.
+// One task is registered per available model.
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);
 
