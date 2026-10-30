@@ -5,9 +5,14 @@ import type SocketIO from 'socket.io';
 import Config from '../config';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
-import { DEFAULT_TASK_ID } from '../tasks/autotag/task-ids';
+import { AUTO_TAG_MODELS } from '../tasks/autotag/models';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
+
+// The task registered for the model registry's first (default) model, started
+// by AUTO-IMPORT. Derived here from the registry's own [0] so the default
+// cannot drift between the registry and this route.
+const DEFAULT_AUTO_TAG_TASK_ID = `AUTO-TAG-${AUTO_TAG_MODELS[0].id}`;
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -48,8 +53,8 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
           if (Config.get().enablePhash && taskManager.hasTask('GENERATE-PHASHES')) {
             taskManager.start('GENERATE-PHASHES');
           }
-          if (Config.get().enableAutoTags && taskManager.hasTask(DEFAULT_TASK_ID)) {
-            taskManager.start(DEFAULT_TASK_ID);
+          if (Config.get().enableAutoTags && taskManager.hasTask(DEFAULT_AUTO_TAG_TASK_ID)) {
+            taskManager.start(DEFAULT_AUTO_TAG_TASK_ID);
           }
           return Promise.resolve([]);
         },
