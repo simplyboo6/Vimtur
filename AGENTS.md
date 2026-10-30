@@ -59,6 +59,7 @@
 
 - Native `<progress>` fills need per-engine handling (see `video-player.component.scss`): Firefox paints the fill from `color`, Chromium/Safari normally from `accent-color` — but **only while the element has no authored background**; `background-color: transparent` on the element flips Chromium into legacy painting, where the fill comes from `::-webkit-progress-value` and `accent-color` is ignored. Set `color`, `accent-color`, and explicit `::-webkit-progress-bar`/`::-webkit-progress-value` rules. Note `getComputedStyle(el, '::-webkit-progress-value')` reports `rgba(0, 0, 0, 0)` in Chromium even when the rule applies — verify with pixels, not computed style.
 - hls.js packaged types (e.g. `ErrorData`) are importable from `hls.js` directly.
+- Angular's `HttpClient` runs on `FetchBackend` (the `withXhr()` XHR-transport parity from #147 was dropped in #148; `HttpXhrBackend` is tree-shaken out of the bundle). No `reportProgress`/upload-progress usage exists anywhere — if one is ever added, note fetch has no upload progress, which would need XHR or a different design. Also XHR-only observables never existed here: no `HTTP_INTERCEPTORS`, so bare `provideHttpClient()` is correct as-is.
 - Plain `import X from '@vimtur/common'` (not `import type`) is the established style for cross-package imports; TS elides type-only usage.
 
 ## Dependency-upgrade lessons (from the master modernisation)
