@@ -29,6 +29,14 @@
 - Requires system binaries outside Docker: `ffmpeg`, ImageMagick (`convert`/`identify` — the `gm` node module is configured with `imageMagick: true`), and optionally `pngquant`, `gallery-dl`, `yt-dlp`.
 - `@tensorflow/tfjs-node` needs python3/g++/make to build and internet access on first model use.
 
+## API response and error conventions (from #152 / #138)
+
+- Handlers answer with plain Express: `res.status(200).json(data)` for data, `res.sendStatus(204)` for no-content mutations, `201` for created resources (`POST /api/playlists`), `202` for accepted async work (`POST /api/tasks/queue/:id`). There is no response helper: `sendResponse` (the old Accept-header negotiation plus Buffer→base64 reviver) was removed as dead code.
+- Never put a Node `Buffer` inside a JSON payload — without the old global reviver, `JSON.stringify` serialises Buffers as huge `{type: 'Buffer', data: [n…]}` arrays. If a body genuinely needs binary, encode it locally with `value.toString('base64')` at that handler; binary data belongs in file/stream endpoints (`res.sendFile`, the HLS `data.ts` routes).
+- Error bodies always come from the central middleware (`server/src/middleware/error-handler.ts`) as `{message}` JSON: `BaseRequestError.statusCode`, a status carried on the thrown value (`err.status`/`err.statusCode`, e.g. body-parser's 400), or warned 500 for unknowns. There is no content negotiation — any Accept header gets JSON, and the old 503-on-non-JSON-Accept gate is gone.
+- Deliberate wire deltas that came with those rules: `/cache{/*splat}` 400s are `{message:`-only (the unused `type: 'config'` field is gone), pre-route failures (body-parser 400s, `sendFile` 404s) answer JSON through the middleware, while Express's unmatched-route 404 stays the default HTML page.
+- Pinned in `server/src/api-tests/errors.spec.ts` and `server/src/test/error-handler.ts`; refactor after re-checking those first.
+
 ## Gotchas
 
 - Server runtime reads from `dist/`, not `src/` — after editing server or common code you must rebuild (`common` first, then `server`) before running or testing.

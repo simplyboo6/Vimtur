@@ -4,7 +4,6 @@ import { Router } from 'express';
 import { NotFound } from '../errors';
 import type { Database } from '../types';
 import { singleParam } from '../utils';
-import { sendResponse } from '../utils/send-response';
 import { Validator } from '../utils/validator';
 
 const PLAYLIST_CREATE_VALIDATOR = Validator.load<PlaylistCreate>('PlaylistCreate');
@@ -13,13 +12,13 @@ const PLAYLIST_UPDATE_VALIDATOR = Validator.load<PlaylistUpdate>('PlaylistUpdate
 export function create(db: Database): Router {
   const router = Router();
 
-  router.get('/', async (req, res) => {
-    sendResponse(req, res, 200, await db.getPlaylists());
+  router.get('/', async (_req, res) => {
+    res.status(200).json(await db.getPlaylists());
   });
 
   router.post('/', async (req, res) => {
     const create = PLAYLIST_CREATE_VALIDATOR.validate(req.body);
-    sendResponse(req, res, 200, await db.addPlaylist(create));
+    res.status(201).json(await db.addPlaylist(create));
   });
 
   router.delete('/:id', async (req, res) => {
@@ -39,7 +38,7 @@ export function create(db: Database): Router {
     if (!playlist) {
       throw new NotFound(`No playlist found with id: ${id}`);
     }
-    sendResponse(req, res, 200, playlist);
+    res.status(200).json(playlist);
   });
 
   return router;

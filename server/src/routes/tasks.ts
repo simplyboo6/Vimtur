@@ -7,7 +7,6 @@ import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
-import { sendResponse } from '../utils/send-response';
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -99,21 +98,18 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     io.sockets.emit('task-queue', data);
   });
 
-  router.get('/', (req, res) => {
-    sendResponse(
-      req,
-      res,
-      200,
-      taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)),
-    );
+  router.get('/', (_req, res) => {
+    res.status(200).json(taskManager.getTasks().sort((a, b) => a.description.localeCompare(b.description)));
   });
 
-  router.get('/queue', (req, res) => {
-    sendResponse(req, res, 200, taskManager.getQueue());
+  router.get('/queue', (_req, res) => {
+    res.status(200).json(taskManager.getQueue());
   });
 
+  // 202: the task is accepted for asynchronous processing; the returned id is
+  // for queue-position observation, not a representation of a completed result.
   router.post('/queue/:id', (req, res) => {
-    sendResponse(req, res, 200, taskManager.start(singleParam(req.params.id), req.body));
+    res.status(202).json(taskManager.start(singleParam(req.params.id), req.body));
   });
 
   router.delete('/queue/:id', (req, res) => {

@@ -26,7 +26,6 @@ import * as TasksRouter from './routes/tasks';
 import type { Database } from './types';
 import { asError } from './utils';
 import * as Utils from './utils';
-import { sendResponse } from './utils/send-response';
 
 async function createServer(db: Database): Promise<Server> {
   const app = Express();
@@ -93,10 +92,10 @@ async function createServer(db: Database): Promise<Server> {
     res.sendFile(absPath);
   });
 
-  app.get('/api/config', (req, res) => {
+  app.get('/api/config', (_req, res) => {
     const config = { ...Config.get() };
     delete config.database;
-    sendResponse(req, res, 200, config);
+    res.status(200).json(config);
   });
 
   app.post('/api/config', async (req, res) => {
@@ -111,7 +110,7 @@ async function createServer(db: Database): Promise<Server> {
     await db.saveUserConfig(merged);
     const config = { ...Config.get() };
     delete config.database;
-    sendResponse(req, res, 200, config);
+    res.status(200).json(config);
   });
 
   app.get('/', (_, res: Response) => {

@@ -12,7 +12,6 @@ import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
 import type { Database, RouterTask } from '../types';
 import { asError } from '../utils';
-import { sendResponse } from '../utils/send-response';
 
 type FilterResults = Types.Scanner.FilterResults;
 
@@ -152,11 +151,8 @@ export class Scanner {
 
 export function getTask(db: Database): RouterTask {
   const router = Router();
-  router.get('/results', (req, res) => {
-    sendResponse(
-      req,
-      res,
-      200,
+  router.get('/results', (_req, res) => {
+    res.status(200).json(
       Scanner.results
         ? {
             newPaths: Scanner.results.newPaths.length,
@@ -169,12 +165,12 @@ export function getTask(db: Database): RouterTask {
     );
   });
 
-  router.get('/results/missing', (req, res) => {
-    sendResponse(req, res, 200, Scanner.results ? Scanner.results.missingPaths : []);
+  router.get('/results/missing', (_req, res) => {
+    res.status(200).json(Scanner.results ? Scanner.results.missingPaths : []);
   });
 
-  router.get('/results/new', (req, res) => {
-    sendResponse(req, res, 200, Scanner.results ? Scanner.results.newPaths : []);
+  router.get('/results/new', (_req, res) => {
+    res.status(200).json(Scanner.results ? Scanner.results.newPaths : []);
   });
 
   return {
