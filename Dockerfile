@@ -1,4 +1,4 @@
-FROM node:24-slim as build
+FROM node:24-slim AS build
 
 ARG VERSION_NAME=dev
 
@@ -28,7 +28,7 @@ RUN echo "$VERSION_NAME" > /app/version
 
 # Build the resultant image. Debian-based (glibc) because onnxruntime-node
 # ships prebuilt bindings linked against glibc; Alpine/musl is unsupported.
-FROM node:24-slim
+FROM node:24-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini imagemagick ffmpeg pngquant jq sqlite3 python3-minimal python3-pip && \
@@ -47,4 +47,4 @@ WORKDIR /app
 # Yarn doesn't have prune
 RUN (cd server/node_modules && rm -r $(cat ../package.json | jq -r '.devDependencies | keys | join(" ")'))
 
-ENTRYPOINT [ "/sbin/tini", "--", "node", "/app/server/dist/index.js" ]
+ENTRYPOINT [ "/usr/bin/tini", "--", "node", "/app/server/dist/index.js" ]
