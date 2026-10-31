@@ -613,6 +613,41 @@ describe('Database Tests', () => {
     });
   });
 
+  describe('Task state', () => {
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    it('stores and reads back a value', async () => {
+      const state = { tags: { cat: 7 }, calibratedAt: 'yesterday' };
+      await database.setTaskState('AUTO-TAG-TEST', 'calibration', state);
+      expect(await database.getTaskState('AUTO-TAG-TEST', 'calibration')).to.deep.equal(state);
+    });
+
+    it('returns undefined for a key that was never stored', async () => {
+      expect(await database.getTaskState('AUTO-TAG-TEST', 'missing')).to.equal(undefined);
+    });
+
+    it('overwrites an existing value for the same task and key', async () => {
+      await database.setTaskState('AUTO-TAG-TEST', 'calibration', { run: 1 });
+      await database.setTaskState('AUTO-TAG-TEST', 'calibration', { run: 2 });
+      expect(await database.getTaskState('AUTO-TAG-TEST', 'calibration')).to.deep.equal({ run: 2 });
+    });
+
+    it('isolates the same key between task ids', async () => {
+      await database.setTaskState('AUTO-TAG-ONE', 'calibration', { task: 'one' });
+      await database.setTaskState('AUTO-TAG-TWO', 'calibration', { task: 'two' });
+      expect(await database.getTaskState('AUTO-TAG-ONE', 'calibration')).to.deep.equal({ task: 'one' });
+      expect(await database.getTaskState('AUTO-TAG-TWO', 'calibration')).to.deep.equal({ task: 'two' });
+    });
+
+    it('clears stored state in testCleanup', async () => {
+      await database.setTaskState('AUTO-TAG-TEST', 'calibration', { run: 3 });
+      await database.testCleanup();
+      expect(await database.getTaskState('AUTO-TAG-TEST', 'calibration')).to.equal(undefined);
+    });
+  });
+
   describe('Insights tokens', () => {
     it('registerMedia tolerates missing tags/actors', () => {
       const indexer = new SearchIndexer();

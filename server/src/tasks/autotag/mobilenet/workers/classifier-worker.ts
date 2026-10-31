@@ -3,9 +3,9 @@ import { parentPort } from 'worker_threads';
 
 import * as ort from 'onnxruntime-node';
 
-import { asError } from '../../../utils';
+import { asError } from '../../../../utils';
+import { preprocessImage, topLabels } from '../../preprocess';
 import { loadClasses, MAX_INSTANCES, type ModelDefinition } from '../models';
-import { preprocessImage, topLabels } from '../preprocess';
 import type {
   ClassifierWorkerError,
   ClassifierWorkerRequest,

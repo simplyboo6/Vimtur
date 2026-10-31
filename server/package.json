@@ -38,7 +38,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc -p . && ./create-schemas.sh && ./copy.sh",
-    "clean": "rm -rf dist/* *.tsbuildinfo ./.schema-build-info",
+    "clean": "rm -rf dist .schema-build-info",
     "lint": "eslint ./src",
     "fix": "eslint --fix ./src",
     "test": "TEST_MODE=1 mocha --recursive --timeout 30000 dist/test",

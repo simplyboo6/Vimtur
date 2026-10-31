@@ -1,8 +1,8 @@
 import type { TaskArgs } from '@vimtur/common';
 import { execute, ScalingConnectionPool } from 'proper-job';
 
-import { Transcoder } from '../../cache/transcoder';
-import type { Database, RouterTask, TaskRunnerCallback } from '../../types';
+import { Transcoder } from '../../../cache/transcoder';
+import type { Database, RouterTask, TaskRunnerCallback } from '../../../types';
 
 import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, MAX_INSTANCES, type ModelDefinition } from './models';
 import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';

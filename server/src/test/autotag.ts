@@ -7,8 +7,8 @@ import { expect } from 'chai';
 import { after, before, describe, it } from 'mocha';
 import Sharp from 'sharp';
 
-import type { ModelDefinition } from '../tasks/autotag/models';
-import { ensureModelDownloaded, loadClasses, modelPath } from '../tasks/autotag/models';
+import type { ModelDefinition } from '../tasks/autotag/mobilenet/models';
+import { ensureModelDownloaded, loadClasses, modelPath } from '../tasks/autotag/mobilenet/models';
 import { preprocessImage, topLabels } from '../tasks/autotag/preprocess';
 
 describe('Auto-Tag label bundle', () => {

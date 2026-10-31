@@ -88,6 +88,12 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
           CACHE_PATH: cachePath,
           SCHEMA_PATH: schemasPath,
           CONFIG_PATH: configPath,
+          // Enables server-side test seams when the model pack is not cached
+          // (the deterministic fake encoder for the SigLIP autotagging
+          // pipeline) without weakening these HTTP black-box tests: a seeded
+          // real pack still wins over TEST_MODE, so seeded runs use the real
+          // encoder.
+          TEST_MODE: '1',
         },
       });
       const spawned = child;

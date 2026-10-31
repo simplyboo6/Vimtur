@@ -7,6 +7,11 @@
 set -e
 cd "$(dirname "$0")/server"
 
+# Task loaders are discovered per moved directory, so a stale dist/ left over
+# from before a module move would double-register the same task ids. The schema
+# hash cache has to go with it or create-schemas.sh skips the now-missing schemas.
+rm -rf dist .schema-build-info
+
 echo "Building server..."
 yarn build
 

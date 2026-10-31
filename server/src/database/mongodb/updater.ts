@@ -149,5 +149,11 @@ export class Updater {
       const playlistsCollection = db.collection('playlists');
       await playlistsCollection.createIndex({ name: 1 }, { unique: true });
     }
+
+    if (!(await Updater.collectionExists(db, 'task_state'))) {
+      await db.createCollection('task_state');
+      const taskStateCollection = db.collection('task_state');
+      await taskStateCollection.createIndex({ taskId: 1, key: 1 }, { unique: true });
+    }
   }
 }

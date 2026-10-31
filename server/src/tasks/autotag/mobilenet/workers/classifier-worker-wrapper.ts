@@ -1,7 +1,7 @@
 import Path from 'path';
 import { SHARE_ENV, Worker } from 'worker_threads';
 
-import { asError } from '../../../utils';
+import { asError } from '../../../../utils';
 import type { ModelDefinition } from '../models';
 
 export interface ClassifierWorkerRequest {

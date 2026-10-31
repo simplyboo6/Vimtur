@@ -3,15 +3,21 @@ import { execute } from 'proper-job';
 import type SocketIO from 'socket.io';
 
 import Config from '../config';
+import { NotFound } from '../errors';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
-import { AUTO_TAG_MODELS } from '../tasks/autotag/models';
+import { AUTO_TAG_MODELS } from '../tasks/autotag/mobilenet/models';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
 
 // The task registered for the model registry's first (default) model, started
 // by AUTO-IMPORT. Derived here from the registry's own [0] so the default
 // cannot drift between the registry and this route.
+//
+// The zero-shot family (autotags.model = 'siglip2') is page-driven: an
+// uncalibrated install has no applicable thresholds, so routing auto-import
+// there fails fast and stops classification for everyone. Auto-import keeps
+// the classifier family until the Auto-Tagging page wiring lands.
 const DEFAULT_AUTO_TAG_TASK_ID = `AUTO-TAG-${AUTO_TAG_MODELS[0].id}`;
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
@@ -121,6 +127,17 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
   router.delete('/queue/:id', (req, res) => {
     taskManager.cancel(singleParam(req.params.id));
     res.sendStatus(204);
+  });
+
+  // Task definitions persist their own JSON-serialisable state between runs
+  // (e.g. calibration data). Unknown state is a 404 rather than an empty body
+  // so callers can distinguish "never stored" from a stored null.
+  router.get('/state/:taskId/:key', async (req, res) => {
+    const value = await db.getTaskState(singleParam(req.params.taskId), singleParam(req.params.key));
+    if (value === undefined) {
+      throw new NotFound('Task state not found');
+    }
+    res.status(200).json(value);
   });
 
   return router;
