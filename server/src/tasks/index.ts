@@ -31,7 +31,11 @@ function getTaskLoaders(dir: string): TaskLoader[] {
     .filter((loader) => loader !== undefined);
 }
 
-const taskLoaders = [...getTaskLoaders(__dirname), ...getTaskLoaders(`${__dirname}/autotag`)];
+// Task modules are loaded per directory; autotag groups its implementations by
+// model family, and a family's directory only exists once it is implemented.
+const TASK_DIRS = [__dirname, `${__dirname}/autotag`, `${__dirname}/autotag/mobilenet`, `${__dirname}/autotag/siglip`];
+
+const taskLoaders = TASK_DIRS.filter((dir) => FS.existsSync(dir)).flatMap((dir) => getTaskLoaders(dir));
 
 export function getTasks(database: Database): RouterTask[] {
   return (

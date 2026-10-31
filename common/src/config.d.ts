@@ -70,6 +70,71 @@ export namespace Configuration {
     autoClearCompletedTasks?: boolean;
   }
 
+  // Per-tag configuration for the zero-shot Auto-Tagging pipeline, edited from
+  // the Auto-Tagging page and persisted through the normal config overlay.
+  export interface AutoTagTag {
+    // Short text hints scored alongside the tag name itself (the bare tag and
+    // "a photo of {tag}" are always scored too). Replaced wholesale on save.
+    descriptions?: string[];
+    /**
+     * A user-typed score threshold (cosine similarity in [0, 1]) which is
+     * applied instead of any calibrated value. Explicit null clears an
+     * existing override through the overlay merge; absent means the tag has
+     * no override. Zero is a meaningful value, never a placeholder.
+     * @minimum 0
+     * @maximum 1
+     */
+    manualThreshold?: number | null;
+  }
+
+  // Page-level settings for the Auto-Tagging pipeline.
+  export interface AutoTags {
+    // Which model family the Auto-Tagging and Calibration tasks could run.
+    // Inert until the page wiring lands: nothing reads this value yet;
+    // AUTO-IMPORT keeps the classifier default (see server/src/routes/tasks.ts).
+    model: 'siglip2' | 'mobilenet';
+    /**
+     * Number of concurrent encoding workers.
+     * @minimum 1
+     * @maximum 8
+     */
+    workers: number;
+    /**
+     * Minimum calibration support (manually tagged examples) for a
+     * calibrated threshold to be applied automatically. Tags below the floor
+     * land in the Review (low support) state and are never auto-applied.
+     * @minimum 1
+     */
+    minSupport: number;
+    /**
+     * How many stills each calibration run samples.
+     * @minimum 1
+     */
+    calibrationSampleSize: number;
+    // Per-tag configuration keyed by tag name.
+    tags?: { [tag: string]: AutoTagTag };
+  }
+
+  // Overlay-shaped mirror of AutoTags with every field optional, so a client
+  // can write one settings field (e.g. only tags) without echoing the rest.
+  export interface PartialAutoTags {
+    model?: 'siglip2' | 'mobilenet';
+    /**
+     * @minimum 1
+     * @maximum 8
+     */
+    workers?: number;
+    /**
+     * @minimum 1
+     */
+    minSupport?: number;
+    /**
+     * @minimum 1
+     */
+    calibrationSampleSize?: number;
+    tags?: { [tag: string]: AutoTagTag };
+  }
+
   export interface Mongo {
     provider: 'mongodb';
     uri: string;
@@ -92,6 +157,9 @@ export namespace Configuration {
     // Enable auto-tagging of stills as part of import.
     // Note this uses the default image classification model (MobileNet V2).
     enableAutoTags: boolean;
+    // Auto-Tagging pipeline settings, for both the classifier and the
+    // zero-shot embedding tasks.
+    autotags?: AutoTags;
     user: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.
@@ -111,6 +179,7 @@ export namespace Configuration {
     libraryPath?: string; // Path to the source library.
     cachePath?: string; // Path to store thumbnails and cached media.
     transcoder?: PartialTranscoder;
+    autotags?: PartialAutoTags;
     user?: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.

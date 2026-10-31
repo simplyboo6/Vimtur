@@ -50,7 +50,7 @@ export class SqliteConnector extends Database {
   }): Promise<SqliteConnector> {
     const db = new SqliteController(filename);
     await db.exec('CREATE TABLE IF NOT EXISTS `migrations` (`id` TEXT NOT NULL PRIMARY KEY)');
-    for (const migrationFilename of ['001-initial.sql', '002-media-deleted-primary-key.sql']) {
+    for (const migrationFilename of ['001-initial.sql', '002-media-deleted-primary-key.sql', '003-task-state.sql']) {
       if (await db.get('SELECT * FROM `migrations` WHERE `id` = ?', [migrationFilename])) {
         continue;
       }
@@ -409,6 +409,26 @@ export class SqliteConnector extends Database {
     await this.db.run("INSERT OR REPLACE INTO `config` (`key`, `value`) VALUES('user', ?)", [JSON.stringify(config)]);
   }
 
+  // Task state
+  public async getTaskState(taskId: string, key: string): Promise<unknown> {
+    const row = await this.db.get<{ value: string }>(
+      'SELECT `value` FROM `task_state` WHERE `task_id` = ? AND `key` = ?',
+      [taskId, key],
+    );
+    if (!row) {
+      return undefined;
+    }
+    return JSON.parse(row.value) as unknown;
+  }
+
+  public async setTaskState(taskId: string, key: string, value: unknown): Promise<void> {
+    await this.db.run('INSERT OR REPLACE INTO `task_state` (`task_id`, `key`, `value`) VALUES (?, ?, ?)', [
+      taskId,
+      key,
+      JSON.stringify(value),
+    ]);
+  }
+
   // Utility
   public close(): Promise<void> {
     this.db.close();
@@ -425,7 +445,16 @@ export class SqliteConnector extends Database {
     if (!process.env.TEST_MODE) {
       throw new Error('testCleanup called outside of test mode');
     }
-    for (const table of ['playlists', 'media_fts', 'media', 'media_deleted', 'tags', 'actors', 'config']) {
+    for (const table of [
+      'playlists',
+      'media_fts',
+      'media',
+      'media_deleted',
+      'tags',
+      'actors',
+      'config',
+      'task_state',
+    ]) {
       await this.db.run(`DELETE FROM ${table}`);
     }
   }

@@ -71,6 +71,15 @@ export abstract class Database {
   public abstract getUserConfig(): Promise<Configuration.Partial>;
   public abstract saveUserConfig(config: Configuration.Partial): Promise<void>;
 
+  // Task state
+  /**
+   * Reads one JSON-serialised value a task persisted under its definition id,
+   * or undefined when no value was stored.
+   */
+  public abstract getTaskState(taskId: string, key: string): Promise<unknown>;
+  /** Persists a JSON-serialisable value under the task's definition id and key, replacing any previous value. */
+  public abstract setTaskState(taskId: string, key: string, value: unknown): Promise<void>;
+
   // Utility
   public abstract close(): Promise<void>;
   public abstract resetAutoTags(): Promise<void>;

@@ -1,6 +1,23 @@
 import Sharp from 'sharp';
 
-import type { Preprocessing } from './models';
+/**
+ * Describes how an image is prepared for a model. Every registry model uses
+ * the same shape of preprocessing, described generically so new models only
+ * need card values: resize so the shorter side is `resizeShorterSide` pixels
+ * preserving aspect ratio, centre-crop `cropSize` x `cropSize` pixels, then
+ * per channel normalise with `(pixel / 255 - mean[c]) / std[c]` and lay out
+ * as NCHW.
+ */
+export interface Preprocessing {
+  /** Length of the resized shorter side, in pixels, before the crop. */
+  resizeShorterSide: number;
+  /** Length of each side of the centre crop, in pixels. */
+  cropSize: number;
+  /** Mean per RGB channel, subtracted after scaling pixels to [0, 1]. */
+  mean: [number, number, number];
+  /** Standard deviation per RGB channel, divided by after scaling to [0, 1]. */
+  std: [number, number, number];
+}
 
 /**
  * Prepares an image for a model described by `preprocessing`: resize so the

@@ -155,6 +155,21 @@ export class MongoConnector extends Database {
     await meta.updateOne({ _id: 'userconfig' }, { $set: config }, { upsert: true });
   }
 
+  // Task state
+  public async getTaskState(taskId: string, key: string): Promise<unknown> {
+    const row = await this.db.collection<{ value: unknown }>('task_state').findOne({ taskId, key });
+    if (!row) {
+      return undefined;
+    }
+    return row.value;
+  }
+
+  public async setTaskState(taskId: string, key: string, value: unknown): Promise<void> {
+    await this.db
+      .collection('task_state')
+      .updateOne({ taskId, key }, { $set: { taskId, key, value } }, { upsert: true });
+  }
+
   public async getTags(): Promise<string[]> {
     const tags = this.db.collection<Tag>('tags');
     const rows = await tags.find({}).toArray();
@@ -726,6 +741,7 @@ export class MongoConnector extends Database {
     await this.db.collection('actors').deleteMany({});
     await this.db.collection('playlists').deleteMany({});
     await this.db.collection('config').deleteMany({});
+    await this.db.collection('task_state').deleteMany({});
   }
 
   public async subsetFields(constraints: SubsetConstraints, fields?: SubsetFields | 'all'): Promise<BaseMedia[]> {

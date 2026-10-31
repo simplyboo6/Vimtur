@@ -114,6 +114,16 @@ const DEFAULTS: Partial<Configuration.Main> = {
     showTaskNotifications: false,
     autoClearCompletedTasks: true,
   },
+  // Zero-shot Auto-Tagging pipeline defaults: sample size 500 (from the
+  // Auto-Tagging page mock) and a support floor of 8 manually tagged
+  // examples before a calibrated threshold applies.
+  autotags: {
+    model: 'siglip2',
+    workers: 5,
+    minSupport: 8,
+    calibrationSampleSize: 500,
+    tags: {},
+  },
 };
 
 class Config {
