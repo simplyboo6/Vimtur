@@ -17,13 +17,34 @@ import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
 import { SelectComponent } from '../select/select.component';
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { LoadingComponent } from '../loading/loading.component';
+import { AutotagConfigComponent } from '../autotag-config/autotag-config.component';
+import { Router, ActivatedRoute } from '@angular/router';
+import { NgbNav, NgbNavItem, NgbNavItemRole, NgbNavLink, NgbNavLinkBase, NgbNavContent, NgbNavOutlet, NgbNavChangeEvent } from '@ng-bootstrap/ng-bootstrap/nav';
+
+const CONFIG_TABS = ['general', 'auto-tagging'] as const;
+type ConfigTab = (typeof CONFIG_TABS)[number];
+const isConfigTab = (value: string | null): value is ConfigTab => CONFIG_TABS.includes(value as ConfigTab);
 
 @Component({
   selector: 'app-config',
   templateUrl: './config.component.html',
   styleUrls: ['./config.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [FormsModule, FaIconComponent, SelectComponent, SelectOptionComponent, LoadingComponent],
+  imports: [
+    FormsModule,
+    FaIconComponent,
+    SelectComponent,
+    SelectOptionComponent,
+    LoadingComponent,
+    AutotagConfigComponent,
+    NgbNav,
+    NgbNavItem,
+    NgbNavItemRole,
+    NgbNavLink,
+    NgbNavLinkBase,
+    NgbNavContent,
+    NgbNavOutlet,
+  ],
 })
 export class ConfigComponent implements OnInit, OnDestroy {
   public readonly faCircleXmark = faCircleXmark;
@@ -32,9 +53,12 @@ export class ConfigComponent implements OnInit, OnDestroy {
   private actorService: ActorService;
   private confirmationService: ConfirmationService;
   private alertService: AlertService;
+  private router: Router;
+  private route: ActivatedRoute;
 
   private subscriptions: Subscription[] = [];
 
+  public activeId: string | undefined = 'general';
   public tasksService: TasksService;
   public config?: Configuration.Main;
   public tags?: string[];
@@ -69,6 +93,8 @@ export class ConfigComponent implements OnInit, OnDestroy {
     actorService: ActorService,
     tasksService: TasksService,
     alertService: AlertService,
+    router: Router,
+    route: ActivatedRoute,
   ) {
     this.configService = configService;
     this.tagService = tagService;
@@ -76,9 +102,22 @@ export class ConfigComponent implements OnInit, OnDestroy {
     this.actorService = actorService;
     this.tasksService = tasksService;
     this.alertService = alertService;
+    this.router = router;
+    this.route = route;
   }
 
   public ngOnInit() {
+    this.subscriptions.push(
+      this.route.queryParamMap.subscribe(params => {
+        const tab = params.get('tab');
+        // Repair stale/invalid tab params and the explicit-default URL so /config has one canonical form.
+        if (tab !== null && (tab === 'general' || !isConfigTab(tab))) {
+          void this.router.navigate([], { queryParams: { tab: null }, replaceUrl: true });
+        }
+        this.activeId = isConfigTab(tab) && tab !== 'general' ? tab : 'general';
+      }),
+    );
+
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
@@ -128,6 +167,14 @@ export class ConfigComponent implements OnInit, OnDestroy {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+  }
+
+  public onTabChange(event: NgbNavChangeEvent) {
+    void this.router.navigate([], {
+      queryParams: { tab: event.nextId === 'general' ? null : event.nextId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   public formatQueueState(task: QueuedTask): string {

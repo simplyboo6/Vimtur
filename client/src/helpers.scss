@@ -18,8 +18,23 @@
   @include v(color-#{$name}, $val);
 }
 
+// Matches Bootstrap's sm grid boundary.
 @mixin small() {
   @media only screen and (max-width: 576px) {
+    @content;
+  }
+}
+
+// Below Bootstrap's md grid boundary (i.e. the range where `col-md-*` still stacks).
+@mixin medium() {
+  @media only screen and (max-width: 767px) {
+    @content;
+  }
+}
+
+// Matches Bootstrap's xl grid boundary.
+@mixin xlarge() {
+  @media only screen and (min-width: 1200px) {
     @content;
   }
 }

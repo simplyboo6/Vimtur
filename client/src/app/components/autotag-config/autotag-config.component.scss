@@ -1,0 +1,112 @@
+@use '../../../helpers' as *;
+@use '../../../styles/config-page' as *;
+
+:host {
+  display: block;
+}
+
+.autotag-table {
+  margin-top: 1rem;
+  // Fixed layout sizes columns from the table width as pure percentages, so everything scales down with the viewport.
+  table-layout: fixed;
+
+  th {
+    // Fixed layout gives columns a share of the table width, so long headers must wrap instead of overlapping the next column.
+    white-space: normal;
+  }
+}
+
+.autotag-table th:nth-child(1) {
+  width: 12%;
+}
+
+.autotag-table th:nth-child(2) {
+  width: 40%;
+}
+
+.autotag-table th:nth-child(3) {
+  width: 15%;
+}
+
+.autotag-table th:nth-child(4) {
+  width: 9.5%;
+}
+
+.autotag-table th:nth-child(5) {
+  width: 9.5%;
+}
+
+.autotag-table th:nth-child(6) {
+  width: 14%;
+}
+
+.autotag-table .badge {
+  // The Status column is narrow under fixed layout; wrapping keeps the badge inside its cell.
+  white-space: normal;
+}
+
+// Below 768px (Bootstrap's md grid boundary) the six fixed columns are too tight: headers wrap
+// mid-word and the Status badge needs ~10% of the row it doesn't get. Each row becomes a stacked
+// block with field labels taken from data-label, so the table never overflows on narrow screens.
+//
+// Known a11y trade-off: the stacked labels are ::before content — the interactive cells carry
+// aria-labels, but the read-only ones (Support/Quality/Status) would lose their field name on
+// engines that don't announce generated content.
+@include medium {
+  .autotag-table,
+  .autotag-table tbody,
+  .autotag-table tr,
+  .autotag-table td {
+    display: block;
+    width: 100%;
+  }
+
+  // The thead is dropped entirely; each cell states its own field name instead.
+  .autotag-table thead {
+    display: none;
+  }
+
+  .autotag-table tr {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .autotag-table td + td {
+    margin-top: 0.75rem;
+  }
+
+  .autotag-table td[data-label]::before {
+    content: attr(data-label) ':';
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  // Stacked cells are separated by margins, so paint the stripe on the row: six tinted
+  // cells with gaps between them read as six blocks, not one row.
+  .autotag-table td {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .autotag-table > tbody > tr {
+    background-color: var(--bs-table-bg);
+
+    &:nth-of-type(odd) {
+      background-color: var(--bs-table-striped-bg);
+    }
+  }
+}
+
+.desc-row .form-control {
+  // Flex children keep their intrinsic min-width unless cleared, so the input can't shrink around the remove icon without this.
+  min-width: 0;
+}
+
+.desc-remove {
+  color: var(--bs-secondary-color);
+  font-size: 0.9rem;
+}
+
+.add-desc {
+  font-size: 0.85rem;
+}

@@ -62,6 +62,7 @@
         <li class="nav-item" [class.active]="currentRoute === '/playlists'">
           <a class="nav-link" routerLink="/playlists" (click)="closeExpander()">Playlists</a>
         </li>
+        <!-- currentRoute is the bare pathname, so ?tab= sub-pages still match. -->
         <li class="nav-item" [class.active]="currentRoute === '/config'">
           <a class="nav-link" routerLink="/config" (click)="closeExpander()">Config</a>
         </li>
