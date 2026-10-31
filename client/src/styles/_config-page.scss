@@ -1,0 +1,30 @@
+@use '../helpers' as *;
+
+// Shared styles for the configuration pages (General tab and its sub-tabs): stacked Bootstrap cards
+// with consistently spaced, labelled form inputs. Component styles are scoped, so importing this
+// partial from a component compiles the rules only for that component — no global leak.
+
+// Light centred page wrapper shared by the configuration and Insights pages.
+@mixin page-wrapper {
+  @include xlarge {
+    max-width: 75%;
+  }
+  margin: 0.2rem auto 0;
+  padding: 1rem;
+  background-color: var(--bs-light);
+}
+
+.card {
+  margin: 0.2rem;
+  padding: 1rem;
+
+  @include small {
+    margin: 0.2rem 0;
+  }
+}
+
+// Semantic form-field hooks kept as class names so the wiring session can target/validate them; both are plain 1rem top margin.
+.input-component,
+.form-padded-input {
+  margin-top: 1rem;
+}

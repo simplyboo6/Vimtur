@@ -1,11 +1,8 @@
+@use '../../../styles/config-page' as *;
+
+// Same wrapper as the configuration page so both tabbed pages centre identically.
 .insights {
-  @media (min-width: 1200px) {
-    max-width: 75%;
-  }
-  margin: auto;
-  padding: 1rem;
-  margin-top: 0.2rem;
-  background-color: var(--bs-light);
+  @include page-wrapper;
 }
 
 .pad-top {

@@ -84,10 +84,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
       filter(event => event instanceof NavigationEnd),
       startWith(router),
       map(event => {
+        // Compare bare pathnames: URL comparisons in this component (active nav item, singular URLs) must not include query strings.
         if (event instanceof NavigationEnd) {
-          return event.urlAfterRedirects || event.url;
+          return (event.urlAfterRedirects || event.url).split('?')[0];
         }
-        return (event as Router).url;
+        return (event as Router).url.split('?')[0];
       }),
     );
 
