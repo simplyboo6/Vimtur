@@ -13,19 +13,35 @@ import { TagService } from 'services/tag.service';
 import { TasksService } from 'services/tasks.service';
 import { LoadingComponent } from '../loading/loading.component';
 
-// Model pack the SigLIP-2 calibration/auto-tag tasks score against. Only this
-// pack is exposed by the page, so it is fixed here; a calibration run recorded
-// against another pack is stale evidence and is ignored (see calibrationRun).
+// The page's zero-shot apply task. The server builds the id as
+// `AUTO-TAG-${AVES_SIGLIP2_B32.id}` (server/src/tasks/autotag/siglip/state.ts
+// exports it as AUTO_TAG_TASK_ID); it is fixed here because calibration and its
+// stored run are SigLIP-2-only features. The model selected on this page also
+// drives import-time auto-tagging (AUTO-IMPORT): with this task selected and no
+// tag holding an applicable threshold, the server skips tagging during import
+// and the import continues.
+const SIGLIP_APPLY_TASK_ID = 'AUTO-TAG-AVES-SIGLIP2-B32';
+
+// Roster label for SIGLIP_APPLY_TASK_ID only: the server task description
+// carries the full pack name for the roster select, while this page uses
+// shorter suggested-default wording (the "selective int8"/"256px" phrasing
+// comes from the pack's RELEASE name, not from AVES_SIGLIP2_B32.name). The id's
+// source of truth is AUTO_TAG_TASK_ID in
+// server/src/tasks/autotag/siglip/state.ts.
+const SIGLIP_APPLY_TASK_LABEL = 'SigLIP-2 (selective int8, 256px) — recommended';
+
+// Model pack the calibration run records. Thresholds from another pack's
+// embedding space are meaningless here, so a mismatched run is stale evidence
+// and is ignored (see calibrationRun).
 const AUTOTAG_MODEL_ID = 'AVES-SIGLIP2-B32';
 
 const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
 
-// AUTO-TAG task ids follow the server's `AUTO-TAG-${model id}` convention (see
-// server/src/tasks/autotag/siglip/tasks.ts and .../mobilenet/classify.ts).
-const APPLY_TASK_IDS: Record<'siglip2' | 'mobilenet', string> = {
-  siglip2: `AUTO-TAG-${AUTOTAG_MODEL_ID}`,
-  mobilenet: 'AUTO-TAG-MOBILE-NET-V2',
-};
+// Every listed task with this prefix is an apply model the roster offers, with
+// the task's description (the same string the General tab's task dropdown
+// shows) as its label. `autotags.model` stores the chosen task id, so the roster
+// is derived at render time instead of duplicated here.
+const APPLY_TASK_PREFIX = 'AUTO-TAG-';
 
 // 'skip-existing' is the server-side default; 'replace' carries a confirmation
 // message in its ListedTask argument definition (see config.component.ts's
@@ -35,6 +51,13 @@ const MODE_SKIP_EXISTING = 'skip-existing';
 // The attention sentence lists at most this many tags before collapsing the
 // rest into "and N more"; an untagged library can flag every tag at once.
 const ATTENTION_PREVIEW_LIMIT = 5;
+
+// A not-calibrated row's threshold field shows this as a placeholder: a suggested
+// starting point for SigLIP-2 cosine cuts (real-encoder verification observed best-F1
+// cuts around 0.08–0.09, so this errs just above the natural cut toward precision).
+// It is a hint only: nothing is stored or auto-applied until the user types a value
+// and blurs, at which point the row reads "Manually overridden".
+const SUGGESTED_THRESHOLD_PLACEHOLDER = '0.1';
 
 // Status vocabulary in one place: the table badges AND the legend read from here, so a new status or rename updates everywhere and heads off silent drift.
 const STATUS_BADGE_CLASSES: Record<Autotag.TagStatus, string> = {
@@ -48,7 +71,7 @@ const STATUS_BADGE_CLASSES: Record<Autotag.TagStatus, string> = {
 const STATUS_LEGEND: Record<Autotag.TagStatus, string> = {
   'Calibrated': 'meets the support floor and applies automatically.',
   'Review (low support)': 'below the support floor: tag more media or improve the description and re-run calibration — or override the threshold manually.',
-  'Not calibrated': 'missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is.',
+  'Not calibrated': `missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is. The ${SUGGESTED_THRESHOLD_PLACEHOLDER} placeholder is only a suggested starting point and is never applied on its own.`,
   'Manually overridden':
     'typed in by you and applied as-is — an explicit override of the calibration floor; expect notably worse precision until it is calibrated.',
 };
@@ -69,6 +92,21 @@ interface AutotagRow {
   quality?: number;
 }
 
+// Failure lifecycle state for one task type (a queue entry's `type`). One track
+// per kind the page shows a status for: the calibration task and whichever
+// apply task is selected.
+interface FailureTrack {
+  // Error of the latest failed run, raised and cleared by syncFailure;
+  // undefined when no failure is the current outcome.
+  failure?: string;
+  // Per-entry `complete:running:aborted:error` seen in the previous queue
+  // snapshot, keyed by queue id (see syncFailure).
+  entryStates: Map<string, string>;
+  // False until the first snapshot seeds the track, so a run that failed before
+  // the page loaded still reads as Failed.
+  snapshotSeen: boolean;
+}
+
 @Component({
   selector: 'app-autotag-config',
   templateUrl: './autotag-config.component.html',
@@ -78,6 +116,7 @@ interface AutotagRow {
 })
 export class AutotagConfigComponent implements OnInit, OnDestroy {
   public readonly faCircleXmark = faCircleXmark;
+  public readonly suggestedThresholdPlaceholder = SUGGESTED_THRESHOLD_PLACEHOLDER;
   public readonly statusBadgeClasses = STATUS_BADGE_CLASSES;
   public readonly statusLegend: ReadonlyArray<{ status: Autotag.TagStatus; description: string }> = (
     Object.entries(STATUS_LEGEND) as [Autotag.TagStatus, string][]
@@ -103,20 +142,19 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   // queued, starting or finishing (any per-entry state change since the last
   // snapshot).
   private calibrationQueueSignature?: string;
-  // Latest calibration failure, held explicitly instead of read off the queue
-  // tail: the server splices a successful entry out of the queue (task-manager.ts
-  // auto-clears a completed run via cancel → splice) while a failed entry stays
-  // behind with complete: true and its error. After a failure followed by a
-  // success the tail is the OLD failed entry again, so a tail lookup reported
-  // "Failed" while Last Run said Complete.
-  private calibrationFailure?: string;
-  // Per-entry state (`complete:running:aborted:error`) seen in the previous
-  // queue snapshot, keyed by queue id, used to detect the transition that raises
-  // or clears calibrationFailure. Queue ids reuse freed slots (task-manager.ts
-  // allocates the lowest free suffix), so only an entry's own state is compared,
-  // never its position.
-  private calibrationEntryStates = new Map<string, string>();
-  private calibrationSnapshotSeen = false;
+  // Failure lifecycle state per task type; see syncFailure. One track is kept
+  // for the calibration task and one for the selected apply task. A failure is
+  // held explicitly instead of read off the queue tail: the server splices a
+  // successful entry out of the queue (task-manager.ts auto-clears a completed
+  // run via cancel → splice) while a failed entry stays behind with
+  // complete: true and its error. After a failure followed by a success the
+  // tail is the OLD failed entry again, so a tail lookup reported "Failed"
+  // while Last Run said Complete.
+  private readonly failureTracks = new Map<string, FailureTrack>();
+  // Apply task id whose failure track is live. The id changes with the model
+  // selection, so a stale track is dropped on the change rather than left to
+  // colour the new selection's status (see clearPreviousApplyFailure).
+  private applyFailureTaskId?: string;
   // Set on the Calibrate click and cleared by the next queue emission: it covers
   // the gap between the POST being accepted and the server broadcasting the new
   // entry, so a rapid double-click cannot queue the task twice. Clearing on the
@@ -151,6 +189,18 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.configService.getConfiguration().subscribe(config => {
         this.config = config;
+        // The apply status is keyed by the selected task id: drop the previous
+        // selection's failure as soon as the id changes, so it can never show
+        // under the new selection between the write and the next queue
+        // emission (see clearPreviousApplyFailure).
+        this.clearPreviousApplyFailure();
+        // Re-seed from the current queue: a config write emits no queue
+        // snapshot, and the first snapshot may have seeded a track under a
+        // different id (a fallback, or the old selection) before the config
+        // landed, so an already-errored run of the newly selected task would
+        // otherwise read as Idle. syncFailure skips unchanged entries, so this
+        // is idempotent for a track already in step.
+        this.syncFailure(this.applyTaskId(), this.applyEntries());
       }),
     );
 
@@ -183,7 +233,10 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
           this.loadLastRun();
         }
         this.calibrationQueueSignature = signature;
-        this.syncCalibrationFailure(entries);
+        this.syncFailure(CALIBRATION_TASK_ID, entries);
+        // Apply runs share the lifecycle but track the selected task id only.
+        this.clearPreviousApplyFailure();
+        this.syncFailure(this.applyTaskId(), this.applyEntries());
       }),
     );
 
@@ -197,16 +250,38 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     this.subscriptions = [];
   }
 
-  public get selectedModel(): 'siglip2' | 'mobilenet' {
-    return this.config?.autotags?.model ?? 'siglip2';
+  public get selectedModel(): string {
+    return this.config?.autotags?.model ?? SIGLIP_APPLY_TASK_ID;
   }
 
-  // The model field only gates which task Apply runs; auto-import always uses the
-  // classifier family. Everything else on this page (tag table, statuses,
-  // calibration) is SigLIP-2-only, so the template disables those controls
-  // rather than hiding the state they describe.
+  // The model select's roster: every apply task the server lists, labelled by
+  // its own description (the classifier descriptions already carry the model
+  // name; SigLIP-2 gets the page's suggested-default label). The stored id is
+  // appended when the server does not list it, so a config write cannot
+  // silently snap the user onto a different model — the apply-unavailable
+  // alert explains it instead.
+  public modelOptions(): Array<{ id: string; label: string }> {
+    const options = (this.tasks ?? [])
+      .filter(task => task.id.startsWith(APPLY_TASK_PREFIX))
+      .map(task => ({ id: task.id, label: task.id === SIGLIP_APPLY_TASK_ID ? SIGLIP_APPLY_TASK_LABEL : task.description }));
+    const selected = this.selectedModel;
+    if (!options.some(option => option.id === selected)) {
+      options.unshift({ id: selected, label: `${selected} (not listed by this server)` });
+    }
+    return options;
+  }
+
+  public selectedModelLabel(): string {
+    return this.modelOptions().find(option => option.id === this.selectedModel)?.label ?? this.selectedModel;
+  }
+
+  // The model field stores the id of the apply task Apply runs and, on the
+  // server, of the auto-tag task AUTO-IMPORT uses. Everything else on this page
+  // (tag table, statuses, calibration) is SigLIP-2-only, so the template
+  // disables those controls rather than hiding the state they describe. An id
+  // the server does not list is treated as non-siglip (fail closed).
   public get isSiglipSelected(): boolean {
-    return this.selectedModel === 'siglip2';
+    return this.selectedModel === SIGLIP_APPLY_TASK_ID;
   }
 
   public get workerCount(): number {
@@ -299,9 +374,20 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     this.saveTagConfig(tag, { manualThreshold: value });
   }
 
+  // Encoded because a tag can contain spaces or quotes, which would break the
+  // attribute selector used to find the input again after adding a row.
+  public descriptionInputDataId(tag: string, index: number): string {
+    return `autotag-desc-${encodeURIComponent(tag)}-${index}`;
+  }
+
   public addDescription(tag: string): void {
-    this.descriptionsFor(tag).push('');
+    const descriptions = this.descriptionsFor(tag);
+    descriptions.push('');
     this.persistDescriptions(tag);
+    // The new row only exists after the change-detection pass that follows this
+    // click, so the focus has to wait for the render.
+    const dataId = this.descriptionInputDataId(tag, descriptions.length - 1);
+    setTimeout(() => document.querySelector<HTMLInputElement>(`[data-id="${dataId}"]`)?.focus(), 0);
   }
 
   // Removing every row is allowed: the server always scores the bare tag and
@@ -320,7 +406,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     });
   }
 
-  public saveModel(model: 'siglip2' | 'mobilenet'): void {
+  public saveModel(model: string): void {
     this.configService.updateConfiguration({ autotags: { model } });
   }
 
@@ -358,13 +444,16 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     }
     this.tagService.addTag(tag).subscribe({
       next: () => {
-        // Seed an empty description buffer only for a genuinely new tag: an
-        // already-configured entry keeps its stored descriptions, which the next
-        // replay would otherwise have replaced with []. An absent config entry
-        // already means "no descriptions" server-side (the bare tag and
-        // "a photo of {tag}" are always scored), so no write is needed here.
+        // A genuinely new tag starts with the default description row seeded and
+        // persisted immediately, so the entry exists and the row opens with an
+        // editable default. An already-configured entry keeps its stored
+        // descriptions, which the next replay would otherwise have replaced.
+        // The wording ("a photo showing", not the server's implicit
+        // "a photo of") is a deliberate user-requested default, so the row is
+        // an additional scored prompt next to the two implicit ones.
         if (this.config?.autotags?.tags?.[tag] === undefined) {
-          this.descriptions[tag] = [];
+          this.descriptions[tag] = [`a photo showing ${tag}`];
+          this.persistDescriptions(tag);
         }
         this.addTagModel = undefined;
       },
@@ -395,19 +484,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
 
   public calibrationStatus(): string {
     const entries = (this.queue ?? []).filter(task => task.type === CALIBRATION_TASK_ID);
-    const running = entries.find(task => task.running);
-    if (running) {
-      return `Running — ${running.current}/${running.max} …`;
-    }
-    if (entries.some(task => !task.complete)) {
-      return 'Queued — waiting for a worker slot.';
-    }
-    // Failures are tracked explicitly (syncCalibrationFailure) rather than read
-    // from the newest queue entry; see the calibrationFailure field comment.
-    if (this.calibrationFailure !== undefined) {
-      return `Failed — ${this.calibrationFailure}`;
-    }
-    return 'Idle — not currently running.';
+    return this.taskStatus(entries, this.failureFor(CALIBRATION_TASK_ID));
+  }
+
+  // Same precedence for the apply task the selected model runs: running beats
+  // queued beats a recorded failure, and Idle is the no-run state.
+  public applyStatus(): string {
+    return this.taskStatus(this.applyEntries(), this.failureFor(this.applyTaskId()));
   }
 
   // A calibration run that is queued or running (or just requested) disables the
@@ -472,7 +555,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   }
 
   public applyTaskId(): string {
-    return APPLY_TASK_IDS[this.selectedModel];
+    return this.selectedModel;
   }
 
   public onApplyModeChange(value: string): void {
@@ -483,8 +566,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   // is still queued or running disables the Apply button, so a double click
   // cannot queue the same job twice.
   public applyInFlight(): boolean {
-    const taskId = APPLY_TASK_IDS[this.selectedModel];
-    return (this.queue ?? []).some(task => task.type === taskId && !task.complete);
+    return (this.queue ?? []).some(task => task.type === this.applyTaskId() && !task.complete);
   }
 
   public async applyTags(): Promise<void> {
@@ -524,48 +606,105 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Derives calibrationFailure from the changes in a queue snapshot: a new
+  // Derives a task type's failure from the changes in a queue snapshot: a new
   // queued/running attempt clears an older failure, a run completing with an
   // error raises it, and an entry leaving the queue (a successful run is spliced
   // by task-manager.ts, as is a cancelled queued entry) clears it. Unchanged
   // entries are skipped, so an older failed entry still sitting in the queue
-  // never re-raises its error after a newer run succeeded.
-  private syncCalibrationFailure(entries: QueuedTask[]): void {
+  // never re-raises its error after a newer run succeeded. Queue ids reuse freed
+  // slots (task-manager.ts allocates the lowest free suffix), so only an entry's
+  // own state is compared, never its position.
+  private syncFailure(taskId: string, entries: QueuedTask[]): void {
+    const track = this.failureTrack(taskId);
     const states = new Map<string, string>();
     for (const entry of entries) {
       const state = `${entry.complete}:${entry.running}:${entry.aborted}:${entry.error ?? ''}`;
       states.set(entry.id, state);
-      if (this.calibrationSnapshotSeen && this.calibrationEntryStates.get(entry.id) === state) {
+      if (track.snapshotSeen && track.entryStates.get(entry.id) === state) {
         continue;
       }
       if (!entry.complete) {
-        this.calibrationFailure = undefined;
+        track.failure = undefined;
       } else if (entry.aborted) {
         // An abort is a user action, not a failed run; the failure it replaced
         // was already cleared when the run was queued.
         continue;
       } else if (entry.error !== undefined) {
-        this.calibrationFailure = entry.error;
+        track.failure = entry.error;
       } else {
         // A completed run without an error supersedes an earlier failure; with
         // auto-clear off the successful entry stays in the queue, so it is
         // still the outcome to show.
-        this.calibrationFailure = undefined;
+        track.failure = undefined;
       }
     }
-    for (const id of this.calibrationEntryStates.keys()) {
+    for (const id of track.entryStates.keys()) {
       if (!states.has(id)) {
-        this.calibrationFailure = undefined;
+        track.failure = undefined;
       }
     }
-    this.calibrationEntryStates = states;
+    track.entryStates = states;
     // The first snapshot seeds the failure state, so a run that already failed
     // before the page loaded still reads as Failed.
-    this.calibrationSnapshotSeen = true;
+    track.snapshotSeen = true;
+  }
+
+  private failureTrack(taskId: string): FailureTrack {
+    let track = this.failureTracks.get(taskId);
+    if (track === undefined) {
+      track = { entryStates: new Map<string, string>(), snapshotSeen: false };
+      this.failureTracks.set(taskId, track);
+    }
+    return track;
+  }
+
+  private failureFor(taskId: string): string | undefined {
+    return this.failureTracks.get(taskId)?.failure;
+  }
+
+  // The apply status is keyed by the selected task id. When the selection
+  // changes, the previous id's track is dropped: that failure belongs to a task
+  // the page no longer shows, and the new id starts unseeded, so the next queue
+  // snapshot re-seeds it (an already-failed run of the newly selected task then
+  // still reads as Failed). Calibration keeps its own track untouched.
+  private clearPreviousApplyFailure(): void {
+    const taskId = this.applyTaskId();
+    if (
+      this.applyFailureTaskId !== undefined &&
+      this.applyFailureTaskId !== taskId &&
+      // Calibration owns its own track; never let a hand-edited
+      // autotags.model equal to the calibration id drop it.
+      this.applyFailureTaskId !== CALIBRATION_TASK_ID
+    ) {
+      this.failureTracks.delete(this.applyFailureTaskId);
+    }
+    this.applyFailureTaskId = taskId;
+  }
+
+  // The selected apply task's queue entries, the snapshot every apply-status
+  // read and re-seed derives from.
+  private applyEntries(): QueuedTask[] {
+    return (this.queue ?? []).filter(task => task.type === this.applyTaskId());
+  }
+
+  private taskStatus(entries: QueuedTask[], failure: string | undefined): string {
+    const running = entries.find(task => task.running);
+    if (running) {
+      return `Running — ${running.current}/${running.max} …`;
+    }
+    if (entries.some(task => !task.complete)) {
+      return 'Queued — waiting for a worker slot.';
+    }
+    // Failures come from the synced track rather than a queue tail lookup; see
+    // the failureTracks field comment.
+    if (failure !== undefined) {
+      return `Failed — ${failure}`;
+    }
+    return 'Idle — not currently running.';
   }
 
   private applyTask(): ListedTask | undefined {
-    const taskId = APPLY_TASK_IDS[this.selectedModel];
+    const taskId = this.applyTaskId();
     return this.tasks?.find(task => task.id === taskId);
   }
 

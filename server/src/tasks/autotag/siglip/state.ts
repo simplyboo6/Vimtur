@@ -3,6 +3,8 @@ import type { Autotag, Configuration } from '@vimtur/common';
 import Config from '../../../config';
 import type { Database } from '../../../types';
 
+import { AVES_SIGLIP2_B32 } from './pack';
+
 /**
  * Calibrated-run state lives ONLY in the generic task-state store (key
  * `last-run` under the calibration task's definition id); the config
@@ -56,27 +58,29 @@ export function deriveTagState(
 
 /** Page settings with the config overlay's own defaults guaranteed. */
 export interface AutotagSettings {
-  model: 'siglip2' | 'mobilenet';
+  /** An AUTO-TAG task id; see Configuration.AutoTags.model. */
+  model: string;
   workers: number;
   minSupport: number;
   calibrationSampleSize: number;
   tags: Record<string, Configuration.AutoTagTag>;
 }
 
+const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
+const AUTO_TAG_TASK_ID = `AUTO-TAG-${AVES_SIGLIP2_B32.id}`;
+
 export function autotagSettings(): AutotagSettings {
   const section = Config.get().autotags;
   // DEFAULTS guarantee every field; the optional type exists because stored
   // overlays from older installs do not carry the section.
   return {
-    model: section?.model ?? 'siglip2',
+    model: section?.model ?? AUTO_TAG_TASK_ID,
     workers: section?.workers ?? 5,
     minSupport: section?.minSupport ?? 8,
     calibrationSampleSize: section?.calibrationSampleSize ?? 500,
     tags: section?.tags ?? {},
   };
 }
-
-const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
 
 /** Read helper for the calibration task's persisted last run. */
 export async function loadCalibrationRun(database: Database): Promise<Autotag.CalibrationRun | undefined> {
@@ -88,4 +92,26 @@ export async function saveCalibrationRun(database: Database, run: Autotag.Calibr
   await database.setTaskState(CALIBRATION_TASK_ID, 'last-run', run);
 }
 
-export { CALIBRATION_TASK_ID };
+/**
+ * How many stored tags AUTO-TAG would really score right now. AUTO-IMPORT uses
+ * this to skip a zero-shot run that its own fail-fast would turn into an
+ * errored task: the dead-tag rule scores stored tags only (config-only entries
+ * are ignored) and deriveTagState remains the single precedence rule, so this
+ * count cannot drift from the task's own decision.
+ */
+export async function countApplicableTags(database: Database, settings: AutotagSettings): Promise<number> {
+  const dbTags = await database.getTags();
+  const storedRun = await loadCalibrationRun(database);
+  // Thresholds computed in another pack's embedding space are meaningless, so
+  // a mismatched run is ignored exactly as the AUTO-TAG task ignores it.
+  const run = storedRun && storedRun.modelId === AVES_SIGLIP2_B32.id ? storedRun : undefined;
+  let count = 0;
+  for (const tag of dbTags) {
+    if (deriveTagState(tag, settings.tags[tag], run, settings.minSupport).threshold !== undefined) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export { AUTO_TAG_TASK_ID, CALIBRATION_TASK_ID };

@@ -573,7 +573,6 @@
                 </span>
               </div>
             </div>
-            <!-- Mock: wording will reflect the model selected on the Auto-Tagging tab once wired. -->
             <!-- enableAutoTags -->
             <div class="form-check">
               <input
@@ -586,8 +585,9 @@
               <label class="form-check-label" for="config-enable-autotags">Enable auto-tagging of images during import?</label>
               <div>
                 <span class="text-muted">
-                  Enabling this setting will auto-generate tags for all images during the import process using the image classification model — the Auto-Tagging
-                  page's zero-shot pipeline stays user-driven from its own tab. These tags can be seen and used during a keyword search with a low weighting.
+                  Enabling this setting will auto-generate tags for all images during the import process using the model selected on the Auto-Tagging page. With
+                  the zero-shot (SigLIP-2) model selected, tagging is skipped during import until a tag has an applicable threshold (from a calibration run or a
+                  manual threshold); importing itself is unaffected either way. These tags can be seen and used during a keyword search with a low weighting.
                   Even if it is disabled here it can still be triggered manually from the tasks dropdown.
                 </span>
               </div>

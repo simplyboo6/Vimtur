@@ -10,16 +10,27 @@
         name="autotag-model-select"
         class="form-select d-block w-100"
       >
-        <option value="siglip2">SigLIP-2 (selective int8, 256px) — recommended</option>
-        <option value="mobilenet">MobileNet V2 (ImageNet-1k categories)</option>
+        @for (option of modelOptions(); track option.id) {
+          <option [ngValue]="option.id">{{ option.label }}</option>
+        }
       </select>
       <div>
         <span class="text-muted"
-          >Aves SigLIP-2 is the recommended default using zero-shot scoring against the descriptions below. MobileNet V2 tags images with its own ImageNet-1k
-          categories and needs no user-defined tags.</span
+          >Aves SigLIP-2 is the suggested default, scoring images zero-shot against the descriptions below. Classifier models tag images with their own
+          ImageNet-1k categories and need no user-defined tags.</span
         >
       </div>
     </div>
+    <!-- SigLIP-2-only settings sit below the selection: the warning must come before the first control it disables. -->
+    @if (!isSiglipSelected) {
+      <div class="alert alert-warning mb-3">
+        <span
+          >These settings do not apply to the selected model. With {{ selectedModelLabel() }} selected, the worker count, tag table, statuses and calibration
+          are SigLIP-2 features and stay inert; Apply Tags runs that model's task instead, or is unavailable when this server does not list it. Switch back to
+          SigLIP-2 to edit tags and calibrate thresholds.</span
+        >
+      </div>
+    }
     <div class="row">
       <div class="col-md-4 input-component">
         <label for="autotag-worker-count">Worker count</label>
@@ -40,7 +51,7 @@
           @if (isSiglipSelected) {
             <span class="text-muted">Number of parallel single-threaded encoder workers. Each uses roughly 0.4–1GB of RAM.</span>
           } @else {
-            <span class="text-muted">Workers apply to the SigLIP-2 encoder pool only; the MobileNet classifier ignores this setting.</span>
+            <span class="text-muted">Workers apply to the SigLIP-2 encoder pool only; the selected classifier ignores this setting.</span>
           }
         </div>
       </div>
@@ -84,15 +95,6 @@
         <button class="btn btn-primary col-12" type="button" [disabled]="!addTagModel || !isSiglipSelected" (click)="addTag()">Add</button>
       </div>
     </div>
-    @if (!isSiglipSelected) {
-      <div class="alert alert-warning">
-        <span
-          >These settings do not apply to the selected model. With MobileNet V2 selected, the worker count, tag table, statuses and calibration are SigLIP-2
-          features and stay inert; the Apply Tags button runs the ImageNet classifier instead. Switch back to SigLIP-2 to edit tags and calibrate
-          thresholds.</span
-        >
-      </div>
-    }
     <p class="text-muted mb-0">As elsewhere in the configuration, changes on this page save automatically.</p>
     <div class="row">
       <div class="col-md-12 form-padded-input">
@@ -138,6 +140,7 @@
                           class="form-control"
                           placeholder="Describe the visible anchor..."
                           [attr.name]="'desc-' + row.tag + '-' + descIndex"
+                          [attr.data-id]="descriptionInputDataId(row.tag, descIndex)"
                           maxlength="60"
                           [attr.aria-label]="'Description ' + (descIndex + 1) + ' for ' + row.tag"
                           [(ngModel)]="row.descriptions[descIndex]"
@@ -174,7 +177,7 @@
                     <input
                       type="number"
                       class="form-control"
-                      placeholder="Not set"
+                      [attr.placeholder]="row.status === 'Not calibrated' ? suggestedThresholdPlaceholder : 'Not set'"
                       [attr.aria-label]="'Threshold for ' + row.tag"
                       [attr.name]="'threshold-' + row.tag + '-' + rowIndex"
                       min="0"
@@ -185,8 +188,18 @@
                       (blur)="onThresholdBlur(row.tag)"
                       [disabled]="!isSiglipSelected"
                     />
+                    <!-- Informational only: this line reports the calibration outcome, while the input above edits the manual
+                         override (an empty field clears it, and the placeholder is never applied on its own). The three states
+                         come straight from the run record: a fitted cut; a sampled positive with no sampled negative (AUROC
+                         cannot fit, so the run records threshold null AND quality null); or no sampled positive at all
+                         (support 0). The run record's support/quality alone cannot say which without the run context the
+                         row already carries. -->
                     @if (row.calibratedThreshold !== undefined) {
                       <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }}</div>
+                    } @else if (row.support !== undefined && row.support > 0 && row.quality === undefined) {
+                      <div class="text-muted small">Every sampled still carries this tag — there is nothing negative to rank against yet</div>
+                    } @else {
+                      <div class="text-muted small">No calibrated cut — see support and quality</div>
                     }
                   </td>
                   <td class="align-middle" data-label="Support">
@@ -266,9 +279,12 @@
         </div>
       </div>
       <div class="col-md-4 form-padded-input">
-        <span class="text-muted"
-          >Status: <strong>{{ calibrationStatus() }}</strong></span
-        >
+        <label>Status</label>
+        <div>
+          <span class="text-muted"
+            ><strong>{{ calibrationStatus() }}</strong></span
+          >
+        </div>
       </div>
       <div class="col-md-4 form-padded-input">
         <button
@@ -282,18 +298,36 @@
         </button>
       </div>
     </div>
-    <h5>Apply Tags</h5>
-    <p class="text-muted">Scores every still against the calibrated thresholds and writes the matching auto-tags.</p>
+    <h5>Last Run</h5>
+    @if (calibrationRun(); as run) {
+      <p class="text-muted mb-3">
+        <strong>{{ run.date | date: 'medium' }}</strong> — Complete. Random sample of {{ run.sampleSize }} tagged stills; {{ thresholdsUpdated() }} thresholds
+        updated; {{ attentionRows().length }} tags need attention
+        @if (attentionRows().length > 0) {
+          ({{ attentionSummary() }})
+        }
+        .
+      </p>
+    } @else {
+      <p class="text-muted mb-3">No SigLIP-2 calibration run yet — run the calibration task to fit thresholds against your tagged media.</p>
+    }
+  </div>
+  <div class="card">
+    <h4>Apply Tags</h4>
+    <p class="text-muted">Runs the selected model's auto-tag task across every still and writes the matching auto-tags.</p>
     @if (!applyTaskAvailable()) {
       <div class="alert alert-warning">
         <span
-          >The server does not list the <strong>{{ applyTaskId() }}</strong> task, so Apply Tags is unavailable — this build (or this server) does not include
-          the selected model's auto-tag task.</span
+          >The server does not list the <strong>{{ applyTaskId() }}</strong> task, so Apply Tags is unavailable — {{ applyTaskId() }} is not listed by this
+          server. It is missing from this build (or this server) entirely; pick another model in the Encoder Configuration card above.</span
         >
       </div>
     }
+    <!-- The mode select is enabled whenever the listed apply task declares select
+         arguments: the classifier tasks carry the same skip-existing/replace
+         choices as the SigLIP-2 task, so it is not a SigLIP-2-only control. -->
     <div class="row">
-      <div class="col-md-8 form-padded-input">
+      <div class="col-md-4 form-padded-input">
         <label for="autotag-apply-mode">Existing tags</label>
         <select
           id="autotag-apply-mode"
@@ -301,12 +335,20 @@
           class="form-select d-block w-100"
           [ngModel]="applyMode"
           (ngModelChange)="onApplyModeChange($event)"
-          [disabled]="!isSiglipSelected"
+          [disabled]="applyModes().length === 0"
         >
           @for (value of applyModes(); track value.id) {
             <option [ngValue]="value.id">{{ value.name }}</option>
           }
         </select>
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <label>Status</label>
+        <div>
+          <span class="text-muted"
+            ><strong>{{ applyStatus() }}</strong></span
+          >
+        </div>
       </div>
       <div class="col-md-4 form-padded-input">
         <button
@@ -320,19 +362,6 @@
         </button>
       </div>
     </div>
-    <h5>Last Run</h5>
-    @if (calibrationRun(); as run) {
-      <p class="text-muted">
-        <strong>{{ run.date | date: 'medium' }}</strong> — Complete. Random sample of {{ run.sampleSize }} tagged stills; {{ thresholdsUpdated() }} thresholds
-        updated; {{ attentionRows().length }} tags need attention
-        @if (attentionRows().length > 0) {
-          ({{ attentionSummary() }})
-        }
-        .
-      </p>
-    } @else {
-      <p class="text-muted">No SigLIP-2 calibration run yet — run the calibration task to fit thresholds against your tagged media.</p>
-    }
   </div>
 } @else {
   <app-loading></app-loading>

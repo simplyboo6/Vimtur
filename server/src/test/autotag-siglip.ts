@@ -18,6 +18,7 @@ import { FakeEncoderPool } from '../tasks/autotag/siglip/encoder-fake';
 import { auroc, bestF1Threshold } from '../tasks/autotag/siglip/metrics';
 import { packDir } from '../tasks/autotag/siglip/pack';
 import type { EmbeddingPackDefinition } from '../tasks/autotag/siglip/pack';
+import { pickImportTask } from '../tasks/autotag/siglip/pick-import-task';
 import { buildPromptTable } from '../tasks/autotag/siglip/prompts';
 import { makeTagScorer } from '../tasks/autotag/siglip/scoring';
 import { deriveTagState } from '../tasks/autotag/siglip/state';
@@ -580,5 +581,45 @@ describe('tag state derivation', () => {
 
   it('Uses the caller-supplied support floor', () => {
     expect(deriveTagState('beta', undefined, RUN, 2)).to.deep.equal({ status: 'Calibrated', threshold: 0.3 });
+  });
+});
+
+describe('import task selection', () => {
+  const SIGLIP_TASK_ID = 'AUTO-TAG-AVES-SIGLIP2-B32';
+
+  it('Starts the zero-shot task when a tag is applicable', () => {
+    expect(pickImportTask(SIGLIP_TASK_ID, true)).to.deep.equal({ action: 'start', taskId: SIGLIP_TASK_ID });
+  });
+
+  it('Skips the zero-shot task when no tag is applicable rather than failing the import', () => {
+    // The zero-shot task fail-fasts without an applicable threshold, which
+    // would make an uncalibrated server error on every import.
+    expect(pickImportTask(SIGLIP_TASK_ID, false)).to.deep.equal({ action: 'skip-siglip' });
+  });
+
+  it('Starts a known classifier task regardless of threshold applicability', () => {
+    // The classifier registry in ../tasks/autotag/mobilenet/models.ts owns the
+    // AUTO-TAG-<registry id> task ids, so a listed id starts as itself.
+    expect(pickImportTask('AUTO-TAG-MOBILE-NET-V2', true)).to.deep.equal({
+      action: 'start',
+      taskId: 'AUTO-TAG-MOBILE-NET-V2',
+    });
+    expect(pickImportTask('AUTO-TAG-MOBILE-NET-V2', false)).to.deep.equal({
+      action: 'start',
+      taskId: 'AUTO-TAG-MOBILE-NET-V2',
+    });
+  });
+
+  it('Reports an unknown model instead of starting a task', () => {
+    // The config schema only enforces that the value is a string, so stale or
+    // hand-edited values reach this decision and must fail closed.
+    expect(pickImportTask('not-a-task', true)).to.deep.equal({ action: 'unknown-model' });
+  });
+
+  it('Treats a hyphenated but unregistered id as unknown rather than by its prefix', () => {
+    // Registry ids are hyphenated (MOBILE-NET-V2), so a prefix strip alone
+    // would accept any AUTO-TAG-<anything>; this pins the AUTO_TAG_MODELS
+    // membership check.
+    expect(pickImportTask('AUTO-TAG-NOT-A-MODEL', true)).to.deep.equal({ action: 'unknown-model' });
   });
 });
