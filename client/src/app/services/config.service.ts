@@ -52,7 +52,7 @@ export class ConfigService {
       },
       (err: HttpErrorResponse) => {
         console.error(err);
-        this.alertService.show({ type: 'danger', message: 'Failed to save configuration' });
+        this.alertService.show({ type: 'danger', message: err.error?.message || 'Failed to save configuration' });
       },
     );
   }

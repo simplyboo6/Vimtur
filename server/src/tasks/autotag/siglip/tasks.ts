@@ -10,6 +10,7 @@ import type { Autotag, Configuration, TaskArgs } from '@vimtur/common';
 import { execute } from 'proper-job';
 
 import { Transcoder } from '../../../cache/transcoder';
+import Config from '../../../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../../../types';
 
 import { computeFingerprint, embeddingsIndex, loadEmbeddingCache, saveEmbeddingCache } from './embed-cache';
@@ -103,12 +104,12 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            // Calibration may have tagged names the tag store does not know
-            // yet (the config overlay accepts free-form tag names), so the
-            // candidate set is the union of both sources. The prompt table is
-            // narrowed to `scoringTags` below: only tags with an applicable
-            // threshold are ever scored.
-            const tagList = sortedUnique([...(await database.getTags()), ...Object.keys(settings.tags)]);
+            // Config-only tag entries are intentionally not scored (the
+            // dead-tag rule): a threshold for a tag the library no longer has
+            // would otherwise keep emitting a tag users cannot see anywhere.
+            // Per-DB-tag decisions still come from settings.tags below.
+            const dbTagList = await database.getTags();
+            const tagList = sortedUnique(dbTagList);
             const storedRun = await loadCalibrationRun(database);
             // Thresholds computed in another pack's embedding space are
             // meaningless here, so a mismatched run is ignored entirely.
@@ -135,8 +136,8 @@ export function getTask(database: Database): RouterTask[] {
               );
             }
             // Only the calibrated tags are scored, so only they need prompt
-            // rows: the full union still drives threshold derivation above,
-            // but encoding every uncalibrated tag would waste a prompt pass.
+            // rows: encoding every uncalibrated library tag would waste a
+            // prompt pass.
             const scoringTags = tagList.filter((tag) => thresholds.has(tag));
 
             updateStatus(0, hashes.length, 'Embedding stills...');
@@ -224,6 +225,56 @@ export function getTask(database: Database): RouterTask[] {
       runner: (updateStatus: TaskRunnerCallback) => {
         return execute(
           async () => {
+            // Entries for tags deleted from the library are purged before this
+            // run derives or scores anything: the page renders DB tags only, so
+            // a stale entry's thresholds/descriptions are invisible to users
+            // but would keep influencing auto-tagging. Purging here keeps the
+            // config aligned without adding a config-write capability to
+            // HTTP-adjacent code paths.
+            const dbTagList = await database.getTags();
+            const dbTags = new Set(dbTagList);
+            // Only entries in the persisted overlay are in the purge's reach:
+            // entries merged from config.json/env are left alone, and are
+            // reported separately after the write below. The deletion decision
+            // and the written snapshot come from one consistent read pair, so a
+            // tag created between the two reads can no longer still lose its
+            // entry; this closes that window rather than making the
+            // read-modify-write linearizable.
+            const [latest, latestTags] = await Promise.all([database.getUserConfig(), database.getTags()]);
+            const latestDbTags = new Set(latestTags);
+            const staleTags = Object.keys(latest.autotags?.tags ?? {})
+              .filter((tag) => !latestDbTags.has(tag))
+              .sort();
+            if (staleTags.length > 0) {
+              const storedTags = { ...(latest.autotags?.tags ?? {}) };
+              for (const tag of staleTags) {
+                delete storedTags[tag];
+              }
+              // The config API merges a POST body into the stored overlay and
+              // then runs it through setUserOverlay + saveUserConfig; a purge
+              // has no body and deepmerge cannot delete a key, so the stored
+              // overlay is edited directly before that same
+              // validate/rename/persist sequence.
+              const persisted = Config.setUserOverlay({
+                ...latest,
+                autotags: { ...latest.autotags, tags: storedTags },
+              });
+              await database.saveUserConfig(persisted);
+              for (const tag of staleTags) {
+                console.warn(`Purged config entry for deleted tag '${tag}' (${staleTags.length} purged)`);
+              }
+            }
+            // The two messages differ because only the overlay purge is
+            // actionable through the config API: a tag still in the resulting
+            // Config state but absent from the library can only live in
+            // config.json/env, so the user has to remove it there.
+            for (const tag of Object.keys(autotagSettings().tags)) {
+              if (!dbTags.has(tag)) {
+                console.warn(
+                  `Tag '${tag}' remains defined in config.json but no longer exists in the library; remove it from config.json`,
+                );
+              }
+            }
             const settings = autotagSettings();
             // `sample` picks an arbitrary subset per run, which is safe here:
             // every sampled still is scored exactly once within this run, so
@@ -262,8 +313,11 @@ export function getTask(database: Database): RouterTask[] {
                 mediaTags.set(hash, media.tags);
               }
 
+              // The DB tag list was snapshotted before embedding (which can take
+              // minutes); a tag created during the run appears in this run's
+              // perTag only at the next calibration (deriveTagState unaffected).
               const tagList = sortedUnique([
-                ...(await database.getTags()),
+                ...dbTagList,
                 ...Object.keys(settings.tags),
                 ...hashes.flatMap((hash) => mediaTags.get(hash) ?? []),
               ]);

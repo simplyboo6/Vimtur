@@ -225,6 +225,20 @@ describe('prompt building', () => {
     expect(table[0].prompts).to.deep.equal(['cat', 'a photo of cat']);
   });
 
+  it('Skips blank descriptions without changing the other prompt rows', () => {
+    const table = buildPromptTable(['cat'], () => ['', '   ', 'ginger cat']);
+    expect(table[0].prompts).to.deep.equal(['cat', 'a photo of cat', 'ginger cat']);
+  });
+
+  it('Does not warn about a whitespace-only description over the length threshold', () => {
+    const whitespace = ' '.repeat(61);
+    const warnings = captureWarnings(() => {
+      const table = buildPromptTable(['cat'], () => [whitespace]);
+      expect(table[0].prompts).to.deep.equal(['cat', 'a photo of cat']);
+    });
+    expect(warnings).to.have.lengthOf(0);
+  });
+
   it('Keeps a description over the warning length instead of dropping it', () => {
     const long = 'x'.repeat(61);
     const warnings = captureWarnings(() => {

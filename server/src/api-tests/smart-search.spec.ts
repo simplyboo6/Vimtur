@@ -249,7 +249,9 @@ describe('Smart-search autotagging', () => {
 
   it('calibrates per-tag thresholds from manual tags and the merged support floor', async () => {
     // Three alpha examples and one beta example, both below the default
-    // minSupport floor of 8.
+    // minSupport floor of 8. The sample size is 2 against 4 tagged stills, so
+    // the run record proves the SQLite engine honours `sample` (default 500
+    // would make it unobservable on a library this small).
     assertOk(await client.post<string[]>('/api/tags', { tag: 'alpha' }), 'POST /api/tags alpha');
     assertOk(await client.post<string[]>('/api/tags', { tag: 'beta' }), 'POST /api/tags beta');
     for (const hash of stills.slice(0, 3)) {
@@ -258,12 +260,15 @@ describe('Smart-search autotagging', () => {
     expect((await client.post(`/api/images/${stills[3]}/tags`, { name: 'beta' })).status).to.equal(204);
 
     // gamma is a manual zero threshold: zero is a real value, so it must apply
-    // even though calibration has no gamma examples to learn from.
+    // even though calibration has no gamma examples to learn from. The tag
+    // must exist in the library: calibration purges config entries for tags it
+    // cannot find in the tag store.
+    assertOk(await client.post<string[]>('/api/tags', { tag: MANUAL_TAG }), 'POST /api/tags gamma');
     assertOk(
       await client.post<Configuration.Main>('/api/config', {
-        autotags: { workers: 2, tags: { [MANUAL_TAG]: { manualThreshold: 0 } } },
+        autotags: { workers: 2, calibrationSampleSize: 2, tags: { [MANUAL_TAG]: { manualThreshold: 0 } } },
       }),
-      'POST /api/config autotags.workers + gamma manualThreshold',
+      'POST /api/config autotags.workers + calibrationSampleSize + gamma manualThreshold',
     );
 
     await runTaskAndWait(client, CALIBRATION_TASK_ID);
@@ -271,7 +276,8 @@ describe('Smart-search autotagging', () => {
 
     expect(run.modelId).to.equal(PACK_ID);
     expect(run.minSupport, 'merged minSupport').to.equal(8);
-    expect(run.sampleSize).to.equal(4);
+    // The configured sample caps the subset at 2 of the 4 tagged stills.
+    expect(run.sampleSize).to.equal(2);
     expect(run.date).to.be.a('number').and.to.be.greaterThan(0);
 
     const alpha = run.perTag['alpha'];
@@ -283,7 +289,9 @@ describe('Smart-search autotagging', () => {
       alpha.threshold === null || (typeof alpha.threshold === 'number' && alpha.threshold >= 0),
       'alpha threshold',
     ).to.equal(true);
-    expect(alpha.support).to.equal(3);
+    // Sampling 2 of 4 stills includes at least one of the three alpha-tagged
+    // ones (only stills[3] lacks alpha), but which two are sampled is random.
+    expect(alpha.support).to.be.within(1, 2);
     // AUROC is only defined with both classes in the sample; when it is
     // computed it is a fraction.
     expect(
@@ -294,7 +302,9 @@ describe('Smart-search autotagging', () => {
 
     const beta = run.perTag['beta'];
     expect(beta, 'perTag.beta').to.not.equal(undefined);
-    expect(beta.support).to.equal(1);
+    // beta's only example is stills[3]; the random sample may or may not
+    // include it.
+    expect(beta.support).to.be.within(0, 1);
     expect(beta.emitted).to.equal(false);
 
     const manual = run.perTag[MANUAL_TAG];
@@ -310,8 +320,9 @@ describe('Smart-search autotagging', () => {
     const run = await lastCalibrationRun(client);
     const config = await getConfig(client);
     const allowed = applicableTags(run, config.autotags?.tags);
-    // Only the manual gamma threshold can apply: alpha (3) and beta (1) are
-    // below the support floor, so they stay review-inert.
+    // Only the manual gamma threshold can apply: the sampled alpha (<= 2) and
+    // beta (<= 1) support counts are below the floor of 8, so they stay
+    // review-inert.
     expect([...allowed].sort()).to.deep.equal([MANUAL_TAG]);
 
     for (const hash of stills) {
@@ -407,7 +418,9 @@ describe('Smart-search autotagging', () => {
 
   it('emits calibrated tags once the support floor is lowered', async () => {
     // Lower the floor to 1, then re-calibrate so the stored run carries it.
-    // alpha's three examples now meet the floor; gamma stays a manual override.
+    // The 2-still sample always includes at least one alpha example, so alpha
+    // meets the floor whenever it has a real threshold; gamma stays a manual
+    // override.
     assertOk(
       await client.post<Configuration.Main>('/api/config', {
         autotags: { minSupport: 1 },
@@ -418,12 +431,13 @@ describe('Smart-search autotagging', () => {
 
     const run = await lastCalibrationRun(client);
     const alpha = run.perTag['alpha'];
-    expect(alpha.support, 'alpha support').to.equal(3);
+    expect(alpha.support, 'alpha support').to.be.within(1, 2);
     if (alpha.threshold !== null) {
       expect(alpha.emitted, 'alpha emitted at the lowered floor').to.equal(true);
     } else {
-      // The deterministic fake's alpha cut for this fixture landed in the
-      // signal-less range, which records null and is never emitted. The
+      // A null threshold is recorded and never emitted: either the fake's
+      // alpha cut landed in the signal-less range, or the sample happened to
+      // contain only alpha-tagged stills (no negatives to rank against). The
       // firing path below is covered whenever a cut does exist.
       expect(alpha.emitted, 'alpha emitted with a null threshold').to.equal(false);
     }
@@ -448,6 +462,86 @@ describe('Smart-search autotagging', () => {
       // The F1-optimal cut is at or below the maximum positive score, so at
       // least one of the three positively-tagged stills reaches it.
       expect(fired, 'stills whose autoTags contain alpha').to.be.at.least(1);
+    }
+  });
+
+  it('purges deleted tags from the config on the next calibration and never emits them', async () => {
+    // Once a tag is deleted its config entry is invisible to users (the page
+    // renders DB tags only), so calibration must purge it; until then AUTO-TAG
+    // must not emit it either.
+    assertOk(await client.post<string[]>('/api/tags', { tag: 'epsilon' }), 'POST /api/tags epsilon');
+    assertOk(
+      await client.post<Configuration.Main>('/api/config', {
+        autotags: { tags: { epsilon: { descriptions: ['for deletion smoke'], manualThreshold: 0 } } },
+      }),
+      'POST /api/config autotags.tags.epsilon',
+    );
+    // The tags route answers 200 with the remaining tag list.
+    assertStatus(await client.delete('/api/tags/epsilon'), 200, 'DELETE /api/tags/epsilon');
+
+    // Score before the calibration below purges the entry. The manual 0 (not
+    // 0.5) makes a leak observable: the fake encoder's cosines are roughly
+    // symmetric around zero, so an emitted epsilon would fire on about half
+    // the stills. The prompt set comes from the tag store, so a deleted tag is
+    // never a candidate even while its config entry remains — the dead-tag
+    // rule — which makes the assertion below real coverage rather than a
+    // threshold the encoder could never reach.
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    for (const hash of stills) {
+      expect((await detail(client, hash)).autoTags ?? [], `${hash} epsilon`).to.not.include('epsilon');
+    }
+
+    await runTaskAndWait(client, CALIBRATION_TASK_ID);
+
+    // Only the deleted tag's entry is purged: the entries earlier tests wrote
+    // for tags that still exist must survive. (sunset is config-only, never a
+    // DB tag, so it is stale by the same rule and is not asserted here.)
+    const config = await getConfig(client);
+    const tags = config.autotags?.tags ?? {};
+    expect(tags, 'config tags after calibration').to.not.have.property('epsilon');
+    expect(tags, `config tags after calibration (${MANUAL_TAG})`).to.have.property(MANUAL_TAG);
+    expect(tags, 'config tags after calibration (alpha)').to.have.property('alpha');
+
+    const run = await lastCalibrationRun(client);
+    expect(run.perTag, 'calibration perTag after deleting epsilon').to.not.have.property('epsilon');
+
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    for (const hash of stills) {
+      expect((await detail(client, hash)).autoTags ?? [], `${hash} epsilon`).to.not.include('epsilon');
+    }
+  });
+
+  it('never emits a deleted tag whose config entry still carries a manual threshold', async () => {
+    // The no-applicable-thresholds fast path is unreachable at this point in
+    // the suite: gamma keeps its manual 0 and alpha/beta may carry thresholds
+    // from the purge test's calibration (minSupport 1), so deleting one tag
+    // cannot empty the threshold set. Pin the dead-tag rule instead: zeta is
+    // deleted while its overlay entry still has a manual 0 and no calibration
+    // runs to purge it, so it would fire on about half the stills if the tag
+    // store were not the source of the scored tag list.
+    assertOk(await client.post<string[]>('/api/tags', { tag: 'zeta' }), 'POST /api/tags zeta');
+    assertOk(
+      await client.post<Configuration.Main>('/api/config', {
+        autotags: { tags: { zeta: { manualThreshold: 0 } } },
+      }),
+      'POST /api/config autotags.tags.zeta',
+    );
+    assertStatus(await client.delete('/api/tags/zeta'), 200, 'DELETE /api/tags/zeta');
+
+    // 'replace' re-scores stills that earlier runs already marked processed.
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+
+    const run = await lastCalibrationRun(client);
+    const config = await getConfig(client);
+    const allowed = applicableTags(run, config.autotags?.tags);
+    // applicableTags mirrors the threshold precedence, not the dead-tag rule,
+    // so zeta is still in the set from its manual override; the task must drop
+    // it because the tag store no longer has it.
+    allowed.delete('zeta');
+    for (const hash of stills) {
+      const media = await detail(client, hash);
+      assertAutoTagsWithin(media, allowed, hash);
+      expect(media.autoTags ?? [], `${hash} zeta`).to.not.include('zeta');
     }
   });
 

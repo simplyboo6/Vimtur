@@ -89,9 +89,10 @@ export namespace Configuration {
 
   // Page-level settings for the Auto-Tagging pipeline.
   export interface AutoTags {
-    // Which model family the Auto-Tagging and Calibration tasks could run.
-    // Inert until the page wiring lands: nothing reads this value yet;
-    // AUTO-IMPORT keeps the classifier default (see server/src/routes/tasks.ts).
+    // Which model family the Auto-Tagging and Calibration tasks run. The wired
+    // Auto-Tagging page selects which task Apply runs from this value;
+    // AUTO-IMPORT deliberately stays on the classifier family (see
+    // server/src/routes/tasks.ts).
     model: 'siglip2' | 'mobilenet';
     /**
      * Number of concurrent encoding workers.

@@ -16,6 +16,12 @@ const PROMPT_LENGTH_WARNING = 60;
 export function buildTagPrompt(tag: string, descriptions: string[] | undefined): TagPrompt {
   const prompts = [tag, `a photo of ${tag}`];
   for (const description of descriptions ?? []) {
+    // The config API accepts arbitrary strings, and an empty prompt still
+    // encodes and joins the max-score set (usually as a meaningless row), so
+    // skip it. Stored values are untouched: only the prompt table omits it.
+    if (description.trim().length === 0) {
+      continue;
+    }
     if (description.length > PROMPT_LENGTH_WARNING) {
       // Names and descriptions are user input: warn and truncate the score
       // row rather than reject, matching the classifier's tolerance.
