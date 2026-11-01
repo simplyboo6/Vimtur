@@ -16,8 +16,9 @@ import { singleParam } from '../utils';
 //
 // The zero-shot family (autotags.model = 'siglip2') is page-driven: an
 // uncalibrated install has no applicable thresholds, so routing auto-import
-// there fails fast and stops classification for everyone. Auto-import keeps
-// the classifier family until the Auto-Tagging page wiring lands.
+// there fails fast and stops classification for everyone. The Auto-Tagging
+// page selects its Apply-target by model; auto-import deliberately keeps the
+// classifier family.
 const DEFAULT_AUTO_TAG_TASK_ID = `AUTO-TAG-${AUTO_TAG_MODELS[0].id}`;
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {

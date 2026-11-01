@@ -1,7 +1,8 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
-import { ReplaySubject, Observable } from 'rxjs';
+import { ReplaySubject, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { QueuedTask, ListedTask, Scanner, TaskArgs } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
@@ -116,10 +117,11 @@ export class TasksService {
     }
   }
 
-  public startAction(id: string, args?: TaskArgs) {
+  public startAction(id: string, args?: TaskArgs, onSettled?: (err: HttpErrorResponse | undefined) => void) {
     this.httpClient.post<string>(`${ROOT_PATH}/queue/${id}`, args || {}, HTTP_OPTIONS).subscribe(
       res => {
         console.debug('Task started', res);
+        onSettled?.(undefined);
       },
       (err: HttpErrorResponse) => {
         console.error(err);
@@ -127,6 +129,7 @@ export class TasksService {
           type: 'danger',
           message: err.error?.message || `Failed to start task`,
         });
+        onSettled?.(err);
       },
     );
   }
@@ -186,6 +189,26 @@ export class TasksService {
 
   public getQueue(): Observable<QueuedTask[]> {
     return this.queue;
+  }
+
+  // One-shot read of a task definition's persisted state. A 404 means the state
+  // has never been stored (e.g. no calibration run yet), which is a normal
+  // state rather than an error, so it resolves to undefined without an alert.
+  // Deliberately not cached: callers refetch at natural refresh points.
+  public getTaskState<T>(taskId: string, key: string): Observable<T | undefined> {
+    return this.httpClient.get<T>(`${ROOT_PATH}/state/${taskId}/${key}`).pipe(
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 404) {
+          return of(undefined);
+        }
+        console.error(err);
+        this.alertService.show({
+          type: 'danger',
+          message: err.error?.message || 'Failed to fetch task state',
+        });
+        return of(undefined);
+      }),
+    );
   }
 
   private reloadScanResults() {

@@ -57,6 +57,23 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    `TagService.addTag` / `MediaService.addTagRaw`). Pinned in `tags.spec.ts`
    and `actors.spec.ts`.
 
+8. **Calibration purges persisted overlay entries for deleted tags.** At
+   calibration, `autotags.tags` entries in the persisted config overlay whose
+   tag is absent from the tag store are **deleted** — a config.json- or
+   env-sourced entry that is still resolvable is warned about instead, never
+   deleted, because only the overlay is in the purge's reach. The config write
+   goes through the same validate/rename/persist path as `POST /api/config`,
+   so a purge cannot persist a shape the config API would reject. Pinned in
+   `smart-search.spec.ts`.
+
+9. **Auto-tagging scores DB tags only (the dead-tag rule).** A manual
+   threshold on a config-only tag that does not exist in the tag store is
+   never applied, so it cannot satisfy the "No tags have an applicable
+   threshold" fail-fast either: the task still fails until a DB tag has a
+   usable threshold. `applicableTags` mirrors threshold precedence rather than
+   this rule, so the task drops the config-only tag itself. Pinned by the zeta
+   test in `smart-search.spec.ts`.
+
 Things that used to live here as one-off deltas from the error-handler and
 plain-`res.json()` migration are documented as standing conventions in the
 repo `AGENTS.md` ("API response and error conventions") instead.

@@ -1,199 +1,339 @@
-<div class="card">
-  <h4>Encoder Configuration</h4>
-  <div class="input-component">
-    <label for="autotag-model-select">Model</label>
-    <select [(ngModel)]="selectedModel" id="autotag-model-select" name="autotag-model-select" class="form-select d-block w-100">
-      <option value="siglip2">SigLIP-2 (selective int8, 256px) — recommended</option>
-      <option value="mobilenet">MobileNet V2 (ImageNet-1k categories)</option>
-    </select>
-    <div>
-      <span class="text-muted"
-        >Aves SigLIP-2 is the recommended default using zero-shot scoring against the descriptions below. MobileNet V2 tags images with its own ImageNet-1k
-        categories and needs no user-defined tags.</span
+@if (config && tags) {
+  <div class="card">
+    <h4>Encoder Configuration</h4>
+    <div class="input-component">
+      <label for="autotag-model-select">Model</label>
+      <select
+        [ngModel]="selectedModel"
+        (ngModelChange)="saveModel($event)"
+        id="autotag-model-select"
+        name="autotag-model-select"
+        class="form-select d-block w-100"
       >
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-4 input-component">
-      <label for="autotag-worker-count">Worker count</label>
-      <input type="number" class="form-control" id="autotag-worker-count" name="autotag-worker-count" min="1" max="8" [(ngModel)]="workerCount" required />
+        <option value="siglip2">SigLIP-2 (selective int8, 256px) — recommended</option>
+        <option value="mobilenet">MobileNet V2 (ImageNet-1k categories)</option>
+      </select>
       <div>
-        <span class="text-muted">Number of parallel single-threaded encoder workers. Each uses roughly 0.4–1GB of RAM.</span>
+        <span class="text-muted"
+          >Aves SigLIP-2 is the recommended default using zero-shot scoring against the descriptions below. MobileNet V2 tags images with its own ImageNet-1k
+          categories and needs no user-defined tags.</span
+        >
       </div>
     </div>
-    <div class="col-md-4 input-component">
-      <label for="autotag-min-support">Minimum calibration support</label>
-      <input type="number" class="form-control" id="autotag-min-support" name="autotag-min-support" min="1" [(ngModel)]="minSupport" required />
-      <div>
-        <span class="text-muted">Tags with fewer calibration examples than this are never applied automatically.</span>
+    <div class="row">
+      <div class="col-md-4 input-component">
+        <label for="autotag-worker-count">Worker count</label>
+        <input
+          type="number"
+          class="form-control"
+          id="autotag-worker-count"
+          name="autotag-worker-count"
+          min="1"
+          max="8"
+          [ngModel]="workerCount"
+          (change)="saveWorkerCount(workerCountInput.valueAsNumber)"
+          #workerCountInput
+          [disabled]="!isSiglipSelected"
+          required
+        />
+        <div>
+          @if (isSiglipSelected) {
+            <span class="text-muted">Number of parallel single-threaded encoder workers. Each uses roughly 0.4–1GB of RAM.</span>
+          } @else {
+            <span class="text-muted">Workers apply to the SigLIP-2 encoder pool only; the MobileNet classifier ignores this setting.</span>
+          }
+        </div>
+      </div>
+      <div class="col-md-4 input-component">
+        <label for="autotag-min-support">Minimum calibration support</label>
+        <input
+          type="number"
+          class="form-control"
+          id="autotag-min-support"
+          name="autotag-min-support"
+          min="1"
+          [ngModel]="minSupport"
+          (change)="saveMinSupport(minSupportInput.valueAsNumber)"
+          #minSupportInput
+          [disabled]="!isSiglipSelected"
+          required
+        />
+        <div>
+          <span class="text-muted">Tags with fewer calibration examples than this are never applied automatically.</span>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<div class="card">
-  <h4>Tag Descriptions &amp; Thresholds</h4>
-  <!-- Mock: creating the tag and adding it to the table happens during wiring. -->
-  <div class="row">
-    <div class="col-md-8 form-padded-input">
-      <label class="visually-hidden" for="autotag-new-tag">New tag name</label>
-      <input [(ngModel)]="addTagModel" class="form-control" type="text" id="autotag-new-tag" name="autotag-new-tag" placeholder="Enter new tag name..." />
+  <div class="card">
+    <h4>Tag Descriptions &amp; Thresholds</h4>
+    <div class="row">
+      <div class="col-md-8 form-padded-input">
+        <label class="visually-hidden" for="autotag-new-tag">New tag name</label>
+        <input
+          [(ngModel)]="addTagModel"
+          class="form-control"
+          type="text"
+          id="autotag-new-tag"
+          name="autotag-new-tag"
+          placeholder="Enter new tag name..."
+          (keyup.enter)="addTagModel && addTag()"
+          [disabled]="!isSiglipSelected"
+        />
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <button class="btn btn-primary col-12" type="button" [disabled]="!addTagModel || !isSiglipSelected" (click)="addTag()">Add</button>
+      </div>
     </div>
-    <div class="col-md-4 form-padded-input">
-      <button class="btn btn-primary col-12" type="button" [disabled]="!addTagModel">Add</button>
-    </div>
-  </div>
-  @if (selectedModel === 'mobilenet') {
-    <div class="alert alert-warning">
-      <span
-        >These settings do not apply to the selected model. MobileNet V2 tags images with fixed ImageNet-1k categories and ignores per-tag descriptions and
-        thresholds. Switch back to SigLIP-2 to use them.</span
-      >
-    </div>
-  }
-  <p class="text-muted mb-0">As elsewhere in the configuration, changes on this page save automatically.</p>
-  <div class="row">
-    <div class="col-md-12 form-padded-input">
-      <div class="table-responsive">
-        <table class="table table-striped autotag-table">
-          <thead>
-            <tr>
-              <th scope="col">Tag</th>
-              <th scope="col">Description</th>
-              <th scope="col">Threshold</th>
-              <th scope="col">Support</th>
-              <th scope="col">Quality (AUROC)</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (tag of tags; track tag.tag; let tagIndex = $index) {
+    @if (!isSiglipSelected) {
+      <div class="alert alert-warning">
+        <span
+          >These settings do not apply to the selected model. With MobileNet V2 selected, the worker count, tag table, statuses and calibration are SigLIP-2
+          features and stay inert; the Apply Tags button runs the ImageNet classifier instead. Switch back to SigLIP-2 to edit tags and calibrate
+          thresholds.</span
+        >
+      </div>
+    }
+    <p class="text-muted mb-0">As elsewhere in the configuration, changes on this page save automatically.</p>
+    <div class="row">
+      <div class="col-md-12 form-padded-input">
+        <div class="table-responsive">
+          <table class="table table-striped autotag-table">
+            <thead>
               <tr>
-                <td class="fw-bold align-middle">{{ tag.tag }}</td>
-                <td data-label="Description">
-                  <!-- View-only stack? No: add/remove update mock state locally; persistence comes with wiring. -->
-                  @for (description of tag.descriptions; track description.id; let descIndex = $index) {
-                    <div class="desc-row d-flex align-items-center gap-2 mb-2">
-                      <input
-                        type="text"
-                        class="form-control"
-                        placeholder="Describe the visible anchor..."
-                        [attr.name]="'desc-' + tag.tag + '-' + descIndex"
-                        maxlength="60"
-                        [attr.aria-label]="'Description ' + (descIndex + 1) + ' for ' + tag.tag"
-                        [(ngModel)]="description.text"
-                      />
+                <th scope="col">Tag</th>
+                <th scope="col">Description</th>
+                <th scope="col">Threshold</th>
+                <th scope="col">Support</th>
+                <th scope="col">Quality (AUROC)</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.tag; let rowIndex = $index) {
+                <tr>
+                  <td class="fw-bold align-middle">
+                    <div class="d-flex align-items-center gap-2">
+                      <span>{{ row.tag }}</span>
                       <button
                         type="button"
-                        class="btn btn-link px-1 desc-remove"
-                        title="Remove description"
-                        [disabled]="tag.descriptions.length <= 1"
-                        [attr.aria-label]="'Remove description ' + (descIndex + 1) + ' for ' + tag.tag"
-                        (click)="removeDescription(tag, descIndex)"
+                        class="btn btn-link px-1 tag-remove"
+                        title="Delete tag"
+                        [attr.aria-label]="'Delete tag ' + row.tag"
+                        [disabled]="!isSiglipSelected"
+                        (click)="removeTag(row.tag)"
                       >
                         <fa-icon [icon]="faCircleXmark" />
                       </button>
                     </div>
-                  }
-                  <button type="button" class="btn btn-link px-1 add-desc" [attr.aria-label]="'Add description for ' + tag.tag" (click)="addDescription(tag)">
-                    + Add description
-                  </button>
-                </td>
-                <td data-label="Threshold">
-                  <!-- An empty field means no threshold exists yet (uncalibrated); zero is a real, meaningful value, never a placeholder.
-                       The (ngModelChange) above only writes tag.threshold; $event carries the parsed value so onThresholdBlur never
-                       reads tag.threshold directly (the [ngModel] control write-back is deferred to the next change-detection pass).
-                       Status re-derivation runs on (blur) so transient unparseable keystrokes can't flap the badge.
-                       Mock-only: editing a Calibrated row keeps its badge — wiring re-derives status/quality. -->
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="Not set"
-                    [attr.aria-label]="'Threshold for ' + tag.tag"
-                    [attr.name]="'threshold-' + tag.tag + '-' + tagIndex"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    [ngModel]="tag.threshold"
-                    (ngModelChange)="tag.threshold = $event"
-                    (blur)="onThresholdBlur(tag)"
-                  />
-                </td>
-                <td class="align-middle" data-label="Support">{{ tag.support }}</td>
-                <td class="align-middle" data-label="Quality (AUROC)">
-                  @if (tag.quality !== undefined) {
-                    {{ tag.quality }}
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td data-label="Status">
-                  <span class="badge align-middle" [class]="statusBadgeClasses[tag.status]">{{ tag.status }}</span>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+                  </td>
+                  <td data-label="Description">
+                    <!-- Description text is persisted on blur; add/remove persist immediately. Every save writes the whole
+                         array because the server replaces a tag's descriptions wholesale; blank rows are filtered out, so
+                         an empty list is a legitimate "no descriptions" state. The bare tag and "a photo of {tag}" are
+                         always scored in addition to these, so they are not stored here. -->
+                    @for (description of row.descriptions; track $index; let descIndex = $index) {
+                      <div class="desc-row d-flex align-items-center gap-2 mb-2">
+                        <input
+                          type="text"
+                          class="form-control"
+                          placeholder="Describe the visible anchor..."
+                          [attr.name]="'desc-' + row.tag + '-' + descIndex"
+                          maxlength="60"
+                          [attr.aria-label]="'Description ' + (descIndex + 1) + ' for ' + row.tag"
+                          [(ngModel)]="row.descriptions[descIndex]"
+                          (blur)="persistDescriptions(row.tag)"
+                          [disabled]="!isSiglipSelected"
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-link px-1 desc-remove"
+                          title="Remove description"
+                          [disabled]="!isSiglipSelected"
+                          [attr.aria-label]="'Remove description ' + (descIndex + 1) + ' for ' + row.tag"
+                          (click)="removeDescription(row.tag, descIndex)"
+                        >
+                          <fa-icon [icon]="faCircleXmark" />
+                        </button>
+                      </div>
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-link px-1 add-desc"
+                      [attr.aria-label]="'Add description for ' + row.tag"
+                      [disabled]="!isSiglipSelected"
+                      (click)="addDescription(row.tag)"
+                    >
+                      + Add description
+                    </button>
+                  </td>
+                  <td data-label="Threshold">
+                    <!-- The field edits a manual override only: a calibrated threshold is shown below and stays untouched.
+                         An empty field means no override exists; zero is a real, meaningful value, never a placeholder.
+                         The write is deferred to (blur) because NumberValueAccessor yields null (empty) or NaN (e.g. a lone
+                         "-") for transient input mid-edit; an empty field clears the override and NaN is left unposted. -->
+                    <input
+                      type="number"
+                      class="form-control"
+                      placeholder="Not set"
+                      [attr.aria-label]="'Threshold for ' + row.tag"
+                      [attr.name]="'threshold-' + row.tag + '-' + rowIndex"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      [ngModel]="thresholdInput(row.tag)"
+                      (ngModelChange)="onThresholdChange(row.tag, $event)"
+                      (blur)="onThresholdBlur(row.tag)"
+                      [disabled]="!isSiglipSelected"
+                    />
+                    @if (row.calibratedThreshold !== undefined) {
+                      <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }}</div>
+                    }
+                  </td>
+                  <td class="align-middle" data-label="Support">
+                    @if (row.support !== undefined) {
+                      {{ row.support }}
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
+                  <td class="align-middle" data-label="Quality (AUROC)">
+                    @if (row.quality !== undefined) {
+                      {{ row.quality }}
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </td>
+                  <td data-label="Status">
+                    <span class="badge align-middle" [class]="statusBadgeClasses[row.status]">{{ row.status }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+    <ul class="text-muted ps-3 mb-3">
+      @for (entry of statusLegend; track entry.status) {
+        <li>
+          <span class="badge me-1" [class]="statusBadgeClasses[entry.status]">{{ entry.status }}</span> — {{ entry.description }}
+        </li>
+      }
+    </ul>
+    <p class="text-muted mb-3">
+      <strong>Support</strong> is the number of manually tagged examples the calibration run used for this tag. <strong>Quality (AUROC)</strong> measures how
+      well the tag's score ranks correctly tagged media above everything else — 0.5 is random, 1.0 is perfect.
+    </p>
+    <p class="text-muted mb-3">
+      <strong>Threshold</strong> is the similarity score above which the tag is applied to an image. Zero does not switch a tag off — scores are almost always
+      positive, so it would apply nearly everywhere. A row is only applied automatically while it holds a calibrated threshold from a run that met the floor:
+      "Review (low support)" and "Not calibrated" rows are inert while they hold those statuses. Typing a threshold into such a row switches its status to
+      <span class="badge" [class]="statusBadgeClasses['Manually overridden']">Manually overridden</span> and applies the tag as-is — an explicit override at
+      noticeably worse precision; clearing the field restores the calibration outcome. To clear the floor properly, add tagged examples and re-run calibration,
+      or lower the <strong>Minimum calibration support</strong> above.
+    </p>
+    <p class="text-muted">
+      Descriptions define what the encoder looks for. Every entry is scored alongside the bare tag and &quot;a photo of &#123;tag&#125;&quot;, which the server
+      always includes without storing them here — keep them short (limited to 60 characters here). Thresholds and support counts come from the calibration task;
+      rows flagged &quot;Review (low support)&quot; need better wording or more tagged examples before their tags can apply automatically. A tag's config entry
+      is kept when the tag is deleted and is cleared at the next calibration run.
+    </p>
   </div>
-  <ul class="text-muted ps-3 mb-3">
-    @for (entry of statusLegend; track entry.status) {
-      <li>
-        <span class="badge me-1" [class]="statusBadgeClasses[entry.status]">{{ entry.status }}</span> — {{ entry.description }}
-      </li>
+  <div class="card">
+    <h4>Threshold Calibration</h4>
+    <p class="text-muted">
+      Re-fits each tag's threshold against your existing manual tags and measures per-tag quality (AUROC). By default a random sample of tagged stills is used
+      for speed; raise the sample size above your tagged library to use everything.
+    </p>
+    <div class="row">
+      <div class="col-md-4 form-padded-input">
+        <label for="autotag-calibration-sample-size">Sample size</label>
+        <input
+          type="number"
+          class="form-control"
+          id="autotag-calibration-sample-size"
+          name="autotag-calibration-sample-size"
+          min="1"
+          [ngModel]="calibrationSampleSize"
+          (change)="saveCalibrationSampleSize(calibrationSampleSizeInput.valueAsNumber)"
+          #calibrationSampleSizeInput
+          [disabled]="!isSiglipSelected"
+        />
+        <div>
+          <span class="text-muted"
+            >Number of tagged stills sampled for the calibration run — a smaller sample is faster but fits thresholds on fewer examples.</span
+          >
+        </div>
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <span class="text-muted"
+          >Status: <strong>{{ calibrationStatus() }}</strong></span
+        >
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <button
+          class="btn btn-primary col-12"
+          type="button"
+          id="autotag-run-calibration"
+          [disabled]="!isSiglipSelected || calibrationInFlight()"
+          (click)="runCalibration()"
+        >
+          Calibrate Thresholds
+        </button>
+      </div>
+    </div>
+    <h5>Apply Tags</h5>
+    <p class="text-muted">Scores every still against the calibrated thresholds and writes the matching auto-tags.</p>
+    @if (!applyTaskAvailable()) {
+      <div class="alert alert-warning">
+        <span
+          >The server does not list the <strong>{{ applyTaskId() }}</strong> task, so Apply Tags is unavailable — this build (or this server) does not include
+          the selected model's auto-tag task.</span
+        >
+      </div>
     }
-  </ul>
-  <p class="text-muted mb-3">
-    <strong>Support</strong> is the number of manually tagged examples the calibration run used for this tag. <strong>Quality (AUROC)</strong> measures how well
-    the tag's score ranks correctly tagged media above everything else — 0.5 is random, 1.0 is perfect.
-  </p>
-  <p class="text-muted mb-3">
-    <strong>Threshold</strong> is the similarity score above which the tag is applied to an image. Zero does not switch a tag off — scores are almost always
-    positive, so it would apply nearly everywhere. A row is only applied automatically while it holds a calibrated threshold from a run that met the floor:
-    "Review (low support)" and "Not calibrated" rows are inert while they hold those statuses. Typing a threshold into such a row switches its status to
-    <span class="badge" [class]="statusBadgeClasses['Manually overridden']">Manually overridden</span> and applies the tag as-is — an explicit override at
-    noticeably worse precision; clearing the field restores the calibration outcome. Editing a Calibrated row keeps its badge in this mock; wiring re-derives
-    the status. To clear the floor properly, add tagged examples and re-run calibration, or lower the <strong>Minimum calibration support</strong> above.
-  </p>
-  <p class="text-muted">
-    Descriptions define what the encoder looks for — a photo of the tag is seeded into each tag's descriptions in the description column above — edit or remove
-    it once you have better wording. Every entry is scored and the strongest match decides. Keep them short (a 60-character limit is enforced). Thresholds and
-    support counts are calibrated by the calibration task; rows flagged &quot;Review (low support)&quot; need better wording or more tagged examples before
-    their tags can apply automatically.
-  </p>
-</div>
-<div class="card">
-  <h4>Threshold Calibration</h4>
-  <!-- Mock: idle state; wiring will drive status, button, and last-run summary from the calibration task. -->
-  <p class="text-muted">
-    Re-fits each tag's threshold against your existing manual tags and measures per-tag quality (AUROC). By default a random subset of the library is used for
-    speed; use the whole library for the most accurate calibration.
-  </p>
-  <div class="row">
-    <div class="col-md-4 form-padded-input">
-      <label for="autotag-calibration-sample-size">Sample size</label>
-      <input
-        type="number"
-        class="form-control"
-        id="autotag-calibration-sample-size"
-        name="autotag-calibration-sample-size"
-        min="0"
-        [(ngModel)]="calibrationSampleSize"
-      />
-      <div>
-        <span class="text-muted">Runs on a randomly selected subset of your library. Set 0 to calibrate with the whole library.</span>
+    <div class="row">
+      <div class="col-md-8 form-padded-input">
+        <label for="autotag-apply-mode">Existing tags</label>
+        <select
+          id="autotag-apply-mode"
+          name="autotag-apply-mode"
+          class="form-select d-block w-100"
+          [ngModel]="applyMode"
+          (ngModelChange)="onApplyModeChange($event)"
+          [disabled]="!isSiglipSelected"
+        >
+          @for (value of applyModes(); track value.id) {
+            <option [ngValue]="value.id">{{ value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <button
+          type="button"
+          class="btn btn-primary col-12"
+          id="autotag-apply-tags"
+          [disabled]="applyModes().length === 0 || applyInFlight()"
+          (click)="applyTags()"
+        >
+          Apply Tags
+        </button>
       </div>
     </div>
-    <div class="col-md-4 form-padded-input">
-      <span class="text-muted">Status: <strong>Idle</strong> — not currently running. Monitoring appears here while calibration runs.</span>
-    </div>
-    <div class="col-md-4 form-padded-input">
-      <button class="btn btn-primary col-12" type="button" id="autotag-run-calibration">Calibrate Thresholds</button>
-    </div>
+    <h5>Last Run</h5>
+    @if (calibrationRun(); as run) {
+      <p class="text-muted">
+        <strong>{{ run.date | date: 'medium' }}</strong> — Complete. Random sample of {{ run.sampleSize }} tagged stills; {{ thresholdsUpdated() }} thresholds
+        updated; {{ attentionRows().length }} tags need attention
+        @if (attentionRows().length > 0) {
+          ({{ attentionSummary() }})
+        }
+        .
+      </p>
+    } @else {
+      <p class="text-muted">No SigLIP-2 calibration run yet — run the calibration task to fit thresholds against your tagged media.</p>
+    }
   </div>
-  <h5>Last Run</h5>
-  <p class="text-muted">
-    <strong>31 Oct 2026, 14:05</strong> — Complete. Random sample of 500 media; 5 thresholds updated; 2 tags need attention (fireworks — low support,
-    long-exposure — not calibrated).
-  </p>
-</div>
+} @else {
+  <app-loading></app-loading>
+}
