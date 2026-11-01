@@ -171,6 +171,25 @@ describe('Smart-search autotagging', () => {
     await server?.stop();
   });
 
+  it('fails a calibration over an untagged library instead of recording nothing', async () => {
+    // A user-started calibration with no tagged stills can never produce a
+    // result: failing loudly surfaces the reason in the queue row and the
+    // task notifications, where a successful no-op left the page with no run
+    // record to show (and nothing to refresh).
+    const id = await queueTask(client, CALIBRATION_TASK_ID);
+    const error = await waitForFailedTask(client, id);
+    expect(error).to.equal(
+      'No tagged stills to calibrate from; tag some media (e.g. in the media viewer) before running calibration',
+    );
+    const statePath = `/api/tasks/state/${CALIBRATION_TASK_ID}/last-run`;
+    const data = assertStatus(await client.get<{ message: string }>(statePath), 404, `GET ${statePath}`);
+    expect(data).to.deep.equal({ message: 'Task state not found' });
+    // Errored entries persist in the queue (autoClearCompletedTasks only clears
+    // successes), so remove it: the drain helper later tests use treats any
+    // error entry as a suite failure.
+    assertStatus(await client.delete(`/api/tasks/queue/${id}`), 204, `DELETE /api/tasks/queue/${id}`);
+  });
+
   it('serves 404 JSON for unknown task state before any calibration', async () => {
     for (const path of [`/api/tasks/state/${CALIBRATION_TASK_ID}/last-run`, '/api/tasks/state/NOPE/nope']) {
       const response = await client.get<{ message: string }>(path);
@@ -205,7 +224,10 @@ describe('Smart-search autotagging', () => {
       }),
       'POST /api/config autotags.tags.sunset',
     );
-    expect(posted.autotags?.model).to.equal('siglip2');
+    // The model is an AUTO-TAG task id (a plain string, so the schema cannot
+    // enumerate the roster); its default is exercised by the routing tests
+    // below rather than pinned to a literal here.
+    expect(posted.autotags?.model, 'model default').to.be.a('string');
     expect(posted.autotags?.workers).to.equal(5);
     expect(posted.autotags?.minSupport).to.equal(8);
     expect(posted.autotags?.calibrationSampleSize).to.equal(500);
@@ -243,8 +265,32 @@ describe('Smart-search autotagging', () => {
       expect(response.data, context).to.have.property('message');
     }
 
+    // The model is the AUTO-TAG task id of the selected model rather than a
+    // schema enum (the roster is the server's task list), so membership is
+    // validated at the use sites, not by the schema: any string round-trips,
+    // including one no task serves.
+    try {
+      for (const model of ['AUTO-TAG-RESNET-50-V2', 'not-a-task']) {
+        const selected = assertOk(
+          await client.post<Configuration.Main>('/api/config', { autotags: { model } }),
+          `POST /api/config autotags.model ${model}`,
+        );
+        expect(selected.autotags?.model, `posted model ${model}`).to.equal(model);
+        expect((await getConfig(client)).autotags?.model, `persisted model ${model}`).to.equal(model);
+      }
+    } finally {
+      // Restore the default task id: the import-routing tests below depend on
+      // the selected model starting the zero-shot task.
+      assertOk(
+        await client.post<Configuration.Main>('/api/config', { autotags: { model: AUTO_TAG_TASK_ID } }),
+        'POST /api/config autotags.model restore',
+      );
+    }
+
     // A rejected write is never persisted.
-    expect((await getConfig(client)).autotags?.workers).to.equal(5);
+    const persisted = await getConfig(client);
+    expect(persisted.autotags?.workers).to.equal(5);
+    expect(persisted.autotags?.model).to.equal(AUTO_TAG_TASK_ID);
   });
 
   it('calibrates per-tag thresholds from manual tags and the merged support floor', async () => {
@@ -545,6 +591,63 @@ describe('Smart-search autotagging', () => {
     }
   });
 
+  it('routes import-time auto-tagging by the selected model', async () => {
+    // Tail placement: the zero-shot run inside AUTO-IMPORT rewrites the
+    // stills' autoTags, so no later assertion depends on them. Clearing them
+    // first matters: both families' default mode is skip-existing, so with a
+    // fully processed library the former classifier-only routing would be a
+    // silent no-op and the checks below would prove nothing.
+    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    for (const hash of stills) {
+      expect((await detail(client, hash)).autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+    }
+
+    // The selected model is the zero-shot task id and gamma's manual zero is
+    // applicable, so AUTO-IMPORT must route to that task. The drain helper
+    // fails on any errored queue entry: a classifier route would start
+    // AUTO-TAG-MOBILE-NET-V2, whose model pack this harness does not provide,
+    // and would also write ImageNet labels outside the applicable set if the
+    // download did succeed.
+    const enabled = assertOk(
+      await client.post<Configuration.Main>('/api/config', {
+        enableAutoTags: true,
+        autotags: { model: AUTO_TAG_TASK_ID },
+      }),
+      'POST /api/config enableAutoTags',
+    );
+    expect(enabled.enableAutoTags).to.equal(true);
+    expect(enabled.autotags?.model, 'selected model').to.equal(AUTO_TAG_TASK_ID);
+
+    try {
+      await runTaskAndWait(client, 'AUTO-IMPORT');
+    } finally {
+      // Restore the harness's boot state even if the drain fails.
+      assertOk(
+        await client.post<Configuration.Main>('/api/config', { enableAutoTags: false }),
+        'POST /api/config enableAutoTags false',
+      );
+    }
+
+    // AUTO-TAG writes an autoTags entry (possibly an empty list) for every
+    // still it processes, so an undefined entry proves the run never happened.
+    // Without this the allowed-set check below would also pass when the gate
+    // skipped auto-tagging entirely.
+    for (const hash of stills) {
+      expect((await detail(client, hash)).autoTags, `${hash} processed by AUTO-IMPORT`).to.not.equal(undefined);
+    }
+
+    // Which tags the run emits is pinned by the tests above; here only the
+    // routing is observable, as the applied tags must stay within the set the
+    // zero-shot task could have scored (the classifier would write ImageNet
+    // labels).
+    const run = await lastCalibrationRun(client);
+    const config = await getConfig(client);
+    const allowed = applicableTags(run, config.autotags?.tags);
+    for (const hash of stills) {
+      assertAutoTagsWithin(await detail(client, hash), allowed, hash);
+    }
+  });
+
   // Seeded-only: pins the on-disk embedding cache the real pack must leave
   // behind (768-d rows, a fingerprint over the pack, a row count matching the
   // metadata). Deeper real-model smoke comparisons stay manual
@@ -573,4 +676,42 @@ describe('Smart-search autotagging', () => {
       expect(FS.statSync(binPath).size).to.be.greaterThan(0);
     });
   }
+});
+
+// A dedicated server: the suite above has tags and manual thresholds by this
+// point, so the skip path needs a fresh, uncalibrated install. The gate only
+// counts stored tags and reads task state (no encoder, no pack download), and
+// the zero-shot task fail-fasts before it would load one, so this describe
+// stays offline whichever way the gate behaves.
+describe('AUTO-IMPORT with an uncalibrated zero-shot pipeline', () => {
+  let server: ApiServer;
+  let client: ApiClient;
+
+  before(async function (this: Mocha.Context) {
+    this.timeout(120_000);
+    server = await startServer({ config: { enableAutoTags: true, autotags: { model: AUTO_TAG_TASK_ID } } });
+    client = new ApiClient(server.baseUrl);
+    await createStill(server.libraryPath, 'uncalibrated.png', 'white');
+  });
+
+  after(async () => {
+    await server?.stop();
+  });
+
+  it('skips the zero-shot task instead of failing the import', async function (this: Mocha.Context) {
+    this.timeout(120_000);
+    // The zero-shot task is selected, no tag carries a threshold and nothing
+    // is calibrated. A gate that started AUTO-TAG-AVES-SIGLIP2-B32 anyway would
+    // fail-fast with "No tags have an applicable threshold" and the drain would
+    // throw on the errored queue entry, so draining clean is the first half of
+    // the discriminator.
+    await runTaskAndWait(client, 'AUTO-IMPORT');
+
+    // Second half: the still was imported but never scored. AUTO-TAG records
+    // an autoTags entry (possibly an empty list) for every still it processes,
+    // so undefined here proves the task never ran.
+    const stills = await stillHashes(client);
+    expect(stills, 'imported stills').to.have.lengthOf(1);
+    expect((await detail(client, stills[0])).autoTags, 'autoTags after the skipped run').to.equal(undefined);
+  });
 });

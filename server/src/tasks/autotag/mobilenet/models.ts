@@ -30,8 +30,11 @@ const ZOO_IMAGENET_PREPROCESS: Preprocessing = {
 // (https://huggingface.co/onnxmodelzoo); the original github.com/onnx/models
 // repository is archive-only for downloads. Every model is ImageNet-1k
 // classification over the standard 1000 classes, in NCHW float32 layout.
+// The registry feeds the AUTO-TAG-<id> task ids (classify.ts registers one per
+// entry) and the membership check pick-import-task.ts applies to the configured
+// `autotags.model` task id; registry order is not an import-routing default —
+// the config/route defaults select the task.
 export const AUTO_TAG_MODELS: readonly ModelDefinition[] = [
-  // The first one is used when triggered from auto-import.
   {
     id: 'MOBILE-NET-V2',
     name: 'MobileNet V2 [Default]',

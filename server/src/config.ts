@@ -116,9 +116,13 @@ const DEFAULTS: Partial<Configuration.Main> = {
   },
   // Zero-shot Auto-Tagging pipeline defaults: sample size 500 (from the
   // Auto-Tagging page mock) and a support floor of 8 manually tagged
-  // examples before a calibrated threshold applies.
+  // examples before a calibrated threshold applies. `model` below copies the
+  // derived id (`AUTO-TAG-${AVES_SIGLIP2_B32.id}`, see AUTO_TAG_TASK_ID in
+  // tasks/autotag/siglip/state.ts and AVES_SIGLIP2_B32.id in
+  // tasks/autotag/siglip/pack.ts) by hand: importing the pack module here would
+  // create a config ↔ pack cycle, so keep the two in step.
   autotags: {
-    model: 'siglip2',
+    model: 'AUTO-TAG-AVES-SIGLIP2-B32',
     workers: 5,
     minSupport: 8,
     calibrationSampleSize: 500,

@@ -22,7 +22,14 @@ import type { EmbeddingPackDefinition } from './pack';
 import { buildPromptTable } from './prompts';
 import type { TagPrompt } from './prompts';
 import { makeTagScorer } from './scoring';
-import { autotagSettings, CALIBRATION_TASK_ID, deriveTagState, loadCalibrationRun, saveCalibrationRun } from './state';
+import {
+  AUTO_TAG_TASK_ID,
+  autotagSettings,
+  CALIBRATION_TASK_ID,
+  deriveTagState,
+  loadCalibrationRun,
+  saveCalibrationRun,
+} from './state';
 
 // Task argument positions, indexed against the single-entry args definition
 // of the auto-tagging task below.
@@ -62,7 +69,7 @@ export function getTask(database: Database): RouterTask[] {
 
   return [
     {
-      id: `AUTO-TAG-${AVES_SIGLIP2_B32.id}`,
+      id: AUTO_TAG_TASK_ID,
       description: `Auto-Tag - Score stills against their calibrated tags using zero-shot embeddings (${AVES_SIGLIP2_B32.name})`,
       args: [
         {
@@ -140,14 +147,19 @@ export function getTask(database: Database): RouterTask[] {
             // prompt pass.
             const scoringTags = tagList.filter((tag) => thresholds.has(tag));
 
-            updateStatus(0, hashes.length, 'Embedding stills...');
+            // Other tasks keep their registered description: the runner's info
+            // string REPLACES queuedTask.description mid-run (task-manager.ts),
+            // which flips the task dropdown's label to the current phase, so
+            // only progress is reported here. The Auto-Tagging page carries its
+            // own status lines.
+            updateStatus(0, hashes.length);
             // proper-job calls the teardown with `undefined` when this function
             // rejects, so a failure after the pool exists must quit it here.
             const pool = await ensureEncoderPool(AVES_SIGLIP2_B32);
             try {
               const embeddings = await embedStills(database, transcoder, updateStatus, AVES_SIGLIP2_B32, pool, hashes);
 
-              updateStatus(0, hashes.length, 'Encoding tag prompts...');
+              updateStatus(0, hashes.length);
               const { table, textRows } = await encodePromptTable(pool, AVES_SIGLIP2_B32, scoringTags, settings.tags);
               const scoreTag = makeTagScorer(table, textRows);
               // Prompt scores per still, tracked against the yield budget in
@@ -183,13 +195,13 @@ export function getTask(database: Database): RouterTask[] {
                   // flushing and socket drains are served while a large
                   // library is scored (cancellation waits for the apply phase).
                   await yieldToEventLoop();
-                  updateStatus(index + 1, hashes.length, 'Scoring stills...');
+                  updateStatus(index + 1, hashes.length);
                 }
               }
 
-              // Restart the status text so the queue row stops claiming prompt
-              // encoding that has finished (same pattern as the classifier).
-              updateStatus(0, hashes.length, 'Applying auto-tags...');
+              // Reset the counter for the apply phase so per-item progress
+              // restarts from zero (same pattern as the classifier).
+              updateStatus(0, hashes.length);
 
               return {
                 iterable: writes,
@@ -291,11 +303,17 @@ export function getTask(database: Database): RouterTask[] {
             // cache reuses rows and scores are recomputed per run.
             hashes.sort();
             console.log(`Calibrating from ${hashes.length} tagged stills`);
+            // A user-initiated calibration with no tagged stills can never
+            // produce a result: a successful no-op writes no run record, so the
+            // page shows a spinner and then nothing changes. Fail loudly so the
+            // queue row and task notification carry the reason instead.
             if (hashes.length === 0) {
-              return [];
+              throw new Error(
+                'No tagged stills to calibrate from; tag some media (e.g. in the media viewer) before running calibration',
+              );
             }
 
-            updateStatus(0, Math.max(1, hashes.length), 'Embedding tagged stills...');
+            updateStatus(0, Math.max(1, hashes.length));
             // proper-job calls the teardown with `undefined` when this function
             // rejects, so a failure after the pool exists must quit it here.
             const pool = await ensureEncoderPool(AVES_SIGLIP2_B32);
@@ -364,7 +382,7 @@ export function getTask(database: Database): RouterTask[] {
                 // One tag's pass is synchronous; refresh the status and yield
                 // between tags so a large sample cannot starve status reads,
                 // log flushing or socket drains for the whole run.
-                updateStatus(tagIndex + 1, Math.max(1, tagList.length), 'Calibrating tags...');
+                updateStatus(tagIndex + 1, Math.max(1, tagList.length));
                 await yieldToEventLoop();
               }
 
@@ -457,7 +475,7 @@ async function embedStills(
       joined.set(row, (cachedRows + offset + index) * pack.dim);
     }
     done += slice.length;
-    updateStatus(done, hashes.length, 'Embedding stills...');
+    updateStatus(done, hashes.length);
   }
 
   if (missing.length > 0) {

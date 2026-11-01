@@ -6,20 +6,17 @@ import Config from '../config';
 import { NotFound } from '../errors';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
-import { AUTO_TAG_MODELS } from '../tasks/autotag/mobilenet/models';
+import { pickImportTask } from '../tasks/autotag/siglip/pick-import-task';
+import { AUTO_TAG_TASK_ID, autotagSettings, countApplicableTags } from '../tasks/autotag/siglip/state';
 import type { Database, RouterTask } from '../types';
 import { singleParam } from '../utils';
 
-// The task registered for the model registry's first (default) model, started
-// by AUTO-IMPORT. Derived here from the registry's own [0] so the default
-// cannot drift between the registry and this route.
-//
-// The zero-shot family (autotags.model = 'siglip2') is page-driven: an
-// uncalibrated install has no applicable thresholds, so routing auto-import
-// there fails fast and stops classification for everyone. The Auto-Tagging
-// page selects its Apply-target by model; auto-import deliberately keeps the
-// classifier family.
-const DEFAULT_AUTO_TAG_TASK_ID = `AUTO-TAG-${AUTO_TAG_MODELS[0].id}`;
+// AUTO-IMPORT follows the model family selected on the Auto-Tagging page. The
+// zero-shot family is additionally gated on an applicable threshold
+// (calibration or manual): its task fail-fasts without one, so starting it
+// unconditionally would turn every import into an errored task on an
+// uncalibrated server. Skipping it there (with a warning) is the honest
+// no-op; the page still shows the missing calibration.
 
 export async function create(db: Database, io: SocketIO.Server): Promise<Router> {
   const taskManager = new TaskManager();
@@ -44,7 +41,7 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
     description: '(Meta-task) Automatically import and cache new files',
     runner: () => {
       return execute(
-        () => {
+        async () => {
           taskManager.start('SCAN');
           taskManager.start('INDEX');
           taskManager.start('GENERATE-THUMBNAILS');
@@ -60,10 +57,42 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
           if (Config.get().enablePhash && taskManager.hasTask('GENERATE-PHASHES')) {
             taskManager.start('GENERATE-PHASHES');
           }
-          if (Config.get().enableAutoTags && taskManager.hasTask(DEFAULT_AUTO_TAG_TASK_ID)) {
-            taskManager.start(DEFAULT_AUTO_TAG_TASK_ID);
+          if (Config.get().enableAutoTags) {
+            // Auto-tagging is an optional extra on an import task: a corrupt
+            // persisted calibration state (getTaskState JSON-parses on sqlite)
+            // must not stop the import, so the gate and its start stay
+            // contained while the index/thumbnail starts above still fail the
+            // import when they fail. The gate is best-effort, not a guarantee:
+            // config can change between this check and the queued run, and the
+            // task re-derives its own thresholds when it starts.
+            try {
+              const settings = autotagSettings();
+              const hasApplicableTags =
+                settings.model === AUTO_TAG_TASK_ID ? (await countApplicableTags(db, settings)) > 0 : false;
+              const selection = pickImportTask(settings.model, hasApplicableTags);
+              if (selection.action === 'skip-siglip') {
+                // The zero-shot task fail-fasts without an applicable
+                // threshold, so skipping it is the honest no-op rather than
+                // turning every import into an errored task.
+                console.warn(
+                  'Skipping auto-tagging on import: SigLIP-2 is selected and no tag has an applicable threshold.',
+                );
+                console.warn(
+                  'Set a manual threshold or run calibration on the Auto-Tagging page, or select another model.',
+                );
+              } else if (selection.action === 'unknown-model') {
+                console.warn(
+                  `Skipping auto-tagging on import: the configured model ${settings.model} is not a known AUTO-TAG task` +
+                    ' - select a model on the Auto-Tagging page.',
+                );
+              } else if (taskManager.hasTask(selection.taskId)) {
+                taskManager.start(selection.taskId);
+              }
+            } catch (err) {
+              console.warn('Skipping auto-tagging on import: could not evaluate tag thresholds or start the task', err);
+            }
           }
-          return Promise.resolve([]);
+          return [];
         },
         () => Promise.resolve(),
       );

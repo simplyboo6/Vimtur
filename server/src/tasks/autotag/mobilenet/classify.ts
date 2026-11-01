@@ -57,7 +57,11 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            updateStatus(0, hashes.length, 'Downloading model...');
+            // Only progress is reported, never the info/description string: the
+            // runner's third argument REPLACES queuedTask.description mid-run
+            // (task-manager.ts), which flips the task dropdown's label to the
+            // current phase instead of keeping the registered description.
+            updateStatus(0, hashes.length);
             // This pre-downloads the model once so the workers don't each
             // attempt parallel downloads, and so the runner can hand the
             // verified path to the workers. loadClasses() is a fail-fast of
@@ -65,10 +69,9 @@ export function getTask(database: Database): RouterTask[] {
             const modelFile = await ensureModelDownloaded(modelDefinition);
             loadClasses();
 
-            // Restart the status text so the queue row stops claiming a
-            // download that has finished (the description override applies
-            // until another updateStatus sets text).
-            updateStatus(0, hashes.length, 'Classifying images...');
+            // Reset the counter for the classification phase so per-item
+            // progress restarts from zero.
+            updateStatus(0, hashes.length);
 
             // Only begin creating runners when the pool completes.
             const pool = new ScalingConnectionPool(

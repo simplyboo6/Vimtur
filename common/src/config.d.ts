@@ -89,11 +89,15 @@ export namespace Configuration {
 
   // Page-level settings for the Auto-Tagging pipeline.
   export interface AutoTags {
-    // Which model family the Auto-Tagging and Calibration tasks run. The wired
-    // Auto-Tagging page selects which task Apply runs from this value;
-    // AUTO-IMPORT deliberately stays on the classifier family (see
-    // server/src/routes/tasks.ts).
-    model: 'siglip2' | 'mobilenet';
+    /**
+     * The AUTO-TAG task id of the selected model, e.g.
+     * AUTO-TAG-AVES-SIGLIP2-B32 (zero-shot) or AUTO-TAG-MOBILE-NET-V2
+     * (classifier). The roster is the server's own listed AUTO-TAG-* tasks
+     * (GET /api/tasks), so no enum is possible here; unknown values fail
+     * closed at their use sites (import skips with a warning, the Auto-Tagging
+     * page shows the apply-unavailable alert).
+     */
+    model: string;
     /**
      * Number of concurrent encoding workers.
      * @minimum 1
@@ -119,7 +123,9 @@ export namespace Configuration {
   // Overlay-shaped mirror of AutoTags with every field optional, so a client
   // can write one settings field (e.g. only tags) without echoing the rest.
   export interface PartialAutoTags {
-    model?: 'siglip2' | 'mobilenet';
+    // See AutoTags.model: the AUTO-TAG task id; membership is validated at
+    // the use sites, not by this schema.
+    model?: string;
     /**
      * @minimum 1
      * @maximum 8
@@ -155,8 +161,10 @@ export namespace Configuration {
     transcoder: Transcoder;
     // Enable pHash generation for stills as part of import.
     enablePhash: boolean;
-    // Enable auto-tagging of stills as part of import.
-    // Note this uses the default image classification model (MobileNet V2).
+    // Enable auto-tagging of stills as part of import, using the model selected
+    // in the Auto-Tagging settings (autotags.model, an AUTO-TAG task id). The
+    // zero-shot task needs an applicable threshold (calibration or a manual
+    // override); without one, the import skips auto-tagging.
     enableAutoTags: boolean;
     // Auto-Tagging pipeline settings, for both the classifier and the
     // zero-shot embedding tasks.
