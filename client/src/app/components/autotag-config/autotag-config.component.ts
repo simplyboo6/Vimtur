@@ -37,9 +37,10 @@ const AUTOTAG_MODEL_ID = 'AVES-SIGLIP2-B32';
 
 const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
 
-// Bulk maintenance task: clears generated tags from media that carries manual
-// tags. It is the server-side counterpart of the viewer's × icon and runs as a
-// normal task, so its in-flight state is read from the raw queue snapshot.
+// Bulk maintenance task: clears generated tags from every media item that holds
+// an auto-tags list. It is the server-side counterpart of the viewer's × icon
+// and runs as a normal task, so its in-flight state is read from the raw queue
+// snapshot.
 const CLEAR_TAGGED_AUTOTAGS_TASK_ID = 'CLEAR-TAGGED-AUTOTAGS';
 
 // First value of the second apply select (and its server-side default): media
@@ -663,7 +664,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     if (this.clearTaggedAutoTagsInFlight()) {
       return;
     }
-    this.confirmationService.confirm('This removes auto-generated tags from every media item that carries manual tags.').then(confirmed => {
+    this.confirmationService.confirm('This removes auto-generated tags from every media item.').then(confirmed => {
       if (confirmed) {
         this.tasksService.startAction(CLEAR_TAGGED_AUTOTAGS_TASK_ID);
       }

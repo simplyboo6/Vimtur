@@ -895,7 +895,7 @@ describe('import task selection', () => {
 });
 
 describe('clear-tagged-autotags task', () => {
-  it('clears auto tags of manually tagged media and completes without items', async () => {
+  it('clears auto tags of every media item that holds an auto-tags list and completes without items', async () => {
     const calls: Array<{ constraints: SubsetConstraints; update: UpdateMedia }> = [];
     // Only the bulk method is exercised: the task is a thin pass-through, and
     // the NULL-vs-[] distinction is pinned at the database layer.
@@ -908,15 +908,13 @@ describe('clear-tagged-autotags task', () => {
 
     const task = getClearTaggedAutotagsTask(database);
     expect(task.id).to.equal('CLEAR-TAGGED-AUTOTAGS');
-    expect(task.description).to.contain('manually tagged');
+    expect(task.description).to.equal('Auto-Tag - Remove auto-generated tags from media');
 
     const result = await task.runner(() => undefined);
     expect(result.errors).to.deep.equal([]);
     expect(result.results).to.deep.equal([]);
-    // The work set is "manually tagged media that still has auto tags", and the
-    // update clears them to null, never [] (the pipeline's processed marker).
-    expect(calls).to.deep.equal([
-      { constraints: { tags: { exists: true }, autoTags: { exists: true } }, update: { autoTags: null } },
-    ]);
+    // The work set is "media with an auto-tags list" (no manual-tags gate), and
+    // the update clears them to null, never [] (the pipeline's processed marker).
+    expect(calls).to.deep.equal([{ constraints: { autoTags: { exists: true } }, update: { autoTags: null } }]);
   });
 });
