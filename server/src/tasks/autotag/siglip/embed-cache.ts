@@ -20,6 +20,9 @@ import type { EmbeddingPackDefinition } from './pack';
  *
  * The artifact grows monotonically: rows of media that has since been deleted
  * stay behind until the fingerprint bumps or the cache is deleted manually.
+ * Measured size: one 768-wide Float32 row is ~3 KB per still, and the json
+ * metadata adds ~67 B per hash. There is no pruning limit yet, so deleted
+ * media's rows grow the artifact until the fingerprint changes.
  *
  * Memory is O(library): the loaded artifact plus, when a run has misses, one
  * joined copy (~2x the .bin at full-768 scale). That is acceptable for
@@ -88,7 +91,7 @@ export async function loadEmbeddingCache(
 ): Promise<LoadedEmbeddings | undefined> {
   const binPath = cacheBinPath(pack);
   const metaPath = cacheMetaPath(pack);
-  if (!FS.existsSync(binPath) || !FS.existsSync(metaPath)) {
+  if (!(await fileExists(binPath)) || !(await fileExists(metaPath))) {
     return undefined;
   }
   const meta = JSON.parse(await FS.promises.readFile(metaPath, 'utf8')) as {
@@ -123,7 +126,7 @@ export async function saveEmbeddingCache(
 ): Promise<void> {
   // The TEST_MODE fake encoder never downloads a pack, so the directory the
   // artifact renames into does not exist yet on a first run.
-  FS.mkdirSync(packDir(pack), { recursive: true });
+  await FS.promises.mkdir(packDir(pack), { recursive: true });
   if (hashes.length !== rows.length) {
     throw new Error(`Embedding cache rows (${rows.length}) do not match hash list (${hashes.length})`);
   }
@@ -140,18 +143,28 @@ export async function saveEmbeddingCache(
 
   try {
     await writeRows(FS.createWriteStream(binPartial), rows);
-    FS.writeFileSync(metaPartial, JSON.stringify({ hashes, dims, fingerprint }));
-    FS.renameSync(binPartial, binPath);
-    FS.renameSync(metaPartial, metaPath);
+    await FS.promises.writeFile(metaPartial, JSON.stringify({ hashes, dims, fingerprint }));
+    await FS.promises.rename(binPartial, binPath);
+    await FS.promises.rename(metaPartial, metaPath);
   } catch (err: unknown) {
     for (const partial of [binPartial, metaPartial]) {
       try {
-        FS.unlinkSync(partial);
+        await FS.promises.unlink(partial);
       } catch {
         // Not a file; leave whatever exists for diagnostics.
       }
     }
     throw err;
+  }
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await FS.promises.access(path);
+    return true;
+  } catch {
+    // Any access error (missing, unreadable) reads as "nothing cached".
+    return false;
   }
 }
 

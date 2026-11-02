@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
-import { ReplaySubject, Observable, of } from 'rxjs';
+import { ReplaySubject, Observable, of, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { QueuedTask, ListedTask, Scanner, TaskArgs } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
@@ -194,6 +194,8 @@ export class TasksService {
   // One-shot read of a task definition's persisted state. A 404 means the state
   // has never been stored (e.g. no calibration run yet), which is a normal
   // state rather than an error, so it resolves to undefined without an alert.
+  // Every other failure propagates to the caller to report: turning a
+  // connectivity problem into "no state stored" would silently hide it.
   // Deliberately not cached: callers refetch at natural refresh points.
   public getTaskState<T>(taskId: string, key: string): Observable<T | undefined> {
     return this.httpClient.get<T>(`${ROOT_PATH}/state/${taskId}/${key}`).pipe(
@@ -201,12 +203,7 @@ export class TasksService {
         if (err.status === 404) {
           return of(undefined);
         }
-        console.error(err);
-        this.alertService.show({
-          type: 'danger',
-          message: err.error?.message || 'Failed to fetch task state',
-        });
-        return of(undefined);
+        return throwError(() => err);
       }),
     );
   }

@@ -1,5 +1,4 @@
-import FS from 'node:fs';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rename, stat } from 'node:fs/promises';
 import Path from 'node:path';
 
 import Config from '../../../config';
@@ -105,11 +104,23 @@ export function packFilePath(pack: EmbeddingPackDefinition, file: PackFile): str
  * is verified once at download time, never on every use. Used to pick the
  * real encoder versus the TEST_MODE fake without any network probing.
  */
-export function isPackCached(pack: EmbeddingPackDefinition): boolean {
-  return pack.files.every((file) => {
-    const destination = packFilePath(pack, file);
-    return FS.existsSync(destination) && FS.statSync(destination).size === file.size;
-  });
+export async function isPackCached(pack: EmbeddingPackDefinition): Promise<boolean> {
+  for (const file of pack.files) {
+    if (!(await hasExpectedSize(packFilePath(pack, file), file.size))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** True when `path` exists with exactly `size` bytes; a stat only, never a read. */
+async function hasExpectedSize(path: string, size: number): Promise<boolean> {
+  try {
+    return (await stat(path)).size === size;
+  } catch {
+    // A missing file is just "not cached yet".
+    return false;
+  }
 }
 
 /**
@@ -125,7 +136,7 @@ export function isPackCached(pack: EmbeddingPackDefinition): boolean {
 const PACK_DOWNLOAD_TIMEOUT_MS = 1_800_000;
 
 export async function ensurePackDownloaded(pack: EmbeddingPackDefinition): Promise<void> {
-  if (isPackCached(pack)) {
+  if (await isPackCached(pack)) {
     return;
   }
   await mkdir(packDir(pack), { recursive: true });
@@ -137,12 +148,12 @@ export async function ensurePackDownloaded(pack: EmbeddingPackDefinition): Promi
     // online and fails honestly when offline rather than feeding a truncated
     // model to the encoder. No HEAD probe: a remote size cannot be trusted
     // over the size declared by the verified definition.
-    if (FS.existsSync(destination) && FS.statSync(destination).size === file.size) {
+    if (await hasExpectedSize(destination, file.size)) {
       continue;
     }
     const partial = `${destination}.part`;
     await downloadAndVerifyFile({ url: file.url, sha256: file.sha256 }, partial, PACK_DOWNLOAD_TIMEOUT_MS);
-    FS.renameSync(partial, destination);
+    await rename(partial, destination);
     console.log(`Pack file downloaded: ${pack.id}/${file.name}`);
   }
 }

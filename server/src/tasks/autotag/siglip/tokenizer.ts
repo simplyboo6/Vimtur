@@ -48,11 +48,11 @@ export class SigLip2Tokenizer {
 
   /**
    * Main-thread construction: parses the multi-megabyte tokenizer.json once
-   * per run; ONNX encode workers never touch the file (they only receive
-   * finished token rows).
+   * per run, off the event loop; ONNX encode workers never touch the file
+   * (they only receive finished token rows).
    */
-  public static fromTokenizerJson(path: string, contextLength: number): SigLip2Tokenizer {
-    const doc = JSON.parse(FS.readFileSync(path, 'utf8')) as { model: TokenizerJsonModel };
+  public static async fromTokenizerJson(path: string, contextLength: number): Promise<SigLip2Tokenizer> {
+    const doc = JSON.parse(await FS.promises.readFile(path, 'utf8')) as { model: TokenizerJsonModel };
     const model = doc.model;
     if (model.type !== 'BPE') {
       throw new Error(`Expected the SigLIP2 BPE tokenizer, got ${model.type}`);
@@ -65,8 +65,8 @@ export class SigLip2Tokenizer {
     return new SigLip2Tokenizer(model.vocab, model.merges, contextLength);
   }
 
-  /** Weightless BPE: repeatedly merge the adjacent pair with the lowest rank. */
-  private bpe(word: string): string[] {
+  /** Byte-Pair Encoding (BPE): repeatedly merge the adjacent pair with the lowest merge rank. */
+  private applyBpeMerges(word: string): string[] {
     const cached = this.cache.get(word);
     if (cached !== undefined) {
       return cached;
@@ -106,7 +106,7 @@ export class SigLip2Tokenizer {
     // The JSON normaliser is a single Replace rule; case is untouched.
     const normalised = text.replace(/ /g, '▁');
     const ids: number[] = [];
-    for (const piece of this.bpe(normalised)) {
+    for (const piece of this.applyBpeMerges(normalised)) {
       const id = this.vocab.get(piece);
       ids.push(id === undefined ? this.unkId : id);
     }

@@ -6,7 +6,6 @@
 // drifting, and purity is what makes the routing testable.
 
 import { AUTO_TAG_MODELS } from '../mobilenet/models';
-
 import { AUTO_TAG_TASK_ID } from './state';
 
 // The configured model is an AUTO-TAG task id. Classifier ids are

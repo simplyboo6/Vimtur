@@ -7,12 +7,16 @@ import type { Database, RouterTask, TaskRunnerCallback } from '../../../types';
 import { AUTO_TAG_MODELS, ensureModelDownloaded, loadClasses, MAX_INSTANCES, type ModelDefinition } from './models';
 import { ClassifierWorkerWrapper } from './workers/classifier-worker-wrapper';
 
-// Task argument positions, indexed against the single-entry args definition
+// Task argument positions, indexed against the two-entry args definition
 // declared per task role below the runner.
 const ARG_MODE = 0;
+const ARG_TAGGED = 1;
 
 const MODE_SKIP_EXISTING = 'skip-existing';
 const MODE_REPLACE = 'replace';
+
+const MODE_SKIP_TAGGED = 'skip-tagged';
+const MODE_INCLUDE_TAGGED = 'include-tagged';
 
 // One task is registered per available model.
 export function getTask(database: Database): RouterTask[] {
@@ -38,6 +42,24 @@ export function getTask(database: Database): RouterTask[] {
             },
           ],
         },
+        {
+          // Omitted or empty arguments default to 'skip-tagged': a manual tag is
+          // the user's own judgement, so auto-tagging must not add to or
+          // overwrite it unless explicitly asked. This is the requested
+          // "tags should override auto tags" behaviour, and the existing-args
+          // default above is unchanged.
+          type: 'select',
+          name: 'Tag media with manual tags',
+          values: [
+            { id: MODE_SKIP_TAGGED, name: 'Skip media the user has manually tagged' },
+            {
+              id: MODE_INCLUDE_TAGGED,
+              name: 'Include manually tagged media',
+              confirm:
+                'Include media that already carries manual tags. Those manual tags will not be protected: auto-generated tags are written alongside them.',
+            },
+          ],
+        },
       ],
       runner: (updateStatus: TaskRunnerCallback, args?: TaskArgs) => {
         return execute(
@@ -46,13 +68,18 @@ export function getTask(database: Database): RouterTask[] {
             if (mode !== MODE_SKIP_EXISTING && mode !== MODE_REPLACE) {
               throw new Error(`Unexpected AUTO-TAG mode: ${mode}`);
             }
+            const taggedMode = args?.[ARG_TAGGED] ?? MODE_SKIP_TAGGED;
+            if (taggedMode !== MODE_SKIP_TAGGED && taggedMode !== MODE_INCLUDE_TAGGED) {
+              throw new Error(`Unexpected AUTO-TAG tagged mode: ${taggedMode}`);
+            }
 
             const hashes = await database.subset({
               type: { equalsAny: ['still'] },
               autoTags: mode === MODE_SKIP_EXISTING ? { exists: false } : undefined,
+              tags: taggedMode === MODE_SKIP_TAGGED ? { exists: false } : undefined,
               thumbnail: true,
             });
-            console.log(`Classifying ${hashes.length} images (${mode})`);
+            console.log(`Classifying ${hashes.length} images (${mode}, ${taggedMode})`);
             if (hashes.length === 0) {
               return [];
             }

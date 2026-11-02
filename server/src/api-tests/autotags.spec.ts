@@ -1,6 +1,6 @@
 import FS from 'node:fs';
 import Path from 'node:path';
-import type { QueuedTask } from '@vimtur/common';
+import type { ListedTask, QueuedTask } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe } from 'mocha';
 
@@ -114,11 +114,140 @@ describe('Auto-tags round-trip', () => {
     expect(entry.error).to.include('Unexpected AUTO-TAG mode');
   });
 
+  it('lists the manual-tag argument on both apply task families', async function (this: Mocha.Context) {
+    this.timeout(30_000);
+    const tasks = assertOk(await client.get<ListedTask[]>('/api/tasks'), 'GET /api/tasks');
+    const siglip = tasks.find((task) => task.id === 'AUTO-TAG-AVES-SIGLIP2-B32');
+    const classifier = tasks.find((task) => task.id === 'AUTO-TAG-MOBILE-NET-V2');
+    for (const [label, task] of [
+      ['siglip', siglip],
+      ['classifier', classifier],
+    ] as const) {
+      expect(task, `${label} task listed`).to.not.equal(undefined);
+      expect(task?.args, `${label} args`).to.have.lengthOf(2);
+      const taggedArg = task?.args?.[1];
+      expect(taggedArg?.type, `${label} second arg type`).to.equal('select');
+      expect(taggedArg?.name, `${label} second arg name`).to.equal('Tag media with manual tags');
+      expect(
+        taggedArg?.type === 'select' ? taggedArg.values.map((value) => value.id) : [],
+        `${label} second arg values`,
+      ).to.deep.equal(['skip-tagged', 'include-tagged']);
+    }
+  });
+
   it('RESET-AUTOTAGS removes them and their keyword matches', async function (this: Mocha.Context) {
     this.timeout(60_000);
     await runTaskAndWait(client, 'RESET-AUTOTAGS');
     expect((await detail(client, stillHash)).autoTags).to.equal(undefined);
     expect(await subset(client, { keywordSearch: 'tabby' })).to.deep.equal([]);
+  });
+});
+
+// The bulk counterpart of the viewer's clear icon: only media that carries a
+// manual tag loses its generated tags, and the clear stores NULL rather than
+// an empty list, so the skip-existing work set treats the item as unprocessed
+// again.
+describe('CLEAR-TAGGED-AUTOTAGS', () => {
+  let server: ApiServer;
+  let client: ApiClient;
+  let taggedHash: string;
+  let autoOnlyHash: string;
+  let manualOnlyHash: string;
+
+  before(async function (this: Mocha.Context) {
+    this.timeout(240_000);
+    server = await startServer();
+    client = new ApiClient(server.baseUrl);
+    for (const [filename, color] of [
+      ['tagged.jpg', 'orange'],
+      ['auto-only.jpg', 'purple'],
+      ['manual-only.jpg', 'teal'],
+    ] as const) {
+      await createStill(server.libraryPath, filename, color);
+    }
+    await runTaskAndWait(client, 'SCAN');
+    await runTaskAndWait(client, 'INDEX');
+    const byName = async (needle: string): Promise<string> => {
+      const hashes = await subset(client, { path: { likeAny: [needle] } });
+      expect(hashes, needle).to.have.lengthOf(1);
+      return hashes[0];
+    };
+    taggedHash = await byName('tagged.jpg');
+    autoOnlyHash = await byName('auto-only.jpg');
+    manualOnlyHash = await byName('manual-only.jpg');
+
+    assertOk(await client.post<string[]>('/api/tags', { tag: 'people' }), 'POST /api/tags people');
+    for (const hash of [taggedHash, manualOnlyHash]) {
+      expect((await client.post(`/api/images/${hash}/tags`, { name: 'people' })).status).to.equal(204);
+    }
+    expect((await client.patch(`/api/images/${taggedHash}`, { autoTags: ['kitten'] })).status).to.equal(200);
+    expect((await client.patch(`/api/images/${autoOnlyHash}`, { autoTags: ['puppy'] })).status).to.equal(200);
+  });
+
+  after(async () => {
+    await server?.stop();
+  });
+
+  it('clears generated tags only from media with manual tags', async function (this: Mocha.Context) {
+    this.timeout(60_000);
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
+
+    const tagged = await detail(client, taggedHash);
+    expect(tagged.autoTags, 'tagged media autoTags').to.equal(undefined);
+    expect(tagged.tags, 'tagged media manual tags').to.deep.equal(['people']);
+
+    expect((await detail(client, autoOnlyHash)).autoTags, 'auto-only media autoTags').to.deep.equal(['puppy']);
+    expect((await detail(client, manualOnlyHash)).autoTags, 'manual-only media autoTags').to.equal(undefined);
+    expect((await detail(client, manualOnlyHash)).tags, 'manual-only media tags').to.deep.equal(['people']);
+
+    // NULL (absent), not []: the cleared item is unprocessed again, so the
+    // skip-existing work set includes it.
+    expect(await subset(client, { autoTags: { exists: false } })).to.have.members([taggedHash, manualOnlyHash]);
+  });
+});
+
+// The viewer's × icon: clearing stores NULL (not the [] "processed" marker),
+// so the item is reconsidered by a default skip-existing apply while a manual
+// tag still protects it under the skip-tagged default.
+describe('Clear media auto-tags endpoint', () => {
+  let server: ApiServer;
+  let client: ApiClient;
+  let hash: string;
+
+  before(async function (this: Mocha.Context) {
+    this.timeout(240_000);
+    server = await startServer();
+    client = new ApiClient(server.baseUrl);
+    await createStill(server.libraryPath, 'clear-endpoint.jpg', 'crimson');
+    await runTaskAndWait(client, 'SCAN');
+    await runTaskAndWait(client, 'INDEX');
+    const hashes = await subset(client, { path: { likeAny: ['clear-endpoint.jpg'] } });
+    expect(hashes, 'clear-endpoint.jpg').to.have.lengthOf(1);
+    hash = hashes[0];
+
+    assertOk(await client.post<string[]>('/api/tags', { tag: 'people' }), 'POST /api/tags people');
+    expect((await client.post(`/api/images/${hash}/tags`, { name: 'people' })).status).to.equal(204);
+    expect((await client.patch(`/api/images/${hash}`, { autoTags: ['kitten'] })).status).to.equal(200);
+  });
+
+  after(async () => {
+    await server?.stop();
+  });
+
+  it('DELETE removes the auto tags, keeps manual tags and un-marks the item', async function (this: Mocha.Context) {
+    this.timeout(30_000);
+    expect((await client.delete(`/api/images/${hash}/autotags`)).status, 'DELETE /api/images/:hash/autotags').to.equal(
+      204,
+    );
+
+    const media = await detail(client, hash);
+    expect(media.autoTags, 'cleared media autoTags').to.equal(undefined);
+    expect(media.tags, 'manual tags survive the clear').to.deep.equal(['people']);
+    // NULL (absent), not []: the skip-existing work set includes it again.
+    expect(await subset(client, { autoTags: { exists: false } })).to.include(hash);
+
+    // Idempotent: the media still exists, so a repeat DELETE is another 204.
+    expect((await client.delete(`/api/images/${hash}/autotags`)).status, 'repeat DELETE').to.equal(204);
   });
 });
 

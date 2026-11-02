@@ -4,9 +4,11 @@ import FS from 'node:fs';
 import OS from 'node:os';
 import Path from 'node:path';
 
-import type { Autotag, Configuration } from '@vimtur/common';
+import type { Autotag, Configuration, SubsetConstraints } from '@vimtur/common';
 import { expect } from 'chai';
 import { after, before, beforeEach, describe, it } from 'mocha';
+
+import { getTask as getClearTaggedAutotagsTask } from '../tasks/autotag/clear-tagged-autotags';
 
 import {
   computeFingerprint,
@@ -21,7 +23,8 @@ import type { EmbeddingPackDefinition } from '../tasks/autotag/siglip/pack';
 import { pickImportTask } from '../tasks/autotag/siglip/pick-import-task';
 import { buildPromptTable } from '../tasks/autotag/siglip/prompts';
 import { makeTagScorer } from '../tasks/autotag/siglip/scoring';
-import { deriveTagState } from '../tasks/autotag/siglip/state';
+import { configuredTags, deriveTagState } from '../tasks/autotag/siglip/state';
+import type { AutotagSettings } from '../tasks/autotag/siglip/state';
 import { SIGLIP2_EOS_ID, SIGLIP2_PAD_ID, SIGLIP2_UNK_ID, SigLip2Tokenizer } from '../tasks/autotag/siglip/tokenizer';
 import { l2NormaliseRow } from '../tasks/autotag/siglip/vector';
 
@@ -557,7 +560,7 @@ describe('tag state derivation', () => {
   });
 
   it('Lets a manual override beat the calibration', () => {
-    const configTag: Configuration.AutoTagTag = { manualThreshold: 0.2 };
+    const configTag: Configuration.AutoTagMetadata = { manualThreshold: 0.2 };
     expect(deriveTagState('alpha', configTag, RUN, 8)).to.deep.equal({
       status: 'Manually overridden',
       threshold: 0.2,
@@ -567,7 +570,7 @@ describe('tag state derivation', () => {
   it('Treats a manual threshold of zero as a real override', () => {
     // Zero is a meaningful cosine cut, so the typeof guard must not mistake
     // it for "no override" the way a truthiness check would.
-    const configTag: Configuration.AutoTagTag = { manualThreshold: 0 };
+    const configTag: Configuration.AutoTagMetadata = { manualThreshold: 0 };
     expect(deriveTagState('alpha', configTag, RUN, 8)).to.deep.equal({
       status: 'Manually overridden',
       threshold: 0,
@@ -575,12 +578,50 @@ describe('tag state derivation', () => {
   });
 
   it('Falls through to calibration when the override is explicitly cleared', () => {
-    const configTag: Configuration.AutoTagTag = { manualThreshold: null };
+    const configTag: Configuration.AutoTagMetadata = { manualThreshold: null };
     expect(deriveTagState('alpha', configTag, RUN, 8)).to.deep.equal({ status: 'Calibrated', threshold: 0.5 });
   });
 
   it('Uses the caller-supplied support floor', () => {
     expect(deriveTagState('beta', undefined, RUN, 2)).to.deep.equal({ status: 'Calibrated', threshold: 0.3 });
+  });
+});
+
+describe('scored tag roster', () => {
+  function settingsWithTags(tags: Record<string, Configuration.AutoTagMetadata>): AutotagSettings {
+    return { model: 'AUTO-TAG-AVES-SIGLIP2-B32', workers: 1, minSupport: 8, calibrationSampleSize: 500, tags };
+  }
+
+  it('Returns only DB tags that carry a config entry', () => {
+    // The config entry is the user's opt-in, so an unconfigured library tag is
+    // never scored.
+    const settings = settingsWithTags({ alpha: {}, gamma: { manualThreshold: 0 } });
+    expect(configuredTags(['alpha', 'beta', 'gamma'], settings)).to.deep.equal(['alpha', 'gamma']);
+  });
+
+  it('Keeps a configured tag with no descriptions, using the synthetic prompts', () => {
+    // Presence, not content, is the gate: an empty entry still builds the two
+    // default prompts, which is why "no prompts found" is now only reachable
+    // for tags that were never configured.
+    const settings = settingsWithTags({ alpha: {} });
+    const roster = configuredTags(['alpha'], settings);
+    expect(roster).to.deep.equal(['alpha']);
+    const table = buildPromptTable(roster, (tag) => settings.tags[tag]?.descriptions);
+    expect(table[0].prompts).to.deep.equal(['alpha', 'a photo of alpha']);
+  });
+
+  it('Ignores config entries whose DB tag no longer exists', () => {
+    // The calibration purge removes these, but a stale entry must not be
+    // scored in the window before the next calibration runs.
+    const settings = settingsWithTags({ alpha: {}, deleted: { manualThreshold: 0 } });
+    expect(configuredTags(['alpha'], settings)).to.deep.equal(['alpha']);
+  });
+
+  it('Returns the roster sorted for stable prompt-table positions', () => {
+    // sqlite's getTags is unordered; the prompt table's row offsets must not
+    // move between runs.
+    const settings = settingsWithTags({ zulu: {}, alpha: {}, mike: {} });
+    expect(configuredTags(['zulu', 'alpha', 'mike'], settings)).to.deep.equal(['alpha', 'mike', 'zulu']);
   });
 });
 
@@ -621,5 +662,30 @@ describe('import task selection', () => {
     // would accept any AUTO-TAG-<anything>; this pins the AUTO_TAG_MODELS
     // membership check.
     expect(pickImportTask('AUTO-TAG-NOT-A-MODEL', true)).to.deep.equal({ action: 'unknown-model' });
+  });
+});
+
+describe('clear-tagged-autotags task', () => {
+  it('clears auto tags of manually tagged media and completes without items', async () => {
+    const constraints: SubsetConstraints[] = [];
+    // Only the bulk method is exercised: the task is a thin pass-through, and
+    // the NULL-vs-[] distinction is pinned at the database layer.
+    const database = {
+      clearAutoTags: (value: SubsetConstraints): Promise<number> => {
+        constraints.push(value);
+        return Promise.resolve(2);
+      },
+    } as unknown as Parameters<typeof getClearTaggedAutotagsTask>[0];
+
+    const task = getClearTaggedAutotagsTask(database);
+    expect(task.id).to.equal('CLEAR-TAGGED-AUTOTAGS');
+    expect(task.description).to.contain('manually tagged');
+
+    const result = await task.runner(() => undefined);
+    expect(result.errors).to.deep.equal([]);
+    expect(result.results).to.deep.equal([]);
+    // The work set is "manually tagged media that still has auto tags", so a
+    // media item with manual tags but no auto tags is not counted as cleared.
+    expect(constraints).to.deep.equal([{ tags: { exists: true }, autoTags: { exists: true } }]);
   });
 });

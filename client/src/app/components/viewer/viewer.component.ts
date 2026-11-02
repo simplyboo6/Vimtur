@@ -68,4 +68,12 @@ export class ViewerComponent implements OnInit, OnDestroy {
     }
     this.subscriptions = [];
   }
+
+  // A deliberate one-click action: the maintainer asked for a quick × rather
+  // than a per-tag editor, and re-running Auto-Tag restores the tags unless the
+  // user has manually tagged it (the default skip-tagged mode protects manual
+  // tags), so no confirmation modal gets in the way.
+  public clearAutoTags(): void {
+    this.mediaService.clearAutoTags();
+  }
 }

@@ -70,9 +70,9 @@ export namespace Configuration {
     autoClearCompletedTasks?: boolean;
   }
 
-  // Per-tag configuration for the zero-shot Auto-Tagging pipeline, edited from
+  // Per-tag metadata for the zero-shot Auto-Tagging pipeline, edited from
   // the Auto-Tagging page and persisted through the normal config overlay.
-  export interface AutoTagTag {
+  export interface AutoTagMetadata {
     // Short text hints scored alongside the tag name itself (the bare tag and
     // "a photo of {tag}" are always scored too). Replaced wholesale on save.
     descriptions?: string[];
@@ -99,7 +99,10 @@ export namespace Configuration {
      */
     model: string;
     /**
-     * Number of concurrent encoding workers.
+     * Number of concurrent encoding workers. The boot default is derived from
+     * host RAM (no more than half of system memory at ~400MB per worker); an
+     * explicit value above that budget or the host's CPU count is silently
+     * clamped at use, never rejected — 8 on a small box can mean 2.
      * @minimum 1
      * @maximum 8
      */
@@ -116,8 +119,10 @@ export namespace Configuration {
      * @minimum 1
      */
     calibrationSampleSize: number;
-    // Per-tag configuration keyed by tag name.
-    tags?: { [tag: string]: AutoTagTag };
+    // Per-tag metadata keyed by tag name. Scoring is opt-in: only DB tags with
+    // an entry here (a description or a threshold) are scored and calibrated;
+    // entries for deleted tags are purged at the next calibration run.
+    tags?: { [tag: string]: AutoTagMetadata };
   }
 
   // Overlay-shaped mirror of AutoTags with every field optional, so a client
@@ -139,7 +144,7 @@ export namespace Configuration {
      * @minimum 1
      */
     calibrationSampleSize?: number;
-    tags?: { [tag: string]: AutoTagTag };
+    tags?: { [tag: string]: AutoTagMetadata };
   }
 
   export interface Mongo {
