@@ -7,6 +7,7 @@ import Auth from 'http-auth';
 import { rimraf } from 'rimraf';
 
 import Config from '../config';
+import { removeCachedEmbeddings } from '../tasks/autotag/siglip/embed-cache';
 
 export function authConnector(req: Express.Request, res: Express.Response, next: Express.NextFunction): void {
   if (Config.get().username && Config.get().password) {
@@ -59,6 +60,12 @@ export async function deleteCache(hash: string): Promise<void> {
 
 export async function deleteMedia(media: Media): Promise<void> {
   await deleteCache(media.hash);
+  // deleteCache removes this hash's own cache FILES, but the embedding cache is
+  // one artifact for the whole library: its index has to drop the hash too or
+  // the row stays unreachable garbage in the bin until the next save compacts it.
+  // A corrupt index never blocks a media delete (the prune skips it); other
+  // cache I/O failures propagate like deleteCache's.
+  await removeCachedEmbeddings([media.hash]);
 
   try {
     await Util.promisify(FS.unlink)(media.absolutePath);

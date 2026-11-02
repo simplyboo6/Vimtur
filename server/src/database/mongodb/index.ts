@@ -615,8 +615,18 @@ export class MongoConnector extends Database {
       // The _id is internal to the database; the rest of the document is the API shape.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure exposes the stored document without _id
       const { _id, playlists, ...document } = result;
+      // A cleared row stores an explicit null (the same unprocessed state
+      // resetAutoTags' $unset produces, and the Mongo representation of it),
+      // but Media.autoTags is typed string[]. Drop the null on the read path
+      // only, so both engines serve cleared rows identically: SQLite omits the
+      // property when its auto_tags column is NULL, while the stored Mongo
+      // field stays null.
+      const storedDocument = document as typeof document & { autoTags?: string[] | null };
+      if (storedDocument.autoTags === null) {
+        delete storedDocument.autoTags;
+      }
       return {
-        ...document,
+        ...storedDocument,
         absolutePath: Path.resolve(Config.get().libraryPath, document.path),
         // Documents joined in with a $lookup pipeline carry the joined
         // playlist's ObjectId; the API surface keeps the string id. The key is
@@ -648,16 +658,12 @@ export class MongoConnector extends Database {
 
     // The flattened update contains dynamically generated `metadata.<key>`
     // dotted paths, which are not part of the collection's static field typing.
+    // An explicit autoTags: null lands as a null field, Mongo's representation
+    // of the same unprocessed state resetAutoTags stores via $unset; [] stays
+    // the "processed, nothing scored" marker the array filters key off.
     const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
     const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: update });
     return result.matchedCount;
-  }
-
-  public async clearAutoTags(constraints: SubsetConstraints): Promise<number> {
-    const collection = this.db.collection<BaseMedia>('media');
-    const result = await collection.updateMany(this.buildClearAutoTagsMatch(constraints), { $unset: { autoTags: '' } });
-    console.log(`clearAutoTags: ${result.modifiedCount} cleared`);
-    return result.modifiedCount;
   }
 
   public async countMedia(): Promise<number> {
@@ -668,7 +674,10 @@ export class MongoConnector extends Database {
     const collection = this.db.collection<BaseMedia>('media');
     if (await this.getMedia(hash)) {
       // The flattened update contains dynamically generated `metadata.<key>`
-      // dotted paths, which are not part of the collection's static field typing.
+      // dotted paths, which are not part of the collection's static field
+      // typing. An explicit autoTags: null is stored as a null field (the same
+      // unprocessed state resetAutoTags' $unset produces); [] is the
+      // "processed, nothing scored" marker.
       const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
       await collection.updateOne({ hash }, { $set: update });
     } else {
@@ -869,27 +878,6 @@ export class MongoConnector extends Database {
 
   public async close(): Promise<void> {
     await this.server.close();
-  }
-
-  // clearAutoTags must un-mark a stored `[]` row the way SQLite's
-  // `auto_tags IS NOT NULL` does. createArrayFilter's exists leg keys off
-  // `autoTags.0`, which an empty array fails, so the exists-only form (the
-  // CLEAR-TAGGED-AUTOTAGS call) is composed here to accept it; any other
-  // autoTags options keep the general array filter unchanged.
-  private buildClearAutoTagsMatch(constraints: SubsetConstraints): object {
-    const { autoTags, ...rest } = constraints;
-    const filters: object[] = [this.buildMediaMatch(rest)];
-    if (autoTags?.exists === true && Object.keys(autoTags).length === 1) {
-      filters.push({ $or: [{ 'autoTags.0': { $exists: true } }, { autoTags: [] }] });
-    } else if (autoTags) {
-      filters.push(createArrayFilter('autoTags', autoTags));
-    }
-
-    const filteredFilters = filters.filter((filter) => Object.keys(filter).length > 0);
-    if (filteredFilters.length === 0) {
-      return {};
-    }
-    return { $and: filteredFilters };
   }
 
   private buildMediaMatch(constraints: SubsetConstraints): object {

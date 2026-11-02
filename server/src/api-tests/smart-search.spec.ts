@@ -737,6 +737,7 @@ describe('Smart-search autotagging', () => {
         hashes: string[];
         dims: number;
         fingerprint: string;
+        rows?: number[];
       };
       expect(meta.dims).to.equal(EMBEDDING_DIMS);
       // 64 hex characters: a sha256 over the pack definition, batching and
@@ -745,10 +746,36 @@ describe('Smart-search autotagging', () => {
       // matches the metadata's own row count.
       expect(meta.fingerprint).to.match(/^[0-9a-f]{64}$/);
       expect(meta.hashes).to.have.members(stills);
-      expect(FS.statSync(binPath).size).to.equal(meta.hashes.length * meta.dims * 4);
+      // The bin is append-only between saves, so a delete can legally leave an
+      // unreachable tail; every listed row must still be addressable within it.
+      const rows = meta.rows ?? meta.hashes.map((_, index) => index);
+      const lastRow = Math.max(-1, ...rows);
+      expect(FS.statSync(binPath).size, binPath).to.be.at.least((lastRow + 1) * meta.dims * 4);
       expect(FS.statSync(binPath).size).to.be.greaterThan(0);
     });
   }
+
+  it('drops a deleted still from the embedding index and keeps the survivors loadable', async () => {
+    // Black-box wiring for the delete path: the apply tasks above populated
+    // the cache, so DELETE must prune this hash from embeddings.json while
+    // the survivors stay addressable. The next apply run then loads the
+    // pruned index without a save (every survivor is still cached).
+    const packDir = Path.join(server.cachePath, 'autotag', PACK_ID);
+    const metaPath = Path.join(packDir, 'embeddings.json');
+    const before = JSON.parse(FS.readFileSync(metaPath, 'utf8')) as { hashes: string[] };
+    const deleted = stills[0];
+    expect(before.hashes, 'cache seeded by the apply runs').to.include(deleted);
+
+    assertStatus(await client.delete(`/api/images/${deleted}`), 204, `DELETE /api/images/${deleted}`);
+
+    const after = JSON.parse(FS.readFileSync(metaPath, 'utf8')) as { hashes: string[] };
+    expect(after.hashes, 'deleted hash pruned').to.not.include(deleted);
+    expect(after.hashes, 'survivors still indexed').to.have.members(stills.slice(1));
+
+    // Re-running the apply task loads the pruned artifact; a misaddressed
+    // row or a cache load failure would fail the drain.
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
+  });
 });
 
 // A dedicated server: the suite above has tags and manual thresholds by this

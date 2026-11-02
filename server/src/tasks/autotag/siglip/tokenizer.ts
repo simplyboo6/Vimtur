@@ -7,7 +7,7 @@
 // (id 3). The graph takes only input_ids; the POC verified no attention-mask
 // input exists, so none is produced here.
 
-import FS from 'node:fs';
+import { readFile } from 'node:fs/promises';
 
 /** token -> id map size sanity: the published vocabulary is 256k pieces. */
 const EXPECTED_VOCAB_SIZE = 256_000;
@@ -52,7 +52,7 @@ export class SigLip2Tokenizer {
    * (they only receive finished token rows).
    */
   public static async fromTokenizerJson(path: string, contextLength: number): Promise<SigLip2Tokenizer> {
-    const doc = JSON.parse(await FS.promises.readFile(path, 'utf8')) as { model: TokenizerJsonModel };
+    const doc = JSON.parse(await readFile(path, 'utf8')) as { model: TokenizerJsonModel };
     const model = doc.model;
     if (model.type !== 'BPE') {
       throw new Error(`Expected the SigLIP2 BPE tokenizer, got ${model.type}`);

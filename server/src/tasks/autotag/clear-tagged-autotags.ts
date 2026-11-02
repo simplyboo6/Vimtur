@@ -4,10 +4,11 @@ import type { Database, RouterTask } from '../../types';
 
 // Bulk counterpart of the media viewer's clear icon: once media has manual
 // tags, the user can drop the auto-generated tags those manual tags are meant
-// to outrank. Clearing stores NULL rather than an empty list because an empty
-// list is the siglip pipeline's "processed, no tags matched" marker; writing
-// [] here would make the items look scored and the next skip-existing run
-// would leave them alone.
+// to outrank. It goes through the standard media update API (UpdateMedia's
+// autoTags: null), which stores the unprocessed state rather than an empty
+// list: [] is the siglip pipeline's "processed, no tags matched" marker, so
+// writing it here would make the items look scored and the next skip-existing
+// run would leave them alone. See UpdateMedia.autoTags in @vimtur/common.
 export function getTask(database: Database): RouterTask {
   return {
     id: 'CLEAR-TAGGED-AUTOTAGS',
@@ -15,7 +16,10 @@ export function getTask(database: Database): RouterTask {
     runner: () => {
       return execute(
         async () => {
-          const cleared = await database.clearAutoTags({ tags: { exists: true }, autoTags: { exists: true } });
+          const cleared = await database.saveBulkMedia(
+            { tags: { exists: true }, autoTags: { exists: true } },
+            { autoTags: null },
+          );
           console.log(`CLEAR-TAGGED-AUTOTAGS: cleared ${cleared} media`);
           return [];
         },

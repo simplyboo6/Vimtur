@@ -4,7 +4,7 @@ import FS from 'node:fs';
 import OS from 'node:os';
 import Path from 'node:path';
 
-import type { Autotag, Configuration, SubsetConstraints } from '@vimtur/common';
+import type { Autotag, Configuration, SubsetConstraints, UpdateMedia } from '@vimtur/common';
 import { expect } from 'chai';
 import { after, before, beforeEach, describe, it } from 'mocha';
 
@@ -14,6 +14,7 @@ import {
   computeFingerprint,
   embeddingsIndex,
   loadEmbeddingCache,
+  removeCachedEmbeddings,
   saveEmbeddingCache,
 } from '../tasks/autotag/siglip/embed-cache';
 import { FakeEncoderPool } from '../tasks/autotag/siglip/encoder-fake';
@@ -441,6 +442,234 @@ describeCache('embedding cache', () => {
   });
 });
 
+describeCache('embedding cache pruning', () => {
+  const FINGERPRINT = computeFingerprint(TEST_PACK, 'fake');
+  const HASHES = ['hash-a', 'hash-b'];
+  let imageDir = '';
+
+  before(() => {
+    imageDir = FS.mkdtempSync(Path.join(OS.tmpdir(), 'vimtur-siglip-prune-'));
+    // Content-addressed fake rows: identical bytes re-embed identically, which
+    // is the property the cache's "already embedded" reuse relies on.
+    FS.writeFileSync(Path.join(imageDir, 'a.jpg'), Buffer.from('first image bytes'));
+    FS.writeFileSync(Path.join(imageDir, 'b.jpg'), Buffer.from('second image bytes'));
+    FS.writeFileSync(Path.join(imageDir, 'c.jpg'), Buffer.from('third image bytes'));
+  });
+
+  beforeEach(() => {
+    FS.rmSync(packDir(TEST_PACK), { recursive: true, force: true });
+  });
+
+  after(() => {
+    FS.rmSync(packDir(TEST_PACK), { recursive: true, force: true });
+    FS.rmSync(imageDir, { recursive: true, force: true });
+  });
+
+  /** Seeds the pack cache through the fake encoder, exactly like a real run. */
+  async function seedCache(hashes: string[], files: string[]): Promise<Float32Array[]> {
+    const rows = await new FakeEncoderPool(TEST_PACK.dim).encodeImages(
+      TEST_PACK,
+      files.map((file) => Path.join(imageDir, file)),
+    );
+    await saveEmbeddingCache(TEST_PACK, FINGERPRINT, { hashes, dims: TEST_PACK.dim, rows });
+    return rows;
+  }
+
+  it('Drops a deleted hash from the index and keeps the surviving row', async () => {
+    const [, second] = await seedCache(HASHES, ['a.jpg', 'b.jpg']);
+    const before = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!before) {
+      throw new Error('Expected the seeded embedding cache to load');
+    }
+
+    await removeCachedEmbeddings([HASHES[0]]);
+
+    // Index only: the hash is gone and the survivor keeps its physical row.
+    const meta = readCacheMeta();
+    expect(meta.hashes).to.deep.equal([HASHES[1]]);
+    expect(meta.rows).to.deep.equal([1]);
+    // The bin is untouched, garbage row included; the loader tolerates it.
+    expect(FS.statSync(Path.resolve(packDir(TEST_PACK), 'embeddings.bin')).size).to.equal(TEST_PACK.dim * 4 * 2);
+    const pruned = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!pruned) {
+      throw new Error('Expected the pruned embedding cache to load');
+    }
+    expect(pruned.hashes).to.deep.equal([HASHES[1]]);
+    expect(Array.from(pruned.data)).to.deep.equal(Array.from(second));
+    // This is what makes embedStills re-embed the deleted hash: it is no
+    // longer in the index it builds from the loaded cache.
+    expect(embeddingsIndex(pruned).has(HASHES[0])).to.equal(false);
+    expect(embeddingsIndex(pruned).get(HASHES[1])).to.equal(0);
+
+    // A later run with the same hashes plus a new one reuses the survivor and
+    // embeds the misses; the save rewrites the bin identically-numbered.
+    const [third] = await new FakeEncoderPool(TEST_PACK.dim).encodeImages(TEST_PACK, [Path.join(imageDir, 'c.jpg')]);
+    await saveEmbeddingCache(TEST_PACK, FINGERPRINT, {
+      hashes: [...pruned.hashes, 'hash-c'],
+      dims: TEST_PACK.dim,
+      rows: [Float32Array.from(pruned.data), third],
+    });
+    const refreshed = readCacheMeta();
+    expect(refreshed.hashes).to.deep.equal([HASHES[1], 'hash-c']);
+    expect(refreshed.rows).to.deep.equal([0, 1]);
+    const reloaded = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!reloaded) {
+      throw new Error('Expected the refreshed embedding cache to load');
+    }
+    // The survivor's values survived the rewrite unchanged, and the deleted
+    // hash was not resurrected from its garbage row.
+    expect(Array.from(reloaded.data.subarray(0, TEST_PACK.dim))).to.deep.equal(Array.from(second));
+    expect(Array.from(reloaded.data.subarray(TEST_PACK.dim))).to.deep.equal(Array.from(third));
+    expect(reloaded.hashes).to.not.include(HASHES[0]);
+  });
+
+  it('Reads and prunes a legacy index written without a row list', async () => {
+    // The pre-row-index format: positional rows, json with no `rows` field.
+    const rows = await new FakeEncoderPool(TEST_PACK.dim).encodeImages(TEST_PACK, [
+      Path.join(imageDir, 'a.jpg'),
+      Path.join(imageDir, 'b.jpg'),
+    ]);
+    FS.mkdirSync(packDir(TEST_PACK), { recursive: true });
+    FS.writeFileSync(
+      Path.resolve(packDir(TEST_PACK), 'embeddings.bin'),
+      Buffer.concat(rows.map((row) => Buffer.from(row.buffer, row.byteOffset, row.length * 4))),
+    );
+    writeCacheMeta({ hashes: [...HASHES], dims: TEST_PACK.dim, fingerprint: FINGERPRINT });
+
+    const legacy = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!legacy) {
+      throw new Error('Expected the legacy embedding cache to load');
+    }
+    expect(Array.from(legacy.data)).to.deep.equal([...rows[0], ...rows[1]]);
+
+    await removeCachedEmbeddings([HASHES[0]]);
+
+    // The legacy index is upgraded in place: identity rows synthesised, then
+    // compacted to the surviving positions.
+    const meta = readCacheMeta();
+    expect(meta.hashes).to.deep.equal([HASHES[1]]);
+    expect(meta.rows).to.deep.equal([1]);
+    const pruned = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!pruned) {
+      throw new Error('Expected the pruned legacy cache to load');
+    }
+    expect(Array.from(pruned.data)).to.deep.equal(Array.from(rows[1]));
+  });
+
+  it('Tolerates unreachable tail rows but rejects an unaddressable listed row', async () => {
+    await seedCache(HASHES, ['a.jpg', 'b.jpg']);
+    const binPath = Path.resolve(packDir(TEST_PACK), 'embeddings.bin');
+    // Garbage appended past the last listed row is what a delete leaves behind.
+    FS.appendFileSync(binPath, Buffer.alloc(4));
+    const padded = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+    if (!padded) {
+      throw new Error('Expected the padded embedding cache to load');
+    }
+    expect(padded.hashes).to.deep.equal(HASHES);
+
+    // A listed row past the end of the bin is real truncation and must throw.
+    writeCacheMeta({ hashes: [...HASHES], dims: TEST_PACK.dim, fingerprint: FINGERPRINT, rows: [0, 99] });
+    const err = await errorOf(() => loadEmbeddingCache(TEST_PACK, FINGERPRINT));
+    expect(err.message).to.match(/truncated/);
+  });
+
+  it('Applies concurrent removals without losing either hash', async () => {
+    // Media deletion runs in parallel, so both prunes touch the same index.
+    await seedCache(HASHES, ['a.jpg', 'b.jpg']);
+    await Promise.all([removeCachedEmbeddings([HASHES[0]]), removeCachedEmbeddings([HASHES[1]])]);
+    const meta = readCacheMeta();
+    expect(meta.hashes).to.deep.equal([]);
+    expect(meta.rows).to.deep.equal([]);
+  });
+
+  it('Keeps prune and save ordering safe in either enqueue order', async () => {
+    const rowA = Float32Array.from([1, 0, 0, 0]);
+    const rowB = Float32Array.from([0, 1, 0, 0]);
+    const rowC = Float32Array.from([0, 0, 1, 0]);
+    for (const pruneFirst of [false, true]) {
+      FS.rmSync(packDir(TEST_PACK), { recursive: true, force: true });
+      // Seed three rows, then drop the middle one: the surviving index is
+      // non-identity (a -> row 0, c -> row 2), so a prune computed from the
+      // pre-save row list would misaddress the survivors once a save
+      // renumbered them.
+      await saveEmbeddingCache(TEST_PACK, FINGERPRINT, {
+        hashes: ['hash-a', 'hash-b', 'hash-c'],
+        dims: TEST_PACK.dim,
+        rows: [rowA, rowB, rowC],
+      });
+      await removeCachedEmbeddings(['hash-b']);
+      const cached = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+      if (!cached) {
+        throw new Error('Expected the seeded embedding cache to load');
+      }
+      expect(cached.hashes).to.deep.equal(['hash-a', 'hash-c']);
+
+      // The save has embedStills' shape (cached rows followed by a new hash)
+      // and races a removal of hash-c. Enqueue order is creation order (the
+      // queue chains onto the tail synchronously), so the calls are made
+      // inside the branch: the cache-mutation queue must serialise the
+      // read-modify-writes so the save's rows land correctly whether the
+      // prune or the save goes first.
+      const prune = () => removeCachedEmbeddings(['hash-c']);
+      const save = () =>
+        saveEmbeddingCache(TEST_PACK, FINGERPRINT, {
+          hashes: ['hash-a', 'hash-b'],
+          dims: TEST_PACK.dim,
+          rows: [Float32Array.from(cached.data.subarray(0, TEST_PACK.dim)), rowB],
+        });
+      await (pruneFirst ? Promise.all([prune(), save()]) : Promise.all([save(), prune()]));
+
+      const order = pruneFirst ? 'prune-first' : 'save-first';
+      const after = await loadEmbeddingCache(TEST_PACK, FINGERPRINT);
+      if (!after) {
+        throw new Error(`Expected the embedding cache to load (${order})`);
+      }
+      expect(after.hashes, `hashes (${order})`).to.deep.equal(['hash-a', 'hash-b']);
+      expect(Array.from(after.data.subarray(0, TEST_PACK.dim)), `hash-a row (${order})`).to.deep.equal([...rowA]);
+      expect(Array.from(after.data.subarray(TEST_PACK.dim)), `hash-b row (${order})`).to.deep.equal([...rowB]);
+      expect(embeddingsIndex(after).has('hash-c'), `hash-c gone (${order})`).to.equal(false);
+    }
+  });
+
+  it('Skips a malformed row list and leaves the index untouched', async () => {
+    await seedCache(HASHES, ['a.jpg', 'b.jpg']);
+    // Neither shape may be rewritten by a prune: the artifact stays the loud
+    // load-time failure it already is, rather than becoming a plausible index
+    // whose rows the next load cannot address.
+    for (const rows of [[0], [0, 1.5]]) {
+      writeCacheMeta({ hashes: [...HASHES], dims: TEST_PACK.dim, fingerprint: FINGERPRINT, rows });
+      const corrupt = FS.readFileSync(metaPath(), 'utf8');
+      await removeCachedEmbeddings([HASHES[0]]);
+      expect(FS.readFileSync(metaPath(), 'utf8'), `rows ${JSON.stringify(rows)}`).to.equal(corrupt);
+    }
+  });
+
+  it('Leaves the index untouched when none of the hashes are listed', async () => {
+    await seedCache(HASHES, ['a.jpg', 'b.jpg']);
+    const metaPath = Path.resolve(packDir(TEST_PACK), 'embeddings.json');
+    const before = FS.readFileSync(metaPath, 'utf8');
+    await removeCachedEmbeddings(['hash-never-embedded']);
+    expect(FS.readFileSync(metaPath, 'utf8')).to.equal(before);
+  });
+
+  function metaPath(): string {
+    return Path.resolve(packDir(TEST_PACK), 'embeddings.json');
+  }
+
+  function readCacheMeta(): { hashes: string[]; dims: number; fingerprint: string; rows?: number[] } {
+    return JSON.parse(FS.readFileSync(metaPath(), 'utf8')) as {
+      hashes: string[];
+      dims: number;
+      fingerprint: string;
+      rows?: number[];
+    };
+  }
+
+  function writeCacheMeta(meta: { hashes: string[]; dims: number; fingerprint: string; rows?: number[] }): void {
+    FS.writeFileSync(metaPath(), JSON.stringify(meta));
+  }
+});
+
 /** Awaits `run` and returns the error it threw. */
 async function errorOf(run: () => Promise<unknown>): Promise<Error> {
   try {
@@ -667,12 +896,12 @@ describe('import task selection', () => {
 
 describe('clear-tagged-autotags task', () => {
   it('clears auto tags of manually tagged media and completes without items', async () => {
-    const constraints: SubsetConstraints[] = [];
+    const calls: Array<{ constraints: SubsetConstraints; update: UpdateMedia }> = [];
     // Only the bulk method is exercised: the task is a thin pass-through, and
     // the NULL-vs-[] distinction is pinned at the database layer.
     const database = {
-      clearAutoTags: (value: SubsetConstraints): Promise<number> => {
-        constraints.push(value);
+      saveBulkMedia: (constraints: SubsetConstraints, update: UpdateMedia): Promise<number> => {
+        calls.push({ constraints, update });
         return Promise.resolve(2);
       },
     } as unknown as Parameters<typeof getClearTaggedAutotagsTask>[0];
@@ -684,8 +913,10 @@ describe('clear-tagged-autotags task', () => {
     const result = await task.runner(() => undefined);
     expect(result.errors).to.deep.equal([]);
     expect(result.results).to.deep.equal([]);
-    // The work set is "manually tagged media that still has auto tags", so a
-    // media item with manual tags but no auto tags is not counted as cleared.
-    expect(constraints).to.deep.equal([{ tags: { exists: true }, autoTags: { exists: true } }]);
+    // The work set is "manually tagged media that still has auto tags", and the
+    // update clears them to null, never [] (the pipeline's processed marker).
+    expect(calls).to.deep.equal([
+      { constraints: { tags: { exists: true }, autoTags: { exists: true } }, update: { autoTags: null } },
+    ]);
   });
 });

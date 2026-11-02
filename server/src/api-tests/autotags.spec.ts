@@ -146,13 +146,13 @@ describe('Auto-tags round-trip', () => {
 // The bulk counterpart of the viewer's clear icon: only media that carries a
 // manual tag loses its generated tags, and the clear stores NULL rather than
 // an empty list, so the skip-existing work set treats the item as unprocessed
-// again.
+// again. The task drives the standard bulk media update.
 describe('CLEAR-TAGGED-AUTOTAGS', () => {
   let server: ApiServer;
   let client: ApiClient;
   let taggedHash: string;
   let autoOnlyHash: string;
-  let manualOnlyHash: string;
+  let markedHash: string;
 
   before(async function (this: Mocha.Context) {
     this.timeout(240_000);
@@ -161,7 +161,7 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
     for (const [filename, color] of [
       ['tagged.jpg', 'orange'],
       ['auto-only.jpg', 'purple'],
-      ['manual-only.jpg', 'teal'],
+      ['marked.jpg', 'teal'],
     ] as const) {
       await createStill(server.libraryPath, filename, color);
     }
@@ -174,14 +174,17 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
     };
     taggedHash = await byName('tagged.jpg');
     autoOnlyHash = await byName('auto-only.jpg');
-    manualOnlyHash = await byName('manual-only.jpg');
+    markedHash = await byName('marked.jpg');
 
     assertOk(await client.post<string[]>('/api/tags', { tag: 'people' }), 'POST /api/tags people');
-    for (const hash of [taggedHash, manualOnlyHash]) {
+    for (const hash of [taggedHash, markedHash]) {
       expect((await client.post(`/api/images/${hash}/tags`, { name: 'people' })).status).to.equal(204);
     }
     expect((await client.patch(`/api/images/${taggedHash}`, { autoTags: ['kitten'] })).status).to.equal(200);
     expect((await client.patch(`/api/images/${autoOnlyHash}`, { autoTags: ['puppy'] })).status).to.equal(200);
+    // The stored [] "processed, nothing scored" marker: it counts as auto tags
+    // present, so the clear must drop it too.
+    expect((await client.patch(`/api/images/${markedHash}`, { autoTags: [] })).status).to.equal(200);
   });
 
   after(async () => {
@@ -197,19 +200,21 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
     expect(tagged.tags, 'tagged media manual tags').to.deep.equal(['people']);
 
     expect((await detail(client, autoOnlyHash)).autoTags, 'auto-only media autoTags').to.deep.equal(['puppy']);
-    expect((await detail(client, manualOnlyHash)).autoTags, 'manual-only media autoTags').to.equal(undefined);
-    expect((await detail(client, manualOnlyHash)).tags, 'manual-only media tags').to.deep.equal(['people']);
+    expect((await detail(client, markedHash)).autoTags, '[] marker autoTags').to.equal(undefined);
+    expect((await detail(client, markedHash)).tags, '[] marker manual tags').to.deep.equal(['people']);
 
-    // NULL (absent), not []: the cleared item is unprocessed again, so the
-    // skip-existing work set includes it.
-    expect(await subset(client, { autoTags: { exists: false } })).to.have.members([taggedHash, manualOnlyHash]);
+    // NULL (absent), not []: the cleared items are unprocessed again, so the
+    // skip-existing work set includes them, while the auto-only item's list
+    // still counts as processed.
+    expect(await subset(client, { autoTags: { exists: false } })).to.have.members([taggedHash, markedHash]);
   });
 });
 
-// The viewer's × icon: clearing stores NULL (not the [] "processed" marker),
+// The viewer's × icon: clearing goes through the standard media update with an
+// explicit autoTags: null, which stores NULL (not the [] "processed" marker),
 // so the item is reconsidered by a default skip-existing apply while a manual
 // tag still protects it under the skip-tagged default.
-describe('Clear media auto-tags endpoint', () => {
+describe('Clear media auto-tags through the media update API', () => {
   let server: ApiServer;
   let client: ApiClient;
   let hash: string;
@@ -234,11 +239,13 @@ describe('Clear media auto-tags endpoint', () => {
     await server?.stop();
   });
 
-  it('DELETE removes the auto tags, keeps manual tags and un-marks the item', async function (this: Mocha.Context) {
+  it('PATCH autoTags: null removes them, keeps manual tags and un-marks the item', async function (this: Mocha.Context) {
     this.timeout(30_000);
-    expect((await client.delete(`/api/images/${hash}/autotags`)).status, 'DELETE /api/images/:hash/autotags').to.equal(
-      204,
+    const response = assertOk(
+      await client.patch<{ autoTags?: string[] }>(`/api/images/${hash}`, { autoTags: null }),
+      'PATCH /api/images/:hash autoTags: null',
     );
+    expect(response.autoTags, 'cleared media autoTags in the response').to.equal(undefined);
 
     const media = await detail(client, hash);
     expect(media.autoTags, 'cleared media autoTags').to.equal(undefined);
@@ -246,8 +253,9 @@ describe('Clear media auto-tags endpoint', () => {
     // NULL (absent), not []: the skip-existing work set includes it again.
     expect(await subset(client, { autoTags: { exists: false } })).to.include(hash);
 
-    // Idempotent: the media still exists, so a repeat DELETE is another 204.
-    expect((await client.delete(`/api/images/${hash}/autotags`)).status, 'repeat DELETE').to.equal(204);
+    // Idempotent: a repeat PATCH clears the already-cleared row again.
+    expect((await client.patch(`/api/images/${hash}`, { autoTags: null })).status, 'repeat PATCH').to.equal(200);
+    expect((await detail(client, hash)).autoTags).to.equal(undefined);
   });
 });
 

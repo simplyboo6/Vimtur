@@ -319,12 +319,6 @@ export class SqliteConnector extends Database {
     return raw.map((el) => rawToPartial<RawMedia, Media>(el, fieldMap)) as BaseMedia[];
   }
 
-  public async clearAutoTags(constraints: SubsetConstraints): Promise<number> {
-    const { query, values } = buildMediaQuery(constraints);
-    const result = await this.db.run(`UPDATE \`media\` SET \`auto_tags\` = NULL WHERE \`hash\` IN (${query})`, values);
-    return result.changes;
-  }
-
   // Actors
   public async addActor(name: string): Promise<void> {
     await this.db.run('INSERT OR IGNORE INTO `actors` (`id`) VALUES (?)', [name]);

@@ -20,14 +20,13 @@ export abstract class Database {
   // subsetFields which loads every media row into memory.
   public abstract countMedia(): Promise<number>;
   public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
-  public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   /**
-   * Clears the generated tags of every media matching `constraints`, storing
-   * NULL (not an empty list, which means "processed, no tags scored") so the
-   * next skip-existing auto-tag run treats them as unprocessed. Returns the
-   * number of media whose auto-tags were cleared.
+   * Applies an update to every media matching `constraints`. UpdateMedia's
+   * autoTags: null clears the generated tags back to the unprocessed state
+   * (see its doc comment); [] is the pipeline's "processed, nothing scored"
+   * marker, so the two are distinct. Returns the number of matched media.
    */
-  public abstract clearAutoTags(constraints: SubsetConstraints): Promise<number>;
+  public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;
   public abstract isDeletedPath(path: string): Promise<boolean>;
   public abstract isDeletedHash(hash: string): Promise<boolean>;
