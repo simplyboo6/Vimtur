@@ -66,7 +66,7 @@ export class ConfigComponent implements OnInit, OnDestroy {
   public actors?: string[];
   public tasks?: ListedTask[];
   public queue?: QueuedTask[];
-  public scanResults?: Scanner.Summary;
+  public scanResults?: Scanner.ScanResults;
   public version?: string;
 
   public addTagModel?: string;

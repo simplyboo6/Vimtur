@@ -304,20 +304,40 @@ export async function expectTaskFailure(client: ApiClient, id: string, args?: un
   return message;
 }
 
-// Reads the wire summary of the persisted SCAN pending-work lists. 404s when
-// no scan has ever been stored.
-export async function scanResults(client: ApiClient): Promise<Scanner.Summary> {
-  return assertOk(await client.get<Scanner.Summary>('/api/tasks/SCAN/results'), 'GET /api/tasks/SCAN/results');
+// Reads one of the SCAN task's persisted pending-work keys. 404 means the scan
+// state has never been stored, which is distinguishable from a stored value.
+async function getScanState<T>(client: ApiClient, key: string): Promise<T | undefined> {
+  const path = `/api/tasks/state/SCAN/${key}`;
+  const response = await client.get<T>(path);
+  if (response.status === 404) {
+    return undefined;
+  }
+  return assertOk(response, `GET ${path}`);
 }
 
-// Asserts the pending-work counts in the SCAN summary. The summary carries the
-// timestamp of the scan that produced the lists; callers assert the counts, so
-// the timestamp only needs to be present (a consumed record keeps the original
-// one).
+// Composes the SCAN task's pending-work state from its three task_state keys.
+// Any absent key reads as "no scan": the scan's three writes are not atomic, so
+// a partial write must not be treated as pending work.
+export async function scanState(client: ApiClient): Promise<Scanner.ScanResults | undefined> {
+  const generatedAt = await getScanState<number>(client, 'generated-at');
+  const newPaths = await getScanState<string[]>(client, 'new-paths');
+  const missingPaths = await getScanState<string[]>(client, 'missing-paths');
+  if (generatedAt === undefined || newPaths === undefined || missingPaths === undefined) {
+    return undefined;
+  }
+  return { generatedAt, newPaths, missingPaths };
+}
+
+// Asserts the pending-work counts in the SCAN state. The timestamp is the one
+// from the scan that produced the lists; callers assert the counts, so it only
+// needs to be present (a consumed list keeps the original timestamp).
 export async function expectScanPending(client: ApiClient, newPaths: number, missingPaths: number): Promise<void> {
-  const summary = await scanResults(client);
-  expect(summary.generatedAt).to.be.a('number').and.to.be.above(0);
-  expect({ newPaths: summary.newPaths, missingPaths: summary.missingPaths }).to.deep.equal({
+  const state = await scanState(client);
+  expect(state, 'persisted scan state').to.not.equal(undefined);
+  expect(state?.generatedAt)
+    .to.be.a('number')
+    .and.to.be.above(0);
+  expect({ newPaths: state?.newPaths.length, missingPaths: state?.missingPaths.length }).to.deep.equal({
     newPaths,
     missingPaths,
   });

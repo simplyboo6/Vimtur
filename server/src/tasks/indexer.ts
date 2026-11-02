@@ -1,6 +1,6 @@
 import Path from 'path';
 
-import type { Media, Scanner } from '@vimtur/common';
+import type { Media } from '@vimtur/common';
 import { execute, ExecutorPromise, ExecutorResults } from 'proper-job';
 
 import { createHash } from '../cache/hash';
@@ -8,7 +8,7 @@ import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
-import { loadScanResults, saveScanResults } from './scanner';
+import { clearScanNewPaths, loadScanResults } from './scanner';
 
 export class Indexer {
   private database: Database;
@@ -42,11 +42,10 @@ export class Indexer {
   }
 
   public indexFiles(statusCallback: (current: number, max: number) => void): ExecutorPromise<ExecutorResults<void>> {
-    // Retained for the finalize step: the finalize writes back the SAME scan's
-    // remaining fields with newPaths emptied, exactly where the old in-memory
-    // clear happened.
-    let stored: Scanner.ScanResults | undefined;
     let current = 0;
+    // Set only once a stored scan has been loaded: the teardown below must not
+    // write task_state for a run that never reached the iterable.
+    let scanned = false;
 
     return execute(
       async () => {
@@ -54,7 +53,7 @@ export class Indexer {
         if (!results) {
           throw new Error('A scan must be run first');
         }
-        stored = results;
+        scanned = true;
         console.log(`Indexing ${results.newPaths.length} files`);
         return {
           iterable: results.newPaths,
@@ -90,8 +89,14 @@ export class Indexer {
       },
       { parallel: 8 },
       () => {
-        if (stored) {
-          return saveScanResults(this.database, { ...stored, newPaths: [] });
+        // The teardown also runs after a rejected init (proper-job calls it
+        // whenever nothing is running), so guard like missing-deleter's
+        // `started`: no scan stored means there is no new-paths entry to clear,
+        // and clearing must not create one. A rejected/failed run keeps the
+        // inconsistent-store contract ("any absent key means the write did not
+        // complete") intact.
+        if (scanned) {
+          return clearScanNewPaths(this.database);
         }
         return Promise.resolve();
       },

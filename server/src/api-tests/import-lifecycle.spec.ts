@@ -6,12 +6,12 @@ import { describe, it } from 'mocha';
 import {
   ApiClient,
   type ApiServer,
-  assertOk,
   createStill,
   createVideo,
   detail,
   expectScanPending,
   runTaskAndWait,
+  scanState,
   startServer,
   subset,
 } from './harness';
@@ -124,10 +124,7 @@ describe('Import lifecycle', () => {
 
     await runTaskAndWait(client, 'SCAN');
     await expectScanPending(client, 1, 0);
-    const newPaths = assertOk(
-      await client.get<string[]>('/api/tasks/SCAN/results/new'),
-      'GET /api/tasks/SCAN/results/new',
-    );
+    const newPaths = (await scanState(client))?.newPaths;
     expect(newPaths).to.deep.equal(['yellow.png']);
 
     await runTaskAndWait(client, 'INDEX');
@@ -144,10 +141,7 @@ describe('Import lifecycle', () => {
 
     await runTaskAndWait(client, 'SCAN');
     await expectScanPending(client, 0, 1);
-    const missingPaths = assertOk(
-      await client.get<string[]>('/api/tasks/SCAN/results/missing'),
-      'GET /api/tasks/SCAN/results/missing',
-    );
+    const missingPaths = (await scanState(client))?.missingPaths;
     expect(missingPaths).to.deep.equal(['green.jpg']);
 
     // This tiny library is 5 media large at this point, so a single missing

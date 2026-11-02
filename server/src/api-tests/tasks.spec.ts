@@ -1,4 +1,4 @@
-import type { ListedTask, QueuedTask, Scanner } from '@vimtur/common';
+import type { ListedTask, QueuedTask } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
@@ -8,6 +8,8 @@ import {
   assertOk,
   assertStatus,
   createStill,
+  expectScanPending,
+  scanState,
   startServer,
   waitForDrainedQueue,
 } from './harness';
@@ -83,6 +85,10 @@ describe('Tasks API', () => {
 
     // The queue works afterwards: clear the failed instance and drain again.
     expect((await client.delete(`/api/tasks/queue/${id}`)).status).to.equal(204);
+
+    // The failed INDEX ran no scan, so its teardown must not have created the
+    // new-paths key either: proving a no-scan INDEX never writes task_state.
+    expect((await client.get('/api/tasks/state/SCAN/new-paths')).status).to.equal(404);
     await waitForDrainedQueue(client);
     const remaining = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
     expect(remaining).to.deep.equal([]);
@@ -171,21 +177,12 @@ describe('Tasks API', () => {
     expect(first).to.be.a('string');
   });
 
-  it('SCAN results endpoints report pending work', async () => {
+  it('SCAN state reports pending work', async () => {
     // one.png was created but never imported, so every scan leaves it pending.
     await waitForDrainedQueue(client); // ensure no task is mid-flight
-    const summary = assertOk(
-      await client.get<Scanner.Summary>('/api/tasks/SCAN/results'),
-      'GET /api/tasks/SCAN/results',
-    );
-    expect(summary.newPaths).to.equal(1);
-    expect(summary.missingPaths).to.equal(0);
-    expect(summary.generatedAt).to.be.a('number').and.to.be.above(0);
-    expect(
-      assertOk(await client.get<string[]>('/api/tasks/SCAN/results/new'), 'GET /api/tasks/SCAN/results/new'),
-    ).to.deep.equal(['one.png']);
-    expect(
-      assertOk(await client.get<string[]>('/api/tasks/SCAN/results/missing'), 'GET /api/tasks/SCAN/results/missing'),
-    ).to.deep.equal([]);
+    await expectScanPending(client, 1, 0);
+    const state = await scanState(client);
+    expect(state?.newPaths).to.deep.equal(['one.png']);
+    expect(state?.missingPaths).to.deep.equal([]);
   });
 });
