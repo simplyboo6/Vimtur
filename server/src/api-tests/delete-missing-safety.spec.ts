@@ -1,34 +1,20 @@
 import FS from 'fs';
 
-import type { ListedTask, QueuedTask, Scanner } from '@vimtur/common';
+import type { ListedTask } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import { ApiClient, type ApiServer, assertOk, createStill, runTaskAndWait, startServer, subset } from './harness';
-
-// Fails only when the expected task error surfaces; returns its message.
-// Failed task instances stay queued (auto-clear only removes successful
-// ones), so they are removed here to not poison later runTaskAndWait calls.
-const expectTaskFailure = async (client: ApiClient, id: string, args?: unknown): Promise<string> => {
-  let failed = false;
-  let message = `Task ${id} was expected to fail but completed`;
-  try {
-    await runTaskAndWait(client, id, args);
-  } catch (err: unknown) {
-    failed = true;
-    message = err instanceof Error ? err.message : String(err);
-  }
-
-  const queue = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
-  for (const task of queue.filter((el) => el.id.startsWith(id) && el.error)) {
-    assertOk(await client.delete(`/api/tasks/queue/${task.id}`), `DELETE /api/tasks/queue/${task.id}`);
-  }
-
-  if (!failed) {
-    throw new Error(message);
-  }
-  return message;
-};
+import {
+  ApiClient,
+  type ApiServer,
+  assertOk,
+  createStill,
+  expectScanPending,
+  expectTaskFailure,
+  runTaskAndWait,
+  startServer,
+  subset,
+} from './harness';
 
 // DELETE-MISSING deletes database rows for files that vanished from the
 // library. A walk that silently resolves to nothing (unmounted volume,
@@ -39,10 +25,6 @@ const expectTaskFailure = async (client: ApiClient, id: string, args?: unknown):
 describe('DELETE-MISSING safety', () => {
   let server: ApiServer;
   let client: ApiClient;
-
-  const scanResults = async (): Promise<Scanner.Summary> => {
-    return assertOk(await client.get<Scanner.Summary>('/api/tasks/SCAN/results'), 'GET /api/tasks/SCAN/results');
-  };
 
   before(async () => {
     server = await startServer();
@@ -85,13 +67,13 @@ describe('DELETE-MISSING safety', () => {
     FS.unlinkSync(`${server.libraryPath}/red-1.png`);
 
     await runTaskAndWait(client, 'SCAN');
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 2 });
+    await expectScanPending(client, 0, 2);
 
     // No arguments: defaults to 'strict'.
     await runTaskAndWait(client, 'DELETE-MISSING', []);
 
     expect(await subset(client, {})).to.have.lengthOf(18);
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('refuses to run in strict mode when missing files exceed the threshold', async () => {
@@ -101,7 +83,7 @@ describe('DELETE-MISSING safety', () => {
 
     await runTaskAndWait(client, 'SCAN');
     // 5 of the 18 remaining media: well over 10%.
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 5 });
+    await expectScanPending(client, 0, 5);
 
     const message = await expectTaskFailure(client, 'DELETE-MISSING', []);
     expect(message).to.include('Refusing to delete');
@@ -113,7 +95,7 @@ describe('DELETE-MISSING safety', () => {
   it('keeps the pending missing list after a refusal', async () => {
     // A refused run must not consume the scan results, otherwise the only
     // way to retry would be a whole new SCAN.
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 5 });
+    await expectScanPending(client, 0, 5);
   });
 
   it('rejects an unknown safety mode', async () => {
@@ -125,7 +107,7 @@ describe('DELETE-MISSING safety', () => {
     await runTaskAndWait(client, 'DELETE-MISSING', ['allow-all']);
 
     expect(await subset(client, {})).to.have.lengthOf(13);
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('accepts the empty-object POST body in place of missing arguments', async () => {
@@ -135,7 +117,7 @@ describe('DELETE-MISSING safety', () => {
     await runTaskAndWait(client, 'DELETE-MISSING', {});
 
     expect(await subset(client, {})).to.have.lengthOf(13);
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('SCAN fails loudly when the library path is gone', async () => {

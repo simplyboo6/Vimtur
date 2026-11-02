@@ -26,7 +26,7 @@ export class TasksService {
   private configService: ConfigService;
   private queue: ReplaySubject<QueuedTask[]> = new ReplaySubject(1);
   private tasks: ReplaySubject<ListedTask[]> = new ReplaySubject(1);
-  private scanResults: ReplaySubject<Scanner.Summary> = new ReplaySubject(1);
+  private scanResults: ReplaySubject<Scanner.Summary | undefined> = new ReplaySubject(1);
   private socket = IO();
   private modalService: NgbModal;
 
@@ -175,7 +175,7 @@ export class TasksService {
     );
   }
 
-  public getScanResults(): Observable<Scanner.Summary> {
+  public getScanResults(): Observable<Scanner.Summary | undefined> {
     return this.scanResults;
   }
 
@@ -214,6 +214,11 @@ export class TasksService {
         this.scanResults.next(res);
       },
       (err: HttpErrorResponse) => {
+        if (err.status === 404) {
+          // No scan has ever been stored; a normal state, not an error.
+          this.scanResults.next(undefined);
+          return;
+        }
         console.warn(err);
         this.alertService.show({
           type: 'warning',

@@ -1,10 +1,10 @@
-import type { TaskArgs } from '@vimtur/common';
+import type { Scanner, TaskArgs } from '@vimtur/common';
 import { execute } from 'proper-job';
 
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { deleteMedia } from '../utils';
 
-import { Scanner } from './scanner';
+import { loadScanResults, saveScanResults } from './scanner';
 
 // Refuses batch deletions above this percentage of the database unless the
 // operator picks the 'allow-all' safety mode. A transient library mount
@@ -40,9 +40,14 @@ export function getTask(database: Database): RouterTask {
       // teardown still runs after a failed start-up check.
       let started = false;
       let current = 0;
+      // The same stored record is written back by the finalize with the
+      // missing list emptied; loading it in the init phase keeps the runner's
+      // synchronous shape.
+      let stored: Scanner.ScanResults | undefined;
       return execute(
         async () => {
-          const results = Scanner.results && Scanner.results.missingPaths;
+          stored = await loadScanResults(database);
+          const results = stored?.missingPaths;
           if (!results) {
             throw new Error('Scanner must be run first');
           }
@@ -98,8 +103,8 @@ export function getTask(database: Database): RouterTask {
         },
         { parallel: 8 },
         () => {
-          if (started && Scanner.results) {
-            Scanner.results.missingPaths = [];
+          if (started && stored) {
+            return saveScanResults(database, { ...stored, missingPaths: [] });
           }
           return Promise.resolve();
         },

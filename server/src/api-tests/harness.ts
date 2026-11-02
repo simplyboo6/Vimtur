@@ -12,7 +12,8 @@ import OS from 'os';
 import Path from 'path';
 import { promisify } from 'util';
 
-import type { Media, QueuedTask } from '@vimtur/common';
+import type { Media, QueuedTask, Scanner } from '@vimtur/common';
+import { expect } from 'chai';
 
 const execFileAsync = promisify(execFile);
 
@@ -30,6 +31,11 @@ export interface StartServerOptions {
   // Extra user-config (Configuration.Partial) merged into the generated
   // config.json (CONFIG_PATH) the server reads at boot.
   config?: Record<string, unknown>;
+  // Reuses the temp root a previous startServer call created (same database
+  // file, library and cache paths) instead of a fresh one, so a test can
+  // restart the server and its persisted state. The caller takes ownership of
+  // cleanup: stop() then skips the rmSync.
+  root?: string;
 }
 
 export interface ApiServer {
@@ -38,6 +44,9 @@ export interface ApiServer {
   // Path of the media library (DATA_PATH) the server was started with.
   libraryPath: string;
   cachePath: string;
+  // The temp root backing this server, reusable as the `root` option of a
+  // later startServer call.
+  root: string;
   stop(): Promise<void>;
 }
 
@@ -46,7 +55,12 @@ export interface ApiServer {
 let activeServerLogPath: string | undefined;
 
 export async function startServer(options: StartServerOptions = {}): Promise<ApiServer> {
-  const root = FS.mkdtempSync(Path.join(OS.tmpdir(), 'vimtur-api-'));
+  // A supplied root implies a restart against persisted state; an in-memory
+  // database would silently lose it, so reject the combination up front.
+  if (options.root !== undefined && (options.dbMode ?? 'memory') !== 'file') {
+    throw new Error("startServer: the 'root' option requires dbMode 'file'");
+  }
+  const root = options.root ?? FS.mkdtempSync(Path.join(OS.tmpdir(), 'vimtur-api-'));
   const libraryPath = Path.join(root, 'library');
   const cachePath = Path.join(root, 'cache');
   const dbMode = options.dbMode ?? 'memory';
@@ -104,7 +118,9 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
         baseUrl: `http://127.0.0.1:${port}`,
         libraryPath,
         cachePath,
-        stop: () => stopServer(spawned, root),
+        root,
+        // The caller owns a supplied root (it is reused across restarts).
+        stop: () => stopServer(spawned, root, options.root === undefined),
       };
     } catch (err: unknown) {
       lastError = err;
@@ -264,6 +280,49 @@ export async function runTaskAndWait(
   await waitForDrainedQueue(client, { timeoutMs });
 }
 
+// Runs a task that is expected to fail and returns the failure message.
+// Failed task instances stay queued (auto-clear only removes successful ones),
+// so they are removed here to not poison later runTaskAndWait calls.
+export async function expectTaskFailure(client: ApiClient, id: string, args?: unknown): Promise<string> {
+  let failed = false;
+  let message = `Task ${id} was expected to fail but completed`;
+  try {
+    await runTaskAndWait(client, id, args);
+  } catch (err: unknown) {
+    failed = true;
+    message = err instanceof Error ? err.message : String(err);
+  }
+
+  const queue = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
+  for (const task of queue.filter((el) => el.id.startsWith(id) && el.error)) {
+    assertOk(await client.delete(`/api/tasks/queue/${task.id}`), `DELETE /api/tasks/queue/${task.id}`);
+  }
+
+  if (!failed) {
+    throw new Error(message);
+  }
+  return message;
+}
+
+// Reads the wire summary of the persisted SCAN pending-work lists. 404s when
+// no scan has ever been stored.
+export async function scanResults(client: ApiClient): Promise<Scanner.Summary> {
+  return assertOk(await client.get<Scanner.Summary>('/api/tasks/SCAN/results'), 'GET /api/tasks/SCAN/results');
+}
+
+// Asserts the pending-work counts in the SCAN summary. The summary carries the
+// timestamp of the scan that produced the lists; callers assert the counts, so
+// the timestamp only needs to be present (a consumed record keeps the original
+// one).
+export async function expectScanPending(client: ApiClient, newPaths: number, missingPaths: number): Promise<void> {
+  const summary = await scanResults(client);
+  expect(summary.generatedAt).to.be.a('number').and.to.be.above(0);
+  expect({ newPaths: summary.newPaths, missingPaths: summary.missingPaths }).to.deep.equal({
+    newPaths,
+    missingPaths,
+  });
+}
+
 export async function waitForDrainedQueue(client: ApiClient, options: { timeoutMs?: number } = {}): Promise<void> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_DRAIN_TIMEOUT_MS;
   const deadline = Date.now() + timeoutMs;
@@ -331,7 +390,7 @@ async function waitUntilReady(port: number, child: ChildProcess, logPath: string
   throw new Error(`Server did not become ready within ${READY_TIMEOUT_MS}ms.\n--- server.log ---\n${logTail(logPath)}`);
 }
 
-async function stopServer(child: ChildProcess, root: string): Promise<void> {
+async function stopServer(child: ChildProcess, root: string, removeRoot: boolean): Promise<void> {
   if (child.pid) {
     killProcessGroup(child.pid, 'SIGTERM');
     try {
@@ -341,7 +400,7 @@ async function stopServer(child: ChildProcess, root: string): Promise<void> {
       await waitForExit(child, 5_000).catch(() => undefined);
     }
   }
-  if (!process.env['API_TEST_KEEP_TMP']) {
+  if (removeRoot && !process.env['API_TEST_KEEP_TMP']) {
     FS.rmSync(root, { recursive: true, force: true });
   }
 }
