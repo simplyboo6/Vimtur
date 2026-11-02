@@ -1,10 +1,10 @@
-import type { Scanner, TaskArgs } from '@vimtur/common';
+import type { TaskArgs } from '@vimtur/common';
 import { execute } from 'proper-job';
 
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 import { deleteMedia } from '../utils';
 
-import { loadScanResults, saveScanResults } from './scanner';
+import { clearScanMissingPaths, loadScanResults } from './scanner';
 
 // Refuses batch deletions above this percentage of the database unless the
 // operator picks the 'allow-all' safety mode. A transient library mount
@@ -40,14 +40,9 @@ export function getTask(database: Database): RouterTask {
       // teardown still runs after a failed start-up check.
       let started = false;
       let current = 0;
-      // The same stored record is written back by the finalize with the
-      // missing list emptied; loading it in the init phase keeps the runner's
-      // synchronous shape.
-      let stored: Scanner.ScanResults | undefined;
       return execute(
         async () => {
-          stored = await loadScanResults(database);
-          const results = stored?.missingPaths;
+          const results = (await loadScanResults(database))?.missingPaths;
           if (!results) {
             throw new Error('Scanner must be run first');
           }
@@ -103,8 +98,11 @@ export function getTask(database: Database): RouterTask {
         },
         { parallel: 8 },
         () => {
-          if (started && stored) {
-            return saveScanResults(database, { ...stored, missingPaths: [] });
+          // Clear only at the same teardown point the old in-memory clear ran,
+          // and only once deletion actually started: a strict-mode refusal (or
+          // an unknown safety mode) must leave the list retryable.
+          if (started) {
+            return clearScanMissingPaths(database);
           }
           return Promise.resolve();
         },

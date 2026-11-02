@@ -14,7 +14,7 @@ import {
   detail,
   expectTaskFailure,
   runTaskAndWait,
-  scanResults,
+  scanState,
   startServer,
   subset,
 } from './harness';
@@ -29,13 +29,23 @@ describe('SCAN hand-off across restarts', () => {
   let client: ApiClient;
 
   const scanNewPaths = async (): Promise<string[]> => {
-    return assertOk(await client.get<string[]>('/api/tasks/SCAN/results/new'), 'GET /api/tasks/SCAN/results/new');
+    return assertOk(
+      await client.get<string[]>('/api/tasks/state/SCAN/new-paths'),
+      'GET /api/tasks/state/SCAN/new-paths',
+    );
   };
 
   const scanMissingPaths = async (): Promise<string[]> => {
     return assertOk(
-      await client.get<string[]>('/api/tasks/SCAN/results/missing'),
-      'GET /api/tasks/SCAN/results/missing',
+      await client.get<string[]>('/api/tasks/state/SCAN/missing-paths'),
+      'GET /api/tasks/state/SCAN/missing-paths',
+    );
+  };
+
+  const scanGeneratedAt = async (): Promise<number> => {
+    return assertOk(
+      await client.get<number>('/api/tasks/state/SCAN/generated-at'),
+      'GET /api/tasks/state/SCAN/generated-at',
     );
   };
 
@@ -64,8 +74,9 @@ describe('SCAN hand-off across restarts', () => {
     FS.rmSync(root, { recursive: true, force: true });
   });
 
-  it('404s the scan results until a scan has been stored', async () => {
-    for (const path of ['/api/tasks/SCAN/results', '/api/tasks/SCAN/results/new', '/api/tasks/SCAN/results/missing']) {
+  it('404s the scan state until a scan has been stored', async () => {
+    for (const key of ['generated-at', 'new-paths', 'missing-paths']) {
+      const path = `/api/tasks/state/SCAN/${key}`;
       const data = assertStatus(await client.get<{ message: string }>(path), 404, `GET ${path}`);
       expect(data, `GET ${path}`).to.have.property('message');
     }
@@ -75,36 +86,39 @@ describe('SCAN hand-off across restarts', () => {
     await createStill(server.libraryPath, 'a-still.jpg', 'red');
     await runTaskAndWait(client, 'SCAN');
 
-    const summary = await scanResults(client);
-    expect(summary.newPaths).to.equal(1);
-    expect(summary.missingPaths).to.equal(0);
-    expect(summary.generatedAt).to.be.a('number').and.to.be.above(0);
+    const generatedAt = await scanGeneratedAt();
+    expect(generatedAt).to.be.a('number').and.to.be.above(0);
+    expect(await scanState(client)).to.deep.equal({
+      generatedAt,
+      newPaths: ['a-still.jpg'],
+      missingPaths: [],
+    });
     expect(await scanNewPaths()).to.deep.equal(['a-still.jpg']);
     expect(await scanMissingPaths()).to.deep.equal([]);
   });
 
   it('keeps the pending work across a restart', async () => {
     // The captured timestamp identifies the scan whose lists survived.
-    const beforeRestart = await scanResults(client);
+    const beforeRestart = await scanState(client);
 
     // Restart AFTER the scan and BEFORE the index: the state being restarted
     // into is the pending work itself.
     await restartServer();
 
-    const afterRestart = await scanResults(client);
+    const afterRestart = await scanState(client);
     expect(afterRestart).to.deep.equal(beforeRestart);
     expect(await scanNewPaths()).to.deep.equal(['a-still.jpg']);
   });
 
   it('INDEX consumes the pending work across a restart', async () => {
-    const beforeIndex = await scanResults(client);
+    const beforeIndex = await scanGeneratedAt();
     await runTaskAndWait(client, 'INDEX');
 
-    // Consuming rewrites the lists but keeps the scan timestamp for the UI's
-    // "last scan" display.
-    const consumed = await scanResults(client);
-    expect(consumed).to.deep.equal({ ...beforeIndex, newPaths: 0, missingPaths: 0 });
+    // Consuming rewrites only its own list but keeps the scan timestamp for the
+    // UI's "last scan" display.
     expect(await scanNewPaths()).to.deep.equal([]);
+    expect(await scanMissingPaths()).to.deep.equal([]);
+    expect(await scanGeneratedAt()).to.equal(beforeIndex);
 
     const hashes = await subset(client, {});
     expect(hashes).to.have.lengthOf(1);
@@ -121,27 +135,41 @@ describe('SCAN hand-off across restarts', () => {
     await runTaskAndWait(client, 'INDEX');
     expect(await subset(client, {})).to.have.lengthOf(12);
 
+    // A file that appears after the index and is never indexed stays pending
+    // new work, so the DELETE-MISSING finalize below must leave it alone.
+    await createStill(server.libraryPath, 'c-still.jpg', 'yellow');
+
     FS.rmSync(Path.join(server.libraryPath, 'a-still.jpg'));
     await runTaskAndWait(client, 'SCAN');
-    const beforeDelete = await scanResults(client);
-    expect(beforeDelete.missingPaths).to.equal(1);
-    expect(await scanMissingPaths()).to.deep.equal(['a-still.jpg']);
+    // The second scan's timestamp is what must survive the consumption below.
+    const secondScanGeneratedAt = await scanGeneratedAt();
+    // One pending new file and one missing file at the same time: consuming
+    // either side must clear only its own list.
+    expect(await scanState(client)).to.deep.equal({
+      generatedAt: secondScanGeneratedAt,
+      newPaths: ['c-still.jpg'],
+      missingPaths: ['a-still.jpg'],
+    });
 
     // Restart between SCAN and DELETE-MISSING, then consume without scanning.
     await restartServer();
     await runTaskAndWait(client, 'DELETE-MISSING');
 
     expect(await subset(client, {})).to.have.lengthOf(11);
-    const consumed = await scanResults(client);
-    expect(consumed).to.deep.equal({ ...beforeDelete, newPaths: 0, missingPaths: 0 });
     expect(await scanMissingPaths()).to.deep.equal([]);
+    // Only missing-paths was cleared: the unconsumed new file survives.
+    expect(await scanNewPaths()).to.deep.equal(['c-still.jpg']);
+    expect(await scanGeneratedAt()).to.equal(secondScanGeneratedAt);
   });
 
   it('a failed SCAN does not overwrite the stored results', async () => {
+    // Consume the never-indexed c-still.jpg left pending by the previous test,
+    // so this scan's pending work is only the b-still.jpg created below.
+    await runTaskAndWait(client, 'INDEX');
     await createStill(server.libraryPath, 'b-still.jpg', 'blue');
     await runTaskAndWait(client, 'SCAN');
-    const beforeFailure = await scanResults(client);
-    expect(beforeFailure.newPaths).to.equal(1);
+    const beforeFailure = await scanState(client);
+    expect(beforeFailure?.newPaths).to.deep.equal(['b-still.jpg']);
 
     // An unreadable subdirectory fails the whole walk (files under it would
     // otherwise be reported as missing), so the scan must not publish
@@ -157,7 +185,7 @@ describe('SCAN hand-off across restarts', () => {
       FS.chmodSync(blockedDir, 0o755);
     }
 
-    expect(await scanResults(client)).to.deep.equal(beforeFailure);
+    expect(await scanState(client)).to.deep.equal(beforeFailure);
     expect(await scanNewPaths()).to.deep.equal(['b-still.jpg']);
   });
 });

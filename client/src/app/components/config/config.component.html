@@ -91,14 +91,16 @@
               <div class="row">
                 <div class="col-md-12 form-padded-input">
                   <p>Scan completed {{ scanResults.generatedAt | date: 'medium' }}.</p>
-                  @if (scanResults.newPaths > 0 || scanResults.missingPaths > 0) {
+                  @if (scanResults.newPaths.length > 0 || scanResults.missingPaths.length > 0) {
                     <p>
-                      @if (scanResults.newPaths > 0) {
-                        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths }} new files</a
-                        >{{ scanResults.missingPaths > 0 ? ' found and' : '.' }}
+                      @if (scanResults.newPaths.length > 0) {
+                        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('new')">{{ scanResults.newPaths.length }} new files</a
+                        >{{ scanResults.missingPaths.length > 0 ? ' found and' : '.' }}
                       }
-                      @if (scanResults.missingPaths > 0) {
-                        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')">{{ scanResults.missingPaths }} files missing</a>.
+                      @if (scanResults.missingPaths.length > 0) {
+                        <a href="javascript:void(0);" (click)="tasksService.showScannerFileList('missing')"
+                          >{{ scanResults.missingPaths.length }} files missing</a
+                        >.
                       }
                     </p>
                   } @else {

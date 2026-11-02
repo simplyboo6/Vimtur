@@ -15,23 +15,31 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    `duplicateOf.exists=false` after validation, so requests setting them are
    ignored. The client relies on these defaults. Pinned in `search.spec.ts`.
 
-2. **SCAN results report pending work, not the last scan's diff.** `SCAN/results`
-   shows what is *not yet consumed* by INDEX / DELETE-MISSING. INDEX always
-   clears the new-files list when it runs, and DELETE-MISSING clears the
-   missing list once deletion actually starts — but a DELETE-MISSING run
-   refused by the safety limit keeps the list so it can be retried without a
-   new SCAN. A SCAN that fails (e.g. the library volume is unavailable)
-   leaves the previous scan's results untouched. The lists are persisted in
-   the task_state store under `SCAN` / `results` (not process memory), so the
-   hand-off survives a server restart, and INDEX / DELETE-MISSING consume them
-   by read-modify-write. Aborting or partially completing INDEX /
-   DELETE-MISSING still consumes that run's list (the finalize write-back runs
-   whether or not the task errored), so persistence across restarts is not
-   resumability — recovery is a fresh SCAN.
-   `/api/tasks/SCAN/results*` 404s when no scan has ever
-   been stored; a consumed-but-not-overwritten record still 200s with zero
-   counts because the scan timestamp is retained on purpose for the UI's
-   "last scan" display (the config page's Scan Results section). Documented in
+2. **SCAN state reports pending work, not the last scan's diff.** The SCAN
+   task persists its pending work in the task_state store as three keys under
+   `SCAN` (the definition id, never a queue instance id like `SCAN-0`):
+   `new-paths` and `missing-paths` (path arrays) and `generated-at` (epoch ms).
+   The scan-specific `/api/tasks/SCAN/results*` routes no longer exist; the UI
+   and these tests read the keys through the generic
+   `GET /api/tasks/state/:taskId/:key` endpoint, and any of the three keys
+   being absent reads as "no scan". The lists show what is *not yet consumed*
+   by INDEX / DELETE-MISSING: INDEX clears `new-paths` when it runs, and
+   DELETE-MISSING clears `missing-paths` once deletion actually starts — but a
+   DELETE-MISSING run refused by the safety limit keeps the list so it can be
+   retried without a new SCAN. Each consumer rewrites only its own key;
+   `generated-at` is deliberately retained across consumption for the UI's
+   "last scan" display (the config page's Scan Results section). A SCAN that
+   fails (e.g. the library volume is unavailable) leaves the previous scan's
+   state untouched — except a write failure part-way through the three
+   non-transactional upserts, which can leave a list newer than `generated-at`
+   (see the commit-marker note below). The keys are persisted (not process
+   memory), so the hand-off survives a server restart — but persistence is not
+   resumability: aborting or partially completing INDEX / DELETE-MISSING still
+   consumes that run's list (the finalize clear runs whether or not the task
+   errored), so recovery is a fresh SCAN. A successful scan's three writes are
+   individually atomic but not transactional: `generated-at` is written last as
+   the commit marker, and only the UI's freshness display reads it — each
+   consumer re-derives its work from its own key. Documented in
    `import-lifecycle.spec.ts` and `scan-restart.spec.ts`, and pinned in
    `delete-missing-safety.spec.ts`.
 

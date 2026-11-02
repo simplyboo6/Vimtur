@@ -1,8 +1,8 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import IO from 'socket.io-client';
 import { Injectable } from '@angular/core';
-import { ReplaySubject, Observable, of, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { ReplaySubject, Observable, of, throwError, forkJoin } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { QueuedTask, ListedTask, Scanner, TaskArgs } from '@vimtur/common';
 import { AlertService } from 'app/services/alert.service';
 import { ConfigService } from './config.service';
@@ -17,6 +17,13 @@ const HTTP_OPTIONS = {
 
 const ROOT_PATH = '/api/tasks';
 
+// Mirrors the SCAN task_state key constants in server/src/tasks/scanner.ts.
+// common is declaration-only, so the literals are duplicated here.
+const SCAN_TASK_ID = 'SCAN';
+const SCAN_NEW_PATHS_KEY = 'new-paths';
+const SCAN_MISSING_PATHS_KEY = 'missing-paths';
+const SCAN_GENERATED_AT_KEY = 'generated-at';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -26,7 +33,7 @@ export class TasksService {
   private configService: ConfigService;
   private queue: ReplaySubject<QueuedTask[]> = new ReplaySubject(1);
   private tasks: ReplaySubject<ListedTask[]> = new ReplaySubject(1);
-  private scanResults: ReplaySubject<Scanner.Summary | undefined> = new ReplaySubject(1);
+  private scanResults: ReplaySubject<Scanner.ScanResults | undefined> = new ReplaySubject(1);
   private socket = IO();
   private modalService: NgbModal;
 
@@ -150,16 +157,18 @@ export class TasksService {
   }
 
   public showScannerFileList(type: 'new' | 'missing'): void {
-    this.httpClient.get<string[]>(`${ROOT_PATH}/SCAN/results/${type}`).subscribe(
+    const key = type === 'new' ? SCAN_NEW_PATHS_KEY : SCAN_MISSING_PATHS_KEY;
+    this.getTaskState<string[]>(SCAN_TASK_ID, key).subscribe(
       res => {
-        console.log('type', res);
         const modalRef = this.modalService.open(ListModalComponent, {
           centered: true,
           size: 'xl',
         });
 
         (modalRef.componentInstance as ListModalComponent).title = `${type} files`;
-        (modalRef.componentInstance as ListModalComponent).items = res;
+        // getTaskState maps a 404 to undefined; the link only renders while the
+        // scan state exists, so fall back to an empty list rather than erroring.
+        (modalRef.componentInstance as ListModalComponent).items = res ?? [];
         (modalRef.componentInstance as ListModalComponent).modal = modalRef;
         modalRef.result.catch(() => {
           // Ignore the error. Thrown on cancel/deny
@@ -175,7 +184,7 @@ export class TasksService {
     );
   }
 
-  public getScanResults(): Observable<Scanner.Summary | undefined> {
+  public getScanResults(): Observable<Scanner.ScanResults | undefined> {
     return this.scanResults;
   }
 
@@ -209,22 +218,46 @@ export class TasksService {
   }
 
   private reloadScanResults() {
-    this.httpClient.get<Scanner.Summary>(`${ROOT_PATH}/SCAN/results`).subscribe(
-      res => {
-        this.scanResults.next(res);
-      },
-      (err: HttpErrorResponse) => {
-        if (err.status === 404) {
-          // No scan has ever been stored; a normal state, not an error.
-          this.scanResults.next(undefined);
-          return;
-        }
-        console.warn(err);
-        this.alertService.show({
-          type: 'warning',
-          message: `Failed to fetch scan results`,
-        });
-      },
-    );
+    // The scan state is three separate task_state keys; the composed record is
+    // only a client-side view of them. getTaskState maps a 404 to undefined, so
+    // one composition error means one alert, not three.
+    forkJoin({
+      generatedAt: this.getTaskState<number>(SCAN_TASK_ID, SCAN_GENERATED_AT_KEY),
+      newPaths: this.getTaskState<string[]>(SCAN_TASK_ID, SCAN_NEW_PATHS_KEY),
+      missingPaths: this.getTaskState<string[]>(SCAN_TASK_ID, SCAN_MISSING_PATHS_KEY),
+    })
+      .pipe(
+        map(state => {
+          // Any absent or mis-shaped key is "no scan", matching the server's
+          // loadScanResults: a partial write must not read as pending work.
+          if (
+            state.generatedAt === undefined ||
+            state.newPaths === undefined ||
+            state.missingPaths === undefined ||
+            typeof state.generatedAt !== 'number' ||
+            !Array.isArray(state.newPaths) ||
+            !Array.isArray(state.missingPaths)
+          ) {
+            return undefined;
+          }
+          return {
+            generatedAt: state.generatedAt,
+            newPaths: state.newPaths,
+            missingPaths: state.missingPaths,
+          };
+        }),
+      )
+      .subscribe(
+        res => {
+          this.scanResults.next(res);
+        },
+        (err: HttpErrorResponse) => {
+          console.warn(err);
+          this.alertService.show({
+            type: 'warning',
+            message: `Failed to fetch scan results`,
+          });
+        },
+      );
   }
 }
