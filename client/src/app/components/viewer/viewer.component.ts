@@ -3,6 +3,8 @@ import { UiService } from 'services/ui.service';
 import { MediaService } from 'services/media.service';
 import { ConfigService } from 'services/config.service';
 import { Subscription } from 'rxjs';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
 import { Media, Configuration } from '@vimtur/common';
 import { isMobile } from 'is-mobile';
 import { TagPanelComponent } from '../tag-panel/tag-panel.component';
@@ -15,13 +17,14 @@ import { FormatArrayPipe } from '../../shared/format-array.pipe';
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [TagPanelComponent, VideoPlayerComponent, LoadingComponent, FormatArrayPipe],
+  imports: [TagPanelComponent, VideoPlayerComponent, LoadingComponent, FormatArrayPipe, FaIconComponent],
 })
 export class ViewerComponent implements OnInit, OnDestroy {
   public tagsOpen = false;
   public media?: Media;
   public config?: Configuration.Main;
   public mediaSrc?: string;
+  public readonly faCircleXmark = faCircleXmark;
 
   private uiService: UiService;
   private mediaService: MediaService;

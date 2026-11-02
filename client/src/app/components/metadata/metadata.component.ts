@@ -5,6 +5,8 @@ import { ActorService } from 'services/actor.service';
 import { UiService } from 'services/ui.service';
 import { Subscription, timer, combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
 import { Media, UpdateMedia, Playlist, UpdateMetadata } from '@vimtur/common';
 import { ListItem, toListItems } from 'app/shared/types';
 import { PlaylistService } from 'services/playlist.service';
@@ -34,7 +36,7 @@ interface MetadataField {
   templateUrl: './metadata.component.html',
   styleUrls: ['./metadata.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [FormsModule, NgbRating, SelectComponent, SelectOptionComponent, LoadingComponent, DatePipe, FormatArrayPipe],
+  imports: [FormsModule, NgbRating, SelectComponent, SelectOptionComponent, LoadingComponent, DatePipe, FormatArrayPipe, FaIconComponent],
 })
 export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
   public media?: Media;
@@ -53,6 +55,7 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     { name: 'album', text: 'Album' },
     { name: 'title', text: 'Title' },
   ];
+  public readonly faCircleXmark = faCircleXmark;
 
   @ViewChild('ratingElement', { static: false }) private ratingElement: any;
   private uiService: UiService;
