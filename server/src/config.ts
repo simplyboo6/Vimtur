@@ -6,6 +6,7 @@ import DeepMerge from 'deepmerge';
 import PathIsInside from 'path-is-inside';
 import StripJsonComments from 'strip-json-comments';
 
+import { autotagWorkerMemoryLimit } from './utils/system-memory';
 import { Validator } from './utils/validator';
 
 function mapEnv(env: string, obj: Record<string, unknown>, dest: string): void {
@@ -114,16 +115,18 @@ const DEFAULTS: Partial<Configuration.Main> = {
     showTaskNotifications: false,
     autoClearCompletedTasks: true,
   },
-  // Zero-shot Auto-Tagging pipeline defaults: sample size 500 (from the
-  // Auto-Tagging page mock) and a support floor of 8 manually tagged
-  // examples before a calibrated threshold applies. `model` below copies the
-  // derived id (`AUTO-TAG-${AVES_SIGLIP2_B32.id}`, see AUTO_TAG_TASK_ID in
-  // tasks/autotag/siglip/state.ts and AVES_SIGLIP2_B32.id in
-  // tasks/autotag/siglip/pack.ts) by hand: importing the pack module here would
-  // create a config ↔ pack cycle, so keep the two in step.
+  // Zero-shot Auto-Tagging pipeline defaults: the worker count is derived from
+  // this machine's RAM at boot (autotagWorkerMemoryLimit() — encoder workers may
+  // never claim more than half of system memory, see utils/system-memory.ts),
+  // sample size 500 (from the Auto-Tagging page mock) and a support floor of 8
+  // manually tagged examples before a calibrated threshold applies. `model`
+  // below copies the derived id (`AUTO-TAG-${AVES_SIGLIP2_B32.id}`, see
+  // AUTO_TAG_TASK_ID in tasks/autotag/siglip/state.ts and AVES_SIGLIP2_B32.id
+  // in tasks/autotag/siglip/pack.ts) by hand: importing the pack module here
+  // would create a config ↔ pack cycle, so keep the two in step.
   autotags: {
     model: 'AUTO-TAG-AVES-SIGLIP2-B32',
-    workers: 5,
+    workers: autotagWorkerMemoryLimit(),
     minSupport: 8,
     calibrationSampleSize: 500,
     tags: {},

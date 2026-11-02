@@ -156,6 +156,20 @@ export function create(db: Database): Router {
     res.status(200).json(await db.saveMedia(hash, update));
   });
 
+  // The viewer's × icon: drops the media's generated tags entirely. NULL (not
+  // the [] "processed" marker) is stored, so a default skip-existing apply
+  // reconsiders the item; a manually tagged item stays protected by the
+  // skip-tagged default until include-tagged is chosen explicitly.
+  router.delete('/:hash/autotags', async (req, res) => {
+    const hash = singleParam(req.params.hash);
+    const media = await db.getMedia(hash);
+    if (!media) {
+      throw new NotFound(`No media found with hash: ${hash}`);
+    }
+    await db.clearAutoTags({ hash: { equalsAny: [hash] } });
+    res.sendStatus(204);
+  });
+
   router.put('/:hash/playlists/:playlistId', async (req, res) => {
     const hash = singleParam(req.params.hash);
     const playlistId = singleParam(req.params.playlistId);

@@ -156,8 +156,8 @@ export class MongoConnector extends Database {
   }
 
   // Task state
-  public async getTaskState(taskId: string, key: string): Promise<unknown> {
-    const row = await this.db.collection<{ value: unknown }>('task_state').findOne({ taskId, key });
+  public async getTaskState<T>(taskId: string, key: string): Promise<T | undefined> {
+    const row = await this.db.collection<{ value: T }>('task_state').findOne({ taskId, key });
     if (!row) {
       return undefined;
     }
@@ -653,6 +653,13 @@ export class MongoConnector extends Database {
     return result.matchedCount;
   }
 
+  public async clearAutoTags(constraints: SubsetConstraints): Promise<number> {
+    const collection = this.db.collection<BaseMedia>('media');
+    const result = await collection.updateMany(this.buildClearAutoTagsMatch(constraints), { $unset: { autoTags: '' } });
+    console.log(`clearAutoTags: ${result.modifiedCount} cleared`);
+    return result.modifiedCount;
+  }
+
   public async countMedia(): Promise<number> {
     return this.db.collection('media').countDocuments();
   }
@@ -862,6 +869,27 @@ export class MongoConnector extends Database {
 
   public async close(): Promise<void> {
     await this.server.close();
+  }
+
+  // clearAutoTags must un-mark a stored `[]` row the way SQLite's
+  // `auto_tags IS NOT NULL` does. createArrayFilter's exists leg keys off
+  // `autoTags.0`, which an empty array fails, so the exists-only form (the
+  // CLEAR-TAGGED-AUTOTAGS call) is composed here to accept it; any other
+  // autoTags options keep the general array filter unchanged.
+  private buildClearAutoTagsMatch(constraints: SubsetConstraints): object {
+    const { autoTags, ...rest } = constraints;
+    const filters: object[] = [this.buildMediaMatch(rest)];
+    if (autoTags?.exists === true && Object.keys(autoTags).length === 1) {
+      filters.push({ $or: [{ 'autoTags.0': { $exists: true } }, { autoTags: [] }] });
+    } else if (autoTags) {
+      filters.push(createArrayFilter('autoTags', autoTags));
+    }
+
+    const filteredFilters = filters.filter((filter) => Object.keys(filter).length > 0);
+    if (filteredFilters.length === 0) {
+      return {};
+    }
+    return { $and: filteredFilters };
   }
 
   private buildMediaMatch(constraints: SubsetConstraints): object {

@@ -158,6 +158,49 @@ describe('Database Tests', () => {
     });
   });
 
+  describe('clearAutoTags', () => {
+    // clear-0: manual + auto; clear-1: auto only; clear-2: manual only;
+    // clear-3: manual + the stored "processed, nothing scored" [] marker.
+    const AUTO_TAGS: Record<number, string[]> = { 0: ['auto-0'], 1: ['auto-1'], 3: [] };
+
+    before(async () => {
+      for (const index of [0, 1, 2, 3]) {
+        await database.saveMedia(`clear-${index}`, {
+          hash: `clear-${index}`,
+          path: `/tmp/clear-${index}.jpg`,
+          dir: '/tmp',
+          type: 'still',
+          actors: [],
+          tags: [],
+          hashDate: Date.now(),
+          metadata: { height: 1080, width: 1920 },
+          autoTags: AUTO_TAGS[index],
+        });
+      }
+      await database.addTag('manual');
+      await database.addMediaTag('clear-0', 'manual');
+      await database.addMediaTag('clear-2', 'manual');
+      await database.addMediaTag('clear-3', 'manual');
+    });
+
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    it('clears auto tags only for media that also has manual tags', async () => {
+      const cleared = await database.clearAutoTags({ tags: { exists: true }, autoTags: { exists: true } });
+      // Both the scored row and the stored [] "processed" marker are cleared.
+      expect(cleared).to.equal(2);
+      expect((await database.getMedia('clear-0'))?.autoTags).to.equal(undefined);
+      // The auto-only item keeps its processed marker.
+      expect((await database.getMedia('clear-1'))?.autoTags).to.deep.equal(['auto-1']);
+      expect((await database.getMedia('clear-3'))?.autoTags).to.equal(undefined);
+      // NULL, not [], is what skip-existing keys off: only the cleared items are
+      // treated as unprocessed again.
+      expect(await database.subset({ autoTags: { exists: false } })).to.have.members(['clear-0', 'clear-2', 'clear-3']);
+    });
+  });
+
   describe('Basic playlist tests', () => {
     it('Create playlist', async () => {
       const playlist = await database.addPlaylist({

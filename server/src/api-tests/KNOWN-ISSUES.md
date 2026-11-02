@@ -66,13 +66,17 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    so a purge cannot persist a shape the config API would reject. Pinned in
    `smart-search.spec.ts`.
 
-9. **Auto-tagging scores DB tags only (the dead-tag rule).** A manual
-   threshold on a config-only tag that does not exist in the tag store is
-   never applied, so it cannot satisfy the "No tags have an applicable
-   threshold" fail-fast either: the task still fails until a DB tag has a
-   usable threshold. `applicableTags` mirrors threshold precedence rather than
-   this rule, so the task drops the config-only tag itself. Pinned by the zeta
-   test in `smart-search.spec.ts`.
+9. **Auto-tagging scores configured DB tags only (the configured-tag rule).**
+   A tag is scored, tagged and calibrated only when it exists in the tag store
+   *and* has an `autotags.tags` entry (a description or a manual threshold opts
+   it in); a DB tag with no entry is inert. A manual threshold on a config-only
+   tag that does not exist in the tag store is therefore never applied, so it
+   cannot satisfy the "No tags have an applicable threshold" fail-fast either:
+   the task still fails until a configured DB tag has a usable threshold.
+   `applicableTags` mirrors threshold precedence rather than this rule, so the
+   task drops config-only tags itself. The dead-tag purge still removes config
+   entries whose tag was deleted (item 8). Pinned by the zeta test in
+   `smart-search.spec.ts`.
 
 Things that used to live here as one-off deltas from the error-handler and
 plain-`res.json()` migration are documented as standing conventions in the

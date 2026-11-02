@@ -23,7 +23,7 @@
     </div>
     <!-- SigLIP-2-only settings sit below the selection: the warning must come before the first control it disables. -->
     @if (!isSiglipSelected) {
-      <div class="alert alert-warning mb-3">
+      <div class="alert alert-warning mt-3 mb-3">
         <span
           >These settings do not apply to the selected model. With {{ selectedModelLabel() }} selected, the worker count, tag table, statuses and calibration
           are SigLIP-2 features and stay inert; Apply Tags runs that model's task instead, or is unavailable when this server does not list it. Switch back to
@@ -34,6 +34,9 @@
     <div class="row">
       <div class="col-md-4 input-component">
         <label for="autotag-worker-count">Worker count</label>
+        <!-- The handler reads `.valueAsNumber` from this template reference: it is the input's
+             own parsed value (NaN for a typed-but-empty field, which saveWorkerCount ignores)
+             rather than a cast of the untyped `$event.target` inside the template. -->
         <input
           type="number"
           class="form-control"
@@ -57,6 +60,8 @@
       </div>
       <div class="col-md-4 input-component">
         <label for="autotag-min-support">Minimum calibration support</label>
+        <!-- Same template-reference read as the worker count: `.valueAsNumber` gives the
+             input's parsed value directly, and NaN (typed-but-empty) is ignored by saveMinSupport. -->
         <input
           type="number"
           class="form-control"
@@ -246,10 +251,11 @@
       or lower the <strong>Minimum calibration support</strong> above.
     </p>
     <p class="text-muted">
-      Descriptions define what the encoder looks for. Every entry is scored alongside the bare tag and &quot;a photo of &#123;tag&#125;&quot;, which the server
-      always includes without storing them here — keep them short (limited to 60 characters here). Thresholds and support counts come from the calibration task;
-      rows flagged &quot;Review (low support)&quot; need better wording or more tagged examples before their tags can apply automatically. A tag's config entry
-      is kept when the tag is deleted and is cleared at the next calibration run.
+      Only tags with an Auto-Tagging entry here are scored and calibrated — add a description or a threshold to opt a tag in. Descriptions define what the
+      encoder looks for. Every entry is scored alongside the bare tag and &quot;a photo of &#123;tag&#125;&quot;, which the server always includes without
+      storing them here — keep them short (limited to 60 characters here). Thresholds and support counts come from the calibration task; rows flagged
+      &quot;Review (low support)&quot; need better wording or more tagged examples before their tags can apply automatically. A tag's config entry is kept when
+      the tag is deleted and is cleared at the next calibration run.
     </p>
   </div>
   <div class="card">
@@ -261,6 +267,9 @@
     <div class="row">
       <div class="col-md-4 form-padded-input">
         <label for="autotag-calibration-sample-size">Sample size</label>
+        <!-- Same template-reference read as the other numeric settings: `.valueAsNumber` is the
+             input's parsed value (NaN when typed-but-empty, which saveCalibrationSampleSize
+             ignores), read from the current input state instead of casting the change event. -->
         <input
           type="number"
           class="form-control"
@@ -323,11 +332,12 @@
         >
       </div>
     }
-    <!-- The mode select is enabled whenever the listed apply task declares select
-         arguments: the classifier tasks carry the same skip-existing/replace
-         choices as the SigLIP-2 task, so it is not a SigLIP-2-only control. -->
+    <!-- The mode selects are enabled whenever the listed apply task declares
+         select arguments: the classifier tasks carry the same
+         skip-existing/replace and skip-tagged/include-tagged choices as the
+         SigLIP-2 task, so they are not SigLIP-2-only controls. -->
     <div class="row">
-      <div class="col-md-4 form-padded-input">
+      <div class="col-md-3 form-padded-input">
         <label for="autotag-apply-mode">Existing tags</label>
         <select
           id="autotag-apply-mode"
@@ -342,7 +352,22 @@
           }
         </select>
       </div>
-      <div class="col-md-4 form-padded-input">
+      <div class="col-md-3 form-padded-input">
+        <label for="autotag-apply-tagged-mode">Tag media with manual tags</label>
+        <select
+          id="autotag-apply-tagged-mode"
+          name="autotag-apply-tagged-mode"
+          class="form-select d-block w-100"
+          [ngModel]="applyTaggedMode"
+          (ngModelChange)="onApplyTaggedModeChange($event)"
+          [disabled]="applyTaggedModes().length === 0"
+        >
+          @for (value of applyTaggedModes(); track value.id) {
+            <option [ngValue]="value.id">{{ value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-3 form-padded-input">
         <label>Status</label>
         <div>
           <span class="text-muted"
@@ -350,7 +375,7 @@
           >
         </div>
       </div>
-      <div class="col-md-4 form-padded-input">
+      <div class="col-md-3 form-padded-input">
         <button
           type="button"
           class="btn btn-primary col-12"
@@ -359,6 +384,26 @@
           (click)="applyTags()"
         >
           Apply Tags
+        </button>
+      </div>
+    </div>
+    <!-- Bulk maintenance: the server-side counterpart of the viewer's clear
+         icon. It runs as a normal task; the in-flight check reads the raw
+         queue snapshot rather than the calibration/apply status machinery. -->
+    <h5 class="form-padded-input">Maintenance</h5>
+    <div class="row">
+      <div class="col-md-8 form-padded-input">
+        <span class="text-muted">Removes auto-generated tags from every media item that carries manual tags.</span>
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <button
+          type="button"
+          class="btn btn-outline-secondary col-12"
+          id="autotag-clear-tagged-autotags"
+          [disabled]="clearTaggedAutoTagsInFlight()"
+          (click)="clearTaggedAutoTags()"
+        >
+          Clear Auto-Tags from Tagged Media
         </button>
       </div>
     </div>

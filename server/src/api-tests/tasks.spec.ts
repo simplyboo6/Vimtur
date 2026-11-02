@@ -2,7 +2,15 @@ import type { ListedTask, QueuedTask, Scanner } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import { ApiClient, type ApiServer, assertOk, createStill, startServer, waitForDrainedQueue } from './harness';
+import {
+  ApiClient,
+  type ApiServer,
+  assertOk,
+  assertStatus,
+  createStill,
+  startServer,
+  waitForDrainedQueue,
+} from './harness';
 
 describe('Tasks API', () => {
   let server: ApiServer;
@@ -22,7 +30,15 @@ describe('Tasks API', () => {
     const tasks = assertOk(await client.get<ListedTask[]>('/api/tasks'), 'GET /api/tasks');
     const ids = tasks.map((task) => task.id);
     // The meta-tasks and pipeline tasks the client relies on.
-    for (const expected of ['AUTO-IMPORT', 'VERIFY-CACHE', 'SCAN', 'INDEX', 'GENERATE-THUMBNAILS', 'DELETE-MISSING']) {
+    for (const expected of [
+      'AUTO-IMPORT',
+      'VERIFY-CACHE',
+      'SCAN',
+      'INDEX',
+      'GENERATE-THUMBNAILS',
+      'DELETE-MISSING',
+      'CLEAR-TAGGED-AUTOTAGS',
+    ]) {
       expect(ids).to.include(expected);
     }
     for (const task of tasks) {
@@ -91,6 +107,16 @@ describe('Tasks API', () => {
     const response = await client.post('/api/tasks/queue/NOT-A-TASK', {});
     expect(response.status).to.equal(400);
     expect(response.data).to.have.property('message');
+  });
+
+  it('serves 404 JSON for unknown task state', async () => {
+    // Task-independent: plain GETs, no calibration or autotag setup involved.
+    for (const path of ['/api/tasks/state/CALIBRATE-SIGLIP2-B32/last-run', '/api/tasks/state/NOPE/nope']) {
+      const response = await client.get<{ message: string }>(path);
+      const data = assertStatus(response, 404, `GET ${path}`);
+      expect(data, `GET ${path}`).to.have.property('message');
+      expect((data as { message: string }).message).to.be.a('string');
+    }
   });
 
   it('cancelling an unknown queue entry is a silent 204', async () => {

@@ -47,9 +47,13 @@ const AUTO_TAG_TASK_ID = 'AUTO-TAG-AVES-SIGLIP2-B32';
 const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
 
 // Task argument positions: the queue body is the positional args array, so a
-// mode is `['replace']` (or omitted for the default `skip-existing`).
+// mode is `['replace']` (or omitted for the default `skip-existing`). The
+// second argument controls whether manually tagged media is included; it
+// defaults to `skip-tagged`, and these fixtures tag their stills manually, so
+// tests that need the old tag-everything behaviour ask for include-tagged.
 const MODE_SKIP_EXISTING = 'skip-existing';
 const MODE_REPLACE = 'replace';
+const MODE_INCLUDE_TAGGED = 'include-tagged';
 
 // The Auto-Tagging page mock's manual, zero-valued threshold tag: zero is a
 // real threshold, not an absent value.
@@ -82,7 +86,7 @@ async function stillHashes(client: ApiClient): Promise<string[]> {
  */
 function applicableTags(
   run: Autotag.CalibrationRun,
-  tags: Record<string, Configuration.AutoTagTag> | undefined,
+  tags: Record<string, Configuration.AutoTagMetadata> | undefined,
 ): Set<string> {
   const allowed = new Set<string>();
   for (const [tag, settings] of Object.entries(tags ?? {})) {
@@ -171,6 +175,14 @@ describe('Smart-search autotagging', () => {
     await server?.stop();
   });
 
+  it('serves 404 JSON for the calibration run state before any calibration', async () => {
+    // The loud-failure reproducer below also pins this 404 (task-specific
+    // behaviour: a failed calibration writes no run record).
+    const path = `/api/tasks/state/${CALIBRATION_TASK_ID}/last-run`;
+    const data = assertStatus(await client.get<{ message: string }>(path), 404, `GET ${path}`);
+    expect(data).to.deep.equal({ message: 'Task state not found' });
+  });
+
   it('fails a calibration over an untagged library instead of recording nothing', async () => {
     // A user-started calibration with no tagged stills can never produce a
     // result: failing loudly surfaces the reason in the queue row and the
@@ -188,15 +200,6 @@ describe('Smart-search autotagging', () => {
     // successes), so remove it: the drain helper later tests use treats any
     // error entry as a suite failure.
     assertStatus(await client.delete(`/api/tasks/queue/${id}`), 204, `DELETE /api/tasks/queue/${id}`);
-  });
-
-  it('serves 404 JSON for unknown task state before any calibration', async () => {
-    for (const path of [`/api/tasks/state/${CALIBRATION_TASK_ID}/last-run`, '/api/tasks/state/NOPE/nope']) {
-      const response = await client.get<{ message: string }>(path);
-      const data = assertStatus(response, 404, `GET ${path}`);
-      expect(data, `GET ${path}`).to.have.property('message');
-      expect((data as { message: string }).message).to.be.a('string');
-    }
   });
 
   it('fails a user-started zero-shot run fast when nothing is calibrated', async () => {
@@ -228,7 +231,11 @@ describe('Smart-search autotagging', () => {
     // enumerate the roster); its default is exercised by the routing tests
     // below rather than pinned to a literal here.
     expect(posted.autotags?.model, 'model default').to.be.a('string');
-    expect(posted.autotags?.workers).to.equal(5);
+    // The default worker count is derived from the host's RAM at boot, so only
+    // the schema's range is pinned here rather than a machine-specific literal.
+    expect(posted.autotags?.workers, 'workers default')
+      .to.be.a('number')
+      .and.to.be.within(1, 8);
     expect(posted.autotags?.minSupport).to.equal(8);
     expect(posted.autotags?.calibrationSampleSize).to.equal(500);
     expect(posted.autotags?.tags?.['sunset']?.descriptions).to.deep.equal(['a photo of the sun going down']);
@@ -287,9 +294,13 @@ describe('Smart-search autotagging', () => {
       );
     }
 
-    // A rejected write is never persisted.
+    // A rejected write is never persisted: the rejected workers=9 above left
+    // the boot default in place, and that default is RAM-derived, so only its
+    // range is pinned.
     const persisted = await getConfig(client);
-    expect(persisted.autotags?.workers).to.equal(5);
+    expect(persisted.autotags?.workers, 'workers default')
+      .to.be.a('number')
+      .and.to.be.within(1, 8);
     expect(persisted.autotags?.model).to.equal(AUTO_TAG_TASK_ID);
   });
 
@@ -310,12 +321,26 @@ describe('Smart-search autotagging', () => {
     // must exist in the library: calibration purges config entries for tags it
     // cannot find in the tag store.
     assertOk(await client.post<string[]>('/api/tags', { tag: MANUAL_TAG }), 'POST /api/tags gamma');
-    assertOk(
+    // Calibration scores only DB tags that also carry a config entry, so alpha
+    // and beta need one to reach the run record; their content is irrelevant
+    // (an empty entry qualifies, the prompt set is synthesised).
+    const configured = assertOk(
       await client.post<Configuration.Main>('/api/config', {
-        autotags: { workers: 2, calibrationSampleSize: 2, tags: { [MANUAL_TAG]: { manualThreshold: 0 } } },
+        autotags: {
+          workers: 2,
+          calibrationSampleSize: 2,
+          tags: {
+            alpha: {},
+            beta: {},
+            [MANUAL_TAG]: { manualThreshold: 0 },
+          },
+        },
       }),
-      'POST /api/config autotags.workers + calibrationSampleSize + gamma manualThreshold',
+      'POST /api/config autotags.workers + calibrationSampleSize + alpha/beta entries + gamma manualThreshold',
     );
+    // An explicit value is honoured when the machine can hold it, so it
+    // round-trips exactly (unlike the RAM-derived default).
+    expect(configured.autotags?.workers, 'configured workers').to.equal(2);
 
     await runTaskAndWait(client, CALIBRATION_TASK_ID);
     const run = await lastCalibrationRun(client);
@@ -361,7 +386,7 @@ describe('Smart-search autotagging', () => {
   });
 
   it('auto-tags only the tags the calibration allows', async () => {
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING, MODE_INCLUDE_TAGGED]);
 
     const run = await lastCalibrationRun(client);
     const config = await getConfig(client);
@@ -395,7 +420,7 @@ describe('Smart-search autotagging', () => {
       'POST /api/config alpha manualThreshold',
     );
 
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING, MODE_INCLUDE_TAGGED]);
 
     const run = await lastCalibrationRun(client);
     const config = await getConfig(client);
@@ -426,7 +451,7 @@ describe('Smart-search autotagging', () => {
     // The first run records every still as processed, even when its generated
     // tag list is empty: skip-existing keys off autoTags, exactly like the
     // classifier.
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING, MODE_INCLUDE_TAGGED]);
 
     // A manual tag added afterwards must not make skip-existing reconsider the
     // still.
@@ -438,7 +463,7 @@ describe('Smart-search autotagging', () => {
       before.set(hash, await detail(client, hash));
     }
 
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING, MODE_INCLUDE_TAGGED]);
 
     for (const hash of stills) {
       expect((await detail(client, hash)).autoTags, `${hash} autoTags after skip-existing rerun`).to.deep.equal(
@@ -447,7 +472,7 @@ describe('Smart-search autotagging', () => {
     }
 
     // 'replace' reconsiders every still, but only allowed tags may be written.
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
 
     const run = await lastCalibrationRun(client);
     const config = await getConfig(client);
@@ -459,6 +484,40 @@ describe('Smart-search autotagging', () => {
       assertAutoTagsWithin(media, allowed, hash);
       expect(media.autoTags ?? [], `${hash} alpha`).to.not.include('alpha');
       expect(media.autoTags ?? [], `${hash} beta`).to.not.include('beta');
+    }
+  });
+
+  it('default apply skips manually tagged media', async () => {
+    // Every still carries a manual tag by now (alpha/beta/gamma). Clearing the
+    // auto tags removes the skip-existing exclusion, so the only reason a
+    // no-argument run (the AUTO-IMPORT default) can skip them is the
+    // skip-tagged default.
+    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    for (const hash of stills) {
+      const media = await detail(client, hash);
+      expect(media.autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+      expect(media.tags.length, `${hash} manual tags`).to.be.greaterThan(0);
+    }
+
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID);
+
+    for (const hash of stills) {
+      expect((await detail(client, hash)).autoTags, `${hash} autoTags after the default run`).to.equal(undefined);
+    }
+  });
+
+  it('include-tagged processes manually tagged media', async () => {
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_SKIP_EXISTING, MODE_INCLUDE_TAGGED]);
+
+    const run = await lastCalibrationRun(client);
+    const config = await getConfig(client);
+    const allowed = applicableTags(run, config.autotags?.tags);
+    for (const hash of stills) {
+      const media = await detail(client, hash);
+      // AUTO-TAG records an autoTags entry (possibly empty) for every still it
+      // processes, so undefined proves the run skipped it.
+      expect(media.autoTags, `${hash} processed`).to.not.equal(undefined);
+      assertAutoTagsWithin(media, allowed, hash);
     }
   });
 
@@ -490,7 +549,7 @@ describe('Smart-search autotagging', () => {
 
     // 'replace' reconsiders every still, so the now-applicable tag can be
     // written over whatever the earlier runs recorded.
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
 
     const config = await getConfig(client);
     const allowed = applicableTags(run, config.autotags?.tags);
@@ -532,7 +591,7 @@ describe('Smart-search autotagging', () => {
     // never a candidate even while its config entry remains — the dead-tag
     // rule — which makes the assertion below real coverage rather than a
     // threshold the encoder could never reach.
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
     for (const hash of stills) {
       expect((await detail(client, hash)).autoTags ?? [], `${hash} epsilon`).to.not.include('epsilon');
     }
@@ -551,7 +610,7 @@ describe('Smart-search autotagging', () => {
     const run = await lastCalibrationRun(client);
     expect(run.perTag, 'calibration perTag after deleting epsilon').to.not.have.property('epsilon');
 
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
     for (const hash of stills) {
       expect((await detail(client, hash)).autoTags ?? [], `${hash} epsilon`).to.not.include('epsilon');
     }
@@ -575,7 +634,7 @@ describe('Smart-search autotagging', () => {
     assertStatus(await client.delete('/api/tags/zeta'), 200, 'DELETE /api/tags/zeta');
 
     // 'replace' re-scores stills that earlier runs already marked processed.
-    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE]);
+    await runTaskAndWait(client, AUTO_TAG_TASK_ID, [MODE_REPLACE, MODE_INCLUDE_TAGGED]);
 
     const run = await lastCalibrationRun(client);
     const config = await getConfig(client);
@@ -601,6 +660,20 @@ describe('Smart-search autotagging', () => {
     for (const hash of stills) {
       expect((await detail(client, hash)).autoTags, `${hash} autoTags after reset`).to.equal(undefined);
     }
+    // The apply tasks' other default now skips manually tagged media, and
+    // AUTO-IMPORT starts the task with no args, so the fixtures' manual tags
+    // must go for the import run to score these stills at all. The calibration
+    // run and config thresholds used below do not depend on media tags.
+    for (const hash of stills) {
+      for (const tag of (await detail(client, hash)).tags) {
+        assertStatus(
+          await client.delete(`/api/images/${hash}/tags/${tag}`),
+          204,
+          `DELETE /api/images/${hash}/tags/${tag}`,
+        );
+      }
+    }
+    expect(await subset(client, { tags: { exists: true } }), 'manually tagged stills before import').to.deep.equal([]);
 
     // The selected model is the zero-shot task id and gamma's manual zero is
     // applicable, so AUTO-IMPORT must route to that task. The drain helper

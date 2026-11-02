@@ -4354,8 +4354,8 @@ __metadata:
 
 "@vimtur/common@file:../common::locator=client%40workspace%3A.":
   version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=90ce00&locator=client%40workspace%3A."
-  checksum: 10c0/2b430b27aa00f7e81accfa4c0f31b7249924af62267ed96e86f1af1616b54a987d3d201c776d23a02f6cb0f112a6c6ef5afb81cd4c19d730ab78ac1ed7d327fb
+  resolution: "@vimtur/common@file:../common#../common::hash=6e284b&locator=client%40workspace%3A."
+  checksum: 10c0/f386a1ac2689a096d328b7e725436a435683f99049278386c71e9272374c54b36f94ea2545a3b25d4826fec2d456924dd63200eba65525ec59b203412e40f9b7
   languageName: node
   linkType: hard
 

@@ -319,6 +319,12 @@ export class SqliteConnector extends Database {
     return raw.map((el) => rawToPartial<RawMedia, Media>(el, fieldMap)) as BaseMedia[];
   }
 
+  public async clearAutoTags(constraints: SubsetConstraints): Promise<number> {
+    const { query, values } = buildMediaQuery(constraints);
+    const result = await this.db.run(`UPDATE \`media\` SET \`auto_tags\` = NULL WHERE \`hash\` IN (${query})`, values);
+    return result.changes;
+  }
+
   // Actors
   public async addActor(name: string): Promise<void> {
     await this.db.run('INSERT OR IGNORE INTO `actors` (`id`) VALUES (?)', [name]);
@@ -410,7 +416,7 @@ export class SqliteConnector extends Database {
   }
 
   // Task state
-  public async getTaskState(taskId: string, key: string): Promise<unknown> {
+  public async getTaskState<T>(taskId: string, key: string): Promise<T | undefined> {
     const row = await this.db.get<{ value: string }>(
       'SELECT `value` FROM `task_state` WHERE `task_id` = ? AND `key` = ?',
       [taskId, key],
@@ -418,7 +424,7 @@ export class SqliteConnector extends Database {
     if (!row) {
       return undefined;
     }
-    return JSON.parse(row.value) as unknown;
+    return JSON.parse(row.value) as T;
   }
 
   public async setTaskState(taskId: string, key: string, value: unknown): Promise<void> {

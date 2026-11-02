@@ -2,11 +2,12 @@ import OS from 'node:os';
 
 import { ScalingConnectionPool } from 'proper-job';
 
-import Config from '../../../config';
+import { autotagWorkerMemoryLimit } from '../../../utils/system-memory';
 
 import { FakeEncoderPool } from './encoder-fake';
 import { ensurePackDownloaded, isPackCached, packFilePath, TEXT_BATCH } from './pack';
 import type { EmbeddingPackDefinition } from './pack';
+import { autotagSettings } from './state';
 import { SigLip2Tokenizer } from './tokenizer';
 import { SiglipWorkerWrapper } from './workers/siglip-worker-wrapper';
 
@@ -26,13 +27,20 @@ export interface EncoderPool {
 
 /**
  * Encoder pool concurrency: the configured worker count, clamped to the
- * configuration's bounds and the machine's CPU count. Each instance pins
- * roughly a GB of pack memory, and the config's bounds alone cannot protect a
- * 2-core box from a user who sets workers=8.
+ * schema's bounds (8), the machine's CPU count and the memory rule (encoder
+ * workers may claim at most half of system memory, see
+ * utils/system-memory.ts). An explicit user value is therefore honoured only
+ * up to what the machine can actually hold: each instance pins roughly a GB of
+ * pack memory, and the config's bounds alone cannot protect a 2-core or 2GB
+ * box from a user who sets workers=8.
  */
 export function encoderInstances(): number {
-  const configured = Config.get().autotags?.workers ?? 1;
-  return Math.min(8, Math.max(1, configured), OS.availableParallelism());
+  // autotagSettings() throws rather than inventing a count when the section is
+  // missing; the config DEFAULTS always provide it, so absence is corruption.
+  // Math.floor because the schema has no integer constraint, and a fractional
+  // worker count would otherwise reach the pool.
+  const configured = Math.floor(autotagSettings().workers);
+  return Math.min(8, Math.max(1, configured), autotagWorkerMemoryLimit(), OS.availableParallelism());
 }
 
 /**
@@ -42,13 +50,13 @@ export function encoderInstances(): number {
  * on first use like every other model.
  */
 export async function ensureEncoderPool(pack: EmbeddingPackDefinition): Promise<EncoderPool> {
-  if (!isPackCached(pack)) {
+  if (!(await isPackCached(pack))) {
     if (process.env['TEST_MODE']) {
       return new FakeEncoderPool(pack.dim);
     }
     await ensurePackDownloaded(pack);
   }
-  return new SiglipEncoderPool(pack, encoderInstances());
+  return SiglipEncoderPool.create(pack, encoderInstances());
 }
 
 /**
@@ -64,9 +72,21 @@ export class SiglipEncoderPool implements EncoderPool {
   private readonly filePaths: Record<string, string>;
   private readonly pack: EmbeddingPackDefinition;
 
-  public constructor(pack: EmbeddingPackDefinition, instanceCount: number) {
+  /**
+   * Async factory: the tokenizer.json read has to stay off the event loop, so
+   * the tokenizer is loaded here and handed to the private constructor.
+   */
+  public static async create(pack: EmbeddingPackDefinition, instanceCount: number): Promise<SiglipEncoderPool> {
+    const tokenizer = await SigLip2Tokenizer.fromTokenizerJson(
+      SiglipEncoderPool.tokenizerPath(pack),
+      pack.contextLength,
+    );
+    return new SiglipEncoderPool(pack, instanceCount, tokenizer);
+  }
+
+  private constructor(pack: EmbeddingPackDefinition, instanceCount: number, tokenizer: SigLip2Tokenizer) {
     this.pack = pack;
-    this.tokenizer = SigLip2Tokenizer.fromTokenizerJson(SiglipEncoderPool.tokenizerPath(pack), pack.contextLength);
+    this.tokenizer = tokenizer;
     this.filePaths = Object.fromEntries(pack.files.map((file) => [file.name, packFilePath(pack, file)]));
     this.pool = new ScalingConnectionPool(
       () => {

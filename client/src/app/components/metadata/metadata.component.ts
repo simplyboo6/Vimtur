@@ -135,6 +135,14 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.mediaService.saveMetadata({ [field]: this.mediaModel.metadata[field] });
   }
 
+  // Whole-list clear with no confirmation: it is one click by design and
+  // re-running Auto-Tag restores the tags unless the user has manually tagged
+  // it (the default skip-tagged mode protects manual tags), so a modal would only
+  // add friction.
+  public clearAutoTags(): void {
+    this.mediaService.clearAutoTags();
+  }
+
   public isMetadataChanged(field: 'artist' | 'album' | 'title', media?: Media, model?: MediaModel): boolean {
     if (!media || !model || !model.metadata || !media.metadata) {
       return false;

@@ -26,17 +26,22 @@ import {
   AUTO_TAG_TASK_ID,
   autotagSettings,
   CALIBRATION_TASK_ID,
+  configuredTags,
   deriveTagState,
   loadCalibrationRun,
   saveCalibrationRun,
 } from './state';
 
-// Task argument positions, indexed against the single-entry args definition
-// of the auto-tagging task below.
+// Task argument positions, indexed against the two-entry args definition of
+// the auto-tagging task below.
 const ARG_MODE = 0;
+const ARG_TAGGED = 1;
 
 const MODE_SKIP_EXISTING = 'skip-existing';
 const MODE_REPLACE = 'replace';
+
+const MODE_SKIP_TAGGED = 'skip-tagged';
+const MODE_INCLUDE_TAGGED = 'include-tagged';
 
 // Canonical image-encoding slice: a 512-still slice feeds the encoder pool as
 // 16 requests of 32 stills, each strided by the worker into 8 IMAGE_BATCHes.
@@ -87,6 +92,24 @@ export function getTask(database: Database): RouterTask[] {
             },
           ],
         },
+        {
+          // Omitted or empty arguments default to 'skip-tagged': a manual tag is
+          // the user's own judgement, so auto-tagging must not add to or
+          // overwrite it unless explicitly asked. This is the requested
+          // "tags should override auto tags" behaviour, and the existing-args
+          // default above is unchanged.
+          type: 'select',
+          name: 'Tag media with manual tags',
+          values: [
+            { id: MODE_SKIP_TAGGED, name: 'Skip media the user has manually tagged' },
+            {
+              id: MODE_INCLUDE_TAGGED,
+              name: 'Include manually tagged media',
+              confirm:
+                'Include media that already carries manual tags. Those manual tags will not be protected: auto-generated tags are written alongside them.',
+            },
+          ],
+        },
       ],
       runner: (updateStatus: TaskRunnerCallback, args?: TaskArgs) => {
         // Embedding and scoring both finish inside this init phase, before the
@@ -99,24 +122,30 @@ export function getTask(database: Database): RouterTask[] {
             if (mode !== MODE_SKIP_EXISTING && mode !== MODE_REPLACE) {
               throw new Error(`Unexpected AUTO-TAG mode: ${mode}`);
             }
+            const taggedMode = args?.[ARG_TAGGED] ?? MODE_SKIP_TAGGED;
+            if (taggedMode !== MODE_SKIP_TAGGED && taggedMode !== MODE_INCLUDE_TAGGED) {
+              throw new Error(`Unexpected AUTO-TAG tagged mode: ${taggedMode}`);
+            }
 
             const settings = autotagSettings();
             const hashes = await database.subset({
               type: { equalsAny: ['still'] },
               autoTags: mode === MODE_SKIP_EXISTING ? { exists: false } : undefined,
+              tags: taggedMode === MODE_SKIP_TAGGED ? { exists: false } : undefined,
               thumbnail: true,
             });
-            console.log(`Tagging ${hashes.length} stills with zero-shot embeddings (${mode})`);
+            console.log(`Tagging ${hashes.length} stills with zero-shot embeddings (${mode}, ${taggedMode})`);
             if (hashes.length === 0) {
               return [];
             }
 
-            // Config-only tag entries are intentionally not scored (the
-            // dead-tag rule): a threshold for a tag the library no longer has
-            // would otherwise keep emitting a tag users cannot see anywhere.
-            // Per-DB-tag decisions still come from settings.tags below.
-            const dbTagList = await database.getTags();
-            const tagList = sortedUnique(dbTagList);
+            // Only configured DB tags are scored: an entry under
+            // autotags.tags is the user's opt-in, and a config entry whose tag
+            // the library no longer has is filtered out by the same helper (the
+            // next calibration purges it, but until then it must not be
+            // scored). The helper also sorts, so prompt-table positions are
+            // stable even though sqlite's getTags is unordered.
+            const tagList = configuredTags(await database.getTags(), settings);
             const storedRun = await loadCalibrationRun(database);
             // Thresholds computed in another pack's embedding space are
             // meaningless here, so a mismatched run is ignored entirely.
@@ -297,10 +326,12 @@ export function getTask(database: Database): RouterTask[] {
               tags: { exists: true },
               sample: settings.calibrationSampleSize,
             });
-            // The subset sample is DB-random per query; sorting makes the
-            // in-run batch composition a function of the sampled SET. Cross-run
-            // embedding drift from batch-neighbour changes is accepted: the
-            // cache reuses rows and scores are recomputed per run.
+            // Selection is DB-random per query; the sort fixes batch
+            // composition within this run (the sampled list becomes the
+            // chunking order for embedding slices and worker batches, and the
+            // quantised model's activation scales depend on batch
+            // neighbourhood — the same reason IMAGE_BATCH is in the cache
+            // fingerprint). Cross-run sample drift stays accepted.
             hashes.sort();
             console.log(`Calibrating from ${hashes.length} tagged stills`);
             // A user-initiated calibration with no tagged stills can never
@@ -334,11 +365,10 @@ export function getTask(database: Database): RouterTask[] {
               // The DB tag list was snapshotted before embedding (which can take
               // minutes); a tag created during the run appears in this run's
               // perTag only at the next calibration (deriveTagState unaffected).
-              const tagList = sortedUnique([
-                ...dbTagList,
-                ...Object.keys(settings.tags),
-                ...hashes.flatMap((hash) => mediaTags.get(hash) ?? []),
-              ]);
+              // Only configured DB tags are calibrated, matching what the apply
+              // run can score: scoring is opt-in through autotags.tags, so no
+              // union with media tags or config keys is needed (or wanted).
+              const tagList = configuredTags(dbTagList, settings);
               const { table, textRows } = await encodePromptTable(pool, AVES_SIGLIP2_B32, tagList, settings.tags);
               const scoreTag = makeTagScorer(table, textRows);
 
@@ -500,7 +530,7 @@ async function encodePromptTable(
   pool: EncoderPool,
   pack: EmbeddingPackDefinition,
   tagList: string[],
-  tags: Record<string, Configuration.AutoTagTag>,
+  tags: Record<string, Configuration.AutoTagMetadata>,
 ): Promise<{ table: TagPrompt[]; textRows: Float32Array[] }> {
   const table = buildPromptTable(tagList, (tag) => tags[tag]?.descriptions);
   const prompts = table.flatMap((entry) => entry.prompts);
@@ -514,9 +544,4 @@ async function encodePromptTable(
 /** Lets the event loop serve queued work between chunks of synchronous scoring. */
 function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
-}
-
-/** Sorted unique tag names: prompt table positions stay stable between runs. */
-function sortedUnique(values: string[]): string[] {
-  return [...new Set(values)].sort();
 }

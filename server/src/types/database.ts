@@ -21,6 +21,13 @@ export abstract class Database {
   public abstract countMedia(): Promise<number>;
   public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
   public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
+  /**
+   * Clears the generated tags of every media matching `constraints`, storing
+   * NULL (not an empty list, which means "processed, no tags scored") so the
+   * next skip-existing auto-tag run treats them as unprocessed. Returns the
+   * number of media whose auto-tags were cleared.
+   */
+  public abstract clearAutoTags(constraints: SubsetConstraints): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;
   public abstract isDeletedPath(path: string): Promise<boolean>;
   public abstract isDeletedHash(hash: string): Promise<boolean>;
@@ -76,7 +83,7 @@ export abstract class Database {
    * Reads one JSON-serialised value a task persisted under its definition id,
    * or undefined when no value was stored.
    */
-  public abstract getTaskState(taskId: string, key: string): Promise<unknown>;
+  public abstract getTaskState<T>(taskId: string, key: string): Promise<T | undefined>;
   /** Persists a JSON-serialisable value under the task's definition id and key, replacing any previous value. */
   public abstract setTaskState(taskId: string, key: string, value: unknown): Promise<void>;
 

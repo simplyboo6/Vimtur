@@ -585,10 +585,11 @@
               <label class="form-check-label" for="config-enable-autotags">Enable auto-tagging of images during import?</label>
               <div>
                 <span class="text-muted">
-                  Enabling this setting will auto-generate tags for all images during the import process using the model selected on the Auto-Tagging page. With
-                  the zero-shot (SigLIP-2) model selected, tagging is skipped during import until a tag has an applicable threshold (from a calibration run or a
-                  manual threshold); importing itself is unaffected either way. These tags can be seen and used during a keyword search with a low weighting.
-                  Even if it is disabled here it can still be triggered manually from the tasks dropdown.
+                  Enabling this setting will auto-generate tags for images during the import process using the model selected on the Auto-Tagging page; media
+                  that already carries manual tags is skipped (both apply families default to "skip-tagged"). With the zero-shot (SigLIP-2) model selected,
+                  tagging is skipped during import until a configured tag has an applicable threshold (from a calibration run or a manual threshold); importing
+                  itself is unaffected either way. These tags can be seen and used during a keyword search with a low weighting. Even if it is disabled here it
+                  can still be triggered manually from the tasks dropdown.
                 </span>
               </div>
             </div>

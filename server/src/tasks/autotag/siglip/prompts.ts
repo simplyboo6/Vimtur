@@ -2,7 +2,15 @@
  * Prompt building for zero-shot tagging, from the POC (src/prompts.mjs):
  * every tag is scored as its bare name, "a photo of the tag", plus any
  * description the user wrote; the tag's score is the maximum cosine across
- * that set. SigLIP2's 64-token text context truncates longer ensembles, so
+ * that set.
+ *
+ * Scoring is opt-in per tag: the roster handed to buildPromptTable is the DB
+ * tags that also have an entry under autotags.tags (configuredTags() in
+ * state.ts), so a library tag with no config entry is never scored, tagged or
+ * calibrated. An entry with no descriptions still qualifies — presence is the
+ * gate, and its prompt set is the two synthetic prompts below.
+ *
+ * SigLIP2's 64-token text context truncates longer ensembles, so
  * descriptions much over ~60 characters warn but are never rejected.
  */
 

@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
-import { Autotag, Configuration, ListedTask, QueuedTask, TaskArgDefinitionSelectValue } from '@vimtur/common';
+import { Autotag, Configuration, ListedTask, QueuedTask, TaskArgDefinitionSelect, TaskArgDefinitionSelectValue } from '@vimtur/common';
 import { Subscription } from 'rxjs';
 import { AlertService } from 'services/alert.service';
 import { ConfigService } from 'services/config.service';
@@ -36,6 +36,16 @@ const SIGLIP_APPLY_TASK_LABEL = 'SigLIP-2 (selective int8, 256px) — recommende
 const AUTOTAG_MODEL_ID = 'AVES-SIGLIP2-B32';
 
 const CALIBRATION_TASK_ID = 'CALIBRATE-SIGLIP2-B32';
+
+// Bulk maintenance task: clears generated tags from media that carries manual
+// tags. It is the server-side counterpart of the viewer's × icon and runs as a
+// normal task, so its in-flight state is read from the raw queue snapshot.
+const CLEAR_TAGGED_AUTOTAGS_TASK_ID = 'CLEAR-TAGGED-AUTOTAGS';
+
+// First value of the second apply select (and its server-side default): media
+// the user has already tagged manually is left alone unless include-tagged is
+// chosen.
+const TAG_MODE_SKIP_TAGGED = 'skip-tagged';
 
 // Every listed task with this prefix is an apply model the roster offers, with
 // the task's description (the same string the General tab's task dropdown
@@ -71,7 +81,7 @@ const STATUS_BADGE_CLASSES: Record<Autotag.TagStatus, string> = {
 const STATUS_LEGEND: Record<Autotag.TagStatus, string> = {
   'Calibrated': 'meets the support floor and applies automatically.',
   'Review (low support)': 'below the support floor: tag more media or improve the description and re-run calibration — or override the threshold manually.',
-  'Not calibrated': `missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is. The ${SUGGESTED_THRESHOLD_PLACEHOLDER} placeholder is only a suggested starting point and is never applied on its own.`,
+  'Not calibrated': `missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is. Only tags with an Auto-Tagging entry here are scored and calibrated. The ${SUGGESTED_THRESHOLD_PLACEHOLDER} placeholder is only a suggested starting point and is never applied on its own.`,
   'Manually overridden':
     'typed in by you and applied as-is — an explicit override of the calibration floor; expect notably worse precision until it is calibrated.',
 };
@@ -126,6 +136,9 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   public tags?: string[];
   public addTagModel?: string;
   public applyMode = MODE_SKIP_EXISTING;
+  // The second select's choice; undefined until the user picks one so the
+  // binding falls back to the task's first value (skip-tagged).
+  private taggedMode?: string;
   public tasksService: TasksService;
 
   private lastRun?: Autotag.CalibrationRun;
@@ -187,57 +200,80 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.subscriptions.push(
-      this.configService.getConfiguration().subscribe(config => {
-        this.config = config;
-        // The apply status is keyed by the selected task id: drop the previous
-        // selection's failure as soon as the id changes, so it can never show
-        // under the new selection between the write and the next queue
-        // emission (see clearPreviousApplyFailure).
-        this.clearPreviousApplyFailure();
-        // Re-seed from the current queue: a config write emits no queue
-        // snapshot, and the first snapshot may have seeded a track under a
-        // different id (a fallback, or the old selection) before the config
-        // landed, so an already-errored run of the newly selected task would
-        // otherwise read as Idle. syncFailure skips unchanged entries, so this
-        // is idempotent for a track already in step.
-        this.syncFailure(this.applyTaskId(), this.applyEntries());
-      }),
+      this.configService.getConfiguration().subscribe(
+        config => {
+          this.config = config;
+          // The apply status is keyed by the selected task id: drop the previous
+          // selection's failure as soon as the id changes, so it can never show
+          // under the new selection between the write and the next queue
+          // emission (see clearPreviousApplyFailure).
+          this.clearPreviousApplyFailure();
+          // Re-seed from the current queue: a config write emits no queue
+          // snapshot, so without this a newly selected task whose run already
+          // errored would read as Idle until the queue next changes.
+          // syncFailure skips unchanged entries, so this is idempotent for a
+          // track already in step.
+          this.syncFailure(this.applyTaskId(), this.applyEntries());
+        },
+        // ConfigService already alerts on a failed fetch; a stream error here
+        // (the replay subject never errors in practice) only leaves the page on
+        // its loading state, so the console is enough.
+        (err: HttpErrorResponse) => console.warn('Failed to load the Auto-Tagging configuration', err),
+      ),
     );
 
     this.subscriptions.push(
-      this.tagService.getTags().subscribe(tags => {
-        this.tags = tags;
-      }),
+      this.tagService.getTags().subscribe(
+        tags => {
+          this.tags = tags;
+        },
+        (err: HttpErrorResponse) => console.warn('Failed to load tags', err),
+      ),
     );
 
     this.subscriptions.push(
-      this.tasksService.getTasks().subscribe(tasks => {
-        this.tasks = tasks;
-      }),
+      this.tasksService.getTasks().subscribe(
+        tasks => {
+          this.tasks = tasks;
+        },
+        (err: HttpErrorResponse) => console.warn('Failed to load the task list', err),
+      ),
     );
 
     this.subscriptions.push(
-      this.tasksService.getQueue().subscribe(queue => {
-        this.queue = queue;
-        // Any emission re-syncs the click latch: it only has to cover the window
-        // until the server broadcasts the new entry (see calibrationRequested).
-        this.calibrationRequested = false;
-        // Refetch the persisted last run whenever a calibration entry is added
-        // or changes state: a finished run stores its result before its queue
-        // row changes. Per-entry identity+state is used rather than a single
-        // present/complete flag so a new run starting while an older, persisted
-        // errored entry is still queued always changes the signature.
-        const entries = queue.filter(task => task.type === CALIBRATION_TASK_ID);
-        const signature = entries.map(task => `${task.id}:${task.complete}:${task.running}:${task.error ?? ''}`).join('|');
-        if (this.calibrationQueueSignature !== undefined && signature !== this.calibrationQueueSignature) {
-          this.loadLastRun();
-        }
-        this.calibrationQueueSignature = signature;
-        this.syncFailure(CALIBRATION_TASK_ID, entries);
-        // Apply runs share the lifecycle but track the selected task id only.
-        this.clearPreviousApplyFailure();
-        this.syncFailure(this.applyTaskId(), this.applyEntries());
-      }),
+      this.tasksService.getQueue().subscribe(
+        queue => {
+          this.queue = queue;
+          // Any emission re-syncs the click latch: it only has to cover the window
+          // until the server broadcasts the new entry (see calibrationRequested).
+          this.calibrationRequested = false;
+          // Refetch the persisted last run whenever a calibration entry is added
+          // or changes state: a finished run stores its result before its queue
+          // row changes. Per-entry identity+state is used rather than a single
+          // present/complete flag so a new run starting while an older, persisted
+          // errored entry is still queued always changes the signature.
+          const entries = queue.filter(task => task.type === CALIBRATION_TASK_ID);
+          const signature = entries.map(task => `${task.id}:${task.complete}:${task.running}:${task.error ?? ''}`).join('|');
+          if (this.calibrationQueueSignature !== undefined && signature !== this.calibrationQueueSignature) {
+            this.loadLastRun();
+          }
+          this.calibrationQueueSignature = signature;
+          this.syncFailure(CALIBRATION_TASK_ID, entries);
+          // Apply runs share the lifecycle but track the selected task id only.
+          // The selected id lives in the config, and a queue snapshot can arrive
+          // before the config GET resolves (the queue is replayed from the
+          // service), so the apply track is seeded by the config subscription
+          // until the config is available.
+          if (this.config) {
+            this.clearPreviousApplyFailure();
+            this.syncFailure(this.applyTaskId(), this.applyEntries());
+          }
+        },
+        // The queue is also replayed from the service's own HTTP read and kept
+        // live by the socket; a failure here is a connectivity problem with no
+        // user action to recover, so the console is right.
+        (err: HttpErrorResponse) => console.warn('Failed to load the task queue', err),
+      ),
     );
 
     this.loadLastRun();
@@ -250,8 +286,24 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     this.subscriptions = [];
   }
 
+  // Auto-Tagging settings are always present in a server config response (the
+  // server fills them from its own DEFAULTS), so this page reads them directly
+  // and throws rather than inventing client-side fallbacks that could drift
+  // from the server. The template only renders the page once the config GET has
+  // resolved, so reaching this throw means a genuine wiring bug rather than a
+  // normal startup state.
+  private get autotags(): Configuration.AutoTags {
+    if (!this.config?.autotags) {
+      throw new Error('Auto-Tagging settings not loaded from the server yet');
+    }
+    return this.config.autotags;
+  }
+
+  // The stored model id comes from the server config, whose own default is
+  // SIGLIP_APPLY_TASK_ID (see server/src/config.ts DEFAULTS); there is no
+  // client-side fallback to drift from it.
   public get selectedModel(): string {
-    return this.config?.autotags?.model ?? SIGLIP_APPLY_TASK_ID;
+    return this.autotags.model;
   }
 
   // The model select's roster: every apply task the server lists, labelled by
@@ -285,15 +337,15 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   }
 
   public get workerCount(): number {
-    return this.config?.autotags?.workers ?? 5;
+    return this.autotags.workers;
   }
 
   public get minSupport(): number {
-    return this.config?.autotags?.minSupport ?? 8;
+    return this.autotags.minSupport;
   }
 
   public get calibrationSampleSize(): number {
-    return this.config?.autotags?.calibrationSampleSize ?? 500;
+    return this.autotags.calibrationSampleSize;
   }
 
   // The last run, provided it was recorded in the pack this page scores
@@ -326,7 +378,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   // Client mirror of deriveTagState in server/src/tasks/autotag/siglip/state.ts;
   // keep the precedence rules in step with the server.
   public deriveStatus(tag: string): Autotag.TagStatus {
-    const manual = this.config?.autotags?.tags?.[tag]?.manualThreshold;
+    const manual = this.autotags.tags?.[tag]?.manualThreshold;
     if (typeof manual === 'number') {
       return 'Manually overridden';
     }
@@ -341,7 +393,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   }
 
   public thresholdInput(tag: string): number | '' {
-    const manual = this.config?.autotags?.tags?.[tag]?.manualThreshold;
+    const manual = this.autotags.tags?.[tag]?.manualThreshold;
     return typeof manual === 'number' ? manual : '';
   }
 
@@ -451,7 +503,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
         // The wording ("a photo showing", not the server's implicit
         // "a photo of") is a deliberate user-requested default, so the row is
         // an additional scored prompt next to the two implicit ones.
-        if (this.config?.autotags?.tags?.[tag] === undefined) {
+        if (this.autotags.tags?.[tag] === undefined) {
           this.descriptions[tag] = [`a photo showing ${tag}`];
           this.persistDescriptions(tag);
         }
@@ -470,16 +522,22 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
 
   public removeTag(tag: string): void {
     this.confirmationService
-      .confirm(`Are you sure you want to delete '${tag}'?`, true)
+      .confirm(
+        // The tag row here sits next to Auto-Tagging settings, so the prompt has
+        // to say the delete is library-wide. Both backends cascade the delete to
+        // the media/tag links (SQLite media_tags FK ON DELETE CASCADE; MongoDB
+        // removeTag pulls the tag from every media document). The Auto-Tagging
+        // config entry is not deleted client-side: the server purges entries
+        // without a DB tag at the next calibration run.
+        `Are you sure you want to delete '${tag}'? This deletes the tag everywhere — off every media it is attached to. Its Auto-Tagging descriptions and thresholds remain until the next calibration run clears them.`,
+        true,
+      )
       .then(result => {
         if (result) {
-          // The config entry is intentionally left behind: the server purges
-          // entries without a DB tag at the next calibration run.
           this.tagService.deleteTag(tag);
           delete this.descriptions[tag];
         }
-      })
-      .catch(err => console.warn('Tag deletion confirmation error', err));
+      });
   }
 
   public calibrationStatus(): string {
@@ -528,7 +586,10 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   }
 
   public attentionRows(): AutotagRow[] {
-    return this.rows().filter(row => row.status === 'Review (low support)' || row.status === 'Not calibrated');
+    // A tag without an autotags.tags entry is not opted in: it is never scored
+    // or calibrated, so it cannot be failing a calibration it is not part of.
+    // It stays in the table (the description column is how it is opted in).
+    return this.rows().filter(row => this.autotags.tags?.[row.tag] !== undefined && (row.status === 'Review (low support)' || row.status === 'Not calibrated'));
   }
 
   public attentionSummary(): string {
@@ -542,9 +603,26 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     return listed.join(', ');
   }
 
+  // Both apply selects derive from the selected task's arguments, so the
+  // classifier and SigLIP-2 families (which declare identical shapes) need no
+  // per-model wiring here.
+  private applySelects(): TaskArgDefinitionSelect[] {
+    return (this.applyTask()?.args ?? []).filter((candidate): candidate is TaskArgDefinitionSelect => candidate.type === 'select');
+  }
+
   public applyModes(): TaskArgDefinitionSelectValue[] {
-    const arg = (this.applyTask()?.args ?? []).find(candidate => candidate.type === 'select');
-    return arg && arg.type === 'select' ? arg.values : [];
+    return this.applySelects()[0]?.values ?? [];
+  }
+
+  // Second select: whether media that already carries manual tags may be
+  // tagged. It falls back to the task's first value (skip-tagged) so the page
+  // and the server runner cannot drift on the default.
+  public applyTaggedModes(): TaskArgDefinitionSelectValue[] {
+    return this.applySelects()[1]?.values ?? [];
+  }
+
+  public get applyTaggedMode(): string {
+    return this.taggedMode ?? this.applyTaggedModes()[0]?.id ?? TAG_MODE_SKIP_TAGGED;
   }
 
   // Apply Tags is disabled when the selected model's task is missing from the
@@ -562,6 +640,10 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     this.applyMode = value;
   }
 
+  public onApplyTaggedModeChange(value: string): void {
+    this.taggedMode = value;
+  }
+
   // Mirrors the calibration status: an auto-tag run for the selected model that
   // is still queued or running disables the Apply button, so a double click
   // cannot queue the same job twice.
@@ -569,19 +651,39 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     return (this.queue ?? []).some(task => task.type === this.applyTaskId() && !task.complete);
   }
 
+  // The maintenance task is a plain one-shot run and deliberately does not get
+  // the calibration/apply failure tracks: a raw queue-snapshot in-flight check
+  // is enough to keep the button disabled while its entry is queued or running
+  // (YAGNI for anything richer).
+  public clearTaggedAutoTagsInFlight(): boolean {
+    return (this.queue ?? []).some(task => task.type === CLEAR_TAGGED_AUTOTAGS_TASK_ID && !task.complete);
+  }
+
+  public clearTaggedAutoTags(): void {
+    if (this.clearTaggedAutoTagsInFlight()) {
+      return;
+    }
+    this.confirmationService.confirm('This removes auto-generated tags from every media item that carries manual tags.').then(confirmed => {
+      if (confirmed) {
+        this.tasksService.startAction(CLEAR_TAGGED_AUTOTAGS_TASK_ID);
+      }
+    });
+  }
+
   public async applyTags(): Promise<void> {
     const task = this.applyTask();
     if (!task) {
       return;
     }
+    // Both selects are carried positionally in the task's args (the first is
+    // the existing-tags mode, the second the manual-tagged mode), so each
+    // choice's confirmation is checked against its own value.
+    const selectValues = [this.applyMode, this.applyTaggedMode];
+    const selections = this.applySelects().map((definition, index) => definition.values.find(value => value.id === selectValues[index]));
     // Mirrors config.component.ts's startAction: a select value may require an
-    // explicit confirmation ('replace' overwrites existing auto-generated
-    // tags), so check the selected value before starting the task.
-    for (const definition of task.args ?? []) {
-      if (definition.type !== 'select') {
-        continue;
-      }
-      const selected = definition.values.find(value => value.id === this.applyMode);
+    // explicit confirmation ('replace' / 'include-tagged'), so check every
+    // selected value before starting the task.
+    for (const selected of selections) {
       if (selected?.confirm) {
         const confirmed = await this.confirmationService.confirm(selected.confirm);
         if (!confirmed) {
@@ -589,7 +691,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
         }
       }
     }
-    this.tasksService.startAction(task.id, [this.applyMode]);
+    this.tasksService.startAction(task.id, selectValues.slice(0, selections.length));
   }
 
   private loadLastRun(): void {
@@ -597,13 +699,19 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     // into this.subscriptions (that list exists to tear down the long-lived
     // service streams in ngOnDestroy).
     const request = ++this.loadRunToken;
-    this.tasksService.getTaskState<Autotag.CalibrationRun>(CALIBRATION_TASK_ID, 'last-run').subscribe(run => {
-      // Two quick queue transitions fire overlapping GETs; the slower earlier
-      // response must not overwrite the newer run.
-      if (request === this.loadRunToken) {
-        this.lastRun = run;
-      }
-    });
+    this.tasksService.getTaskState<Autotag.CalibrationRun>(CALIBRATION_TASK_ID, 'last-run').subscribe(
+      run => {
+        // Two quick queue transitions fire overlapping GETs; the slower earlier
+        // response must not overwrite the newer run.
+        if (request === this.loadRunToken) {
+          this.lastRun = run;
+        }
+      },
+      // A failed read only leaves the Last Run section showing its previous
+      // value and the next queue transition refetches, so a console warning is
+      // enough; there is no user action to recover here.
+      (err: HttpErrorResponse) => console.warn('Failed to load the last calibration run', err),
+    );
   }
 
   // Derives a task type's failure from the changes in a queue snapshot: a new
@@ -714,13 +822,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
       // Seeded once from the config entry; local edits then own the array until
       // they are persisted, so an unrelated config write cannot clobber
       // in-progress text.
-      descriptions = [...(this.config?.autotags?.tags?.[tag]?.descriptions ?? [])];
+      descriptions = [...(this.autotags.tags?.[tag]?.descriptions ?? [])];
       this.descriptions[tag] = descriptions;
     }
     return descriptions;
   }
 
-  private saveTagConfig(tag: string, entry: Configuration.AutoTagTag): void {
+  private saveTagConfig(tag: string, entry: Configuration.AutoTagMetadata): void {
     this.configService.updateConfiguration({ autotags: { tags: { [tag]: entry } } });
   }
 }

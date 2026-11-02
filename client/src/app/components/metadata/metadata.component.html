@@ -15,8 +15,20 @@
           @if (media.metadata && media.metadata.createdAt) {
             <div>Created: {{ timestampAsDate(media.metadata.createdAt) | date }}</div>
           }
-          @if (media.autoTags) {
-            <div>May contain: {{ media.autoTags | formatArray }}</div>
+          @if (media.autoTags?.length) {
+            <div>
+              May contain: {{ media.autoTags | formatArray }}
+              <button
+                type="button"
+                class="clear-auto-tags"
+                data-id="clear-auto-tags"
+                title="Clear auto-generated tags"
+                aria-label="Clear auto-generated tags"
+                (click)="clearAutoTags()"
+              >
+                &times;
+              </button>
+            </div>
           }
           <a [href]="'/api/images/' + media.hash + '/file?download=true'">Download</a>
         </div>

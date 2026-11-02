@@ -5,7 +5,10 @@ import { asError } from '../../../../utils';
 import type { Preprocessing } from '../../preprocess';
 
 export interface SiglipWorkerRequestImages {
-  /** Monotonic wrapper request id, echoed back in the worker's response. */
+  /**
+   * Per-wrapper request id, strictly increasing from 0 and never reused;
+   * echoed back to match the pending entry (not lowest-unused).
+   */
   id: number;
   type: 'images';
   /** Image and text graph paths, resolved by the task runner after download. */
@@ -15,7 +18,10 @@ export interface SiglipWorkerRequestImages {
 }
 
 export interface SiglipWorkerRequestTexts {
-  /** Monotonic wrapper request id, echoed back in the worker's response. */
+  /**
+   * Per-wrapper request id, strictly increasing from 0 and never reused;
+   * echoed back to match the pending entry (not lowest-unused).
+   */
   id: number;
   type: 'texts';
   textPath: string;
@@ -49,9 +55,7 @@ export type SiglipWorkerResponse = SiglipWorkerError | SiglipWorkerSuccess;
  */
 export class SiglipWorkerWrapper {
   private worker: Worker;
-
   private nextRequestId = 0;
-
   private pending = new Map<number, { resolve: (embeddings: Float32Array[]) => void; reject: (err: Error) => void }>();
 
   // Set when the worker exits or crashes. A worker that can no longer answer

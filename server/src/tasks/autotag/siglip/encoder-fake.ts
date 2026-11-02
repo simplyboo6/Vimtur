@@ -36,10 +36,16 @@ export class FakeEncoderPool implements EncoderPool {
     }
     // Seeded from the file bytes: identical content re-encodes identically,
     // which is the property the embedding cache relies on.
-    const rows = absolutePaths.map((path) =>
-      this.embed(`image:${Crypto.createHash('sha256').update(FS.readFileSync(path)).digest('hex')}`),
+    const rows = await Promise.all(
+      absolutePaths.map(async (path) =>
+        this.embed(
+          `image:${Crypto.createHash('sha256')
+            .update(await FS.promises.readFile(path))
+            .digest('hex')}`,
+        ),
+      ),
     );
-    return Promise.resolve(rows);
+    return rows;
   }
 
   public async quit(): Promise<void> {
