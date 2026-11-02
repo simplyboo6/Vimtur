@@ -57,11 +57,13 @@ describe('Tasks API', () => {
     expect(queue).to.deep.equal([]);
   });
 
-  it('a task that throws synchronously is recorded and does not wedge the queue', async () => {
-    // Deliberately placed before every SCAN below, so Scanner.results is
-    // still unset and INDEX throws synchronously in its runner. That error
-    // used to escape as an unhandled rejection, leaving the entry running
-    // forever and blocking the whole queue until restart.
+  it('a task that fails in its init phase is recorded and does not wedge the queue', async () => {
+    // Deliberately placed before every SCAN below, so no scan has ever been
+    // stored and INDEX fails in its execute init phase ('A scan must be run
+    // first'). The failure is recorded through the rejected-promise path with
+    // exactly the error string the old synchronous throw produced; before the
+    // catch was added it escaped as an unhandled rejection, leaving the entry
+    // running forever and blocking the whole queue until restart.
     const id = assertOk(await client.post<string>('/api/tasks/queue/INDEX', {}), 'POST /api/tasks/queue/INDEX');
 
     let message = 'INDEX was expected to fail';
@@ -80,6 +82,38 @@ describe('Tasks API', () => {
     expect(failed?.running).to.equal(false);
 
     // The queue works afterwards: clear the failed instance and drain again.
+    expect((await client.delete(`/api/tasks/queue/${id}`)).status).to.equal(204);
+    await waitForDrainedQueue(client);
+    const remaining = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
+    expect(remaining).to.deep.equal([]);
+  });
+
+  it('a task that throws synchronously is recorded and does not wedge the queue', async () => {
+    // DOWNLOAD's runner validates its arguments synchronously before it
+    // returns a promise. An empty URL passes the queue's argument validation
+    // (it is a defined string) and reaches that throw. TaskManager has to
+    // catch it: it may be called from a prior task's promise continuation, so
+    // an escaping throw would become an unhandled rejection and leave the
+    // entry running forever.
+    const id = assertOk(
+      await client.post<string>('/api/tasks/queue/DOWNLOAD', ['not-a-downloader', '']),
+      'POST /api/tasks/queue/DOWNLOAD',
+    );
+
+    let message = 'DOWNLOAD was expected to fail';
+    try {
+      await waitForDrainedQueue(client);
+    } catch (err: unknown) {
+      message = err instanceof Error ? err.message : String(err);
+    }
+    expect(message).to.include('target not set');
+
+    const queue = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
+    const failed = queue.find((task) => task.id === id);
+    expect(failed?.error).to.include('target not set');
+    expect(failed?.running).to.equal(false);
+
+    // Clear the failed instance so it cannot poison later drains.
     expect((await client.delete(`/api/tasks/queue/${id}`)).status).to.equal(204);
     await waitForDrainedQueue(client);
     const remaining = assertOk(await client.get<QueuedTask[]>('/api/tasks/queue'), 'GET /api/tasks/queue');
@@ -144,7 +178,9 @@ describe('Tasks API', () => {
       await client.get<Scanner.Summary>('/api/tasks/SCAN/results'),
       'GET /api/tasks/SCAN/results',
     );
-    expect(summary).to.deep.equal({ newPaths: 1, missingPaths: 0 });
+    expect(summary.newPaths).to.equal(1);
+    expect(summary.missingPaths).to.equal(0);
+    expect(summary.generatedAt).to.be.a('number').and.to.be.above(0);
     expect(
       assertOk(await client.get<string[]>('/api/tasks/SCAN/results/new'), 'GET /api/tasks/SCAN/results/new'),
     ).to.deep.equal(['one.png']);

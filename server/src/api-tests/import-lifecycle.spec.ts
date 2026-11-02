@@ -1,6 +1,5 @@
 import FS from 'fs';
 
-import type { Scanner } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
@@ -11,6 +10,7 @@ import {
   createStill,
   createVideo,
   detail,
+  expectScanPending,
   runTaskAndWait,
   startServer,
   subset,
@@ -34,10 +34,6 @@ describe('Import lifecycle', () => {
       const media = await detail(client, hash);
       pathToHash[media.path] = media.hash;
     }
-  };
-
-  const scanResults = async (): Promise<Scanner.Summary> => {
-    return assertOk(await client.get<Scanner.Summary>('/api/tasks/SCAN/results'), 'GET /api/tasks/SCAN/results');
   };
 
   before(async () => {
@@ -120,14 +116,14 @@ describe('Import lifecycle', () => {
 
     expect(await subset(client, {})).to.have.lengthOf(4);
     await runTaskAndWait(client, 'SCAN');
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('a standalone SCAN reports new files and INDEX consumes them', async () => {
     await createStill(server.libraryPath, 'yellow.png', 'yellow');
 
     await runTaskAndWait(client, 'SCAN');
-    expect(await scanResults()).to.deep.equal({ newPaths: 1, missingPaths: 0 });
+    await expectScanPending(client, 1, 0);
     const newPaths = assertOk(
       await client.get<string[]>('/api/tasks/SCAN/results/new'),
       'GET /api/tasks/SCAN/results/new',
@@ -140,14 +136,14 @@ describe('Import lifecycle', () => {
     expect(pathToHash['yellow.png']).to.be.a('string').and.to.have.lengthOf.at.least(1);
 
     // INDEX consumed the pending list.
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('DELETE-MISSING removes media whose files disappeared', async () => {
     FS.unlinkSync(`${server.libraryPath}/green.jpg`);
 
     await runTaskAndWait(client, 'SCAN');
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 1 });
+    await expectScanPending(client, 0, 1);
     const missingPaths = assertOk(
       await client.get<string[]>('/api/tasks/SCAN/results/missing'),
       'GET /api/tasks/SCAN/results/missing',
@@ -162,7 +158,7 @@ describe('Import lifecycle', () => {
     expect(await client.get(`/api/images/${pathToHash['green.jpg']}`)).to.have.property('status', 404);
 
     // DELETE-MISSING consumed the pending list.
-    expect(await scanResults()).to.deep.equal({ newPaths: 0, missingPaths: 0 });
+    await expectScanPending(client, 0, 0);
   });
 
   it('DELETE /api/images/:hash removes media through the API', async () => {

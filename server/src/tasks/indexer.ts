@@ -1,6 +1,6 @@
 import Path from 'path';
 
-import type { Media } from '@vimtur/common';
+import type { Media, Scanner } from '@vimtur/common';
 import { execute, ExecutorPromise, ExecutorResults } from 'proper-job';
 
 import { createHash } from '../cache/hash';
@@ -8,7 +8,7 @@ import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
-import { Scanner } from './scanner';
+import { loadScanResults, saveScanResults } from './scanner';
 
 export class Indexer {
   private database: Database;
@@ -42,16 +42,31 @@ export class Indexer {
   }
 
   public indexFiles(statusCallback: (current: number, max: number) => void): ExecutorPromise<ExecutorResults<void>> {
-    if (!Scanner.results) {
-      throw new Error('A scan must be run first');
-    }
-    const files = Scanner.results.newPaths;
+    // Retained for the finalize step: the finalize writes back the SAME scan's
+    // remaining fields with newPaths emptied, exactly where the old in-memory
+    // clear happened.
+    let stored: Scanner.ScanResults | undefined;
     let current = 0;
-    console.log(`Indexing ${files.length} files`);
 
     return execute(
-      files,
-      async (file) => {
+      async () => {
+        const results = await loadScanResults(this.database);
+        if (!results) {
+          throw new Error('A scan must be run first');
+        }
+        stored = results;
+        console.log(`Indexing ${results.newPaths.length} files`);
+        return {
+          iterable: results.newPaths,
+          init: {
+            max: results.newPaths.length,
+          },
+        };
+      },
+      async (file, init) => {
+        if (!init) {
+          throw new Error('init not defined');
+        }
         try {
           const media = await this.generateMediaFromFile(file);
           const existingMedia = await this.database.getMedia(media.hash);
@@ -71,12 +86,12 @@ export class Indexer {
           console.error('Failed to index file', file, err);
         }
         current += 1;
-        statusCallback(current, files.length);
+        statusCallback(current, init.max);
       },
       { parallel: 8 },
       () => {
-        if (Scanner.results) {
-          Scanner.results.newPaths = [];
+        if (stored) {
+          return saveScanResults(this.database, { ...stored, newPaths: [] });
         }
         return Promise.resolve();
       },

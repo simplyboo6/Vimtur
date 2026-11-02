@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { formatPercent } from '@angular/common';
+import { DatePipe, formatPercent } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ConfigService } from 'services/config.service';
 import { TagService } from 'services/tag.service';
@@ -32,6 +32,7 @@ const isConfigTab = (value: string | null): value is ConfigTab => CONFIG_TABS.in
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     FormsModule,
+    DatePipe,
     FaIconComponent,
     SelectComponent,
     SelectOptionComponent,

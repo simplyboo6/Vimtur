@@ -10,14 +10,65 @@ import Walk from 'walk';
 // Local
 import { ImportUtils } from '../cache/import-utils';
 import Config from '../config';
+import { NotFound } from '../errors';
 import type { Database, RouterTask } from '../types';
 import { asError } from '../utils';
 
 type FilterResults = Types.Scanner.FilterResults;
+type ScanResults = Types.Scanner.ScanResults;
+
+// Pending work is keyed by the SCAN definition id (never the queue instance
+// id like SCAN-0, which is ephemeral and reused) in the generic task_state
+// store, so a restart between SCAN and INDEX / DELETE-MISSING keeps the work set.
+const SCAN_TASK_ID = 'SCAN';
+const SCAN_RESULTS_KEY = 'results';
+
+/** Reads the persisted pending-work lists, or undefined when no scan has been stored yet (or the stored value is unreadable). */
+export async function loadScanResults(database: Database): Promise<ScanResults | undefined> {
+  let stored: unknown;
+  try {
+    stored = await database.getTaskState<unknown>(SCAN_TASK_ID, SCAN_RESULTS_KEY);
+  } catch (errUnknown: unknown) {
+    // Only unparseable stored JSON is treated as "no scan": sqlite parses the
+    // row on read, so a hand-edited or partially written value throws a
+    // SyntaxError, and an operator re-scan replaces it. Transport and engine
+    // errors propagate, mirroring the state endpoint (routes/tasks.ts, which
+    // deliberately does not catch) and the client's getTaskState comment
+    // (tasks.service.ts): turning a connectivity problem into "no scan" would
+    // silently hide a broken database.
+    if (errUnknown instanceof SyntaxError) {
+      console.warn('Failed to parse persisted scan results', errUnknown);
+      return undefined;
+    }
+    throw errUnknown;
+  }
+  if (stored === undefined) {
+    return undefined;
+  }
+
+  // JSON-serialisable but mis-shaped records exist too (hand-edited rows, or a
+  // future writer's shape drift). They used to 500 /results (reading .length on
+  // a non-array) and answer /results/new with an empty 200 body. Treating them
+  // as "no scan" is safe for the same reason as unparseable JSON: the 404 sends
+  // the operator down the re-scan path, which replaces the record.
+  const results = stored as Partial<ScanResults>;
+  if (
+    typeof results.generatedAt !== 'number' ||
+    !Array.isArray(results.newPaths) ||
+    !Array.isArray(results.missingPaths)
+  ) {
+    console.warn('Ignoring mis-shaped persisted scan results');
+    return undefined;
+  }
+  return results as ScanResults;
+}
+
+/** Persists pending-work lists, replacing any previous scan's value. */
+export async function saveScanResults(database: Database, results: ScanResults): Promise<void> {
+  await database.setTaskState(SCAN_TASK_ID, SCAN_RESULTS_KEY, results);
+}
 
 export class Scanner {
-  public static results?: FilterResults;
-
   public static async getFileList(): Promise<string[]> {
     const dir = Config.get().libraryPath;
     // The walk library reports failures as events instead of rejecting, and
@@ -151,30 +202,41 @@ export class Scanner {
 
 export function getTask(db: Database): RouterTask {
   const router = Router();
-  router.get('/results', (_req, res) => {
-    res.status(200).json(
-      Scanner.results
-        ? {
-            newPaths: Scanner.results.newPaths.length,
-            missingPaths: Scanner.results.missingPaths.length,
-          }
-        : {
-            newPaths: 0,
-            missingPaths: 0,
-          },
-    );
+  // A stored record always exists once any scan has succeeded, even after
+  // INDEX / DELETE-MISSING consumed their lists (the generatedAt timestamp is
+  // kept). Only "never scanned" is a 404.
+  router.get('/results', async (_req, res) => {
+    const results = await loadScanResults(db);
+    if (!results) {
+      throw new NotFound('Scan results not found');
+    }
+    res.status(200).json({
+      generatedAt: results.generatedAt,
+      newPaths: results.newPaths.length,
+      missingPaths: results.missingPaths.length,
+    });
   });
 
-  router.get('/results/missing', (_req, res) => {
-    res.status(200).json(Scanner.results ? Scanner.results.missingPaths : []);
+  router.get('/results/missing', async (_req, res) => {
+    const results = await loadScanResults(db);
+    if (!results) {
+      throw new NotFound('Scan results not found');
+    }
+    res.status(200).json(results.missingPaths);
   });
 
-  router.get('/results/new', (_req, res) => {
-    res.status(200).json(Scanner.results ? Scanner.results.newPaths : []);
+  router.get('/results/new', async (_req, res) => {
+    const results = await loadScanResults(db);
+    if (!results) {
+      throw new NotFound('Scan results not found');
+    }
+    res.status(200).json(results.newPaths);
   });
 
   return {
-    id: 'SCAN',
+    // Registered under the same definition id the store helpers key state
+    // under, so a rename cannot silently diverge the two.
+    id: SCAN_TASK_ID,
     description: 'Scan for new files',
     router,
     runner: () => {
@@ -200,7 +262,8 @@ export function getTask(db: Database): RouterTask {
             );
           }
 
-          Scanner.results = await Scanner.filterNewAndMissing(normalisedPaths, files, db);
+          const filtered = await Scanner.filterNewAndMissing(normalisedPaths, files, db);
+          await saveScanResults(db, { ...filtered, generatedAt: Date.now() });
 
           return [];
         },
