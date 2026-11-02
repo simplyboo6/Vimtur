@@ -116,9 +116,21 @@ export function createArrayFilter(field: string, options?: ArrayFilter): object 
   const base = createStringFilterCommon(field, stringFilter);
 
   if (options?.exists !== undefined) {
-    Object.assign(base, {
-      [`${field}.0`]: { $exists: options.exists },
-    });
+    if (field === 'autoTags') {
+      // autoTags is a whole-list value, not a join table: an empty array is the
+      // pipeline's "processed, nothing scored" marker, so any array counts as
+      // present (unlike manual tags, where empty means none). A cleared row
+      // stores null through saveMedia (or is absent after resetAutoTags'
+      // $unset), and both read as unprocessed, matching SQLite's
+      // `auto_tags IS NULL` leg.
+      if (options.exists) {
+        Object.assign(base, { [field]: { ...(base as Record<string, object>)[field], $exists: true, $ne: null } });
+      } else {
+        Object.assign(base, { $or: [{ [field]: { $exists: false } }, { [field]: null }] });
+      }
+    } else {
+      Object.assign(base, { [`${field}.0`]: { $exists: options.exists } });
+    }
   }
 
   return base;

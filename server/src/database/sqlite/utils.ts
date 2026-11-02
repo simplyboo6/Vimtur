@@ -184,6 +184,14 @@ export function rawMediaToMedia(raw: RawMedia): Omit<Media, 'tags' | 'actors' | 
   return intermediate as Media;
 }
 
+// JSON columns store the serialised value; an explicit null is a real SQL NULL
+// (the unprocessed autoTags state), never the TEXT 'null', which every reader
+// and filter would treat as a present value. `undefined` never reaches here:
+// both builders skip those before the cast.
+function encodeJsonValue(value: unknown): string | null {
+  return value === null ? null : JSON.stringify(value);
+}
+
 export function makeMediaUpsert(hash: string, mediaRaw: UpdateMedia | BaseMedia): QueryObj {
   const updateHash = mediaRaw.hash;
   const media = { ...(mediaRaw as Partial<Media>), hash };
@@ -196,7 +204,7 @@ export function makeMediaUpsert(hash: string, mediaRaw: UpdateMedia | BaseMedia)
 
     switch (map.cast) {
       case 'json':
-        keyValues[map.db] = JSON.stringify(value);
+        keyValues[map.db] = encodeJsonValue(value);
         break;
       case 'bool':
         keyValues[map.db] = value ? 1 : 0;
@@ -214,7 +222,7 @@ export function makeMediaUpsert(hash: string, mediaRaw: UpdateMedia | BaseMedia)
       }
       switch (map.cast) {
         case 'json':
-          keyValues[map.db] = JSON.stringify(value);
+          keyValues[map.db] = encodeJsonValue(value);
           break;
         case 'bool':
           keyValues[map.db] = value ? 1 : 0;
@@ -260,7 +268,7 @@ export function makeMediaUpdate(mediaRaw: UpdateMedia): QueryObj {
 
     switch (map.cast) {
       case 'json':
-        keyValues[map.db] = JSON.stringify(value);
+        keyValues[map.db] = encodeJsonValue(value);
         break;
       case 'bool':
         keyValues[map.db] = value ? 1 : 0;
@@ -278,7 +286,7 @@ export function makeMediaUpdate(mediaRaw: UpdateMedia): QueryObj {
       }
       switch (map.cast) {
         case 'json':
-          keyValues[map.db] = JSON.stringify(value);
+          keyValues[map.db] = encodeJsonValue(value);
           break;
         case 'bool':
           keyValues[map.db] = value ? 1 : 0;

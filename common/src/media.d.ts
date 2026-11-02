@@ -82,6 +82,9 @@ export interface UpdateMedia {
   hashDate?: number;
   // Tags and actors are updated with separate endpoints.
   // This is to avoid race conditions.
+  // autoTags is the deliberate exception below: it is a whole list the server
+  // generates, so setting or clearing it cannot race the way adding/removing a
+  // single relational tag would.
   // This doesn't need to be done for metadata because the
   // only arrays in it are modified server-side.
   metadata?: UpdateMetadata;
@@ -98,7 +101,16 @@ export interface UpdateMedia {
   duplicateOf?: string;
   // Update only field. Will only add as unrelated.
   unrelated?: string[];
-  autoTags?: string[];
+  /**
+   * The generated tag list, written as a whole (never merged). Omit it to
+   * leave the current value alone, send an array to replace the list, or send
+   * null to clear it back to the unprocessed state. null and [] are different
+   * states: [] means the pipeline processed the media and scored nothing,
+   * while null (stored as SQL NULL / an absent field) means it has not been
+   * scored and a skip-existing run will consider it again. Mirrors
+   * Configuration's explicit-null manualThreshold override.
+   */
+  autoTags?: string[] | null;
 }
 
 export interface MediaResolution {

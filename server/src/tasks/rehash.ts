@@ -8,6 +8,8 @@ import { createHash } from '../cache/hash';
 import Config from '../config';
 import type { Database, RouterTask, TaskRunnerCallback } from '../types';
 
+import { removeCachedEmbeddings } from './autotag/siglip/embed-cache';
+
 export function getTask(database: Database): RouterTask {
   return {
     id: 'REHASH',
@@ -73,6 +75,12 @@ export function getTask(database: Database): RouterTask {
               }
             }
 
+            // Re-embedded rather than re-pointed: the old index row is dropped
+            // because the embedding cache is keyed by hash. The rename keeps
+            // the pixels identical, but a row re-point per rename is not
+            // implemented, so the next embedding run pays for one still. Do it
+            // before the hash change, like the renames above.
+            await removeCachedEmbeddings([media.hash]);
             await database.saveMedia(media.hash, { hash });
           }
 

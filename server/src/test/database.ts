@@ -158,7 +158,7 @@ describe('Database Tests', () => {
     });
   });
 
-  describe('clearAutoTags', () => {
+  describe('autoTags null clear', () => {
     // clear-0: manual + auto; clear-1: auto only; clear-2: manual only;
     // clear-3: manual + the stored "processed, nothing scored" [] marker.
     const AUTO_TAGS: Record<number, string[]> = { 0: ['auto-0'], 1: ['auto-1'], 3: [] };
@@ -187,17 +187,47 @@ describe('Database Tests', () => {
       await database.testCleanup();
     });
 
-    it('clears auto tags only for media that also has manual tags', async () => {
-      const cleared = await database.clearAutoTags({ tags: { exists: true }, autoTags: { exists: true } });
+    it('saveBulkMedia with autoTags: null clears only the matching rows', async () => {
+      const cleared = await database.saveBulkMedia(
+        { tags: { exists: true }, autoTags: { exists: true } },
+        { autoTags: null },
+      );
       // Both the scored row and the stored [] "processed" marker are cleared.
       expect(cleared).to.equal(2);
       expect((await database.getMedia('clear-0'))?.autoTags).to.equal(undefined);
-      // The auto-only item keeps its processed marker.
+      // The auto-only item keeps its scored list (it has no manual tag).
       expect((await database.getMedia('clear-1'))?.autoTags).to.deep.equal(['auto-1']);
       expect((await database.getMedia('clear-3'))?.autoTags).to.equal(undefined);
+      // clear-2 never had auto tags, so it is untouched and still unprocessed.
+      expect((await database.getMedia('clear-2'))?.autoTags).to.equal(undefined);
       // NULL, not [], is what skip-existing keys off: only the cleared items are
-      // treated as unprocessed again.
+      // treated as unprocessed again, and the [] marker still counts as present.
       expect(await database.subset({ autoTags: { exists: false } })).to.have.members(['clear-0', 'clear-2', 'clear-3']);
+      expect(await database.subset({ autoTags: { exists: true } })).to.deep.equal(['clear-1']);
+    });
+
+    it('saveMedia with autoTags: null un-marks a stored [] marker', async () => {
+      // The PATCH route's shape: one row, one explicit null, no other fields.
+      // Its own row so the fixtures above stay untouched for the bulk case.
+      await database.saveMedia('patch-clear', {
+        hash: 'patch-clear',
+        path: '/tmp/patch-clear.jpg',
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+        autoTags: [],
+      });
+      await database.saveMedia('patch-clear', { autoTags: null });
+      // The read path turns SQL NULL into an absent property, so the API
+      // response omits the list rather than serving JSON null.
+      expect((await database.getMedia('patch-clear'))?.autoTags).to.equal(undefined);
+      // NULL, not [], is what skip-existing keys off: the row is now in the
+      // unprocessed work set alongside the never-scored manual row.
+      expect(await database.subset({ autoTags: { exists: false } })).to.include('patch-clear');
+      expect(await database.subset({ autoTags: { exists: true } })).to.not.include('patch-clear');
     });
   });
 

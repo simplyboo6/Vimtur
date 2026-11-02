@@ -283,45 +283,19 @@ export class MediaService {
     }
   }
 
-  // Clears the whole auto-generated tag list of the current media. One click
-  // clears everything (no confirmation): re-running Auto-Tag restores the tags
-  // unless the user has manually tagged it (the default skip-tagged mode
-  // protects manual tags), so the action is cheap to undo.
+  // Clears the whole auto-generated tag list of the current media through the
+  // standard media update (autoTags: null, the unprocessed state — not the []
+  // "processed, nothing scored" marker). One click clears everything (no
+  // confirmation): re-running Auto-Tag re-tags the media, unless the user has
+  // manually tagged it and the default skip-tagged mode protects it, so the
+  // action is cheap to undo. saveMedia replaces the loaded snapshot with the
+  // server's response, so the view still only changes on success.
   public clearAutoTags() {
     if (!this.media || !this.media.autoTags || this.media.autoTags.length === 0) {
       return;
     }
 
-    const hash = this.media.hash;
-    // Optimistic: drop the overlay immediately, then let the DELETE confirm
-    // (the server stores NULL, so a default skip-existing apply reconsiders the
-    // item). The response has no body, so success clears the snapshot's
-    // autoTags to undefined instead of replacing the snapshot.
-    this.media.autoTags = [];
-    this.mediaReplay.next(this.media);
-    this.httpClient.delete(`/api/images/${hash}/autotags`).subscribe(
-      () => {
-        if (this.media && this.media.hash === hash) {
-          this.media.autoTags = undefined;
-          this.mediaReplay.next(this.media);
-        }
-      },
-      (err: HttpErrorResponse) => {
-        console.error('failed to clear auto tags', hash, err);
-        this.alertService.show({ type: 'danger', message: `Failed to clear auto tags: ${hash}` });
-        // Refetch the detail so the optimistic clear does not lie; the same
-        // one-shot read as setCurrent.
-        this.httpClient.get<Media>(`/api/images/${hash}`).subscribe(
-          (media: Media) => {
-            if (this.media && this.media.hash === hash) {
-              this.media = media;
-              this.mediaReplay.next(this.media);
-            }
-          },
-          (fetchErr: HttpErrorResponse) => console.error('failed to refetch media after clear auto tags', hash, fetchErr),
-        );
-      },
-    );
+    this.saveMedia(this.media.hash, { autoTags: null });
   }
 
   public addTag(value: string | TagListItem) {

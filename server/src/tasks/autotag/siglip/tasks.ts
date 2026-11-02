@@ -326,13 +326,11 @@ export function getTask(database: Database): RouterTask[] {
               tags: { exists: true },
               sample: settings.calibrationSampleSize,
             });
-            // Selection is DB-random per query; the sort fixes batch
-            // composition within this run (the sampled list becomes the
-            // chunking order for embedding slices and worker batches, and the
-            // quantised model's activation scales depend on batch
-            // neighbourhood — the same reason IMAGE_BATCH is in the cache
-            // fingerprint). Cross-run sample drift stays accepted.
-            hashes.sort();
+            // The sampled list is consumed in DB order for embedding slices and
+            // worker batches; batch-neighbour score drift is accepted exactly
+            // like cross-run drift. The list is fixed once fetched, so a sort
+            // would only change which stills share a batch, never make the run
+            // reproducible.
             console.log(`Calibrating from ${hashes.length} tagged stills`);
             // A user-initiated calibration with no tagged stills can never
             // produce a result: a successful no-op writes no run record, so the
