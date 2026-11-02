@@ -143,16 +143,18 @@ describe('Auto-tags round-trip', () => {
   });
 });
 
-// The bulk counterpart of the viewer's clear icon: only media that carries a
-// manual tag loses its generated tags, and the clear stores NULL rather than
-// an empty list, so the skip-existing work set treats the item as unprocessed
-// again. The task drives the standard bulk media update.
+// The bulk counterpart of the viewer's clear icon: every media item that holds
+// an auto-tags list (a populated list or the [] "processed, nothing scored"
+// marker) loses it regardless of manual tags, and the clear stores NULL rather
+// than an empty list, so the skip-existing work set treats the item as
+// unprocessed again. The task drives the standard bulk media update.
 describe('CLEAR-TAGGED-AUTOTAGS', () => {
   let server: ApiServer;
   let client: ApiClient;
   let taggedHash: string;
   let autoOnlyHash: string;
   let markedHash: string;
+  let untouchedHash: string;
 
   before(async function (this: Mocha.Context) {
     this.timeout(240_000);
@@ -162,6 +164,7 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
       ['tagged.jpg', 'orange'],
       ['auto-only.jpg', 'purple'],
       ['marked.jpg', 'teal'],
+      ['untouched.jpg', 'silver'],
     ] as const) {
       await createStill(server.libraryPath, filename, color);
     }
@@ -175,15 +178,15 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
     taggedHash = await byName('tagged.jpg');
     autoOnlyHash = await byName('auto-only.jpg');
     markedHash = await byName('marked.jpg');
+    untouchedHash = await byName('untouched.jpg');
 
     assertOk(await client.post<string[]>('/api/tags', { tag: 'people' }), 'POST /api/tags people');
-    for (const hash of [taggedHash, markedHash]) {
-      expect((await client.post(`/api/images/${hash}/tags`, { name: 'people' })).status).to.equal(204);
-    }
+    expect((await client.post(`/api/images/${taggedHash}/tags`, { name: 'people' })).status).to.equal(204);
     expect((await client.patch(`/api/images/${taggedHash}`, { autoTags: ['kitten'] })).status).to.equal(200);
     expect((await client.patch(`/api/images/${autoOnlyHash}`, { autoTags: ['puppy'] })).status).to.equal(200);
     // The stored [] "processed, nothing scored" marker: it counts as auto tags
-    // present, so the clear must drop it too.
+    // present, so the clear must drop it too. The fourth still is never touched:
+    // it has neither a manual tag nor an auto-tags list.
     expect((await client.patch(`/api/images/${markedHash}`, { autoTags: [] })).status).to.equal(200);
   });
 
@@ -191,22 +194,37 @@ describe('CLEAR-TAGGED-AUTOTAGS', () => {
     await server?.stop();
   });
 
-  it('clears generated tags only from media with manual tags', async function (this: Mocha.Context) {
+  it('clears every auto-tags list regardless of manual tags', async function (this: Mocha.Context) {
     this.timeout(60_000);
+    const untouchedBefore = await detail(client, untouchedHash);
     await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
 
     const tagged = await detail(client, taggedHash);
     expect(tagged.autoTags, 'tagged media autoTags').to.equal(undefined);
     expect(tagged.tags, 'tagged media manual tags').to.deep.equal(['people']);
 
-    expect((await detail(client, autoOnlyHash)).autoTags, 'auto-only media autoTags').to.deep.equal(['puppy']);
+    expect((await detail(client, autoOnlyHash)).autoTags, 'auto-only media autoTags').to.equal(undefined);
     expect((await detail(client, markedHash)).autoTags, '[] marker autoTags').to.equal(undefined);
-    expect((await detail(client, markedHash)).tags, '[] marker manual tags').to.deep.equal(['people']);
 
-    // NULL (absent), not []: the cleared items are unprocessed again, so the
-    // skip-existing work set includes them, while the auto-only item's list
-    // still counts as processed.
-    expect(await subset(client, { autoTags: { exists: false } })).to.have.members([taggedHash, markedHash]);
+    // Media with neither a manual tag nor an auto-tags list is outside the work
+    // set: the task must not have touched it.
+    expect(await detail(client, untouchedHash), 'untouched media').to.deep.equal(untouchedBefore);
+
+    // saveBulkMedia's return value is the count the task logs; the four stills
+    // above show which rows it covers (the three with an auto-tags list), so
+    // read the server's own line to pin the returned count exactly.
+    const log = FS.readFileSync(Path.resolve(server.libraryPath, '..', 'server.log'), 'utf8');
+    const clearedCounts = [...log.matchAll(/CLEAR-TAGGED-AUTOTAGS: cleared (\d+) media/g)];
+    expect(Number(clearedCounts.at(-1)?.[1]), 'cleared rows').to.equal(3);
+
+    // NULL (absent), not []: the cleared and never-touched items are all
+    // unprocessed now, so the skip-existing work set includes them again.
+    expect(await subset(client, { autoTags: { exists: false } })).to.have.members([
+      taggedHash,
+      autoOnlyHash,
+      markedHash,
+      untouchedHash,
+    ]);
   });
 });
 
