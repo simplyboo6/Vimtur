@@ -102,8 +102,14 @@
   min-width: 0;
 }
 
+.threshold-row .form-control {
+  // Flex children keep their intrinsic min-width unless cleared, so the input cannot shrink around the clear icon.
+  min-width: 0;
+}
+
 .desc-remove,
-.tag-remove {
+.tag-remove,
+.threshold-clear {
   color: var(--bs-secondary-color);
   font-size: 0.9rem;
 }

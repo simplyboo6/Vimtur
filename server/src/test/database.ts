@@ -158,6 +158,67 @@ describe('Database Tests', () => {
     });
   });
 
+  describe('countSubset tests', () => {
+    before(async () => {
+      // tagged still (thumbnail), untagged still, tagged still without a
+      // thumbnail, tagged video and tagged gif: the calibration eligibility
+      // funnel the AUTO-TAG calibration counts before sampling.
+      const fixtures: Array<{ hash: string; type: Media['type']; tagged?: boolean; thumbnail?: boolean }> = [
+        { hash: 'count-tagged-still', type: 'still', tagged: true, thumbnail: true },
+        { hash: 'count-untagged-still', type: 'still', thumbnail: true },
+        { hash: 'count-tagged-no-thumbnail', type: 'still', tagged: true },
+        { hash: 'count-tagged-video', type: 'video', tagged: true },
+        { hash: 'count-tagged-gif', type: 'gif', tagged: true },
+      ];
+      await database.addTag('count-tag');
+      for (const fixture of fixtures) {
+        await database.saveMedia(fixture.hash, {
+          hash: fixture.hash,
+          path: `/tmp/${fixture.hash}.bin`,
+          dir: '/tmp',
+          type: fixture.type,
+          actors: [],
+          tags: [],
+          hashDate: Date.now(),
+          thumbnail: fixture.thumbnail,
+          metadata: { height: 1080, width: 1920 },
+        });
+        if (fixture.tagged) {
+          await database.addMediaTag(fixture.hash, 'count-tag');
+        }
+      }
+    });
+
+    it('counts tagged media of every type', async () => {
+      expect(await database.countSubset({ tags: { exists: true } })).to.equal(4);
+    });
+
+    it('counts tagged stills', async () => {
+      expect(await database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true } })).to.equal(2);
+    });
+
+    it('counts tagged stills with a thumbnail', async () => {
+      expect(
+        await database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true }, thumbnail: true }),
+      ).to.equal(1);
+    });
+
+    it('ignores sample, limit, sortBy and sortDirection', async () => {
+      const constraints = { tags: { exists: true }, sample: 1, limit: 1, sortBy: 'hashDate' as const };
+      expect(await database.countSubset(constraints)).to.equal(4);
+      // The count must not write the defaulted sort direction back either.
+      expect(constraints).to.deep.equal({ tags: { exists: true }, sample: 1, limit: 1, sortBy: 'hashDate' });
+    });
+
+    it('counts an empty match as zero', async () => {
+      expect(await database.countSubset({ hash: { equalsAny: ['missing'] } })).to.equal(0);
+    });
+
+    after(async () => {
+      await database.testCleanup();
+    });
+  });
+
   describe('autoTags null clear', () => {
     // clear-0: manual + auto; clear-1: auto only; clear-2: manual only;
     // clear-3: manual + the stored "processed, nothing scored" [] marker.

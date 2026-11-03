@@ -18,14 +18,19 @@ const MODE_REPLACE = 'replace';
 const MODE_SKIP_TAGGED = 'skip-tagged';
 const MODE_INCLUDE_TAGGED = 'include-tagged';
 
+const PHASE_PREPARE_MODEL = 'Preparing the model';
+const PHASE_CLASSIFY = 'Classifying stills';
+const PHASE_APPLY = 'Classifying and writing tags';
+
 // One task is registered per available model.
 export function getTask(database: Database): RouterTask[] {
   const transcoder = new Transcoder(database);
 
   return AUTO_TAG_MODELS.map((modelDefinition: ModelDefinition) => {
+    const description = `Auto-Tag - Classify images using image classification (${modelDefinition.name})`;
     return {
       id: `AUTO-TAG-${modelDefinition.id}`,
-      description: `Auto-Tag - Classify images using image classification (${modelDefinition.name})`,
+      description,
       args: [
         {
           // Omitted or empty arguments default to 'skip-existing', so existing
@@ -84,11 +89,10 @@ export function getTask(database: Database): RouterTask[] {
               return [];
             }
 
-            // Only progress is reported, never the info/description string: the
-            // runner's third argument REPLACES queuedTask.description mid-run
-            // (task-manager.ts), which flips the task dropdown's label to the
-            // current phase instead of keeping the registered description.
-            updateStatus(0, hashes.length);
+            // Each phase is reported as the queue entry's description so the
+            // task dropdown shows what is happening; TaskManager restores the
+            // registered description once the entry completes.
+            updateStatus(0, hashes.length, PHASE_PREPARE_MODEL);
             // This pre-downloads the model once so the workers don't each
             // attempt parallel downloads, and so the runner can hand the
             // verified path to the workers. loadClasses() is a fail-fast of
@@ -98,7 +102,7 @@ export function getTask(database: Database): RouterTask[] {
 
             // Reset the counter for the classification phase so per-item
             // progress restarts from zero.
-            updateStatus(0, hashes.length);
+            updateStatus(0, hashes.length, PHASE_CLASSIFY);
 
             // Only begin creating runners when the pool completes.
             const pool = new ScalingConnectionPool(
@@ -140,7 +144,7 @@ export function getTask(database: Database): RouterTask[] {
               await database.saveMedia(hash, { autoTags: labels });
             } finally {
               init.current += 1;
-              updateStatus(init.current, init.max);
+              updateStatus(init.current, init.max, PHASE_APPLY);
             }
           },
           { parallel: MAX_INSTANCES, continueOnError: true },

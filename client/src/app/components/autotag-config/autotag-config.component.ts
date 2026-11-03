@@ -63,13 +63,6 @@ const MODE_SKIP_EXISTING = 'skip-existing';
 // rest into "and N more"; an untagged library can flag every tag at once.
 const ATTENTION_PREVIEW_LIMIT = 5;
 
-// A not-calibrated row's threshold field shows this as a placeholder: a suggested
-// starting point for SigLIP-2 cosine cuts (real-encoder verification observed best-F1
-// cuts around 0.08–0.09, so this errs just above the natural cut toward precision).
-// It is a hint only: nothing is stored or auto-applied until the user types a value
-// and blurs, at which point the row reads "Manually overridden".
-const SUGGESTED_THRESHOLD_PLACEHOLDER = '0.1';
-
 // Status vocabulary in one place: the table badges AND the legend read from here, so a new status or rename updates everywhere and heads off silent drift.
 const STATUS_BADGE_CLASSES: Record<Autotag.TagStatus, string> = {
   'Calibrated': 'text-bg-success',
@@ -82,7 +75,8 @@ const STATUS_BADGE_CLASSES: Record<Autotag.TagStatus, string> = {
 const STATUS_LEGEND: Record<Autotag.TagStatus, string> = {
   'Calibrated': 'meets the support floor and applies automatically.',
   'Review (low support)': 'below the support floor: tag more media or improve the description and re-run calibration — or override the threshold manually.',
-  'Not calibrated': `missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is. Only tags with an Auto-Tagging entry here are scored and calibrated. The ${SUGGESTED_THRESHOLD_PLACEHOLDER} placeholder is only a suggested starting point and is never applied on its own.`,
+  'Not calibrated':
+    'missing a calibrated threshold: it needs tagged examples and a calibration run; a threshold you type yourself is applied as-is. Only tags with an Auto-Tagging entry here are scored and calibrated.',
   'Manually overridden':
     'typed in by you and applied as-is — an explicit override of the calibration floor; expect notably worse precision until it is calibrated.',
 };
@@ -99,6 +93,11 @@ interface AutotagRow {
   // Threshold recorded by the last calibration run. Display-only: the input
   // edits the manual override, never this value.
   calibratedThreshold?: number;
+  // Stored manual override, undefined when the tag has none (a stored null means
+  // "no override", exactly as the config overlay records it). Only defined
+  // overrides get a clear button, so the row shows at a glance whether the typed
+  // value is in use or the calibrated one is.
+  manualThreshold?: number;
   support?: number;
   quality?: number;
 }
@@ -127,7 +126,6 @@ interface FailureTrack {
 })
 export class AutotagConfigComponent implements OnInit, OnDestroy {
   public readonly faCircleXmark = faCircleXmark;
-  public readonly suggestedThresholdPlaceholder = SUGGESTED_THRESHOLD_PLACEHOLDER;
   public readonly statusBadgeClasses = STATUS_BADGE_CLASSES;
   public readonly statusLegend: ReadonlyArray<{ status: Autotag.TagStatus; description: string }> = (
     Object.entries(STATUS_LEGEND) as [Autotag.TagStatus, string][]
@@ -365,10 +363,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     return tags.map(tag => {
       const result = this.calibrationRun()?.perTag[tag];
       const threshold = result?.threshold;
+      const manual = this.autotags.tags?.[tag]?.manualThreshold;
       return {
         tag,
         descriptions: this.descriptionsFor(tag),
         calibratedThreshold: typeof threshold === 'number' ? threshold : undefined,
+        // A stored null is "no override", so only a real number is an override.
+        manualThreshold: typeof manual === 'number' ? manual : undefined,
         support: result?.support,
         quality: result?.quality ?? undefined,
         status: this.deriveStatus(tag),
@@ -425,6 +426,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
       return;
     }
     this.saveTagConfig(tag, { manualThreshold: value });
+  }
+
+  public clearThreshold(tag: string): void {
+    // An uncommitted edit is dropped rather than saved: clearing the box is the
+    // user's instruction to go back to the calibrated value.
+    this.pendingThresholds.delete(tag);
+    this.saveTagConfig(tag, { manualThreshold: null });
   }
 
   // Encoded because a tag can contain spaces or quotes, which would break the
@@ -543,13 +551,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
 
   public calibrationStatus(): string {
     const entries = (this.queue ?? []).filter(task => task.type === CALIBRATION_TASK_ID);
-    return this.taskStatus(entries, this.failureFor(CALIBRATION_TASK_ID));
+    return this.taskStatus(CALIBRATION_TASK_ID, entries, this.failureFor(CALIBRATION_TASK_ID));
   }
 
   // Same precedence for the apply task the selected model runs: running beats
   // queued beats a recorded failure, and Idle is the no-run state.
   public applyStatus(): string {
-    return this.taskStatus(this.applyEntries(), this.failureFor(this.applyTaskId()));
+    return this.taskStatus(this.applyTaskId(), this.applyEntries(), this.failureFor(this.applyTaskId()));
   }
 
   // A calibration run that is queued or running (or just requested) disables the
@@ -602,6 +610,30 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
       listed.push(`and ${rows.length - ATTENTION_PREVIEW_LIMIT} more`);
     }
     return listed.join(', ');
+  }
+
+  // Explains a run that used fewer stills than requested: the eligibility rules
+  // are applied by the database before sampling, so tagged videos/GIFs and
+  // tagged stills without a thumbnail can never be part of the sample.
+  public excludedSummary(run: Autotag.CalibrationRun): string | undefined {
+    if (run.taggedMedia === undefined || run.taggedStills === undefined || run.eligibleStills === undefined) {
+      // A run recorded before the counts existed: nothing to explain, and the
+      // numbers cannot be reconstructed from what it stored.
+      return undefined;
+    }
+    const nonStills = run.taggedMedia - run.taggedStills;
+    const noThumbnail = run.taggedStills - run.eligibleStills;
+    if (nonStills <= 0 && noThumbnail <= 0) {
+      return undefined;
+    }
+    const clauses: string[] = [];
+    if (nonStills > 0) {
+      clauses.push(`${nonStills} tagged video${nonStills === 1 ? '' : 's'} or GIF${nonStills === 1 ? '' : 's'}`);
+    }
+    if (noThumbnail > 0) {
+      clauses.push(`${noThumbnail} tagged still${noThumbnail === 1 ? '' : 's'} without a thumbnail`);
+    }
+    return `Not eligible: ${clauses.join(' and ')}.`;
   }
 
   // Both apply selects derive from the selected task's arguments, so the
@@ -796,9 +828,19 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     return (this.queue ?? []).filter(task => task.type === this.applyTaskId());
   }
 
-  private taskStatus(entries: QueuedTask[], failure: string | undefined): string {
+  private taskStatus(taskId: string, entries: QueuedTask[], failure: string | undefined): string {
     const running = entries.find(task => task.running);
     if (running) {
+      // A long run reports each phase through the queue entry's description and
+      // the server restores the task's registered description on completion, so a
+      // running entry whose description differs from the roster's is a phase label
+      // rather than the task name. No listed task yet (the roster GET is still in
+      // flight) leaves the registered description unknown, and progress alone is
+      // safer than mistaking the task name for a phase.
+      const registered = this.tasks?.find(task => task.id === taskId)?.description;
+      if (registered !== undefined && running.description !== registered) {
+        return `Running — ${running.description} (${running.current}/${running.max}) …`;
+      }
       return `Running — ${running.current}/${running.max} …`;
     }
     if (entries.some(task => !task.complete)) {

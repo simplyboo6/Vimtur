@@ -109,7 +109,7 @@
               <tr>
                 <th scope="col">Tag</th>
                 <th scope="col">Description</th>
-                <th scope="col">Threshold</th>
+                <th scope="col">Manual threshold</th>
                 <th scope="col">Support</th>
                 <th scope="col">Quality (AUROC)</th>
                 <th scope="col">Status</th>
@@ -174,37 +174,67 @@
                       + Add description
                     </button>
                   </td>
-                  <td data-label="Threshold">
-                    <!-- The field edits a manual override only: a calibrated threshold is shown below and stays untouched.
-                         An empty field means no override exists; zero is a real, meaningful value, never a placeholder.
-                         The write is deferred to (blur) because NumberValueAccessor yields null (empty) or NaN (e.g. a lone
-                         "-") for transient input mid-edit; an empty field clears the override and NaN is left unposted. -->
-                    <input
-                      type="number"
-                      class="form-control"
-                      [attr.placeholder]="row.status === 'Not calibrated' ? suggestedThresholdPlaceholder : 'Not set'"
-                      [attr.aria-label]="'Threshold for ' + row.tag"
-                      [attr.name]="'threshold-' + row.tag + '-' + rowIndex"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      [ngModel]="thresholdInput(row.tag)"
-                      (ngModelChange)="onThresholdChange(row.tag, $event)"
-                      (blur)="onThresholdBlur(row.tag)"
-                      [disabled]="!isSiglipSelected"
-                    />
-                    <!-- Informational only: this line reports the calibration outcome, while the input above edits the manual
-                         override (an empty field clears it, and the placeholder is never applied on its own). The three states
-                         come straight from the run record: a fitted cut; a sampled positive with no sampled negative (AUROC
-                         cannot fit, so the run records threshold null AND quality null); or no sampled positive at all
-                         (support 0). The run record's support/quality alone cannot say which without the run context the
-                         row already carries. -->
+                  <td data-label="Manual threshold">
+                    <!-- The field edits a manual override only: calibration fits a threshold per tag from the tagged
+                         examples, so leaving this empty uses the calibrated value shown beneath the box and a calibrated
+                         row needs nothing typed. Zero is a real, meaningful value, never a placeholder. The write is
+                         deferred to (blur) because NumberValueAccessor yields null (empty) or NaN (e.g. a lone "-") for
+                         transient input mid-edit; an empty field clears the override and NaN is left unposted. The ×
+                         clears the override outright. -->
+                    <div class="threshold-row d-flex align-items-center gap-2">
+                      <input
+                        type="number"
+                        class="form-control"
+                        placeholder="Not set"
+                        [attr.aria-label]="'Manual threshold for ' + row.tag"
+                        [attr.name]="'threshold-' + row.tag + '-' + rowIndex"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        [ngModel]="thresholdInput(row.tag)"
+                        (ngModelChange)="onThresholdChange(row.tag, $event)"
+                        (blur)="onThresholdBlur(row.tag)"
+                        [disabled]="!isSiglipSelected"
+                      />
+                      @if (row.manualThreshold !== undefined) {
+                        <!-- mousedown is prevented so the click cannot blur the input first: the blur handler would
+                             save a typed-but-uncommitted value the user is about to clear. -->
+                        <button
+                          type="button"
+                          class="btn btn-link px-1 threshold-clear"
+                          title="Clear the manual threshold"
+                          [attr.aria-label]="'Clear the manual threshold for ' + row.tag"
+                          [disabled]="!isSiglipSelected"
+                          (mousedown)="$event.preventDefault()"
+                          (click)="clearThreshold(row.tag)"
+                        >
+                          <fa-icon [icon]="faCircleXmark" />
+                        </button>
+                      }
+                    </div>
+                    <!-- Informational only: this line reports the calibration outcome and which of the two values is
+                         actually in use, while the input above edits the manual override (an empty field clears it, and
+                         the placeholder is never applied on its own). The states come straight from the run record: a
+                         fitted cut; a sampled positive with no sampled negative (AUROC cannot fit, so the run records
+                         threshold null AND quality null); or no sampled positive at all (support 0). The run record's
+                         support/quality alone cannot say which without the run context the row already carries. -->
                     @if (row.calibratedThreshold !== undefined) {
-                      <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }}</div>
-                    } @else if (row.support !== undefined && row.support > 0 && row.quality === undefined) {
-                      <div class="text-muted small">Every sampled still carries this tag — there is nothing negative to rank against yet</div>
+                      @if (row.manualThreshold !== undefined) {
+                        <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }} — overridden by the value above</div>
+                      } @else if (row.status === 'Review (low support)') {
+                        <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }} — below the support floor, so not applied</div>
+                      } @else {
+                        <div class="text-muted small">Calibrated: {{ row.calibratedThreshold }} — in use while the box is empty</div>
+                      }
                     } @else {
-                      <div class="text-muted small">No calibrated cut — see support and quality</div>
+                      @if (row.support !== undefined && row.support > 0 && row.quality === undefined) {
+                        <div class="text-muted small">Every sampled still carries this tag — there is nothing negative to rank against yet</div>
+                      } @else {
+                        <div class="text-muted small">No calibrated cut — see support and quality</div>
+                      }
+                      @if (row.manualThreshold !== undefined) {
+                        <div class="text-muted small">Your manual value above is applied as-is.</div>
+                      }
                     }
                   </td>
                   <td class="align-middle" data-label="Support">
@@ -243,12 +273,13 @@
       well the tag's score ranks correctly tagged media above everything else — 0.5 is random, 1.0 is perfect.
     </p>
     <p class="text-muted mb-3">
-      <strong>Threshold</strong> is the similarity score above which the tag is applied to an image. Zero does not switch a tag off — scores are almost always
-      positive, so it would apply nearly everywhere. A row is only applied automatically while it holds a calibrated threshold from a run that met the floor:
-      "Review (low support)" and "Not calibrated" rows are inert while they hold those statuses. Typing a threshold into such a row switches its status to
-      <span class="badge" [class]="statusBadgeClasses['Manually overridden']">Manually overridden</span> and applies the tag as-is — an explicit override at
-      noticeably worse precision; clearing the field restores the calibration outcome. To clear the floor properly, add tagged examples and re-run calibration,
-      or lower the <strong>Minimum calibration support</strong> above.
+      <strong>Threshold</strong> is the similarity score above which the tag is applied to an image. Calibration fits one threshold per tag from your tagged
+      examples, so the box above is only needed to override that value: leaving it empty uses the calibrated value shown beneath it, and clearing the box or
+      pressing its × returns to the calibrated value. A value you type is applied exactly as written — at noticeably worse precision — and switches the row to
+      <span class="badge" [class]="statusBadgeClasses['Manually overridden']">Manually overridden</span>. Zero does not switch a tag off because scores are
+      almost always positive, so it would apply nearly everywhere. "Review (low support)" and "Not calibrated" rows apply nothing until they are calibrated or
+      overridden; to clear the support floor properly, add tagged examples and re-run calibration, or lower the
+      <strong>Minimum calibration support</strong> above.
     </p>
     <p class="text-muted">
       Only tags with an Auto-Tagging entry here are scored and calibrated — add a description or a threshold to opt a tag in. Descriptions define what the
@@ -261,8 +292,9 @@
   <div class="card">
     <h4>Threshold Calibration</h4>
     <p class="text-muted">
-      Re-fits each tag's threshold against your existing manual tags and measures per-tag quality (AUROC). By default a random sample of tagged stills is used
-      for speed; raise the sample size above your tagged library to use everything.
+      Re-fits each tag's threshold against your existing manual tags and measures per-tag quality (AUROC). The job runs in two phases: it first embeds the
+      sampled images, then fits each tag's threshold against those embeddings. By default a random sample of eligible tagged stills is used for speed (see the
+      Sample size help text below); raise the sample size above your tagged library to use everything.
     </p>
     <div class="row">
       <div class="col-md-4 form-padded-input">
@@ -283,7 +315,8 @@
         />
         <div>
           <span class="text-muted"
-            >Number of tagged stills sampled for the calibration run — a smaller sample is faster but fits thresholds on fewer examples.</span
+            >Number of eligible tagged stills sampled per run. Only stills that carry manual tags and have a generated thumbnail are eligible — videos, GIFs and
+            untagged stills are never calibrated, so a run can use fewer than this number.</span
           >
         </div>
       </div>
@@ -310,13 +343,19 @@
     <h5>Last Run</h5>
     @if (calibrationRun(); as run) {
       <p class="text-muted mb-3">
-        <strong>{{ run.date | date: 'medium' }}</strong> — Complete. Random sample of {{ run.sampleSize }} tagged stills; {{ thresholdsUpdated() }} thresholds
-        updated; {{ attentionRows().length }} tags need attention
-        @if (attentionRows().length > 0) {
-          ({{ attentionSummary() }})
+        <strong>{{ run.date | date: 'medium' }}</strong> — Complete.
+        @if (run.requestedSampleSize !== undefined && run.eligibleStills !== undefined) {
+          Sampled {{ run.sampleSize }} of {{ run.eligibleStills }} eligible tagged stills ({{ run.requestedSampleSize }} requested).
+        } @else {
+          Random sample of {{ run.sampleSize }} tagged stills.
         }
-        .
+        {{ thresholdsUpdated() }} thresholds updated; {{ attentionRows().length }} tag{{ attentionRows().length === 1 ? ' needs' : 's need' }} attention{{
+          attentionRows().length > 0 ? ' (' + attentionSummary() + ')' : ''
+        }}.
       </p>
+      @if (excludedSummary(run); as excluded) {
+        <p class="text-muted small mb-3">{{ excluded }}</p>
+      }
     } @else {
       <p class="text-muted mb-3">No SigLIP-2 calibration run yet — run the calibration task to fit thresholds against your tagged media.</p>
     }

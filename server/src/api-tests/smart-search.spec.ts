@@ -349,6 +349,12 @@ describe('Smart-search autotagging', () => {
     expect(run.minSupport, 'merged minSupport').to.equal(8);
     // The configured sample caps the subset at 2 of the 4 tagged stills.
     expect(run.sampleSize).to.equal(2);
+    // The run records the configured size and the eligibility funnel: all 4
+    // imported stills are manually tagged and carry a thumbnail.
+    expect(run.requestedSampleSize, 'requestedSampleSize').to.equal(2);
+    expect(run.taggedMedia, 'taggedMedia').to.equal(4);
+    expect(run.taggedStills, 'taggedStills').to.equal(4);
+    expect(run.eligibleStills, 'eligibleStills').to.equal(4);
     expect(run.date).to.be.a('number').and.to.be.greaterThan(0);
 
     const alpha = run.perTag['alpha'];

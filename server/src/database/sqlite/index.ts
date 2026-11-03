@@ -312,6 +312,23 @@ export class SqliteConnector extends Database {
     return raw.map((el) => el.hash);
   }
 
+  public async countSubset(constraints: SubsetConstraints): Promise<number> {
+    // Ordering and paging mean nothing to a count, and a RANDOM() sort over the
+    // whole table would make counting needlessly expensive. Clearing them on a
+    // copy keeps the caller's constraints untouched (buildMediaQuery writes
+    // sortBy back for playlist filters).
+    const filtered: SubsetConstraints = {
+      ...constraints,
+      sample: undefined,
+      limit: undefined,
+      sortBy: undefined,
+      sortDirection: undefined,
+    };
+    const { query, values } = buildMediaQuery(filtered);
+    const raw = await this.db.get<{ count: number }>(`SELECT COUNT(*) AS \`count\` FROM (${query})`, values);
+    return raw?.count ?? 0;
+  }
+
   public async subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]> {
     const { query, values } = buildMediaQuery(constraints, fields);
     const raw = await this.db.all<RawMedia>(query, values);
