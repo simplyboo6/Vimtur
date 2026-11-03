@@ -1,6 +1,6 @@
 import 'source-map-support/register';
 
-import type { Media, SegmentMetadata } from '@vimtur/common';
+import type { BaseMedia, Media, SegmentMetadata } from '@vimtur/common';
 import { expect } from 'chai';
 import { after, afterEach, before, beforeEach, describe, it } from 'mocha';
 import type { Db } from 'mongodb';
@@ -227,6 +227,74 @@ describeMongo('Database Tests: MongoDB', () => {
       expect(raw?.autoTags, 'stored representation').to.equal(null);
       expect(await database.subset({ autoTags: { exists: false } })).to.include('patch-clear');
       expect(await database.subset({ autoTags: { exists: true } })).to.not.include('patch-clear');
+    });
+  });
+
+  describe('countSubset', () => {
+    // Mirrors the SQLite fixture set: the calibration eligibility funnel the
+    // zero-shot tasks count before sampling.
+    const saveFixture = async (
+      hash: string,
+      type: Media['type'],
+      options: { tagged?: boolean; thumbnail?: boolean } = {},
+    ): Promise<void> => {
+      const media: BaseMedia = {
+        hash,
+        path: `/tmp/${hash}.bin`,
+        dir: '/tmp',
+        type,
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+      };
+      if (options.thumbnail) {
+        media.thumbnail = true;
+      }
+      await database.saveMedia(hash, media);
+      if (options.tagged) {
+        await database.addMediaTag(hash, 'count-tag');
+      }
+    };
+
+    before(async () => {
+      await database.addTag('count-tag');
+      // tagged still (thumbnail), untagged still, tagged still without a
+      // thumbnail, tagged video and tagged gif.
+      await saveFixture('count-tagged-still', 'still', { tagged: true, thumbnail: true });
+      await saveFixture('count-untagged-still', 'still', { thumbnail: true });
+      await saveFixture('count-tagged-no-thumbnail', 'still', { tagged: true });
+      await saveFixture('count-tagged-video', 'video', { tagged: true });
+      await saveFixture('count-tagged-gif', 'gif', { tagged: true });
+    });
+
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    it('counts tagged media of every type', async () => {
+      expect(await database.countSubset({ tags: { exists: true } })).to.equal(4);
+    });
+
+    it('counts tagged stills', async () => {
+      expect(await database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true } })).to.equal(2);
+    });
+
+    it('counts tagged stills with a thumbnail', async () => {
+      expect(
+        await database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true }, thumbnail: true }),
+      ).to.equal(1);
+    });
+
+    it('ignores sample, limit, sortBy and sortDirection', async () => {
+      const constraints = { tags: { exists: true }, sample: 1, limit: 1, sortBy: 'hashDate' as const };
+      expect(await database.countSubset(constraints)).to.equal(4);
+      // The count leaves the caller's constraints untouched.
+      expect(constraints).to.deep.equal({ tags: { exists: true }, sample: 1, limit: 1, sortBy: 'hashDate' });
+    });
+
+    it('counts an empty match as zero', async () => {
+      expect(await database.countSubset({ hash: { equalsAny: ['missing'] } })).to.equal(0);
     });
   });
 });

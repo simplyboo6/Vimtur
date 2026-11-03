@@ -234,6 +234,12 @@ export class TaskManager extends EventEmitter {
       .finally(() => {
         queuedTask.running = false;
         queuedTask.complete = true;
+        // A runner's updateStatus(current, max, info) REPLACES the queue entry
+        // description for the duration of the run. Restoring the registered
+        // description on completion stops a completed entry (kept when
+        // autoClearCompletedTasks is off, and kept on failure) from showing its
+        // last phase forever.
+        queuedTask.description = task.description;
         this.emit('end', queuedTask);
         this.emit('queue', this.taskQueue);
         this.execute();

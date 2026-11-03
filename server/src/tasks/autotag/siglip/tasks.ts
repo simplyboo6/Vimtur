@@ -43,6 +43,17 @@ const MODE_REPLACE = 'replace';
 const MODE_SKIP_TAGGED = 'skip-tagged';
 const MODE_INCLUDE_TAGGED = 'include-tagged';
 
+// Registered descriptions live here so the task list label and the registered
+// description cannot drift apart; a runner's phase labels replace the queue
+// entry's description for the duration of a run.
+const AUTO_TAG_DESCRIPTION = `Auto-Tag - Score stills against their calibrated tags using zero-shot embeddings (${AVES_SIGLIP2_B32.name})`;
+const CALIBRATION_DESCRIPTION = `Auto-Tag - Calibrate tag score thresholds from manually tagged examples (${AVES_SIGLIP2_B32.name})`;
+const PHASE_PREPARE_ENCODER = 'Preparing the encoder';
+const PHASE_EMBED = 'Embedding images';
+const PHASE_SCORE = 'Scoring tags';
+const PHASE_WRITE = 'Writing tags';
+const PHASE_FIT = 'Fitting thresholds';
+
 // Canonical image-encoding slice: a 512-still slice feeds the encoder pool as
 // 16 requests of 32 stills, each strided by the worker into 8 IMAGE_BATCHes.
 // Fixed slice boundaries keep the internal batch composition a strict function
@@ -75,7 +86,7 @@ export function getTask(database: Database): RouterTask[] {
   return [
     {
       id: AUTO_TAG_TASK_ID,
-      description: `Auto-Tag - Score stills against their calibrated tags using zero-shot embeddings (${AVES_SIGLIP2_B32.name})`,
+      description: AUTO_TAG_DESCRIPTION,
       args: [
         {
           // Omitted or empty arguments default to 'skip-existing', so existing
@@ -176,19 +187,25 @@ export function getTask(database: Database): RouterTask[] {
             // prompt pass.
             const scoringTags = tagList.filter((tag) => thresholds.has(tag));
 
-            // Other tasks keep their registered description: the runner's info
-            // string REPLACES queuedTask.description mid-run (task-manager.ts),
-            // which flips the task dropdown's label to the current phase, so
-            // only progress is reported here. The Auto-Tagging page carries its
-            // own status lines.
-            updateStatus(0, hashes.length);
+            // Each phase is reported as the queue entry's description, so the
+            // task dropdown shows what is happening; TaskManager restores the
+            // registered description once the entry completes.
+            updateStatus(0, hashes.length, PHASE_PREPARE_ENCODER);
             // proper-job calls the teardown with `undefined` when this function
             // rejects, so a failure after the pool exists must quit it here.
             const pool = await ensureEncoderPool(AVES_SIGLIP2_B32);
             try {
-              const embeddings = await embedStills(database, transcoder, updateStatus, AVES_SIGLIP2_B32, pool, hashes);
+              const embeddings = await embedStills(
+                database,
+                transcoder,
+                updateStatus,
+                AVES_SIGLIP2_B32,
+                pool,
+                hashes,
+                PHASE_EMBED,
+              );
 
-              updateStatus(0, hashes.length);
+              updateStatus(0, hashes.length, PHASE_SCORE);
               const { table, textRows } = await encodePromptTable(pool, AVES_SIGLIP2_B32, scoringTags, settings.tags);
               const scoreTag = makeTagScorer(table, textRows);
               // Prompt scores per still, tracked against the yield budget in
@@ -224,13 +241,13 @@ export function getTask(database: Database): RouterTask[] {
                   // flushing and socket drains are served while a large
                   // library is scored (cancellation waits for the apply phase).
                   await yieldToEventLoop();
-                  updateStatus(index + 1, hashes.length);
+                  updateStatus(index + 1, hashes.length, PHASE_SCORE);
                 }
               }
 
               // Reset the counter for the apply phase so per-item progress
               // restarts from zero (same pattern as the classifier).
-              updateStatus(0, hashes.length);
+              updateStatus(0, hashes.length, PHASE_WRITE);
 
               return {
                 iterable: writes,
@@ -247,7 +264,7 @@ export function getTask(database: Database): RouterTask[] {
             }
             await database.saveMedia(write.hash, { autoTags: write.tags });
             init.current += 1;
-            updateStatus(init.current, init.max);
+            updateStatus(init.current, init.max, PHASE_WRITE);
           },
           // encoderInstances() is the shared concurrency dial: this same
           // number also caps the encoder pool, so per-item DB writes run no
@@ -259,7 +276,7 @@ export function getTask(database: Database): RouterTask[] {
     },
     {
       id: CALIBRATION_TASK_ID,
-      description: `Auto-Tag - Calibrate tag score thresholds from manually tagged examples (${AVES_SIGLIP2_B32.name})`,
+      description: CALIBRATION_DESCRIPTION,
       // No args: the page's settings come from the config overlay, and new arg
       // types only support string/select values.
       args: [],
@@ -319,19 +336,31 @@ export function getTask(database: Database): RouterTask[] {
             const settings = autotagSettings();
             // `sample` picks an arbitrary subset per run, which is safe here:
             // every sampled still is scored exactly once within this run, so
-            // all of a tag's scores come from the same sample.
-            const hashes = await database.subset({
-              type: { equalsAny: ['still'] },
-              thumbnail: true,
-              tags: { exists: true },
-              sample: settings.calibrationSampleSize,
-            });
+            // all of a tag's scores come from the same sample. The filters are
+            // applied by the database BEFORE `sample` (SQLite ORDER BY RANDOM()
+            // LIMIT, Mongo $match then $sample), so the sample never contains
+            // ineligible media; the counts explain a run that uses fewer stills
+            // than calibrationSampleSize requested.
+            const [hashes, taggedMedia, taggedStills, eligibleStills] = await Promise.all([
+              database.subset({
+                type: { equalsAny: ['still'] },
+                thumbnail: true,
+                tags: { exists: true },
+                sample: settings.calibrationSampleSize,
+              }),
+              database.countSubset({ tags: { exists: true } }),
+              database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true } }),
+              database.countSubset({ type: { equalsAny: ['still'] }, tags: { exists: true }, thumbnail: true }),
+            ]);
             // The sampled list is consumed in DB order for embedding slices and
             // worker batches; batch-neighbour score drift is accepted exactly
             // like cross-run drift. The list is fixed once fetched, so a sort
             // would only change which stills share a batch, never make the run
             // reproducible.
-            console.log(`Calibrating from ${hashes.length} tagged stills`);
+            console.log(
+              `Calibrating from ${hashes.length} of ${eligibleStills} eligible tagged stills ` +
+                `(sample size ${settings.calibrationSampleSize} of ${taggedMedia} tagged media, ${taggedStills} tagged stills)`,
+            );
             // A user-initiated calibration with no tagged stills can never
             // produce a result: a successful no-op writes no run record, so the
             // page shows a spinner and then nothing changes. Fail loudly so the
@@ -342,12 +371,32 @@ export function getTask(database: Database): RouterTask[] {
               );
             }
 
-            updateStatus(0, Math.max(1, hashes.length));
+            updateStatus(0, Math.max(1, hashes.length), PHASE_PREPARE_ENCODER);
             // proper-job calls the teardown with `undefined` when this function
             // rejects, so a failure after the pool exists must quit it here.
             const pool = await ensureEncoderPool(AVES_SIGLIP2_B32);
             try {
-              const embeddings = await embedStills(database, transcoder, updateStatus, AVES_SIGLIP2_B32, pool, hashes);
+              const embeddings = await embedStills(
+                database,
+                transcoder,
+                updateStatus,
+                AVES_SIGLIP2_B32,
+                pool,
+                hashes,
+                PHASE_EMBED,
+              );
+
+              // The DB tag list was snapshotted before embedding (which can take
+              // minutes); a tag created during the run appears in this run's
+              // perTag only at the next calibration (deriveTagState unaffected).
+              // Only configured DB tags are calibrated, matching what the apply
+              // run can score: scoring is opt-in through autotags.tags, so no
+              // union with media tags or config keys is needed (or wanted).
+              // Derived before the per-still tag fetch below so the fit phase,
+              // whose denominator is the tag count, is reported while that loop
+              // runs instead of leaving the entry on the embedding phase.
+              const tagList = configuredTags(dbTagList, settings);
+              updateStatus(0, Math.max(1, tagList.length), PHASE_FIT);
 
               // Fetched once per still: the tags drive both the tag list and
               // the positive/negative split below.
@@ -360,13 +409,6 @@ export function getTask(database: Database): RouterTask[] {
                 mediaTags.set(hash, media.tags);
               }
 
-              // The DB tag list was snapshotted before embedding (which can take
-              // minutes); a tag created during the run appears in this run's
-              // perTag only at the next calibration (deriveTagState unaffected).
-              // Only configured DB tags are calibrated, matching what the apply
-              // run can score: scoring is opt-in through autotags.tags, so no
-              // union with media tags or config keys is needed (or wanted).
-              const tagList = configuredTags(dbTagList, settings);
               const { table, textRows } = await encodePromptTable(pool, AVES_SIGLIP2_B32, tagList, settings.tags);
               const scoreTag = makeTagScorer(table, textRows);
 
@@ -410,7 +452,7 @@ export function getTask(database: Database): RouterTask[] {
                 // One tag's pass is synchronous; refresh the status and yield
                 // between tags so a large sample cannot starve status reads,
                 // log flushing or socket drains for the whole run.
-                updateStatus(tagIndex + 1, Math.max(1, tagList.length));
+                updateStatus(tagIndex + 1, Math.max(1, tagList.length), PHASE_FIT);
                 await yieldToEventLoop();
               }
 
@@ -419,6 +461,10 @@ export function getTask(database: Database): RouterTask[] {
                 modelId: AVES_SIGLIP2_B32.id,
                 minSupport: settings.minSupport,
                 sampleSize: hashes.length,
+                requestedSampleSize: settings.calibrationSampleSize,
+                taggedMedia,
+                taggedStills,
+                eligibleStills,
                 perTag,
               };
               await saveCalibrationRun(database, run);
@@ -459,6 +505,7 @@ async function embedStills(
   pack: EmbeddingPackDefinition,
   pool: EncoderPool,
   hashes: string[],
+  info: string,
 ): Promise<EmbeddingSet> {
   const fingerprint = computeFingerprint(pack, pool.kind);
   // A stale artifact throws here on purpose: reusing old numerics with a new
@@ -473,6 +520,11 @@ async function embedStills(
   for (const [row, hash] of targetList.entries()) {
     hashToRow.set(hash, row);
   }
+  // Report the cached fraction up front: the all-cached path returns without
+  // entering the loop below, so without this the entry would keep reading the
+  // previous phase (e.g. "Preparing the encoder") right through the fit that
+  // follows.
+  updateStatus(done, hashes.length, info);
   // Every requested still is already cached: cached.data is the loaded
   // artifact, and with no misses targetList is exactly cached.hashes, so the
   // hash-to-row map addresses the same rows. Skip the joined copy entirely.
@@ -503,7 +555,7 @@ async function embedStills(
       joined.set(row, (cachedRows + offset + index) * pack.dim);
     }
     done += slice.length;
-    updateStatus(done, hashes.length);
+    updateStatus(done, hashes.length, info);
   }
 
   if (missing.length > 0) {

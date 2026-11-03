@@ -876,6 +876,13 @@ export class MongoConnector extends Database {
     }
   }
 
+  public async countSubset(constraints: SubsetConstraints): Promise<number> {
+    // sample, limit and the sort keys have no meaning to a count, and
+    // buildMediaMatch applies only the filters (playlist membership included),
+    // so they need no clearing here.
+    return this.db.collection('media').countDocuments(this.buildMediaMatch(constraints));
+  }
+
   public async close(): Promise<void> {
     await this.server.close();
   }

@@ -50,6 +50,12 @@ export abstract class Database {
 
   // Searching
   public abstract subset(constraints: SubsetConstraints): Promise<string[]>;
+  /**
+   * Counts the media matching `constraints`. sample, limit, sortBy and
+   * sortDirection are ignored: a count has no ordering or paging, and both
+   * engines must agree on the filter semantics.
+   */
+  public abstract countSubset(constraints: SubsetConstraints): Promise<number>;
   public abstract subsetFields(constraints: SubsetConstraints, fields: SubsetFields | 'all'): Promise<BaseMedia[]>;
 
   // Actors

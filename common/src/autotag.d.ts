@@ -30,6 +30,17 @@ export namespace Autotag {
     minSupport: number;
     // How many stills the run sampled.
     sampleSize: number;
+    // The configured sample size at run time (sampleSize is how many were
+    // actually used).
+    requestedSampleSize?: number;
+    // Manually tagged media of any type (videos and GIFs never qualify for
+    // calibration).
+    taggedMedia?: number;
+    // Tagged media restricted to stills, before the thumbnail requirement.
+    taggedStills?: number;
+    // Stills that are both tagged and have a generated thumbnail: the pool the
+    // run sampled from.
+    eligibleStills?: number;
     perTag: Record<string, TagResult>;
   }
 }
