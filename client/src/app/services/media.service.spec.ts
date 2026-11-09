@@ -120,6 +120,37 @@ describe('MediaService tags', () => {
     expect(alerts.show).not.toHaveBeenCalled();
   });
 
+  it('sorts the media tag array when attaching an existing tag', () => {
+    const { service, http, tagService } = createService(['alpha', 'beta', 'zeta']);
+    const media = createMedia(['zeta', 'beta']);
+    const originalTags = media.tags;
+    http.post.mockReturnValue(of(null));
+    service.media = media;
+
+    service.addTag('alpha');
+
+    expect(tagService.addTag).not.toHaveBeenCalled();
+    expect(http.post).toHaveBeenCalledWith('/api/images/hash/tags', { name: 'alpha' }, expect.anything());
+    expect(media.tags).toEqual(['alpha', 'beta', 'zeta']);
+    expect(media.tags).not.toBe(originalTags);
+  });
+
+  it('sorts the media tag array when creating and attaching a missing tag', () => {
+    const { service, http, tagService } = createService([]);
+    const media = createMedia(['zeta', 'beta']);
+    const originalTags = media.tags;
+    tagService.addTag.mockReturnValue(of(['alpha']));
+    http.post.mockReturnValue(of(null));
+    service.media = media;
+
+    service.addTag('alpha');
+
+    expect(tagService.addTag).toHaveBeenCalledWith('alpha');
+    expect(http.post).toHaveBeenCalledWith('/api/images/hash/tags', { name: 'alpha' }, expect.anything());
+    expect(media.tags).toEqual(['alpha', 'beta', 'zeta']);
+    expect(media.tags).not.toBe(originalTags);
+  });
+
   it('replaces the tag array when removing a tag', () => {
     const { service, http } = createService(['existing']);
     const media = createMedia(['existing']);
@@ -204,6 +235,37 @@ describe('MediaService actors', () => {
     expect(actorService.addActor).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
     expect(alerts.show).not.toHaveBeenCalled();
+  });
+
+  it('sorts the media actor array when attaching an existing actor', () => {
+    const { service, http, actorService } = createService([], ['alpha', 'beta', 'zeta']);
+    const media = createMedia([], ['zeta', 'beta']);
+    const originalActors = media.actors;
+    http.post.mockReturnValue(of(null));
+    service.media = media;
+
+    service.addActor('alpha');
+
+    expect(actorService.addActor).not.toHaveBeenCalled();
+    expect(http.post).toHaveBeenCalledWith('/api/images/hash/actors', { name: 'alpha' }, expect.anything());
+    expect(media.actors).toEqual(['alpha', 'beta', 'zeta']);
+    expect(media.actors).not.toBe(originalActors);
+  });
+
+  it('sorts the media actor array when creating and attaching a missing actor', () => {
+    const { service, http, actorService } = createService([], []);
+    const media = createMedia([], ['zeta', 'beta']);
+    const originalActors = media.actors;
+    actorService.addActor.mockReturnValue(of(['alpha']));
+    http.post.mockReturnValue(of(null));
+    service.media = media;
+
+    service.addActor('alpha');
+
+    expect(actorService.addActor).toHaveBeenCalledWith('alpha');
+    expect(http.post).toHaveBeenCalledWith('/api/images/hash/actors', { name: 'alpha' }, expect.anything());
+    expect(media.actors).toEqual(['alpha', 'beta', 'zeta']);
+    expect(media.actors).not.toBe(originalActors);
   });
 
   it('replaces the actor array when removing an actor', () => {

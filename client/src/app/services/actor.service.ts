@@ -52,8 +52,10 @@ export class ActorService {
           message: `Added actor '${actor}'`,
           autoClose: 3000,
         });
-        this.actorReplay.next(res);
-        this.actors = res;
+        // Sort in place so the replay and this.actors share the sorted instance.
+        const sorted = res.sort();
+        this.actorReplay.next(sorted);
+        this.actors = sorted;
       }),
     );
   }

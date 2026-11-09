@@ -236,7 +236,7 @@ export class MediaService {
         () => {
           // Replace rather than mutate so consumers comparing the array
           // reference (e.g. SelectComponent.writeValue) see the change.
-          media.actors = [...media.actors, name];
+          media.actors = [...media.actors, name].sort();
           this.mediaReplay.next(media);
           console.debug('actor added', media.hash, name);
         },
@@ -331,7 +331,7 @@ export class MediaService {
         () => {
           // Replace rather than mutate so consumers comparing the array
           // reference (e.g. SelectComponent.writeValue) see the change.
-          media.tags = [...media.tags, name];
+          media.tags = [...media.tags, name].sort();
           this.mediaReplay.next(media);
           console.debug('tag added', media.hash, name);
         },
