@@ -119,6 +119,20 @@ describe('MediaService tags', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(alerts.show).not.toHaveBeenCalled();
   });
+
+  it('replaces the tag array when removing a tag', () => {
+    const { service, http } = createService(['existing']);
+    const media = createMedia(['existing']);
+    const originalTags = media.tags;
+    http.delete.mockReturnValue(of(null));
+    service.media = media;
+
+    service.removeTag('existing');
+
+    expect(media.tags).toEqual([]);
+    expect(media.tags).not.toBe(originalTags);
+    expect(http.delete).toHaveBeenCalledWith('/api/images/hash/tags/existing');
+  });
 });
 
 describe('MediaService actors', () => {
@@ -190,5 +204,19 @@ describe('MediaService actors', () => {
     expect(actorService.addActor).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
     expect(alerts.show).not.toHaveBeenCalled();
+  });
+
+  it('replaces the actor array when removing an actor', () => {
+    const { service, http } = createService([], ['existing']);
+    const media = createMedia([], ['existing']);
+    const originalActors = media.actors;
+    http.delete.mockReturnValue(of(null));
+    service.media = media;
+
+    service.removeActor('existing');
+
+    expect(media.actors).toEqual([]);
+    expect(media.actors).not.toBe(originalActors);
+    expect(http.delete).toHaveBeenCalledWith('/api/images/hash/actors/existing');
   });
 });

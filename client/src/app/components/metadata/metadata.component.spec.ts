@@ -113,6 +113,23 @@ function selectFor(fixture: ComponentFixture<unknown>, placeholder: string): Sel
   return select;
 }
 
+function selectElementFor(fixture: ComponentFixture<unknown>, select: SelectComponent): HTMLElement {
+  const debugElement = fixture.debugElement.queryAll(By.directive(SelectComponent)).find(candidate => candidate.componentInstance === select);
+  if (!debugElement) {
+    throw new Error('Select element not found');
+  }
+  return debugElement.nativeElement as HTMLElement;
+}
+
+function checkboxFor(element: HTMLElement, text: string): HTMLInputElement {
+  for (const option of Array.from(element.querySelectorAll('app-select-option'))) {
+    if (option.querySelector('label')?.textContent?.trim() === text) {
+      return option.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    }
+  }
+  throw new Error(`No option labelled ${text}`);
+}
+
 async function flush(fixture: ComponentFixture<unknown>): Promise<void> {
   fixture.detectChanges();
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -139,6 +156,7 @@ describe('MetadataComponent inline creation', () => {
     expect(media.tags).toEqual(['new-tag']);
     expect(select.selectedOptions.map(option => option.text)).toEqual(['new-tag']);
     expect(select.text).toBe('new-tag');
+    expect(checkboxFor(selectElementFor(fixture, select), 'new-tag').checked).toBe(true);
   });
 
   it('creates and selects a new actor through the media service', async () => {
@@ -156,6 +174,7 @@ describe('MetadataComponent inline creation', () => {
     expect(media.actors).toEqual(['new-actor']);
     expect(select.selectedOptions.map(option => option.text)).toEqual(['new-actor']);
     expect(select.text).toBe('new-actor');
+    expect(checkboxFor(selectElementFor(fixture, select), 'new-actor').checked).toBe(true);
   });
 
   it('alerts and leaves the selection unchanged when attaching the new tag fails', async () => {
