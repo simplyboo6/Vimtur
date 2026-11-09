@@ -234,7 +234,9 @@ export class MediaService {
       // below, which alerts and skips the attach.
       create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/actors`, { name }, HTTP_OPTIONS))).subscribe(
         () => {
-          media.actors.push(name);
+          // Replace rather than mutate so consumers comparing the array
+          // reference (e.g. SelectComponent.writeValue) see the change.
+          media.actors = [...media.actors, name];
           this.mediaReplay.next(media);
           console.debug('actor added', media.hash, name);
         },
@@ -327,7 +329,9 @@ export class MediaService {
       // below, which alerts and skips the attach.
       create$.pipe(switchMap(() => this.httpClient.post(`/api/images/${media.hash}/tags`, { name }, HTTP_OPTIONS))).subscribe(
         () => {
-          media.tags.push(name);
+          // Replace rather than mutate so consumers comparing the array
+          // reference (e.g. SelectComponent.writeValue) see the change.
+          media.tags = [...media.tags, name];
           this.mediaReplay.next(media);
           console.debug('tag added', media.hash, name);
         },

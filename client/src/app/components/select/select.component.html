@@ -1,4 +1,4 @@
-@if (useNativeObservable | async) {
+@if ((useNativeObservable | async) && !creatable) {
   <select class="form-select">
     @if (text) {
       <option selected>{{ text }}</option>
@@ -19,7 +19,7 @@
     [class.focus]="open"
     (mousedown)="$event.preventDefault(); $event.button === 0 && (open = !open); selectRef.focus(); onResize()"
     (keydown)="onKeydown('select', $event)"
-    (focusout)="onFocusOut()"
+    (focusout)="onFocusOut($event)"
     #selectRef
   >
     @if (text) {
@@ -37,10 +37,19 @@
     [class.closed]="!open"
     (mouseenter)="inContent = true"
     (mouseleave)="inContent = false"
-    (focusout)="onFocusOut()"
+    (focusout)="onFocusOut($event)"
     (keydown)="onKeydown('div', $event)"
     #dropdownRef
   >
+    @if (creatable) {
+      <div class="create-row">
+        <label class="visually-hidden" [for]="createInputId">Create new option</label>
+        <input [id]="createInputId" class="form-control form-control-sm" type="text" [(ngModel)]="createText" (keydown)="onCreateKeydown($event)" />
+        <button type="button" class="btn btn-primary btn-sm" [disabled]="!createText.trim()" (keydown)="$event.stopPropagation()" (click)="create()">
+          Add
+        </button>
+      </div>
+    }
     <ng-content></ng-content>
   </div>
 }

@@ -71,7 +71,14 @@
       <h5 class="form-padded-input">Tags</h5>
       @if (mediaModel && mediaModel.tags && tags) {
         <div class="row">
-          <app-select [(value)]="mediaModel.tags" (selected)="mediaService.addTag($event)" (deselected)="mediaService.removeTag($event)" placeholder="+ Tags">
+          <app-select
+            [(value)]="mediaModel.tags"
+            (selected)="mediaService.addTag($event)"
+            (deselected)="mediaService.removeTag($event)"
+            (created)="mediaService.addTag($event)"
+            [creatable]="true"
+            placeholder="+ Tags"
+          >
             @for (tag of tags; track tag) {
               <app-select-option [value]="tag.id">
                 {{ tag.itemName }}
@@ -87,6 +94,8 @@
             [(value)]="mediaModel.actors"
             (selected)="mediaService.addActor($event)"
             (deselected)="mediaService.removeActor($event)"
+            (created)="mediaService.addActor($event)"
+            [creatable]="true"
             placeholder="+ People"
           >
             @for (actor of actors; track actor) {

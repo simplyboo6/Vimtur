@@ -20,6 +20,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
 import { isMobile } from 'is-mobile';
 import { ConfigService } from 'services/config.service';
 import { AsyncPipe } from '@angular/common';
+import { getUid } from 'app/shared/uid';
 
 interface BasicSelectOption {
   name: string;
@@ -43,6 +44,9 @@ interface BasicSelectOption {
 export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterContentInit, AfterViewChecked {
   @Input() public placeholder?: string;
   @Input() public disabled?: boolean;
+  @Input() public creatable = false;
+  public readonly createInputId = getUid();
+  public createText = '';
   public open = false;
   public text?: string;
   public dropdownMaxHeight?: string;
@@ -125,6 +129,7 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
   @Output() public valueChange = new EventEmitter<any[]>();
   @Output() public selected = new EventEmitter<any>();
   @Output() public deselected = new EventEmitter<any>();
+  @Output() public created = new EventEmitter<string>();
 
   // public to be accessed by the template.
   public selectedOptions: SelectOptionComponent[] = [];
@@ -248,6 +253,42 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
     }
   }
 
+  // Typing in the create field must not reach the dropdown handler, which
+  // would otherwise drive type-ahead and move the highlighted option.
+  public onCreateKeydown(event: KeyboardEvent): void {
+    event.stopPropagation();
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.create();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.open = false;
+      this.clearHighlighted(true);
+    }
+  }
+
+  public create(): void {
+    const name = this.createText.trim();
+    if (!name) {
+      return;
+    }
+
+    // Reuse an existing option so a duplicate name selects it instead of
+    // emitting a create request that would fail server-side.
+    const existing = this.optionsInternal?.find(option => option.text === name);
+    if (existing) {
+      if (!existing.selected) {
+        existing.onValueChange(true);
+      }
+    } else {
+      this.created.emit(name);
+    }
+
+    this.createText = '';
+    this.open = true;
+  }
+
   private resetSubscriptions(): void {
     for (const subscription of this.subscriptions) {
       subscription.unsubscribe();
@@ -258,7 +299,15 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
     this.searchSubscription = undefined;
   }
 
-  public onFocusOut(): void {
+  public onFocusOut(event?: FocusEvent): void {
+    // Focus moving elsewhere inside the host (e.g. from the dropdown to the
+    // create field) is not a focus-out of the control. Keep the existing
+    // mouseenter fallback for browsers that do not report relatedTarget.
+    const relatedTarget = event?.relatedTarget as Node | null;
+    if (relatedTarget && this.selfRef.nativeElement.contains(relatedTarget)) {
+      return;
+    }
+
     if (!this.inContent) {
       this.open = false;
       this.clearHighlighted(true);
