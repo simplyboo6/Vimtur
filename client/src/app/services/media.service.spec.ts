@@ -53,6 +53,7 @@ describe('MediaService tags', () => {
   it('creates a missing tag before attaching it', () => {
     const { service, http, tagService } = createService([]);
     const media = createMedia();
+    const originalTags = media.tags;
     tagService.addTag.mockReturnValue(of([]));
     http.post.mockReturnValue(of(null));
     service.media = media;
@@ -63,6 +64,8 @@ describe('MediaService tags', () => {
     expect(http.post).toHaveBeenCalledWith('/api/images/hash/tags', { name: 'new-tag' }, expect.anything());
     expect(tagService.addTag.mock.invocationCallOrder[0]).toBeLessThan(http.post.mock.invocationCallOrder[0]);
     expect(media.tags).toEqual(['new-tag']);
+    // Consumers keyed on the array reference must see a new array.
+    expect(media.tags).not.toBe(originalTags);
   });
 
   it('attaches an existing tag without creating it', () => {
@@ -122,6 +125,7 @@ describe('MediaService actors', () => {
   it('creates a missing actor before attaching it', () => {
     const { service, http, actorService } = createService([], []);
     const media = createMedia();
+    const originalActors = media.actors;
     actorService.addActor.mockReturnValue(of([]));
     http.post.mockReturnValue(of(null));
     service.media = media;
@@ -132,6 +136,8 @@ describe('MediaService actors', () => {
     expect(http.post).toHaveBeenCalledWith('/api/images/hash/actors', { name: 'new-actor' }, expect.anything());
     expect(actorService.addActor.mock.invocationCallOrder[0]).toBeLessThan(http.post.mock.invocationCallOrder[0]);
     expect(media.actors).toEqual(['new-actor']);
+    // Consumers keyed on the array reference must see a new array.
+    expect(media.actors).not.toBe(originalActors);
   });
 
   it('attaches an existing actor without creating it', () => {

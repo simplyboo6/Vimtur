@@ -43,6 +43,30 @@ class DynamicHostComponent {
   public options: TestOption[] = [{ name: 'Alpha', value: 'alpha' }];
 }
 
+@Component({
+  template: `
+    <app-select [(value)]="value" (created)="onCreated($event)" [creatable]="true" placeholder="+ Items">
+      @for (option of options; track option.value) {
+        <app-select-option [value]="option.value">{{ option.name }}</app-select-option>
+      }
+    </app-select>
+  `,
+  imports: [SelectComponent, SelectOptionComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
+})
+class CreateHostComponent {
+  public options: TestOption[] = [{ name: 'Alpha', value: 'alpha' }];
+  public value: string[] = [];
+  public created: string[] = [];
+
+  public onCreated(name: string): void {
+    this.created.push(name);
+    this.options = [...this.options, { name, value: name }];
+    // Mirrors MediaService replacing the value array rather than mutating it.
+    this.value = [...this.value, name];
+  }
+}
+
 function configService(useNativeSelectOnMobile: boolean): ConfigService {
   return {
     getConfiguration: () => of({ user: { useNativeSelectOnMobile } }),
@@ -420,6 +444,25 @@ describe('SelectComponent', () => {
     expect(deselected).toHaveBeenCalledWith('alpha');
     expect(valueChange).toHaveBeenLastCalledWith(['beta']);
     expect(options(fixture).map(option => option.selected)).toEqual([false, true, false]);
+  });
+
+  it('selects a created option when the bound value array is replaced', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const component = selectComponent(fixture);
+
+    component.open = true;
+    fixture.detectChanges();
+    component.createText = 'Beta';
+    component.create();
+    fixture.detectChanges();
+    await flushWrite(fixture);
+
+    expect(host.created).toEqual(['Beta']);
+    expect(fixture.nativeElement.querySelectorAll('app-select-option')).toHaveLength(2);
+    expect(options(fixture).map(option => option.selected)).toEqual([false, true]);
+    expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('Beta');
   });
 
   it('renders the native mobile select when configured', () => {

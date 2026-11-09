@@ -119,7 +119,14 @@
       <div class="card">
         <div class="card-header card-small">People</div>
         <div class="card-body card-small ui-fluid">
-          <app-select [(value)]="actorsModel" (selected)="mediaService.addActor($event)" (deselected)="mediaService.removeActor($event)" placeholder="+ People">
+          <app-select
+            [(value)]="actorsModel"
+            (selected)="mediaService.addActor($event)"
+            (deselected)="mediaService.removeActor($event)"
+            (created)="mediaService.addActor($event)"
+            [creatable]="true"
+            placeholder="+ People"
+          >
             @for (actor of actors; track actor) {
               <app-select-option [value]="actor.id">
                 {{ actor.itemName }}
