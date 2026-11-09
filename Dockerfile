@@ -1,7 +1,5 @@
 FROM node:24-slim AS build
 
-ARG VERSION_NAME=dev
-
 RUN corepack enable && mkdir -p /app/server /app/client
 
 # Copy in files necessary to install node_modules first so this layer can be cached
@@ -24,6 +22,12 @@ COPY ./ /app/
 RUN cd /app/server && yarn lint && yarn build && \
     cd /app/client && yarn lint && yarn build:prod
 
+# The version the image reports (GET /api/version, shown on the config page):
+# "<tag>+<short commit>" for release builds, "dev-<short commit>" for branch
+# builds, and "dev" for a plain local build unless --build-arg is passed.
+# Declared down here, not at the top of the stage, so a value that changes on
+# every commit cannot invalidate the cached dependency and build layers above.
+ARG VERSION_NAME=dev
 RUN echo "$VERSION_NAME" > /app/version
 
 # Build the resultant image. Debian-based (glibc) because onnxruntime-node

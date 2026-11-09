@@ -16,6 +16,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      # The version string baked into the image and reported by GET /api/version.
+      # Release tags carry the short commit so a rebuilt tag is distinguishable
+      # in-app; branch builds (master and pull requests) get "dev-<short commit>".
+      - name: Resolve version name
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          SHORT_SHA="${SHA:0:7}"
+          if [ "$REF_TYPE" = "tag" ]; then
+            echo "value=${REF_NAME}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Docker meta
         id: meta
         # Publish metadata is only needed when actually pushing; pull requests
@@ -47,3 +63,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION_NAME=${{ steps.version.outputs.value }}
