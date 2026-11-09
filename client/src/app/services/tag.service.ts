@@ -50,8 +50,10 @@ export class TagService {
     return this.httpClient.post<string[]>(`/api/tags`, { tag }, HTTP_OPTIONS).pipe(
       tap(res => {
         this.alertService.show({ type: 'info', message: `Added tag '${tag}'`, autoClose: 3000 });
-        this.tagReplay.next(res);
-        this.tags = res;
+        // Sort in place so the replay and this.tags share the sorted instance.
+        const sorted = res.sort();
+        this.tagReplay.next(sorted);
+        this.tags = sorted;
       }),
     );
   }
