@@ -69,3 +69,22 @@ jobs:
       # suite against it.
       - name: Run database tests
         run: ./run-tests.sh
+
+  client-tests:
+    name: Client unit tests
+    # See api-tests above for why this is pinned to 24.04.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Enable corepack (Yarn 4)
+        run: corepack enable
+      - name: Install dependencies
+        run: cd client && yarn link --relative ../common && yarn --immutable
+      - name: Run client tests
+        run: cd client && yarn test
