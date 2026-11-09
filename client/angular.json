@@ -64,6 +64,25 @@
           },
           "defaultConfiguration": ""
         },
+        "test-build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "index": "src/index.html",
+            "polyfills": ["zone.js", "zone.js/testing"],
+            "tsConfig": "tsconfig.app.json",
+            "outputPath": "dist/client-test"
+          }
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "client:test-build",
+            "runner": "vitest",
+            "tsConfig": "tsconfig.spec.json",
+            "setupFiles": ["src/test-setup.ts"]
+          }
+        },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
