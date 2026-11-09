@@ -55,7 +55,11 @@ class DynamicHostComponent {
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 class CreateHostComponent {
-  public options: TestOption[] = [{ name: 'Alpha', value: 'alpha' }];
+  public options: TestOption[] = [
+    { name: 'Alpha', value: 'alpha' },
+    { name: 'Beta', value: 'beta' },
+    { name: 'Charlie', value: 'charlie' },
+  ];
   public value: string[] = [];
   public created: string[] = [];
 
@@ -91,6 +95,20 @@ function options(fixture: ComponentFixture<unknown>): SelectOptionComponent[] {
 
 function query<T extends Element>(fixture: ComponentFixture<unknown>, selector: string): T {
   return fixture.nativeElement.querySelector(selector) as T;
+}
+
+function openCreateField(fixture: ComponentFixture<unknown>): HTMLInputElement {
+  const component = selectComponent(fixture);
+  component.open = true;
+  fixture.detectChanges();
+  return query<HTMLInputElement>(fixture, '.create-row input');
+}
+
+function enterText(fixture: ComponentFixture<unknown>, input: HTMLInputElement, text: string): Promise<void> {
+  input.value = text;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+  return fixture.whenStable();
 }
 
 function dispatchKey(element: Element, key: string): KeyboardEvent {
@@ -454,15 +472,146 @@ describe('SelectComponent', () => {
 
     component.open = true;
     fixture.detectChanges();
-    component.createText = 'Beta';
+    component.createText = 'Delta';
     component.create();
     fixture.detectChanges();
     await flushWrite(fixture);
 
-    expect(host.created).toEqual(['Beta']);
-    expect(fixture.nativeElement.querySelectorAll('app-select-option')).toHaveLength(2);
-    expect(options(fixture).map(option => option.selected)).toEqual([false, true]);
+    expect(host.created).toEqual(['Delta']);
+    expect(fixture.nativeElement.querySelectorAll('app-select-option')).toHaveLength(4);
+    expect(options(fixture).map(option => option.selected)).toEqual([false, false, false, true]);
+    expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('Delta');
+  });
+
+  it('hides the create row when not creatable', () => {
+    const fixture = configure(StaticHostComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.create-row')).toBeNull();
+  });
+
+  it('shows the create row when creatable', () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.create-row')).not.toBeNull();
+  });
+
+  it('emits a trimmed name on Enter, clears the input and keeps the dropdown open', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const component = selectComponent(fixture);
+    const input = openCreateField(fixture);
+
+    await enterText(fixture, input, '  Delta  ');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(host.created).toEqual(['Delta']);
+    expect(component.createText).toBe('');
+    expect(input.value).toBe('');
+    expect(component.open).toBe(true);
+  });
+
+  it('emits a trimmed name when Add is clicked', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const input = openCreateField(fixture);
+    const button = query<HTMLButtonElement>(fixture, '.create-row button');
+
+    await enterText(fixture, input, '  Echo  ');
+    expect(button.disabled).toBe(false);
+    button.click();
+    fixture.detectChanges();
+
+    expect(host.created).toEqual(['Echo']);
+  });
+
+  it('does nothing for empty or whitespace input', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const component = selectComponent(fixture);
+    const input = openCreateField(fixture);
+    const button = query<HTMLButtonElement>(fixture, '.create-row button');
+
+    expect(button.disabled).toBe(true);
+
+    await enterText(fixture, input, '   ');
+    expect(button.disabled).toBe(true);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    button.click();
+    fixture.detectChanges();
+
+    expect(host.created).toEqual([]);
+    expect(component.createText).toBe('   ');
+  });
+
+  it('does not drive type-ahead or toggle the highlighted option from the create field', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const select = query<HTMLSelectElement>(fixture, 'select.form-select');
+    const optionComponents = options(fixture);
+    const input = openCreateField(fixture);
+
+    dispatchKey(select, 'ArrowDown');
+    expect(optionComponents.map(option => option.highlighted)).toEqual([true, false, false]);
+
+    await enterText(fixture, input, 'c');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true, cancelable: true }));
+    expect(optionComponents.map(option => option.highlighted)).toEqual([true, false, false]);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(host.created).toEqual(['c']);
+    expect(optionComponents[0].selected).toBe(false);
+  });
+
+  it('uses an existing option instead of creating a duplicate', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const input = openCreateField(fixture);
+
+    await enterText(fixture, input, 'Beta');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    await flushWrite(fixture);
+
+    expect(host.created).toEqual([]);
+    expect(options(fixture).map(option => option.selected)).toEqual([false, true, false]);
     expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('Beta');
+    expect(input.value).toBe('');
+  });
+
+  it('keeps the dropdown open when focus moves inside the create row and closes on outside focus', () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const component = selectComponent(fixture);
+    const input = openCreateField(fixture);
+    const button = query<HTMLButtonElement>(fixture, '.create-row button');
+
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: button }));
+    expect(component.open).toBe(true);
+
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
+    expect(component.open).toBe(false);
+  });
+
+  it('closes on Escape from the create field', () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const component = selectComponent(fixture);
+    const input = openCreateField(fixture);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+
+    expect(component.open).toBe(false);
   });
 
   it('renders the native mobile select when configured', () => {
@@ -486,6 +635,27 @@ describe('SelectComponent', () => {
       const optionElements = Array.from(hidden.querySelectorAll('option'));
       expect(optionElements.map(option => option.textContent?.trim())).toEqual(['Alpha', 'Beta', 'Charlie']);
       expect(selectComponent(fixture).basicOptions?.map(option => option.value)).toEqual(['alpha', 'beta', 'charlie']);
+    } finally {
+      if (userAgent) {
+        Object.defineProperty(window.navigator, 'userAgent', userAgent);
+      }
+    }
+  });
+
+  it('uses the custom dropdown when creatable even with native mobile enabled', () => {
+    const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent');
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
+    });
+
+    try {
+      const fixture = configure(CreateHostComponent, true);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.select-content')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('select.hidden-select')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.create-row')).not.toBeNull();
     } finally {
       if (userAgent) {
         Object.defineProperty(window.navigator, 'userAgent', userAgent);
