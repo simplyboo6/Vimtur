@@ -96,6 +96,15 @@ async function createHarness(): Promise<{
   return { fixture, media, http };
 }
 
+function checkboxFor(fixture: ComponentFixture<unknown>, text: string): HTMLInputElement {
+  for (const option of Array.from(fixture.nativeElement.querySelectorAll('app-select-option')) as HTMLElement[]) {
+    if (option.querySelector('label')?.textContent?.trim() === text) {
+      return option.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    }
+  }
+  throw new Error(`No option labelled ${text}`);
+}
+
 describe('TagPanelComponent inline creation', () => {
   it('creates and selects a new actor through the media service', async () => {
     const { fixture, media, http } = await createHarness();
@@ -120,5 +129,6 @@ describe('TagPanelComponent inline creation', () => {
     expect(media.actors).toEqual(['new-actor']);
     expect(select.selectedOptions.map(option => option.text)).toEqual(['new-actor']);
     expect(select.text).toBe('new-actor');
+    expect(checkboxFor(fixture, 'new-actor').checked).toBe(true);
   });
 });

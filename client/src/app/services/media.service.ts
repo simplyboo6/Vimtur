@@ -256,9 +256,9 @@ export class MediaService {
     if (!this.media) {
       return;
     }
-    const index = this.media.actors.indexOf(name);
-    if (index >= 0) {
-      this.media.actors.splice(index, 1);
+    if (this.media.actors.includes(name)) {
+      // Replace the array so consumers comparing the reference refresh.
+      this.media.actors = this.media.actors.filter(actor => actor !== name);
       this.mediaReplay.next(this.media);
 
       const hash = this.media.hash;
@@ -351,9 +351,9 @@ export class MediaService {
     if (!this.media) {
       return;
     }
-    const index = this.media.tags.indexOf(name);
-    if (index >= 0) {
-      this.media.tags.splice(index, 1);
+    if (this.media.tags.includes(name)) {
+      // Replace the array so consumers comparing the reference refresh.
+      this.media.tags = this.media.tags.filter(tag => tag !== name);
       this.mediaReplay.next(this.media);
 
       const hash = this.media.hash;

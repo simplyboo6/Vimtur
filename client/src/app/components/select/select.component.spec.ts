@@ -55,10 +55,11 @@ class DynamicHostComponent {
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 class CreateHostComponent {
+  // Display text and value match here, as they do for tags and actors.
   public options: TestOption[] = [
-    { name: 'Alpha', value: 'alpha' },
-    { name: 'Beta', value: 'beta' },
-    { name: 'Charlie', value: 'charlie' },
+    { name: 'Alpha', value: 'Alpha' },
+    { name: 'Beta', value: 'Beta' },
+    { name: 'Charlie', value: 'Charlie' },
   ];
   public value: string[] = [];
   public created: string[] = [];
@@ -86,7 +87,19 @@ function configure<T>(host: Type<T>, useNativeSelectOnMobile = false): Component
 }
 
 function selectComponent<T>(fixture: ComponentFixture<T>): SelectComponent {
-  return fixture.debugElement.children[0].componentInstance as SelectComponent;
+  const debugElement = fixture.debugElement.query(By.directive(SelectComponent));
+  if (!debugElement) {
+    throw new Error('SelectComponent not found');
+  }
+  return debugElement.componentInstance as SelectComponent;
+}
+
+function optionCheckbox(fixture: ComponentFixture<unknown>, index: number): HTMLInputElement {
+  return fixture.debugElement.queryAll(By.directive(SelectOptionComponent))[index].nativeElement.querySelector('input[type="checkbox"]') as HTMLInputElement;
+}
+
+function mockIPhoneUserAgent(): void {
+  vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148');
 }
 
 function options(fixture: ComponentFixture<unknown>): SelectOptionComponent[] {
@@ -126,6 +139,7 @@ async function flushWrite(fixture: ComponentFixture<unknown>): Promise<void> {
 describe('SelectComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('renders the placeholder until options are selected', () => {
@@ -227,7 +241,7 @@ describe('SelectComponent', () => {
     await flushWrite(fixture);
     expect(options(fixture).map(option => option.selected)).toEqual([false, false, false]);
 
-    component.value = 'not-an-array' as unknown as string[];
+    component.value = 'not-an-array' as never;
     await flushWrite(fixture);
     expect(options(fixture).map(option => option.selected)).toEqual([false, false, false]);
   });
@@ -248,8 +262,7 @@ describe('SelectComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('app-select-option')).toHaveLength(2);
     expect(options(fixture).map(option => option.selected)).toEqual([true, true]);
-    // The renderer does not run a second pass for the newly rendered checkbox,
-    // so inspect the option model and the summary the user sees.
+    expect(optionCheckbox(fixture, 1).checked).toBe(true);
     expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('Alpha, Beta');
   });
 
@@ -418,22 +431,20 @@ describe('SelectComponent', () => {
     const selectElement = query<HTMLElement>(fixture, 'app-select');
     const content = query<HTMLElement>(fixture, '.select-content');
 
-    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800);
 
     const rect = vi.spyOn(selectElement, 'getBoundingClientRect');
 
     rect.mockReturnValue({ top: 100, height: 20, bottom: 120 } as DOMRect);
     component.onResize();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushWrite(fixture);
 
     expect(content.style.maxHeight).toBe('640px');
     expect(content.style.bottom).toBe('');
 
     rect.mockReturnValue({ top: 700, height: 20, bottom: 720 } as DOMRect);
     component.onResize();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushWrite(fixture);
 
     expect(content.style.maxHeight).toBe('660px');
     expect(content.style.bottom).toBe('20px');
@@ -480,6 +491,7 @@ describe('SelectComponent', () => {
     expect(host.created).toEqual(['Delta']);
     expect(fixture.nativeElement.querySelectorAll('app-select-option')).toHaveLength(4);
     expect(options(fixture).map(option => option.selected)).toEqual([false, false, false, true]);
+    expect(optionCheckbox(fixture, 3).checked).toBe(true);
     expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('Delta');
   });
 
@@ -495,6 +507,7 @@ describe('SelectComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.create-row')).not.toBeNull();
+    expect(query<HTMLInputElement>(fixture, '.create-row input').placeholder).toBe('Enter a name...');
   });
 
   it('emits a trimmed name on Enter, clears the input and keeps the dropdown open', async () => {
@@ -603,63 +616,111 @@ describe('SelectComponent', () => {
     expect(component.open).toBe(false);
   });
 
-  it('closes on Escape from the create field', () => {
+  it('closes on Escape from the create field and returns focus to the trigger', () => {
     const fixture = configure(CreateHostComponent);
     fixture.detectChanges();
     const component = selectComponent(fixture);
     const input = openCreateField(fixture);
+    const trigger = query<HTMLSelectElement>(fixture, 'select.form-select');
 
+    input.focus();
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
 
     expect(component.open).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('closes on Escape from the Add button and returns focus to the trigger', () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const component = selectComponent(fixture);
+    openCreateField(fixture);
+    const trigger = query<HTMLSelectElement>(fixture, 'select.form-select');
+    const button = query<HTMLButtonElement>(fixture, '.create-row button');
+
+    button.focus();
+    button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(component.open).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('does not create twice when Enter activates Add', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const input = openCreateField(fixture);
+    const button = query<HTMLButtonElement>(fixture, '.create-row button');
+
+    await enterText(fixture, input, 'Foxtrot');
+    button.focus();
+    // The keydown handler leaves Enter to the button's native click; simulate
+    // the click the browser fires after Enter.
+    button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    button.click();
+    fixture.detectChanges();
+
+    expect(host.created).toEqual(['Foxtrot']);
+  });
+
+  it('creates a differently-cased name instead of reusing an existing option', async () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const input = openCreateField(fixture);
+
+    await enterText(fixture, input, 'beta');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    await flushWrite(fixture);
+
+    expect(host.created).toEqual(['beta']);
+    expect(options(fixture).map(option => option.selected)).toEqual([false, false, false, true]);
+    expect(optionCheckbox(fixture, 3).checked).toBe(true);
+  });
+
+  it('does not create while the select is disabled', () => {
+    const fixture = configure(CreateHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance as CreateHostComponent;
+    const component = selectComponent(fixture);
+
+    component.disabled = true;
+    component.createText = 'Golf';
+    component.create();
+
+    expect(host.created).toEqual([]);
+    expect(component.createText).toBe('Golf');
   });
 
   it('renders the native mobile select when configured', () => {
     // is-mobile reads navigator.userAgent, so present a phone to exercise the
     // real detection path instead of mocking the module.
-    const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent');
-    Object.defineProperty(window.navigator, 'userAgent', {
-      configurable: true,
-      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
-    });
+    mockIPhoneUserAgent();
 
-    try {
-      const fixture = configure(StaticHostComponent, true);
-      fixture.detectChanges();
+    const fixture = configure(StaticHostComponent, true);
+    fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('.select-content')).toBeNull();
-      expect(fixture.nativeElement.querySelector('select.hidden-select')).not.toBeNull();
-      expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('+ Items');
+    expect(fixture.nativeElement.querySelector('.select-content')).toBeNull();
+    expect(fixture.nativeElement.querySelector('select.hidden-select')).not.toBeNull();
+    expect(query<HTMLSelectElement>(fixture, 'select.form-select').textContent?.trim()).toBe('+ Items');
 
-      const hidden = query<HTMLSelectElement>(fixture, 'select.hidden-select');
-      const optionElements = Array.from(hidden.querySelectorAll('option'));
-      expect(optionElements.map(option => option.textContent?.trim())).toEqual(['Alpha', 'Beta', 'Charlie']);
-      expect(selectComponent(fixture).basicOptions?.map(option => option.value)).toEqual(['alpha', 'beta', 'charlie']);
-    } finally {
-      if (userAgent) {
-        Object.defineProperty(window.navigator, 'userAgent', userAgent);
-      }
-    }
+    const hidden = query<HTMLSelectElement>(fixture, 'select.hidden-select');
+    const optionElements = Array.from(hidden.querySelectorAll('option'));
+    expect(optionElements.map(option => option.textContent?.trim())).toEqual(['Alpha', 'Beta', 'Charlie']);
+    expect(selectComponent(fixture).basicOptions?.map(option => option.value)).toEqual(['alpha', 'beta', 'charlie']);
   });
 
   it('uses the custom dropdown when creatable even with native mobile enabled', () => {
-    const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent');
-    Object.defineProperty(window.navigator, 'userAgent', {
-      configurable: true,
-      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
-    });
+    mockIPhoneUserAgent();
 
-    try {
-      const fixture = configure(CreateHostComponent, true);
-      fixture.detectChanges();
+    const fixture = configure(CreateHostComponent, true);
+    fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('.select-content')).not.toBeNull();
-      expect(fixture.nativeElement.querySelector('select.hidden-select')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.create-row')).not.toBeNull();
-    } finally {
-      if (userAgent) {
-        Object.defineProperty(window.navigator, 'userAgent', userAgent);
-      }
-    }
+    expect(fixture.nativeElement.querySelector('.select-content')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('select.hidden-select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.create-row')).not.toBeNull();
   });
 });

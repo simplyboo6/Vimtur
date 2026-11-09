@@ -12,6 +12,7 @@ import {
   AfterViewChecked,
   NgZone,
   ChangeDetectionStrategy,
+  ViewChild,
 } from '@angular/core';
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { Subscription, timer, Observable } from 'rxjs';
@@ -53,6 +54,9 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
   public dropBottom?: string;
   public basicOptions?: BasicSelectOption[];
   public readonly useNativeObservable: Observable<boolean>;
+
+  // The custom template's trigger; closing from the create row returns focus here.
+  @ViewChild('selectRef') private selectTrigger?: ElementRef<HTMLSelectElement>;
 
   @ContentChildren(SelectOptionComponent)
   public set options(optionsRaw: QueryList<SelectOptionComponent>) {
@@ -258,24 +262,44 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
   public onCreateKeydown(event: KeyboardEvent): void {
     event.stopPropagation();
 
+    // Enter also confirms an IME composition, which is input rather than create.
+    if (event.isComposing) {
+      return;
+    }
+
     if (event.key === 'Enter') {
       event.preventDefault();
       this.create();
     } else if (event.key === 'Escape') {
       event.preventDefault();
-      this.open = false;
-      this.clearHighlighted(true);
+      this.closeCreate();
+    }
+  }
+
+  // Enter on the Add button is left to its native click so it cannot create twice.
+  public onCreateButtonKeydown(event: KeyboardEvent): void {
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeCreate();
     }
   }
 
   public create(): void {
+    // The forms API can set disabled even though the select templates do not
+    // bind it yet; do not create while the control is disabled.
+    if (this.disabled) {
+      return;
+    }
+
     const name = this.createText.trim();
     if (!name) {
       return;
     }
 
-    // Reuse an existing option so a duplicate name selects it instead of
-    // emitting a create request that would fail server-side.
+    // Match on the displayed text, not option.value, and case-sensitively so
+    // 'beta' is a different name from an existing 'Beta' tag.
     const existing = this.optionsInternal?.find(option => option.text === name);
     if (existing) {
       if (!existing.selected) {
@@ -287,6 +311,12 @@ export class SelectComponent implements OnDestroy, ControlValueAccessor, AfterCo
 
     this.createText = '';
     this.open = true;
+  }
+
+  private closeCreate(): void {
+    this.open = false;
+    this.clearHighlighted(true);
+    this.selectTrigger?.nativeElement.focus();
   }
 
   private resetSubscriptions(): void {

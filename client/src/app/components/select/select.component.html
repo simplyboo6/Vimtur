@@ -44,8 +44,15 @@
     @if (creatable) {
       <div class="create-row">
         <label class="visually-hidden" [for]="createInputId">Create new option</label>
-        <input [id]="createInputId" class="form-control form-control-sm" type="text" [(ngModel)]="createText" (keydown)="onCreateKeydown($event)" />
-        <button type="button" class="btn btn-primary btn-sm" [disabled]="!createText.trim()" (keydown)="$event.stopPropagation()" (click)="create()">
+        <input
+          [id]="createInputId"
+          class="form-control form-control-sm"
+          type="text"
+          placeholder="Enter a name..."
+          [(ngModel)]="createText"
+          (keydown)="onCreateKeydown($event)"
+        />
+        <button type="button" class="btn btn-primary btn-sm" [disabled]="!createText.trim()" (keydown)="onCreateButtonKeydown($event)" (click)="create()">
           Add
         </button>
       </div>
