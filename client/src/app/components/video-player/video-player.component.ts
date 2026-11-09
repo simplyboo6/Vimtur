@@ -21,6 +21,9 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 
 const PLAYER_CONTROLS_TIMEOUT = 3000;
 const DOUBLE_CLICK_TIMEOUT = 500;
+// Media closer to square than this (width/height on either side of 1) keeps the
+// unlocked orientation, as forcing either way would crop it against the user's grip.
+const SQUARE_ASPECT_THRESHOLD = 1.1;
 // Fatal errors to recover from before rebuilding the player rather than retrying on the same stream.
 // hls.js already retries internally before fatal errors reach here.
 const MAX_CONSECUTIVE_RECOVERIES = 3;
@@ -153,8 +156,14 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
           selectedQuality: this.videoPlayerState.selectedQuality,
           muted: this.videoPlayerState.muted,
           volume: this.videoPlayerState.volume,
+          fullscreen: this.isFullscreen(),
         };
       }
+
+      // The lock belongs to the media that was open fullscreen; loadedmetadata re-applies
+      // it from the new video's dimensions once they're known, and dropping it here stops
+      // a still or a differently shaped video inheriting it.
+      this.clearOrientationLock();
 
       // Recovery caps and alerts are per media, not per player instance, so resets
       // happen on media change even when nothing else needs tearing down.
@@ -337,6 +346,96 @@ export class VideoPlayerComponent implements AfterViewInit, OnInit, OnDestroy, O
 
   public isFullscreen(): boolean {
     return !!document.fullscreenElement;
+  }
+
+  // The orientation lock is first applied on the fullscreenchange event rather than
+  // inside toggleFullscreen() because the browser only permits it once an element is
+  // actually fullscreen, and re-applied from onVideoLoadedMetadata().
+  public onFullscreenChange(): void {
+    this.videoPlayerState.fullscreen = this.isFullscreen();
+
+    if (this.videoPlayerState.fullscreen) {
+      this.applyOrientationLock();
+    } else {
+      this.clearOrientationLock();
+    }
+  }
+
+  // Mobile has no autoplay and hls.js only starts loading on the first play, so a
+  // fullscreen entered before playback has no videoWidth/videoHeight and locks from the
+  // unrotated ffprobe metadata instead. This re-applies the lock once the element
+  // reports the display dimensions the browser is actually going to paint.
+  public onVideoLoadedMetadata(): void {
+    if (this.isFullscreen()) {
+      this.applyOrientationLock();
+    }
+  }
+
+  // isMobile keeps desktop out (it rejects the call), while the typeof check covers iOS
+  // Safari, which exposes screen.orientation without lock(), and browsers older than the
+  // API. Both are silent no-ops by design.
+  private applyOrientationLock(): void {
+    const orientation = window.screen.orientation;
+    if (!this.isMobile || typeof orientation?.lock !== 'function') {
+      return;
+    }
+
+    const target = this.videoOrientation();
+    if (!target) {
+      // Square-ish or unmeasured media stays free to rotate either way, and must not
+      // inherit a lock from the previous media.
+      this.clearOrientationLock();
+      return;
+    }
+
+    orientation.lock(target).catch((error: unknown) => {
+      console.debug('Unable to lock screen orientation', target, error);
+    });
+  }
+
+  // Exiting fullscreen unlocks the orientation itself, but this is also the way a media
+  // change drops the previous video's lock, so it is called outside fullscreen too.
+  private clearOrientationLock(): void {
+    const orientation = window.screen.orientation;
+    if (typeof orientation?.unlock !== 'function') {
+      return;
+    }
+
+    // unlock() runs the spec's safety checks before it can no-op and re-throws their
+    // exceptions, which happens when a tab switch hides the document as fullscreen
+    // exits, so it needs the same silent treatment as lock().
+    try {
+      orientation.unlock();
+    } catch (error: unknown) {
+      console.debug('Unable to unlock screen orientation', error);
+    }
+  }
+
+  // The video element applies the file's rotation matrix, so its dimensions are the
+  // displayed ones; metadata.width/height are raw ffprobe values and would report a
+  // portrait phone clip as landscape. Metadata is only the fallback until
+  // loadedmetadata provides the element's dimensions.
+  private videoOrientation(): OrientationLockType | undefined {
+    let width: number | undefined = this.videoElement?.nativeElement.videoWidth;
+    let height: number | undefined = this.videoElement?.nativeElement.videoHeight;
+
+    if (!width || !height) {
+      width = this.media?.metadata?.width;
+      height = this.media?.metadata?.height;
+    }
+
+    if (!width || !height) {
+      return undefined;
+    }
+
+    const aspect = width / height;
+    if (aspect >= SQUARE_ASPECT_THRESHOLD) {
+      return 'landscape';
+    }
+    if (aspect <= 1 / SQUARE_ASPECT_THRESHOLD) {
+      return 'portrait';
+    }
+    return undefined;
   }
 
   public updatePlayerActivity(move = false) {

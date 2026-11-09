@@ -1,7 +1,7 @@
 <div
   appResized
   (resized)="onResized()"
-  (document:fullscreenchange)="videoPlayerState.fullscreen = isFullscreen()"
+  (document:fullscreenchange)="onFullscreenChange()"
   [class.hidden]="!media || media.type !== 'video'"
   class="video-player"
   #videoPlayer
@@ -121,6 +121,7 @@
     (play)="onPlay(); videoPlayerState.playing = true"
     (pause)="videoPlayerState.playing = false"
     (durationchange)="videoPlayerState.duration = videoElement.duration"
+    (loadedmetadata)="onVideoLoadedMetadata()"
     (timeupdate)="videoPlayerState.currentTime = videoElement.currentTime"
     (waiting)="videoPlayerState.loading = true"
     (canplay)="videoPlayerState.loading = false"
