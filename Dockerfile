@@ -41,6 +41,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH=/opt/pip-venv/bin:$PATH
 
+# ONNX Runtime's 1DS provider uploads usage telemetry to Microsoft by default.
+# The server opts out in code too; this covers every process in the image.
+ENV ORT_DISABLE_TELEMETRY=1
+
 RUN yt-dlp --version && gallery-dl --version && ffmpeg -version && ffprobe -version && pngquant --version
 
 COPY --from=build /app/version /app/version
