@@ -1,3 +1,13 @@
+// ONNX Runtime's 1DS telemetry provider uploads usage data to Microsoft by
+// default. ORT reads this flag once, when it creates its inference
+// environment, so it has to be in place before the first
+// InferenceSession.create() call. The auto-tag worker threads import
+// onnxruntime-node and are started with SHARE_ENV, so they inherit the value.
+// `||=` keeps a deliberate operator override (e.g. ORT_DISABLE_TELEMETRY=0)
+// while a blank value (e.g. `docker run -e ORT_DISABLE_TELEMETRY`) falls back
+// to the default.
+process.env['ORT_DISABLE_TELEMETRY'] ||= '1';
+
 // Modules
 import Http, { Server } from 'http';
 import Path from 'path';
