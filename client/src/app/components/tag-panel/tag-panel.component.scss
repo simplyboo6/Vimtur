@@ -40,6 +40,14 @@
   }
 }
 
+// The header's button is a fixed 1.5rem square, so a 1.5rem fa-icon (painted
+// 1.25em wide by angular-fontawesome's vendored CSS) overhangs it. The panel's
+// other icon buttons size to their content and can keep the larger icon.
+.tag-header > button > fa-icon {
+  padding: 0;
+  font-size: 1rem;
+}
+
 .form-control {
   width: initial;
   flex: 1;
