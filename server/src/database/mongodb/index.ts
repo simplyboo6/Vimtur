@@ -708,9 +708,21 @@ export class MongoConnector extends Database {
   }
 
   public async addDeleted(deleted: DeletedMedia): Promise<void> {
+    // Upserting on the pair matches SQLite's (hash, path) primary key: the same
+    // ignored content seen at another path must add a row, not overwrite the one
+    // SCAN already knows about. Only the two fields are stored; callers pass a
+    // whole Media object from the indexer.
     await this.db
       .collection<DeletedMedia>('media.deleted')
-      .replaceOne({ hash: deleted.hash }, deleted, { upsert: true });
+      .replaceOne(
+        { hash: deleted.hash, path: deleted.path },
+        { hash: deleted.hash, path: deleted.path },
+        { upsert: true },
+      );
+  }
+
+  public async removeDeleted(hash: string): Promise<void> {
+    await this.db.collection('media.deleted').deleteMany({ hash });
   }
 
   public async isDeletedPath(path: string): Promise<boolean> {

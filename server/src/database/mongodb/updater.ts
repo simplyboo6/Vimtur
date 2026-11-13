@@ -38,6 +38,19 @@ export class Updater {
       await collection.updateMany({}, { $unset: { phash: 1 } });
       await Updater.saveUpdate(updatesCollection, '017_change-phash-method');
     }
+
+    // 018: media.deleted is keyed by (hash, path), like SQLite's composite
+    // primary key. The original unique hash index made a second path for the
+    // same ignored content replace the first, so SCAN stopped recognising the
+    // older path and could re-import it on the next pass.
+    if (!(await Updater.hasRun(updatesCollection, '018_media-deleted-composite-key'))) {
+      const collection = db.collection('media.deleted');
+      if (await collection.indexExists('hash_1')) {
+        await collection.dropIndex('hash_1');
+      }
+      await collection.createIndex({ hash: 1, path: 1 }, { unique: true });
+      await Updater.saveUpdate(updatesCollection, '018_media-deleted-composite-key');
+    }
   }
 
   private static async collectionExists(db: Db, name: string): Promise<boolean> {
@@ -123,10 +136,14 @@ export class Updater {
     }
 
     if (!(await Updater.collectionExists(db, 'media.deleted'))) {
-      await Updater.createMediaCollection(db, 'media.deleted');
-      const deletedCollection = db.collection('media.deleted');
-      await deletedCollection.createIndex({ hash: 1 }, { unique: true });
+      // Deliberately not createMediaCollection: the ignore list needs neither
+      // the media text index nor a unique hash, only its composite key below.
+      await db.createCollection('media.deleted');
     }
+    // Matches SQLite's (hash, path) primary key. Created for existing databases
+    // too - update 018 drops the original unique hash index, which replaced a
+    // path instead of recording it.
+    await db.collection('media.deleted').createIndex({ hash: 1, path: 1 }, { unique: true });
 
     if (!(await Updater.collectionExists(db, 'config'))) {
       await db.createCollection('config');

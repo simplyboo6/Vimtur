@@ -28,3 +28,9 @@
 .form-padded-input {
   margin-top: 1rem;
 }
+
+// Shared size for the clear/× icon, so every page that renders the same control
+// matches the task queue's instance on the General tab.
+.clear-icon {
+  font-size: 1.5rem;
+}

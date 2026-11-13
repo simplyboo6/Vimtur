@@ -1,6 +1,6 @@
 import 'source-map-support/register';
 
-import type { BaseMedia, Media, Playlist } from '@vimtur/common';
+import type { BaseMedia, DeletedMedia, Media, Playlist } from '@vimtur/common';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
@@ -744,6 +744,98 @@ describe('Database Tests', () => {
         await database.removeMediaFromPlaylist(media[2].hash, playlists[0].id);
         await checkPlaylistB();
       });
+    });
+  });
+
+  describe('Deleted media ignore list', () => {
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    // Compare sorted so the assertions do not depend on the engine's return
+    // order; the API sorts, the connector does not promise an order.
+    const rows = async (): Promise<DeletedMedia[]> =>
+      (await database.getDeletedMedia()).sort((a, b) => a.hash.localeCompare(b.hash) || a.path.localeCompare(b.path));
+
+    // The cases below share one dataset on purpose, pinning accumulation and
+    // removal as rows are added; a shuffle or an isolated `.only` will therefore
+    // fail for reasons unrelated to the case under test.
+    it('records a path for a deleted media hash', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'a/one.jpg' });
+
+      expect(await rows()).to.deep.equal([{ hash: 'ignored-0', path: 'a/one.jpg' }]);
+      expect(await database.isDeletedPath('a/one.jpg')).to.equal(true);
+      expect(await database.isDeletedHash('ignored-0')).to.equal(true);
+    });
+
+    it('adds a second path for the same hash instead of replacing the first', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'b/two.jpg' });
+
+      expect(await rows()).to.deep.equal([
+        { hash: 'ignored-0', path: 'a/one.jpg' },
+        { hash: 'ignored-0', path: 'b/two.jpg' },
+      ]);
+    });
+
+    it('is idempotent for a repeated hash and path', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'a/one.jpg' });
+
+      expect(await rows()).to.have.lengthOf(2);
+    });
+
+    it('removes every path recorded for a hash and leaves other hashes alone', async () => {
+      await database.addDeleted({ hash: 'ignored-1', path: 'c/three.jpg' });
+
+      await database.removeDeleted('ignored-0');
+
+      expect(await rows()).to.deep.equal([{ hash: 'ignored-1', path: 'c/three.jpg' }]);
+      expect(await database.isDeletedPath('a/one.jpg')).to.equal(false);
+      expect(await database.isDeletedPath('b/two.jpg')).to.equal(false);
+      expect(await database.isDeletedHash('ignored-0')).to.equal(false);
+      expect(await database.isDeletedHash('ignored-1')).to.equal(true);
+    });
+
+    it('is a no-op when the hash has no recorded paths', async () => {
+      await database.removeDeleted('never-recorded');
+
+      expect(await rows()).to.deep.equal([{ hash: 'ignored-1', path: 'c/three.jpg' }]);
+    });
+
+    it('records the path when media is deleted with the import ignore flag', async () => {
+      await database.saveMedia('ignored-media', {
+        hash: 'ignored-media',
+        path: '/tmp/ignored-media.jpg',
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+      });
+
+      await database.removeMedia('ignored-media', true);
+
+      expect(await database.isDeletedPath('/tmp/ignored-media.jpg')).to.equal(true);
+      expect(await database.isDeletedHash('ignored-media')).to.equal(true);
+      expect(await database.getMedia('ignored-media')).to.equal(undefined);
+    });
+
+    it('leaves the ignore list alone when media is deleted without the flag', async () => {
+      await database.saveMedia('unignored-media', {
+        hash: 'unignored-media',
+        path: '/tmp/unignored-media.jpg',
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+      });
+
+      await database.removeMedia('unignored-media', false);
+
+      expect(await database.isDeletedPath('/tmp/unignored-media.jpg')).to.equal(false);
+      expect(await database.isDeletedHash('unignored-media')).to.equal(false);
     });
   });
 

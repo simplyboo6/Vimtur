@@ -156,11 +156,14 @@ describe('Import lifecycle', () => {
   });
 
   it('DELETE /api/images/:hash removes media through the API', async () => {
-    const response = await client.delete(`/api/images/${pathToHash['red.png']}`);
+    // The source file is only removed when it is asked for; the default keeps it
+    // (see deleted-paths.spec.ts for that behaviour).
+    const response = await client.delete(`/api/images/${pathToHash['red.png']}?deleteFile=true`);
     expect(response.status).to.equal(204);
 
     expect(await subset(client, {})).to.have.lengthOf(3);
     expect(await client.get(`/api/images/${pathToHash['red.png']}`)).to.have.property('status', 404);
     expect(await client.get(`/api/images/${pathToHash['red.png']}/file`)).to.have.property('status', 404);
+    expect(FS.existsSync(`${server.libraryPath}/red.png`)).to.equal(false);
   });
 });

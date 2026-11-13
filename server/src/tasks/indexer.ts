@@ -75,7 +75,10 @@ export class Indexer {
             });
           } else {
             if (await this.database.isDeletedHash(media.hash)) {
-              // If the hash has been deleted that means this path is new for this hash.
+              // The content is ignored, but this path is new for its hash: record
+              // it so SCAN recognises the file here too instead of offering it for
+              // indexing on every run. Rows are keyed by (hash, path), so this adds
+              // a location and never replaces an existing one.
               await this.database.addDeleted(media);
             } else {
               await this.database.saveMedia(media.hash, media);

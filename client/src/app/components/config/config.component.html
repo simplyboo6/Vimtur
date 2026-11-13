@@ -624,6 +624,12 @@
           <app-autotag-config />
         </ng-template>
       </li>
+      <li ngbNavItem="deleted-paths">
+        <a ngbNavLink>Deleted Paths</a>
+        <ng-template ngbNavContent>
+          <app-deleted-paths />
+        </ng-template>
+      </li>
     </ul>
     <div [ngbNavOutlet]="nav"></div>
   </div>

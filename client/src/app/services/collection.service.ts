@@ -148,13 +148,31 @@ export class CollectionService {
     if (!collection || index === undefined) {
       return;
     }
+    // Captured before the confirmation awaits so a collection change under the
+    // modal cannot delete a different item than the one confirmed.
+    const hash = collection[index];
+    if (!hash) {
+      return;
+    }
     this.confirmationService
-      .confirm(`Are you sure you want to delete the current media?`, true)
+      .confirmWith('Are you sure you want to delete the current media?', {
+        negative: true,
+        message: 'The media is removed from the library and its path is recorded in Deleted Paths so future scans skip the file.',
+        checkboxLabel: 'Also delete the source file from disk (cannot be undone)',
+      })
       .then(result => {
-        if (result) {
-          const hash = collection[index];
-          console.debug(`Deleting ${hash}`);
-          this.httpClient.delete(`/api/images/${hash}`, { responseType: 'text' }).subscribe(
+        if (!result.confirmed) {
+          return;
+        }
+        console.debug(`Deleting ${hash}`);
+        // The source file is only deleted when the checkbox was ticked; the API
+        // keeps it otherwise (see server/src/routes/images.ts).
+        this.httpClient
+          .delete(`/api/images/${hash}`, {
+            params: { deleteFile: String(result.checkbox) },
+            responseType: 'text',
+          })
+          .subscribe(
             () => {
               this.removeFromSet([hash]);
               this.update(this.constraints);
@@ -164,7 +182,6 @@ export class CollectionService {
               this.alertService.show({ type: 'danger', message: 'Failed to delete media' });
             },
           );
-        }
       })
       .catch(err => console.error('Modal error', err));
   }

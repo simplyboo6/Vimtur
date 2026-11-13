@@ -1,6 +1,6 @@
 import 'source-map-support/register';
 
-import type { BaseMedia, Media, SegmentMetadata } from '@vimtur/common';
+import type { BaseMedia, DeletedMedia, Media, SegmentMetadata } from '@vimtur/common';
 import { expect } from 'chai';
 import { after, afterEach, before, beforeEach, describe, it } from 'mocha';
 import type { Db } from 'mongodb';
@@ -295,6 +295,99 @@ describeMongo('Database Tests: MongoDB', () => {
 
     it('counts an empty match as zero', async () => {
       expect(await database.countSubset({ hash: { equalsAny: ['missing'] } })).to.equal(0);
+    });
+  });
+
+  // Same fixtures as test/database.ts: both engines must agree on the ignore
+  // list's (hash, path) keying, or SCAN loses paths the other engine keeps.
+  describe('Deleted media ignore list', () => {
+    after(async () => {
+      await database.testCleanup();
+    });
+
+    const rows = async (): Promise<DeletedMedia[]> =>
+      (await database.getDeletedMedia()).sort((a, b) => a.hash.localeCompare(b.hash) || a.path.localeCompare(b.path));
+
+    const rawDocument = (hash: string): Promise<Record<string, unknown> | null> => {
+      const connector = database as unknown as { db: Db };
+      return connector.db.collection('media.deleted').findOne({ hash });
+    };
+
+    // The cases below share one dataset on purpose, pinning accumulation and
+    // removal as rows are added; a shuffle or an isolated `.only` will therefore
+    // fail for reasons unrelated to the case under test.
+    it('records a path for a deleted media hash', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'a/one.jpg' });
+
+      expect(await rows()).to.deep.equal([{ hash: 'ignored-0', path: 'a/one.jpg' }]);
+      expect(await database.isDeletedPath('a/one.jpg')).to.equal(true);
+      expect(await database.isDeletedHash('ignored-0')).to.equal(true);
+    });
+
+    it('adds a second path for the same hash instead of replacing the first', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'b/two.jpg' });
+
+      expect(await rows()).to.deep.equal([
+        { hash: 'ignored-0', path: 'a/one.jpg' },
+        { hash: 'ignored-0', path: 'b/two.jpg' },
+      ]);
+    });
+
+    it('stores only the hash and path when the indexer passes a whole media document', async () => {
+      const media = await createMedia('ignored-media');
+      await database.addDeleted(media);
+
+      const document = await rawDocument('ignored-media');
+      expect(document, 'stored ignore entry').to.not.equal(null);
+      expect(document).to.include({ hash: 'ignored-media', path: '/tmp/ignored-media.jpg' });
+      expect(document).to.not.have.property('metadata');
+      expect(document).to.not.have.property('absolutePath');
+    });
+
+    it('is idempotent for a repeated hash and path', async () => {
+      await database.addDeleted({ hash: 'ignored-0', path: 'a/one.jpg' });
+
+      expect((await rows()).filter((row) => row.hash === 'ignored-0')).to.have.lengthOf(2);
+    });
+
+    it('removes every path recorded for a hash and leaves other hashes alone', async () => {
+      await database.addDeleted({ hash: 'ignored-1', path: 'c/three.jpg' });
+
+      await database.removeDeleted('ignored-0');
+
+      expect(await rows()).to.deep.equal([
+        { hash: 'ignored-1', path: 'c/three.jpg' },
+        { hash: 'ignored-media', path: '/tmp/ignored-media.jpg' },
+      ]);
+      expect(await database.isDeletedPath('a/one.jpg')).to.equal(false);
+      expect(await database.isDeletedPath('b/two.jpg')).to.equal(false);
+      expect(await database.isDeletedHash('ignored-0')).to.equal(false);
+      expect(await database.isDeletedHash('ignored-1')).to.equal(true);
+    });
+
+    it('is a no-op when the hash has no recorded paths', async () => {
+      await database.removeDeleted('never-recorded');
+
+      expect((await rows()).filter((row) => row.hash !== 'ignored-1')).to.have.lengthOf(1);
+    });
+
+    it('records the path when media is deleted with the import ignore flag', async () => {
+      const media = await createMedia('ignored-on-delete');
+
+      await database.removeMedia(media.hash, true);
+
+      expect(await database.isDeletedPath(media.path)).to.equal(true);
+      expect(await database.isDeletedHash(media.hash)).to.equal(true);
+      expect(await database.getMedia(media.hash)).to.equal(undefined);
+    });
+
+    it('leaves the ignore list alone when media is deleted without the flag', async () => {
+      const media = await createMedia('unignored-on-delete');
+
+      await database.removeMedia(media.hash, false);
+
+      expect(await database.isDeletedPath(media.path)).to.equal(false);
+      expect(await database.isDeletedHash(media.hash)).to.equal(false);
     });
   });
 });

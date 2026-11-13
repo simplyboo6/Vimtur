@@ -1,0 +1,82 @@
+@if (!loaded) {
+  <app-loading></app-loading>
+} @else {
+  <div class="card">
+    <h4>Deleted Paths</h4>
+    <p class="text-muted">
+      Deleting media records each of its paths here so future scans skip the file. Entries are keyed by content, so removing one allows that file to be imported
+      again from every path recorded for it. A delete that also removes the source file still records its path, so an entry may refer to a file that no longer
+      exists.
+    </p>
+    <div class="row">
+      <div class="col-md-6 input-component">
+        <label for="deleted-paths-hash-filter">Content hash</label>
+        <input type="search" class="form-control" id="deleted-paths-hash-filter" [(ngModel)]="hashFilter" />
+        <div>
+          <span class="text-muted">Exact match.</span>
+        </div>
+      </div>
+      <div class="col-md-6 input-component">
+        <label for="deleted-paths-path-filter">Path</label>
+        <input type="search" class="form-control" id="deleted-paths-path-filter" [(ngModel)]="pathFilter" />
+        <div>
+          <span class="text-muted">Partial match.</span>
+        </div>
+      </div>
+    </div>
+    @if (failed) {
+      <p class="text-muted mt-3 mb-0">Failed to load ignored paths.</p>
+    } @else if (entries.length === 0) {
+      <p class="text-muted mt-3 mb-0">No ignored paths.</p>
+    } @else if (rows.length === 0) {
+      <p class="text-muted mt-3 mb-0">No entries match the filter.</p>
+    } @else {
+      <p class="text-muted mt-3 mb-0">Recorded paths: {{ entries.length }}.</p>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th scope="col">Content hash</th>
+              <th scope="col">Paths</th>
+              <th scope="col"><span class="visually-hidden">Stop ignoring</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (group of rows; track group.hash) {
+              <tr>
+                <td class="deleted-hash">{{ group.hash }}</td>
+                <td>
+                  <ul class="list-unstyled mb-0">
+                    @for (path of group.paths; track path) {
+                      <li class="deleted-path">{{ path }}</li>
+                    }
+                  </ul>
+                </td>
+                <td>
+                  <button
+                    class="btn btn-link"
+                    type="button"
+                    [disabled]="removing.has(group.hash)"
+                    [title]="'Stop ignoring this file (' + group.paths.length + ' recorded ' + (group.paths.length === 1 ? 'path' : 'paths') + ')'"
+                    [attr.aria-label]="
+                      'Stop ignoring the file with hash ' +
+                      group.hash +
+                      ' (' +
+                      group.paths.length +
+                      ' recorded ' +
+                      (group.paths.length === 1 ? 'path' : 'paths') +
+                      ')'
+                    "
+                    (click)="remove(group)"
+                  >
+                    <fa-icon class="clear-icon" [icon]="faCircleXmark"></fa-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}

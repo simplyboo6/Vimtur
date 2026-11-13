@@ -53,6 +53,21 @@ function respondStreamError(res: Response, status: number, message: string): voi
   }
 }
 
+// Express 5 can hand back a repeated value as an array, which is rejected rather
+// than silently resolved to its first entry.
+function parseDeleteFile(value: unknown): boolean {
+  if (value === undefined) {
+    return false;
+  }
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  throw new BadRequest('deleteFile must be true or false');
+}
+
 export function create(db: Database): Router {
   const router = Router();
 
@@ -127,13 +142,20 @@ export function create(db: Database): Router {
     res.status(200).json(media);
   });
 
+  // `deleteFile` is the only way an API request can modify a source file, and it
+  // has to be requested explicitly: the default keeps the file on disk and only
+  // records its path in the import ignore list, so the next scan skips it while
+  // the operator can still restore or re-import it from the config page.
   router.delete('/:hash', async (req, res) => {
     const hash = singleParam(req.params.hash);
+    // Parsed before the lookup so an invalid flag is a 400 whether or not the
+    // media still exists.
+    const deleteFile = parseDeleteFile(req.query.deleteFile);
     const media = await db.getMedia(hash);
     if (!media) {
       throw new NotFound(`No media found with hash: ${hash}`);
     }
-    await deleteMedia(media);
+    await deleteMedia(media, { deleteSourceFile: deleteFile });
     await db.removeMedia(hash, true);
     res.sendStatus(204);
   });
