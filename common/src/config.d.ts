@@ -49,7 +49,8 @@ export namespace Configuration {
     // If set to a value greater than 0 than the initial search done at load time will limit
     // to this number. This is useful in large collections.
     initialLoadLimit?: number;
-    // Number of images to show per-page in the gallery. 0 means all.
+    // The number of media details the gallery fetches at once. Acts as the
+    // batch size and concurrency limit; 0 uses the default.
     galleryImageCount?: number;
     // Whether to use a native multi-select element on mobile.
     useNativeSelectOnMobile?: boolean;

@@ -76,10 +76,10 @@ export class AppComponent implements OnInit {
       case '/gallery': {
         switch (event.code) {
           case 'ArrowLeft':
-            this.galleryService.offset(-1);
+            this.galleryService.scrollByViewport(-1);
             break;
           case 'ArrowRight':
-            this.galleryService.offset(1);
+            this.galleryService.scrollByViewport(1);
             break;
           default:
             break;

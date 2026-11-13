@@ -89,28 +89,27 @@ export class CollectionService {
     return this.metadata;
   }
 
-  public goto(location?: string | boolean, page?: boolean) {
+  public goto(location?: string): boolean {
     if (!this.configService.config) {
       console.warn('Cannot goto() before config is loaded');
-      return;
+      return false;
     }
     if (!this.collection) {
       console.warn('Cannot goto() before collection loaded');
-      return;
+      return false;
     }
 
-    const pageSize = this.configService.config.user.galleryImageCount;
-
-    if (typeof location === 'boolean' || location === undefined) {
+    if (location === undefined) {
+      // The prompt resolves asynchronously, so there is no result to report.
       this.promptService
         .prompt('Goto')
         .then(result => {
           if (result) {
-            this.goto(result, location as boolean);
+            this.goto(result);
           }
         })
         .catch(err => console.error('prompt error', err));
-      return;
+      return false;
     }
 
     if (isNaN(Number(location))) {
@@ -118,31 +117,29 @@ export class CollectionService {
       if (index >= 0) {
         this.index = index;
         this.update();
-      } else {
-        this.alertService.show({
-          type: 'warning',
-          message: 'Could not find hash in set',
-          autoClose: 3000,
-        });
+        return true;
       }
-    } else {
-      // From 1-x to 0-x
-      let index = Number(location) - 1;
-      // If pageSize > 0 then map to a page.
-      if (page && pageSize) {
-        index = index * pageSize;
-      }
-      if (index < 0 || index >= this.collection.length) {
-        this.alertService.show({
-          type: 'warning',
-          message: 'Index is not within the collection',
-          autoClose: 3000,
-        });
-      } else {
-        this.index = index;
-        this.update();
-      }
+      this.alertService.show({
+        type: 'warning',
+        message: 'Could not find hash in set',
+        autoClose: 3000,
+      });
+      return false;
     }
+
+    // From 1-x to 0-x
+    const index = Number(location) - 1;
+    if (index < 0 || index >= this.collection.length) {
+      this.alertService.show({
+        type: 'warning',
+        message: 'Index is not within the collection',
+        autoClose: 3000,
+      });
+      return false;
+    }
+    this.index = index;
+    this.update();
+    return true;
   }
 
   public deleteCurrent() {
