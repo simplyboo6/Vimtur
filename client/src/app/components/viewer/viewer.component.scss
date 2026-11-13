@@ -13,17 +13,45 @@
 .right-panel {
   flex: 1;
   display: flex;
+  // The blurred backdrop is positioned against this panel, and the overflow clip
+  // keeps its bleed from widening the page.
+  position: relative;
+  overflow: hidden;
+  // A dark base, so the blurred backdrop's edges and any letterbox around the
+  // media cannot show the light page background through.
+  background-color: #15181a;
+}
+
+.media-backdrop {
+  position: absolute;
+  // The bleed is wider than the blur(28px) fade so no edge of it is visible
+  // inside the panel, and the panel's overflow clip keeps it from widening the
+  // page. Width and height are explicit because an absolutely positioned
+  // replaced element (an image) keeps its intrinsic size when only inset is
+  // set, which left the clone as a small thumbnail in the panel's corner.
+  top: -6rem;
+  left: -6rem;
+  width: calc(100% + 12rem);
+  height: calc(100% + 12rem);
+  object-fit: cover;
+  filter: blur(28px) brightness(0.45);
+  pointer-events: none;
 }
 
 .video-player {
   width: 100%;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .image-viewer {
   object-fit: contain;
   width: 100%;
   height: 100%;
+  // Positioned above the backdrop: the media paints over it rather than under.
+  position: relative;
+  z-index: 1;
 }
 
 .hidden {
@@ -35,7 +63,9 @@
   background: rgba(255, 255, 255, 0.7);
   width: calc(100% - 0.2rem);
   padding: 0.2rem;
-  z-index: 1;
+  // Above the now-positioned media, which would otherwise paint over these
+  // overlays because it comes later in DOM order.
+  z-index: 2;
   margin-top: 0.2rem;
   margin-right: 0.2rem;
 }

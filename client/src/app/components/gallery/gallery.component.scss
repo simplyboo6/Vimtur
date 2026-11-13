@@ -1,5 +1,3 @@
-@use '../../../helpers' as *;
-
 :host {
   // The document is the scroll container, so the host and everything below it
   // must stay out of the browser's anchor set.
@@ -16,86 +14,106 @@
 .gallery-row {
   display: flex;
   flex-flow: row nowrap;
+  gap: var(--gallery-gap);
+  // Bootstrap's global border-box makes this the content height, so the media
+  // box is exactly GALLERY_TILE_HEIGHT and only the gap is left for the row's
+  // own vertical padding.
+  padding: calc(var(--gallery-gap) / 2) 0;
   // The component template sets this from GALLERY_ROW_HEIGHT, so the DOM and
   // the virtualizer cannot drift apart.
   height: var(--gallery-row-height);
 }
 
-.gallery-img {
-  object-fit: contain;
-  width: calc(380px - 0.2rem);
-  max-width: 100%;
-  height: 240px;
-  margin: auto;
-
-  @include small {
-    width: 380px;
-    // Override .card-small with !important.
-    padding: 0 !important;
-  }
-}
-
-app-preview {
-  display: flex;
-}
-
 .image-container {
-  padding: 0.1rem;
-  @include small {
-    padding: 0;
-  }
-  justify-content: center;
-  display: flex;
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
-
-  & > .card {
-    min-width: 360px;
-    flex: 1;
-    height: 100%;
-  }
+  // Cap tiles at their share of the row so a partial last row cannot stretch
+  // one tile across the whole width.
+  max-width: calc((100% - (var(--gallery-columns) - 1) * var(--gallery-gap)) / var(--gallery-columns));
 }
 
-.card-body {
-  flex: initial !important;
-}
-
-.card-header > strong {
+.tile {
+  position: relative;
   display: block;
   width: 100%;
-  max-width: 370px;
+  height: 100%;
+  overflow: hidden;
+  // A dark base, so neither the blurred clone nor light media can produce a
+  // bright halo or a translucent gap at the tile edges.
+  background-color: #1c1f22;
+}
+
+.tile:focus-visible::after {
+  // The link's own outline paints beneath its absolutely positioned backdrop
+  // and media, so the ring is an overlay instead. Inset because the ancestor
+  // overflow clip would swallow an outset ring.
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--bs-primary);
+  // The inner white ring keeps the focus indicator visible when the media
+  // behind the primary colour is itself blue.
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tile-backdrop {
+  position: absolute;
+  // Bleed far enough past the tile that a blur(8px) fade (about 2.5 sigma, so
+  // ~20px) finishes outside the tile's overflow clip. The explicit size is
+  // required, not redundant: a replaced element keeps its intrinsic size when
+  // only inset is set (see .media-backdrop in the viewer).
+  inset: -1.5rem;
+  width: calc(100% + 3rem);
+  height: calc(100% + 3rem);
+  object-fit: cover;
+  filter: blur(8px) brightness(0.55);
+}
+
+.tile-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  // The full tile box, so the media takes the largest uncropped, undistorted
+  // size and the blurred clone fills the letterbox area around it. For
+  // app-preview this class is only the box: the canvas inside applies its own
+  // object-fit: contain, so this one is what applies to the <img> case.
+  object-fit: contain;
+}
+
+.tile-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1.4rem 0.4rem 0.3rem;
+  color: #fff;
+  // The >= 0.72 alpha through the text zone is what keeps white text above
+  // 4.5:1 even over white media; the shadow alone does not.
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.72) 70%, rgba(0, 0, 0, 0));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.tile-caption strong,
+.tile-caption .subtitle {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin: auto;
+}
+
+.tile-caption .subtitle {
+  font-size: 0.75rem;
+  opacity: 0.85;
 }
 
 .placeholder {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.08);
-}
-
-.type {
-  text-transform: capitalize;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.subtitle {
-  font-size: 0.9rem;
-  text-align: center;
-  display: block;
-  width: 100%;
-  max-width: 370px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: auto;
 }
 
 .gallery-status {

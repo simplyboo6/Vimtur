@@ -11,6 +11,7 @@ import { TagPanelComponent } from '../tag-panel/tag-panel.component';
 import { VideoPlayerComponent } from '../video-player/video-player.component';
 import { LoadingComponent } from '../loading/loading.component';
 import { FormatArrayPipe } from '../../shared/format-array.pipe';
+import { getThumbnailSrc } from 'app/shared/media-formatting';
 
 @Component({
   selector: 'app-viewer',
@@ -25,6 +26,7 @@ export class ViewerComponent implements OnInit, OnDestroy {
   public config?: Configuration.Main;
   public mediaSrc?: string;
   public readonly faCircleXmark = faCircleXmark;
+  public readonly getThumbnailSrc = getThumbnailSrc;
 
   private uiService: UiService;
   private mediaService: MediaService;

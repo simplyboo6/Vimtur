@@ -1,13 +1,18 @@
 // Pure layout maths for the virtualized gallery. All units are CSS pixels.
-// The tile width matches the gallery card min-width so the columns match the
-// CSS flow layout, and rows are fixed height so the window can be computed
-// without measuring the DOM.
+// columnsForWidth keeps each flex tile at or above GALLERY_TILE_MIN_WIDTH so the
+// column count matches the rendered CSS row, and rows are a fixed height so the
+// window can be computed without measuring the DOM.
 
 export const GALLERY_TILE_MIN_WIDTH = 360;
-// Allows for the .image-container padding between cards.
-export const GALLERY_COLUMN_GAP = 4;
-// Tile image (240px) plus the caption.
-export const GALLERY_ROW_HEIGHT = 304;
+// The media box (and tile) height; the caption overlays it rather than taking
+// layout space.
+export const GALLERY_TILE_HEIGHT = 240;
+// The gap between tiles on both axes (the flex row's column gap and the
+// vertical gap between rows).
+export const GALLERY_GAP = 4;
+// The row is the media box plus the gap: the caption overlays the tile, so it
+// adds no height, and the row's own padding comes out of the gap.
+export const GALLERY_ROW_HEIGHT = GALLERY_TILE_HEIGHT + GALLERY_GAP;
 // The virtual height is totalRows * rowHeight in document pixels. Chrome caps
 // document/element height at roughly 33.5M px, so a single-column list beyond
 // ~110k items would silently break the scrollbar; the design target is 50k
@@ -53,7 +58,7 @@ export interface GalleryPosition {
 
 export function columnsForWidth(width: number): number {
   const safeWidth = Math.max(0, width);
-  return Math.max(1, Math.floor((safeWidth + GALLERY_COLUMN_GAP) / (GALLERY_TILE_MIN_WIDTH + GALLERY_COLUMN_GAP)));
+  return Math.max(1, Math.floor((safeWidth + GALLERY_GAP) / (GALLERY_TILE_MIN_WIDTH + GALLERY_GAP)));
 }
 
 export function computeWindow(itemCount: number, viewport: GalleryViewport): GalleryWindow {

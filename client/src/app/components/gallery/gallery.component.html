@@ -1,24 +1,31 @@
 @if (view) {
-  <div class="gallery-viewport" [style.--gallery-row-height]="rowHeight + 'px'" [style.height.px]="view.totalRows * rowHeight">
+  <div
+    class="gallery-viewport"
+    [style.--gallery-gap]="gap + 'px'"
+    [style.--gallery-columns]="columns"
+    [style.--gallery-row-height]="rowHeight + 'px'"
+    [style.height.px]="view.totalRows * rowHeight"
+  >
     <div class="gallery-window" [style.transform]="'translateY(' + view.offsetY + 'px)'">
       @for (row of rows; track row.start) {
         <div class="gallery-row">
           @for (m of row.items; track m ? m.hash : $index) {
             <div class="image-container">
               @if (m) {
-                <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="openMedia(m)">
+                <a routerLink="/viewer" class="tile" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="openMedia(m)">
+                  <img class="tile-backdrop" [src]="getThumbnailSrc(m)" alt="" aria-hidden="true" />
                   @if (m.type === 'video' && m.preview) {
-                    <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
+                    <app-preview class="tile-media" [slideshow]="true" [height]="tileHeight" [media]="m"></app-preview>
                   } @else {
-                    <img class="img-fluid gallery-img card-body card-small" loading="lazy" decoding="async" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
+                    <img class="tile-media" loading="lazy" decoding="async" [src]="getThumbnailSrc(m)" alt="" />
                   }
-                  <div class="type caption card-header card-small">
+                  <div class="tile-caption">
                     <strong>{{ getTitle(m) }}</strong>
                     <div class="subtitle">{{ getSubtitle(m) }}</div>
                   </div>
                 </a>
               } @else {
-                <div class="card placeholder" aria-hidden="true"></div>
+                <div class="tile placeholder" aria-hidden="true"></div>
               }
             </div>
           }

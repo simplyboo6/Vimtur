@@ -31,7 +31,8 @@ describe('columnsForWidth', () => {
   it('counts the minimum tile width plus the gap per column', () => {
     expect(columnsForWidth(360)).toBe(1);
     expect(columnsForWidth(719)).toBe(1);
-    // A second 360px tile needs 360 + 4 + 360 px, so 720 is still one column.
+    // A second 360px tile needs 360 + GALLERY_GAP + 360 px, so 720 is still one
+    // column.
     expect(columnsForWidth(720)).toBe(1);
     expect(columnsForWidth(1000)).toBe(2);
     expect(columnsForWidth(1440)).toBe(3);
