@@ -10,6 +10,7 @@ import { Router, NavigationEnd, RouterLink } from '@angular/router';
 import { Subscription, Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
 import { formatGalleryPosition } from 'app/shared/gallery-layout';
+import { GALLERY_ROUTE } from 'app/shared/routes';
 import {
   faArrowLeft,
   faArrowRight,
@@ -26,8 +27,6 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { NgbCollapse } from '@ng-bootstrap/ng-bootstrap/collapse';
 import { FormsModule } from '@angular/forms';
 import { AsyncPipe } from '@angular/common';
-
-const GALLERY_URL = '/gallery';
 
 interface NavItemButton {
   type: 'button';
@@ -107,7 +106,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const isBigScreenObservable = this.breakpointObserver.observe(Breakpoints.XSmall).pipe(map(result => !result.matches));
     const singularUrls = ['/viewer', '/metadata', '/clone-resolve'];
     const isSingularObservable = this.routeObservable.pipe(map(url => singularUrls.includes(url)));
-    const isGalleryObservable = this.routeObservable.pipe(map(url => url === GALLERY_URL));
+    const isGalleryObservable = this.routeObservable.pipe(map(url => url === GALLERY_ROUTE));
     const navEnabledObservable = combineLatest([isSingularObservable, isGalleryObservable]).pipe(map(([isSingular, isGallery]) => isSingular || isGallery));
 
     // If screen is greater than Small.
@@ -247,7 +246,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   // The gallery prompts for a 1-based item number; other routes prompt for a hash.
   public goto(): void {
-    if (this.currentRoute !== GALLERY_URL) {
+    if (this.currentRoute !== GALLERY_ROUTE) {
       this.collectionService.goto();
       return;
     }
