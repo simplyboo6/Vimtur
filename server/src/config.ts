@@ -95,9 +95,9 @@ const DEFAULTS: Partial<Configuration.Main> = {
     lowQualityOnLoadEnabled: false,
     // True because it may be over slower WiFi.
     lowQualityOnLoadEnabledForMobile: true,
-    // Limit to loading 750 items on initial UI load.
+    // By default don't have a limit, this is quite responsive especially with SQLite.
     // This only caps the startup collection; the gallery loads its details lazily.
-    initialLoadLimit: 750,
+    initialLoadLimit: 0,
     // The number of media details the gallery fetches at once; 0 uses the default.
     galleryImageCount: 15,
 
