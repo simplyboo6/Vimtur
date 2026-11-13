@@ -134,7 +134,9 @@ describe('GalleryService', () => {
 
       harness.metadata.next({ index: 0, collection: makeCollection(100) });
 
-      expect(harness.getMedia.mock.calls.length).toBe(15);
+      // The seek puts row 0 at the page top, so the viewport only covers the
+      // 200px of content below its own top (2 visible rows plus 2 overscanned).
+      expect(harness.getMedia.mock.calls.length).toBe(12);
       expect(harness.views.at(-1)?.total).toBe(100);
       expect(harness.views.at(-1)?.totalRows).toBe(34);
     });
@@ -193,8 +195,7 @@ describe('GalleryService', () => {
       const views = harness.views.length;
       const positions = harness.positions.length;
 
-      // Same rows, but the container moved: setViewport must keep the latest
-      // viewport even when the view itself is not re-emitted.
+      // Same rows, but the container moved while the local offset stayed put.
       harness.service.setViewport(viewport({ scrollTop: 600, containerTop: 50 }));
 
       expect(harness.views.length).toBe(views);
@@ -203,8 +204,8 @@ describe('GalleryService', () => {
       const targets: number[] = [];
       harness.service.seekRequest.subscribe(target => targets.push(target));
       expect(harness.service.seekToIndex(0)).toBe(true);
-      // The seek starts from the stored container top (50), not the first frame's.
-      expect(targets).toEqual([50]);
+      // Row 0 aligns with the page top, not with the navbar offset below it.
+      expect(targets).toEqual([0]);
     });
 
     it('emits when the scroll crosses into a new row', () => {
@@ -475,7 +476,8 @@ describe('GalleryService', () => {
       const reset = harness.views.at(-1);
       expect(reset?.total).toBe(100);
       expect(reset?.startIndex).toBe(0);
-      expect(requests.requestCount()).toBe(30);
+      expect(reset?.scrollTop).toBe(0);
+      expect(requests.requestCount()).toBe(27);
 
       const emissions = harness.views.length;
       requests.resolve('h0');
@@ -514,12 +516,36 @@ describe('GalleryService', () => {
 
       const view = harness.views.at(-1);
       expect(view?.version).toBe((version ?? 0) + 1);
-      // Row 3 of a 3-column layout at containerTop 100.
-      expect(view?.scrollTop).toBe(400);
-      expect(view?.startIndex).toBe(3);
+      // Row 3 of a 3-column layout, aligned with the page top.
+      expect(view?.scrollTop).toBe(300);
+      expect(view?.startIndex).toBe(0);
       // The window was re-requested in full because the cache was cleared.
       expect(harness.getMedia.mock.calls.length).toBe(36);
-      expect(harness.getMedia.mock.calls.slice(15).map(call => call[0])).toEqual(hashRange(3, 24));
+      expect(harness.getMedia.mock.calls.slice(15).map(call => call[0])).toEqual(hashRange(0, 21));
+    });
+
+    it('seeks a new collection to the page top rather than below the navbar', () => {
+      const harness = createHarness();
+      const collection = makeCollection(100);
+      harness.metadata.next({ index: 0, collection });
+      // A second search has a cached viewport when the collection arrives.
+      harness.service.setViewport(viewport({ scrollTop: 56, containerTop: 56 }));
+
+      harness.metadata.next({ index: 0, collection: [...collection] });
+
+      expect(harness.views.at(-1)?.scrollTop).toBe(0);
+    });
+
+    it('seeks a new collection with a preserved index without the container offset', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+
+      harness.metadata.next({ index: 40, collection: [...collection] });
+
+      // Row 10 of a 4-column layout: 10 * 304, without the 56px navbar offset.
+      expect(harness.views.at(-1)?.scrollTop).toBe(3040);
     });
 
     it('patches a detail whose collection index shifted while it loaded', () => {
@@ -649,11 +675,37 @@ describe('GalleryService', () => {
 
       expect(harness.service.seekToIndex(40)).toBe(true);
 
-      // Row 13 of a 3-column layout, below the container top at 100.
-      expect(targets).toEqual([1400]);
+      // Row 13 of a 3-column layout, aligned with the page top.
+      expect(targets).toEqual([1300]);
       const view = harness.views.at(-1);
-      expect(view?.scrollTop).toBe(1400);
-      expect(view?.startIndex).toBe(33);
+      expect(view?.scrollTop).toBe(1300);
+      expect(view?.startIndex).toBe(30);
+    });
+
+    it('seeks row 0 to the page top, not below the navbar', () => {
+      const harness = createHarness();
+      harness.metadata.next({ index: 0, collection: makeCollection(100) });
+      harness.service.setViewport(viewport({ scrollTop: 56, containerTop: 56 }));
+      const targets: number[] = [];
+      harness.service.seekRequest.subscribe(target => targets.push(target));
+
+      expect(harness.service.seekToIndex(0)).toBe(true);
+
+      expect(targets).toEqual([0]);
+      expect(harness.views.at(-1)?.scrollTop).toBe(0);
+    });
+
+    it('does not offset a seek target by the measured container top', () => {
+      const harness = createHarness();
+      harness.metadata.next({ index: 0, collection: makeCollection(100) });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      const targets: number[] = [];
+      harness.service.seekRequest.subscribe(target => targets.push(target));
+
+      expect(harness.service.seekToIndex(40)).toBe(true);
+
+      // Row 10 of a 4-column layout: 10 * 304, without the 56px navbar offset.
+      expect(targets).toEqual([3040]);
     });
 
     it('rejects an out-of-range or non-integer index without moving or emitting', () => {

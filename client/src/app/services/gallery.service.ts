@@ -191,14 +191,16 @@ export class GalleryService implements OnDestroy {
     this.clearRetryTimers();
   }
 
-  // Places the item's row at the top of the viewport.
+  // Places the item's row at the top of the content. containerTop is where the
+  // gallery sits at rest (below the fixed navbar), not part of the scroll
+  // target: adding it scrolls row 0 up behind the navbar.
   private seekViewportToIndex(index: number): void {
     const viewport = this.viewport;
     if (!viewport) {
       return;
     }
     const columns = Math.max(1, Math.floor(viewport.columns));
-    viewport.scrollTop = viewport.containerTop + Math.floor(index / columns) * viewport.rowHeight;
+    viewport.scrollTop = Math.max(0, Math.floor(index / columns) * viewport.rowHeight);
   }
 
   private refreshView(force = false): void {
