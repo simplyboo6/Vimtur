@@ -56,7 +56,7 @@ async function runTaskToError(client: ApiClient, id: string, args?: unknown): Pr
 // Auto-tags flow through a dedicated column with its own FTS trigger (SQLite)
 // and text-index entry (Mongo). Only the model-independent plumbing is pinned
 // here over HTTP: writing autoTags through PATCH, keyword-searching them, and
-// the RESET-AUTOTAGS task. Actual classification needs a model download, so
+// the CLEAR-TAGGED-AUTOTAGS task. Actual classification needs a model download, so
 // the classify task is never queued with auto-tagging disabled.
 describe('Auto-tags round-trip', () => {
   let server: ApiServer;
@@ -135,9 +135,9 @@ describe('Auto-tags round-trip', () => {
     }
   });
 
-  it('RESET-AUTOTAGS removes them and their keyword matches', async function (this: Mocha.Context) {
+  it('CLEAR-TAGGED-AUTOTAGS removes them and their keyword matches', async function (this: Mocha.Context) {
     this.timeout(60_000);
-    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
     expect((await detail(client, stillHash)).autoTags).to.equal(undefined);
     expect(await subset(client, { keywordSearch: 'tabby' })).to.deep.equal([]);
   });

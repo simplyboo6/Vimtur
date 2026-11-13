@@ -2,11 +2,9 @@ import { execute } from 'proper-job';
 
 import type { Database, RouterTask } from '../../types';
 
-// Bulk counterpart of the media viewer's clear icon: the scoped clear that
-// resets every media item holding an auto-tags list to the unprocessed state
-// and reports how many rows it touched. Unlike RESET-AUTOTAGS, which blanks the
-// whole autoTags column unconditionally and returns nothing, this one only
-// touches rows that have autoTags and returns the count.
+// Bulk counterpart of the media viewer's clear icon and the single bulk clear:
+// it resets every media item holding an auto-tags list to the unprocessed state,
+// only touches rows that have autoTags, and reports how many rows it touched.
 // The work set deliberately includes the [] "processed, no tags matched"
 // marker: both engines' exists-filter counts an empty list as present, and
 // returning those rows to the unprocessed state makes them reconsiderable by a

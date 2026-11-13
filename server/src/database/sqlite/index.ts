@@ -458,12 +458,6 @@ export class SqliteConnector extends Database {
     return Promise.resolve();
   }
 
-  public async resetAutoTags(): Promise<void> {
-    await this.db.run(
-      'UPDATE `media` SET `auto_tags` = NULL WHERE `hash` IN (SELECT `hash` FROM `media` WHERE `auto_tags` IS NOT NULL)',
-    );
-  }
-
   public async testCleanup(): Promise<void> {
     if (!process.env.TEST_MODE) {
       throw new Error('testCleanup called outside of test mode');
