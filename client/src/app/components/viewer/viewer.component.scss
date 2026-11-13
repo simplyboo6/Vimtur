@@ -19,7 +19,7 @@
   overflow: hidden;
   // A dark base, so the blurred backdrop's edges and any letterbox around the
   // media cannot show the light page background through.
-  background-color: #15181a;
+  background-color: var(--bs-black);
 }
 
 .media-backdrop {
@@ -60,7 +60,7 @@
 
 .text-overlay {
   position: fixed;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(var(--bs-white-rgb), 0.7);
   width: calc(100% - 0.2rem);
   padding: 0.2rem;
   // Above the now-positioned media, which would otherwise paint over these
