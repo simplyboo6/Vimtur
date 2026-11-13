@@ -1,21 +1,32 @@
-@if (media) {
-  <div class="gallery full-height">
-    @for (m of media; track trackByHash($index, m)) {
-      <div class="image-container">
-        <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
-          @if (m.type === 'video' && m.preview) {
-            <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
-          } @else {
-            <img class="img-fluid gallery-img card-body card-small" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
+@if (view) {
+  <div class="gallery-viewport" [style.--gallery-row-height]="rowHeight + 'px'" [style.height.px]="view.totalRows * rowHeight">
+    <div class="gallery-window" [style.transform]="'translateY(' + view.offsetY + 'px)'">
+      @for (row of rows; track row.start) {
+        <div class="gallery-row">
+          @for (m of row.items; track $index) {
+            <div class="image-container">
+              @if (m) {
+                <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
+                  @if (m.type === 'video' && m.preview) {
+                    <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
+                  } @else {
+                    <img class="img-fluid gallery-img card-body card-small" loading="lazy" decoding="async" [src]="'/cache/thumbnails/' + m.hash + '.png'" />
+                  }
+                  <div class="type caption card-header card-small">
+                    <strong>{{ getTitle(m) }}</strong>
+                    <div class="subtitle">{{ getSubtitle(m) }}</div>
+                  </div>
+                </a>
+              } @else {
+                <div class="card placeholder" aria-hidden="true"></div>
+              }
+            </div>
           }
-          <div class="type caption card-header card-small">
-            <strong>{{ getTitle(m) }}</strong>
-            <div class="subtitle">{{ getSubtitle(m) }}</div>
-          </div>
-        </a>
-      </div>
-    }
+        </div>
+      }
+    </div>
   </div>
+  <div class="gallery-status" role="status">{{ status }}</div>
 } @else {
   <app-loading></app-loading>
 }

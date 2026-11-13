@@ -281,7 +281,7 @@
             </div>
             <!-- user.galleryImageCount -->
             <div class="input-component">
-              <label for="config-gallery-image-count">Gallery image count</label>
+              <label for="config-gallery-image-count">Gallery batch size</label>
               <input
                 type="number"
                 class="form-control"
@@ -291,7 +291,10 @@
                 required
               />
               <div>
-                <span class="text-muted"> Maximum number of images per-gallery page. Set to 0 to show all in a single page. </span>
+                <span class="text-muted"
+                  >The number of media details the gallery fetches at once. Increase it to load faster at the cost of more concurrent requests. Set to 0 to use
+                  the default; values above 50 are clamped to 50.</span
+                >
               </div>
             </div>
             <!-- user.initialLoadLimit -->

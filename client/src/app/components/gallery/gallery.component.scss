@@ -1,8 +1,30 @@
 @use '../../../helpers' as *;
 
+:host {
+  // The document is the scroll container, so the host and everything below it
+  // must stay out of the browser's anchor set.
+  overflow-anchor: none;
+}
+
+.gallery-viewport {
+  position: relative;
+  // The window recycles row DOM, so Chrome's scroll anchoring must not pick a
+  // tile inside it: the anchor would move with the recycled content.
+  overflow-anchor: none;
+}
+
+.gallery-row {
+  display: flex;
+  flex-flow: row nowrap;
+  // The component template sets this from GALLERY_ROW_HEIGHT, so the DOM and
+  // the virtualizer cannot drift apart.
+  height: var(--gallery-row-height);
+}
+
 .gallery-img {
   object-fit: contain;
   width: calc(380px - 0.2rem);
+  max-width: 100%;
   height: 240px;
   margin: auto;
 
@@ -25,14 +47,13 @@ app-preview {
   justify-content: center;
   display: flex;
   flex: 1;
-
-  & > :not(:last-child) {
-    padding-bottom: 0.2rem;
-  }
+  min-width: 0;
+  overflow: hidden;
 
   & > .card {
     min-width: 360px;
     flex: 1;
+    height: 100%;
   }
 }
 
@@ -42,15 +63,17 @@ app-preview {
 
 .card-header > strong {
   display: block;
+  width: 100%;
   max-width: 370px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   margin: auto;
 }
 
-.gallery {
-  display: flex;
-  flex-flow: row wrap;
+.placeholder {
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .type {
@@ -67,8 +90,17 @@ app-preview {
   font-size: 0.9rem;
   text-align: center;
   display: block;
+  width: 100%;
   max-width: 370px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   margin: auto;
+}
+
+.gallery-status {
+  // Reserve a line so showing or hiding the text does not move the scrollbar.
+  min-height: 1.5rem;
+  text-align: center;
+  color: #6c757d;
 }

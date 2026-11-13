@@ -24,8 +24,8 @@
               <fa-icon [icon]="navItem.icon" size="xl"></fa-icon>
             </button>
           }
-          @if (navItem.type === 'paginator' && (navItem.page | async); as page) {
-            <div class="btn btn-outline-success paginator" type="submit" title="Page">{{ page.current + 1 }} of {{ page.max }}</div>
+          @if (navItem.type === 'range' && (navItem.text | async); as range) {
+            <div class="btn btn-outline-success range-indicator" title="Visible items">{{ range }}</div>
           }
         }
       }

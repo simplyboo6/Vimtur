@@ -1,12 +1,15 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { UiService } from 'services/ui.service';
-import { GalleryService, Page } from 'services/gallery.service';
+import { GalleryService } from 'services/gallery.service';
 import { CollectionService } from 'services/collection.service';
 import { MediaService } from 'services/media.service';
+import { PromptService } from 'services/prompt.service';
+import { AlertService } from 'services/alert.service';
 import { Router, NavigationEnd, RouterLink } from '@angular/router';
 import { Subscription, Observable, combineLatest, BehaviorSubject } from 'rxjs';
 import { map, filter, startWith } from 'rxjs/operators';
+import { formatGalleryPosition } from 'app/shared/gallery-layout';
 import {
   faArrowLeft,
   faArrowRight,
@@ -24,6 +27,8 @@ import { NgbCollapse } from '@ng-bootstrap/ng-bootstrap/collapse';
 import { FormsModule } from '@angular/forms';
 import { AsyncPipe } from '@angular/common';
 
+const GALLERY_URL = '/gallery';
+
 interface NavItemButton {
   type: 'button';
   click: () => void;
@@ -33,13 +38,13 @@ interface NavItemButton {
   enabled?: Observable<boolean>;
 }
 
-interface NavItemPaginator {
-  type: 'paginator';
-  page: Observable<Page>;
+interface NavItemRange {
+  type: 'range';
+  text: Observable<string>;
   visible: Observable<boolean>;
 }
 
-type NavItem = NavItemButton | NavItemPaginator;
+type NavItem = NavItemButton | NavItemRange;
 
 @Component({
   selector: 'app-navbar',
@@ -62,6 +67,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private uiService: UiService;
   private mediaService: MediaService;
   private galleryService: GalleryService;
+  private promptService: PromptService;
+  private alertService: AlertService;
   private subscriptions: Subscription[] = [];
   private breakpointObserver: BreakpointObserver;
   private routeObservable: Observable<string>;
@@ -71,6 +78,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     uiService: UiService,
     mediaService: MediaService,
     galleryService: GalleryService,
+    promptService: PromptService,
+    alertService: AlertService,
     breakpointObserver: BreakpointObserver,
     router: Router,
   ) {
@@ -78,6 +87,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.collectionService = collectionService;
     this.mediaService = mediaService;
     this.galleryService = galleryService;
+    this.promptService = promptService;
+    this.alertService = alertService;
     this.breakpointObserver = breakpointObserver;
 
     this.routeObservable = router.events.pipe(
@@ -96,8 +107,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const isBigScreenObservable = this.breakpointObserver.observe(Breakpoints.XSmall).pipe(map(result => !result.matches));
     const singularUrls = ['/viewer', '/metadata', '/clone-resolve'];
     const isSingularObservable = this.routeObservable.pipe(map(url => singularUrls.includes(url)));
-    const galleryUrl = '/gallery';
-    const isGalleryObservable = this.routeObservable.pipe(map(url => url === galleryUrl));
+    const isGalleryObservable = this.routeObservable.pipe(map(url => url === GALLERY_URL));
     const navEnabledObservable = combineLatest([isSingularObservable, isGalleryObservable]).pipe(map(([isSingular, isGallery]) => isSingular || isGallery));
 
     // If screen is greater than Small.
@@ -150,8 +160,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
           if (this.currentRoute) {
             if (singularUrls.includes(this.currentRoute)) {
               this.collectionService.offset(-1);
-            } else if (galleryUrl === this.currentRoute) {
-              this.galleryService.offset(-1);
+            } else if (GALLERY_URL === this.currentRoute) {
+              this.galleryService.scrollByViewport(-1);
             }
           }
         },
@@ -187,15 +197,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
         visible: isSingularObservable,
       },
       {
-        type: 'paginator',
-        page: this.galleryService.page,
+        type: 'range',
+        text: this.galleryService.position.pipe(map(position => formatGalleryPosition(position))),
         visible: isGalleryObservable,
       },
       {
         type: 'button',
         title: 'Goto',
         icon: faDiamondTurnRight,
-        click: () => this.collectionService.goto(this.currentRoute === galleryUrl),
+        click: () => this.goto(),
         visible: navEnabledObservable,
       },
       {
@@ -206,8 +216,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
           if (this.currentRoute) {
             if (singularUrls.includes(this.currentRoute)) {
               this.collectionService.offset(1);
-            } else if (galleryUrl === this.currentRoute) {
-              this.galleryService.offset(1);
+            } else if (GALLERY_URL === this.currentRoute) {
+              this.galleryService.scrollByViewport(1);
             }
           }
         },
@@ -241,6 +251,38 @@ export class NavbarComponent implements OnInit, OnDestroy {
       subscription.unsubscribe();
     }
     this.subscriptions = [];
+  }
+
+  // The gallery prompts for a 1-based item number; other routes prompt for a hash.
+  public goto(): void {
+    if (this.currentRoute !== GALLERY_URL) {
+      this.collectionService.goto();
+      return;
+    }
+
+    this.promptService
+      .prompt('Goto')
+      .then(result => {
+        if (!result) {
+          return;
+        }
+        // A hash would goto() successfully on the collection but leave the
+        // gallery with no row to seek to, so reject anything but a 1-based number.
+        if (!/^\d+$/.test(result) || Number(result) < 1) {
+          this.alertService.show({
+            type: 'warning',
+            message: 'Goto on the gallery takes a 1-based item number',
+            autoClose: 3000,
+          });
+          return;
+        }
+        // goto() validates the range and warns; only seek once it has succeeded.
+        if (!this.collectionService.goto(result)) {
+          return;
+        }
+        this.galleryService.seekToIndex(Number(result) - 1);
+      })
+      .catch(err => console.error('prompt error', err));
   }
 
   public viewFolder() {
@@ -291,9 +333,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     switch (navItem.type) {
       case 'button':
         return `button-${navItem.title}`;
-      case 'paginator':
+      case 'range':
         // Only one.
-        return 'paginator';
+        return 'range';
     }
   }
 }

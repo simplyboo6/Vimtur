@@ -96,8 +96,9 @@ const DEFAULTS: Partial<Configuration.Main> = {
     // True because it may be over slower WiFi.
     lowQualityOnLoadEnabledForMobile: true,
     // Limit to loading 750 items on initial UI load.
-    // 750 to give 50 pages.
+    // This only caps the startup collection; the gallery loads its details lazily.
     initialLoadLimit: 750,
+    // The number of media details the gallery fetches at once; 0 uses the default.
     galleryImageCount: 15,
 
     // Quick tag panel visibility options.
