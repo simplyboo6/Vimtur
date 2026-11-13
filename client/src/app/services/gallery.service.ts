@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Media } from '@vimtur/common';
-import { ReplaySubject, Subject } from 'rxjs';
+import { ReplaySubject, Subject, Subscription, timer } from 'rxjs';
 import { CollectionMetadata, CollectionService } from 'app/services/collection.service';
 import { computeWindow, GalleryPosition, GalleryViewport, GalleryWindow } from 'app/shared/gallery-layout';
 import { GALLERY_ROUTE } from 'app/shared/routes';
@@ -65,7 +65,7 @@ export class GalleryService implements OnDestroy {
   private activeHashes = new Set<string>();
   private queue: QueuedDetail[] = [];
   private failedUntil = new Map<string, number>();
-  private retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private retrySubscriptions = new Map<string, Subscription>();
   private generation = 0;
   private isDrainingQueue = false;
 
@@ -80,7 +80,7 @@ export class GalleryService implements OnDestroy {
   }
 
   public ngOnDestroy(): void {
-    this.clearRetryTimers();
+    this.clearRetrySubscriptions();
   }
 
   // The component owns this: a hidden gallery still renders but must not fetch.
@@ -201,7 +201,7 @@ export class GalleryService implements OnDestroy {
     this.activeHashes.clear();
     this.queue = [];
     this.failedUntil.clear();
-    this.clearRetryTimers();
+    this.clearRetrySubscriptions();
   }
 
   // Viewer/metadata stepping moves CollectionService's index while the gallery
@@ -424,15 +424,17 @@ export class GalleryService implements OnDestroy {
   // A one-shot retry for an error that lands while the gallery is stationary,
   // which would otherwise stay a placeholder until the user scrolls.
   private scheduleRetry(hash: string): void {
-    const existing = this.retryTimers.get(hash);
+    const existing = this.retrySubscriptions.get(hash);
     if (existing !== undefined) {
-      clearTimeout(existing);
+      existing.unsubscribe();
     }
-    const timer = setTimeout(() => {
-      this.retryTimers.delete(hash);
+    // timer() schedules through the zone-patched async scheduler, so the
+    // retry callback participates in change detection without an NgZone.
+    const subscription = timer(GALLERY_ERROR_COOLDOWN_MS).subscribe(() => {
+      this.retrySubscriptions.delete(hash);
       this.retryDetail(hash);
-    }, GALLERY_ERROR_COOLDOWN_MS);
-    this.retryTimers.set(hash, timer);
+    });
+    this.retrySubscriptions.set(hash, subscription);
   }
 
   private retryDetail(hash: string): void {
@@ -451,11 +453,11 @@ export class GalleryService implements OnDestroy {
     this.pump();
   }
 
-  private clearRetryTimers(): void {
-    for (const timer of this.retryTimers.values()) {
-      clearTimeout(timer);
+  private clearRetrySubscriptions(): void {
+    for (const subscription of this.retrySubscriptions.values()) {
+      subscription.unsubscribe();
     }
-    this.retryTimers.clear();
+    this.retrySubscriptions.clear();
   }
 
   private emitView(view: GalleryView): void {
