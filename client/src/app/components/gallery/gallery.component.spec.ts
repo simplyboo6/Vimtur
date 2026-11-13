@@ -9,7 +9,6 @@ import { CollectionService } from 'app/services/collection.service';
 import { ConfigService } from 'app/services/config.service';
 import { GalleryService, GalleryView } from 'app/services/gallery.service';
 import { IntersectionService } from 'app/services/intersection.service';
-import { ResizeService } from 'app/services/resize.service';
 import { ScrollMemoryService } from 'app/services/scroll-memory.service';
 import { GALLERY_ROW_HEIGHT, GalleryPosition } from 'app/shared/gallery-layout';
 import { GalleryComponent } from './gallery.component';
@@ -87,7 +86,6 @@ interface Harness {
   suppressNextIndexFollow: MockInstance;
   collectionService: { goto: MockInstance; getMetadata: () => unknown; isSearching: () => unknown };
   scrollMemory: ScrollMemoryService;
-  resizeService: { resizeEmitter: EventEmitter<Map<unknown, ResizeObserverEntry>>; observe: MockInstance; unobserve: MockInstance };
   router: Router;
   rectSpy: MockInstance;
 }
@@ -113,11 +111,6 @@ function createHarness(options: { attached?: boolean; width?: number; widths?: n
     getMetadata: () => of(undefined),
     isSearching: () => of(false),
   };
-  const resizeService = {
-    resizeEmitter: new EventEmitter<Map<unknown, ResizeObserverEntry>>(),
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-  };
   const widths = options.widths ? [...options.widths] : undefined;
 
   TestBed.configureTestingModule({
@@ -125,7 +118,6 @@ function createHarness(options: { attached?: boolean; width?: number; widths?: n
     providers: [
       { provide: GalleryService, useValue: galleryService },
       { provide: CollectionService, useValue: collectionService },
-      { provide: ResizeService, useValue: resizeService },
       { provide: ConfigService, useValue: { getConfiguration: () => of({}) } },
       {
         provide: IntersectionService,
@@ -158,7 +150,6 @@ function createHarness(options: { attached?: boolean; width?: number; widths?: n
     suppressNextIndexFollow,
     collectionService,
     scrollMemory: TestBed.inject(ScrollMemoryService),
-    resizeService,
     router: TestBed.inject(Router),
     rectSpy,
   };
@@ -333,19 +324,17 @@ describe('GalleryComponent', () => {
     });
   });
 
-  it('re-measures when the host element resizes and stops observing on destroy', () => {
+  it('re-measures on a window resize and deactivates on destroy', () => {
     const harness = createHarness();
-    expect(harness.resizeService.observe).toHaveBeenCalledWith(expect.objectContaining({ nativeElement: harness.host }));
     harness.setViewport.mockClear();
 
     harness.rectSpy.mockReturnValue(rect(800, 100));
-    harness.resizeService.resizeEmitter.emit(new Map([[harness.host, {} as ResizeObserverEntry]]));
+    harness.component.onWindowResize();
 
     expect(harness.setViewport).toHaveBeenCalledTimes(1);
     expect(harness.setViewport.mock.calls[0][0].columns).toBe(2);
 
     harness.fixture.destroy();
-    expect(harness.resizeService.unobserve).toHaveBeenCalledWith(expect.objectContaining({ nativeElement: harness.host }));
     expect(harness.setActive).toHaveBeenLastCalledWith(false);
   });
 
@@ -442,7 +431,7 @@ describe('GalleryComponent', () => {
 
     harness.scrollMemory.remember('/gallery', 111);
     connected.mockReturnValue(true);
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       expect(scrollToSpy).not.toHaveBeenCalled();
@@ -459,7 +448,7 @@ describe('GalleryComponent', () => {
     const harness = createHarness();
     harness.scrollMemory.remember('/gallery', 250);
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery?tab=1');
       expect(scrollToSpy).not.toHaveBeenCalled();
@@ -483,7 +472,7 @@ describe('GalleryComponent', () => {
     harness.setViewport.mockClear();
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       harness.scrollMemory.remember('/gallery', 1609238);
       emitScroll(harness.router, '/gallery');
@@ -511,7 +500,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 250);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       harness.fixture.destroy();
@@ -529,7 +518,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 250);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       emitScroll(harness.router, '/viewer');
@@ -547,7 +536,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 250);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       vi.spyOn(harness.host, 'isConnected', 'get').mockReturnValue(false);
@@ -565,7 +554,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 1700000);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       vi.advanceTimersByTime(0);
@@ -590,7 +579,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 1700000);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       vi.advanceTimersByTime(0);
@@ -611,7 +600,7 @@ describe('GalleryComponent', () => {
     harness.scrollMemory.remember('/gallery', 250);
     scrollToSpy.mockClear();
 
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
     try {
       emitScroll(harness.router, '/gallery');
       vi.advanceTimersByTime(0);

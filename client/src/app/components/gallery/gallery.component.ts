@@ -1,11 +1,10 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, NavigationSkipped, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
 import { Media } from '@vimtur/common';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { CollectionService } from 'services/collection.service';
 import { GalleryService, GalleryView } from 'services/gallery.service';
-import { ResizeService } from 'services/resize.service';
 import { ScrollMemoryService } from 'services/scroll-memory.service';
 import { columnsForWidth, GALLERY_ROW_HEIGHT } from 'app/shared/gallery-layout';
 import { getSubtitle, getTitle } from 'app/shared/media-formatting';
@@ -35,9 +34,7 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private galleryService: GalleryService;
   private scrollMemory: ScrollMemoryService;
-  private resizeService: ResizeService;
   private router: Router;
-  private zone: NgZone;
   private hostElement: ElementRef;
   private subscriptions: Subscription[] = [];
   private columns = 1;
@@ -46,23 +43,19 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   private pendingScrollTop?: number;
   private scrollFrame?: number;
   private scrollCheckFrame?: number;
-  private scrollRestoreTimer?: ReturnType<typeof setTimeout>;
+  private scrollRestoreSubscription?: Subscription;
 
   public constructor(
     galleryService: GalleryService,
     collectionService: CollectionService,
     scrollMemory: ScrollMemoryService,
-    resizeService: ResizeService,
     router: Router,
-    zone: NgZone,
     hostElement: ElementRef,
   ) {
     this.galleryService = galleryService;
     this.collectionService = collectionService;
     this.scrollMemory = scrollMemory;
-    this.resizeService = resizeService;
     this.router = router;
-    this.zone = zone;
     this.hostElement = hostElement;
   }
 
@@ -98,19 +91,6 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
         this.handleRouterScroll(event);
       }),
     );
-    this.subscriptions.push(
-      this.resizeService.resizeEmitter.subscribe((entries: Map<unknown, ResizeObserverEntry>) => {
-        // ResizeObserver is not zone-patched, so the update needs an explicit
-        // zone run to participate in change detection.
-        this.zone.run(() => {
-          if (entries.has(this.hostElement.nativeElement)) {
-            this.handleResize();
-          }
-        });
-      }),
-    );
-    this.resizeService.observe(this.hostElement);
-
     this.galleryService.setActive(true);
     this.updateViewport();
   }
@@ -141,12 +121,11 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
       this.scrollCheckFrame = undefined;
     }
 
-    if (this.scrollRestoreTimer !== undefined) {
-      clearTimeout(this.scrollRestoreTimer);
-      this.scrollRestoreTimer = undefined;
+    if (this.scrollRestoreSubscription !== undefined) {
+      this.scrollRestoreSubscription.unsubscribe();
+      this.scrollRestoreSubscription = undefined;
     }
 
-    this.resizeService.unobserve(this.hostElement);
     this.galleryService.setActive(false);
     this.view = undefined;
   }
@@ -283,10 +262,10 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private handleRouterScroll(event: Scroll): void {
-    // Any navigation supersedes a restore that was waiting on a macrotask.
-    if (this.scrollRestoreTimer !== undefined) {
-      clearTimeout(this.scrollRestoreTimer);
-      this.scrollRestoreTimer = undefined;
+    // Any navigation supersedes a restore that was waiting on the scheduler.
+    if (this.scrollRestoreSubscription !== undefined) {
+      this.scrollRestoreSubscription.unsubscribe();
+      this.scrollRestoreSubscription = undefined;
     }
     if (this.scrollCheckFrame !== undefined) {
       if (typeof cancelAnimationFrame === 'function') {
@@ -317,24 +296,22 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     // Do not measure/queue the top window before restoring; RouterScroller's
     // own Scroll consumer runs synchronously after this event dispatch and
     // scrolls to the top. Restoring on the next macrotask wins, and replacing
-    // the timer means a later navigation supersedes an earlier one.
-    this.scrollRestoreTimer = setTimeout(() => {
-      // zone.js patches setTimeout, but keep the explicit run: the restore
-      // updates the viewport/service and must participate in change detection.
-      this.zone.run(() => {
-        this.scrollRestoreTimer = undefined;
-        if (!this.hostElement.nativeElement.isConnected) {
-          return;
-        }
-        // Only clear the pending seek this callback actually applied.
-        if (this.pendingScrollTop === target) {
-          this.pendingScrollTop = undefined;
-        }
-        this.scrollToY(target);
-        this.updateViewport();
-        this.scheduleScrollRecheck(target);
-      });
-    }, 0);
+    // the subscription means a later navigation supersedes an earlier one.
+    // timer(0) schedules through the zone-patched async scheduler, so the
+    // callback already runs inside Angular's zone; no manual NgZone.run needed.
+    this.scrollRestoreSubscription = timer(0).subscribe(() => {
+      this.scrollRestoreSubscription = undefined;
+      if (!this.hostElement.nativeElement.isConnected) {
+        return;
+      }
+      // Only clear the pending seek this callback actually applied.
+      if (this.pendingScrollTop === target) {
+        this.pendingScrollTop = undefined;
+      }
+      this.scrollToY(target);
+      this.updateViewport();
+      this.scheduleScrollRecheck(target);
+    });
   }
 
   private scheduleScrollRecheck(target: number): void {
