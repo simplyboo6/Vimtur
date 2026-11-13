@@ -120,8 +120,8 @@ export function createArrayFilter(field: string, options?: ArrayFilter): object 
       // autoTags is a whole-list value, not a join table: an empty array is the
       // pipeline's "processed, nothing scored" marker, so any array counts as
       // present (unlike manual tags, where empty means none). A cleared row
-      // stores null through saveMedia (or is absent after resetAutoTags'
-      // $unset), and both read as unprocessed, matching SQLite's
+      // stores null through saveMedia (or is absent, as rows that were never
+      // auto-tagged never write it), and both read as unprocessed, matching SQLite's
       // `auto_tags IS NULL` leg.
       if (options.exists) {
         Object.assign(base, { [field]: { ...(base as Record<string, object>)[field], $exists: true, $ne: null } });

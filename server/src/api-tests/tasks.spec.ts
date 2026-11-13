@@ -43,6 +43,9 @@ describe('Tasks API', () => {
     ]) {
       expect(ids).to.include(expected);
     }
+    // #175: CLEAR-TAGGED-AUTOTAGS is the single bulk autotag clear; the legacy
+    // RESET-AUTOTAGS duplicate was removed, so it must not reappear in the list.
+    expect(ids, 'legacy duplicate task id').to.not.include('RESET-AUTOTAGS');
     for (const task of tasks) {
       expect(task.description).to.be.a('string').and.to.have.lengthOf.at.least(1);
     }

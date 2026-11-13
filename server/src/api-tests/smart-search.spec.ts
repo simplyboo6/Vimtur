@@ -410,10 +410,10 @@ describe('Smart-search autotagging', () => {
     }
   });
 
-  it('RESET-AUTOTAGS clears generated tags and a manual override expands the allowed set', async () => {
-    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+  it('CLEAR-TAGGED-AUTOTAGS clears generated tags and a manual override expands the allowed set', async () => {
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
     for (const hash of stills) {
-      expect((await detail(client, hash)).autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+      expect((await detail(client, hash)).autoTags, `${hash} autoTags after clear`).to.equal(undefined);
     }
 
     // alpha is now a manual zero override too, so the allowed set grows to
@@ -449,9 +449,9 @@ describe('Smart-search autotagging', () => {
       }),
       'POST /api/config alpha manualThreshold null',
     );
-    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
     for (const hash of stills) {
-      expect((await detail(client, hash)).autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+      expect((await detail(client, hash)).autoTags, `${hash} autoTags after clear`).to.equal(undefined);
     }
 
     // The first run records every still as processed, even when its generated
@@ -498,10 +498,10 @@ describe('Smart-search autotagging', () => {
     // auto tags removes the skip-existing exclusion, so the only reason a
     // no-argument run (the AUTO-IMPORT default) can skip them is the
     // skip-tagged default.
-    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
     for (const hash of stills) {
       const media = await detail(client, hash);
-      expect(media.autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+      expect(media.autoTags, `${hash} autoTags after clear`).to.equal(undefined);
       expect(media.tags.length, `${hash} manual tags`).to.be.greaterThan(0);
     }
 
@@ -662,9 +662,9 @@ describe('Smart-search autotagging', () => {
     // first matters: both families' default mode is skip-existing, so with a
     // fully processed library the former classifier-only routing would be a
     // silent no-op and the checks below would prove nothing.
-    await runTaskAndWait(client, 'RESET-AUTOTAGS');
+    await runTaskAndWait(client, 'CLEAR-TAGGED-AUTOTAGS');
     for (const hash of stills) {
-      expect((await detail(client, hash)).autoTags, `${hash} autoTags after reset`).to.equal(undefined);
+      expect((await detail(client, hash)).autoTags, `${hash} autoTags after clear`).to.equal(undefined);
     }
     // The apply tasks' other default now skips manually tagged media, and
     // AUTO-IMPORT starts the task with no args, so the fixtures' manual tags
