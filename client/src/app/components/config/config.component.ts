@@ -18,10 +18,11 @@ import { SelectComponent } from '../select/select.component';
 import { SelectOptionComponent } from '../select-option/select-option.component';
 import { LoadingComponent } from '../loading/loading.component';
 import { AutotagConfigComponent } from '../autotag-config/autotag-config.component';
+import { DeletedPathsComponent } from '../deleted-paths/deleted-paths.component';
 import { Router, ActivatedRoute } from '@angular/router';
 import { NgbNav, NgbNavItem, NgbNavItemRole, NgbNavLink, NgbNavLinkBase, NgbNavContent, NgbNavOutlet, NgbNavChangeEvent } from '@ng-bootstrap/ng-bootstrap/nav';
 
-const CONFIG_TABS = ['general', 'auto-tagging'] as const;
+const CONFIG_TABS = ['general', 'auto-tagging', 'deleted-paths'] as const;
 type ConfigTab = (typeof CONFIG_TABS)[number];
 const isConfigTab = (value: string | null): value is ConfigTab => CONFIG_TABS.includes(value as ConfigTab);
 
@@ -38,6 +39,7 @@ const isConfigTab = (value: string | null): value is ConfigTab => CONFIG_TABS.in
     SelectOptionComponent,
     LoadingComponent,
     AutotagConfigComponent,
+    DeletedPathsComponent,
     NgbNav,
     NgbNavItem,
     NgbNavItemRole,

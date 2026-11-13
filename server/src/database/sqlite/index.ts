@@ -184,10 +184,16 @@ export class SqliteConnector extends Database {
   }
 
   public async addDeleted(deleted: DeletedMedia): Promise<void> {
+    // (hash, path) is the primary key, so a second path for the same content
+    // adds a row rather than replacing the first (see Database.addDeleted).
     await this.db.run('INSERT OR IGNORE INTO `media_deleted` (`hash`, `path`) VALUES (?, ?)', [
       deleted.hash,
       deleted.path,
     ]);
+  }
+
+  public async removeDeleted(hash: string): Promise<void> {
+    await this.db.run('DELETE FROM `media_deleted` WHERE `hash` = ?', [hash]);
   }
 
   public async isDeletedPath(path: string): Promise<boolean> {

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AlertService } from 'app/services/alert.service';
 import { CollectionMetadata, CollectionService } from 'app/services/collection.service';
-import { ConfirmationService } from 'app/services/confirmation.service';
+import { ConfirmationResult, ConfirmationService } from 'app/services/confirmation.service';
 import { ConfigService } from 'app/services/config.service';
 import { PromptService } from 'app/services/prompt.service';
 
@@ -15,16 +15,19 @@ interface Harness {
   metadata: Array<CollectionMetadata | undefined>;
   alerts: ReturnType<typeof vi.fn>;
   prompt: ReturnType<typeof vi.fn>;
+  httpDelete: ReturnType<typeof vi.fn>;
+  confirmWith: ReturnType<typeof vi.fn>;
 }
 
 function createHarness(collection = ['a', 'b', 'c']): Harness {
-  const httpClient = { post: vi.fn(() => of(collection)) };
+  const httpClient = { post: vi.fn(() => of(collection)), delete: vi.fn(() => of('')) };
   const alerts = vi.fn();
   const prompt = vi.fn();
+  const confirmWith = vi.fn((): Promise<ConfirmationResult> => Promise.resolve({ confirmed: true, checkbox: false }));
   const service = new CollectionService(
     httpClient as unknown as HttpClient,
     { show: alerts } as unknown as AlertService,
-    { confirm: vi.fn() } as unknown as ConfirmationService,
+    { confirmWith } as unknown as ConfirmationService,
     { prompt } as unknown as PromptService,
     { config: { user: {} } } as unknown as ConfigService,
     { navigate: vi.fn() } as unknown as Router,
@@ -34,12 +37,62 @@ function createHarness(collection = ['a', 'b', 'c']): Harness {
   service.getMetadata().subscribe(value => metadata.push(value));
   service.search({} as SubsetConstraints, { noRedirect: true });
 
-  return { service, metadata, alerts, prompt };
+  return { service, metadata, alerts, prompt, httpDelete: httpClient.delete, confirmWith };
 }
 
 function message(alerts: ReturnType<typeof vi.fn>): unknown {
   return (alerts.mock.calls.at(-1)?.[0] as { message?: string } | undefined)?.message;
 }
+
+describe('CollectionService.deleteCurrent', () => {
+  const flush = async (): Promise<void> => {
+    // Confirm resolves, then the delete subscription runs.
+    await Promise.resolve();
+    await Promise.resolve();
+  };
+
+  it('keeps the source file unless the checkbox was ticked', async () => {
+    const harness = createHarness();
+
+    harness.service.deleteCurrent();
+    await flush();
+
+    expect(harness.confirmWith).toHaveBeenCalledWith(
+      'Are you sure you want to delete the current media?',
+      expect.objectContaining({
+        negative: true,
+        checkboxLabel: 'Also delete the source file from disk (cannot be undone)',
+      }),
+    );
+    expect(harness.httpDelete).toHaveBeenCalledWith('/api/images/a', {
+      params: { deleteFile: 'false' },
+      responseType: 'text',
+    });
+  });
+
+  it('deletes the source file when the checkbox was ticked', async () => {
+    const harness = createHarness();
+    harness.confirmWith.mockResolvedValue({ confirmed: true, checkbox: true });
+
+    harness.service.deleteCurrent();
+    await flush();
+
+    expect(harness.httpDelete).toHaveBeenCalledWith('/api/images/a', {
+      params: { deleteFile: 'true' },
+      responseType: 'text',
+    });
+  });
+
+  it('does nothing when the deletion is cancelled', async () => {
+    const harness = createHarness();
+    harness.confirmWith.mockResolvedValue({ confirmed: false, checkbox: true });
+
+    harness.service.deleteCurrent();
+    await flush();
+
+    expect(harness.httpDelete).not.toHaveBeenCalled();
+  });
+});
 
 describe('CollectionService.goto', () => {
   it('treats numeric input as a 1-based item index', () => {

@@ -89,7 +89,9 @@ export function getTask(database: Database): RouterTask {
             throw new Error(`Unable to fetch media for ${path} - ${hash}`);
           }
 
-          await deleteMedia(media);
+          // These files are already gone from the library, so the unlink is a
+          // tolerated no-op rather than an opt-in choice.
+          await deleteMedia(media, { deleteSourceFile: true });
           await database.removeMedia(hash, false);
 
           console.log(`Removed ${hash} - ${path}`);

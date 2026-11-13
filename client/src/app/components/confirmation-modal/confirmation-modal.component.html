@@ -1,11 +1,38 @@
 <div class="modal-header">
   <h4 class="modal-title">{{ title }}</h4>
 </div>
+<!-- Only rendered when the caller supplies a body: the footer-only dialogs used
+     elsewhere must not gain an empty body and its spacing. -->
+@if (message || details?.length || checkboxLabel) {
+  <div class="modal-body">
+    @if (message) {
+      <p>{{ message }}</p>
+    }
+    @if (details?.length) {
+      <ul>
+        @for (detail of details; track detail) {
+          <li class="detail-item">{{ detail }}</li>
+        }
+      </ul>
+    }
+    @if (checkboxLabel) {
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" [id]="checkboxId" [(ngModel)]="checkbox" />
+        <label class="form-check-label" [attr.for]="checkboxId">{{ checkboxLabel }}</label>
+      </div>
+    }
+  </div>
+}
+<!-- ng-bootstrap focuses the first [ngbAutofocus] element when the dialog opens, so
+     Confirm takes focus and Enter confirms. Cancel comes before Confirm in the tab
+     order and is one Shift+Tab away. -->
 <div class="modal-footer row footer-padding">
   <div class="md-6">
     <button type="button" class="btn col-12" [class.btn-danger]="!negative" [class.btn-primary]="negative" (click)="modal?.close(false)">Cancel</button>
   </div>
   <div class="md-6">
-    <button type="button" class="btn col-12" [class.btn-danger]="negative" [class.btn-primary]="!negative" (click)="modal?.close(true)">Confirm</button>
+    <button type="button" class="btn col-12" [class.btn-danger]="negative" [class.btn-primary]="!negative" ngbAutofocus (click)="modal?.close(true)">
+      Confirm
+    </button>
   </div>
 </div>

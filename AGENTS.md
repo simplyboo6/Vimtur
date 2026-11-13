@@ -44,6 +44,33 @@
 - Pin each dual-engine semantic with a fixture in BOTH `server/src/test/database.ts` (SQLite) and `server/src/test/mongodb.ts`, plus an api-test asserting the wire shape over HTTP. The Mongo `$or` composition was once 'verified' by reasoning alone and later needed a real probe — branch-claims about a live engine need a running engine, not just reading.
 - A difference in the wire for the same logical state (one engine omitting/nulling a field the other emits) is a bug, not a client tolerance.
 
+## Deletion and the import ignore list (from #65)
+
+- Deleting media is a library operation: `DELETE /api/images/:hash` records the
+  media's `{hash, path}` in the ignore list and drops its cache, but only unlinks
+  the source file when `deleteFile=true` is passed explicitly (`parseDeleteFile`
+  in `server/src/routes/images.ts` answers 400 for anything else, including a
+  repeated parameter). `DELETE-MISSING` keeps unlinking unconditionally because
+  those files are already gone.
+- The ignore list is keyed by content **and records paths**: SQLite's
+  `media_deleted` primary key is `(hash, path)`, and MongoDB's `media.deleted`
+  carries the matching unique composite index (update
+  `018_media-deleted-composite-key` dropped the old unique `hash_1`, which
+  replaced a path instead of recording it). A second path for the same content
+  adds a row, never replaces one: SCAN skips recorded paths (`scanner.ts`) and
+  INDEX skips recorded hashes and records the path it saw (`indexer.ts`), so
+  either check alone is insufficient and neither row may be coalesced.
+- `GET /api/deleted` returns the whole list sorted by hash then path (the config
+  page's Deleted Paths tab holds it in memory and filters client-side);
+  `DELETE /api/deleted/:hash` clears every path for that hash — a surviving row
+  would keep the content ignored — and is an idempotent no-op for an unknown one.
+  `media_deleted` / `media.deleted` is indexed on `(hash, path)` only; SCAN's
+  per-new-file `isDeletedPath` lookup therefore scans this deliberately small
+  table, and an index on `path` is a known follow-up rather than an oversight.
+- The tab groups by hash and lists a group's full path set even when a filter
+  matched only one of them, because the × removes the whole entry after a
+  confirmation that lists every path it is about to un-ignore.
+
 ## Gotchas
 
 - Server runtime reads from `dist/`, not `src/` — after editing server or common code you must rebuild (`common` first, then `server`) before running or testing.
@@ -72,6 +99,7 @@
 - Status is derived, never remembered: a UI status is recomputed from the current task-queue snapshot plus the last persisted run — seeded on load, recomputed on every queue emission. No stored status string survives a later success, failure or model switch. Every action button's in-flight guard clears on success AND on error; failure tracking is per queue entry, keyed by task id.
 - Repo conventions beat generic Angular modernisation guidance (skills/AGENTS defaults): this client uses constructor DI with manual `Subscription[]` teardown, `ChangeDetectionStrategy.Eager` in places, template-driven `[(ngModel)]` forms, and `id="config-…"`-style test hooks. Follow the sibling components; do not "modernise".
 - A placeholder is never a label: inputs get real accessible names, row-repeating controls get row-identifying `aria-label`s, and icon-only hit targets stay ≥ 24 px (WCAG 2.2).
+- Confirmation dialogs use the shared `ConfirmationModalComponent`, whose Confirm button carries `ngbAutofocus` (a plain attribute ng-bootstrap's modal queries for, so no directive import) so Enter confirms, with Cancel one Shift+Tab away; the bulk-update dialog (`confirm-bulk-update.component.html`) follows the same focus convention even though its own footer inverts the button colours (its Cancel is the red one).
 
 ## Client toolchain constraints
 

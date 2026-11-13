@@ -58,7 +58,20 @@ export async function deleteCache(hash: string): Promise<void> {
   console.log(`${cache} removed`);
 }
 
-export async function deleteMedia(media: Media): Promise<void> {
+export interface DeleteMediaOptions {
+  /**
+   * Whether the source file is unlinked as well. False by default: removing
+   * media from the library is a database operation, and the file is only
+   * deleted when the caller explicitly opts in (the API's `deleteFile`
+   * parameter). The ignore list entry the caller writes is what stops the
+   * next scan re-importing a kept file.
+   */
+  deleteSourceFile?: boolean;
+}
+
+export async function deleteMedia(media: Media, options: DeleteMediaOptions = {}): Promise<void> {
+  // The cache belongs to the database row, not the source file, so it always
+  // goes: a kept file would hit a stale cache if it were ever re-imported.
   await deleteCache(media.hash);
   // deleteCache removes this hash's own cache FILES, but the embedding cache is
   // one artifact for the whole library: its index has to drop the hash too or
@@ -66,6 +79,10 @@ export async function deleteMedia(media: Media): Promise<void> {
   // A corrupt index never blocks a media delete (the prune skips it); other
   // cache I/O failures propagate like deleteCache's.
   await removeCachedEmbeddings([media.hash]);
+
+  if (!options.deleteSourceFile) {
+    return;
+  }
 
   try {
     await Util.promisify(FS.unlink)(media.absolutePath);

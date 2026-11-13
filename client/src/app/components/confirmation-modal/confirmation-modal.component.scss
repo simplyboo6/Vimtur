@@ -1,3 +1,8 @@
 .footer-padding {
   margin: 0;
 }
+
+// Paths in the details list are long single tokens.
+.detail-item {
+  word-break: break-all;
+}

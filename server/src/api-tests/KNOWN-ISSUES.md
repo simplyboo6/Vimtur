@@ -97,6 +97,27 @@ intentional, or pinned deliberately so a refactor cannot silently change it.
    entries whose tag was deleted (item 8). Pinned by the zeta test in
    `smart-search.spec.ts`.
 
+10. **Deleting media keeps the source file unless `deleteFile=true` is asked
+    for.** `DELETE /api/images/:hash` always records the media's path in the
+    import ignore list (that entry is what stops the next SCAN re-importing a
+    kept file) and always drops its cache, but only unlinks the file when the
+    query parameter is a literal `true`. Anything other than `true`/`false`/
+    absent — including a repeated parameter — is a 400. `DELETE-MISSING` keeps
+    unlinking because those files are already gone. Pinned in
+    `deleted-paths.spec.ts` and `import-lifecycle.spec.ts`.
+
+11. **The ignore list is keyed by content hash and records paths.** Rows are
+    `{hash, path}` pairs; the same hash deleted (or found again) at a second
+    path adds a row (SQLite's `(hash, path)` primary key, MongoDB's matching
+    composite index) rather than replacing the first. SCAN matches recorded
+    paths and INDEX matches recorded hashes, adding the path it saw, so one
+    `media_deleted` row per hash would not be enough. `GET /api/deleted`
+    returns every row, sorted by hash then path, unpaged; `DELETE
+    /api/deleted/:hash` removes every path for that hash (and is an idempotent
+    no-op for an unknown one), because the ignore checks are hash-based and a
+    surviving row would keep the content ignored. Pinned in
+    `deleted-paths.spec.ts`, `test/database.ts` and `test/mongodb.ts`.
+
 Things that used to live here as one-off deltas from the error-handler and
 plain-`res.json()` migration are documented as standing conventions in the
 repo `AGENTS.md` ("API response and error conventions") instead.

@@ -31,7 +31,15 @@ export abstract class Database {
   public abstract isDeletedPath(path: string): Promise<boolean>;
   public abstract isDeletedHash(hash: string): Promise<boolean>;
   public abstract getDeletedMedia(): Promise<DeletedMedia[]>;
+  /**
+   * Records one ignored path for a media hash. Rows are keyed by (hash, path),
+   * so the same content deleted (or found again) at a second path adds a row
+   * instead of replacing the first: SCAN matches paths and INDEX matches
+   * hashes, so both need to see every recorded location.
+   */
   public abstract addDeleted(deleted: DeletedMedia): Promise<void>;
+  /** Drops every ignored path recorded for `hash`. A no-op for an unknown hash. */
+  public abstract removeDeleted(hash: string): Promise<void>;
   // Media - tags
   public abstract addMediaTag(hash: string, tag: string): Promise<void>;
   public abstract removeMediaTag(hash: string, tag: string): Promise<void>;

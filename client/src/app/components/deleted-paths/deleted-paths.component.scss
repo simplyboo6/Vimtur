@@ -1,0 +1,16 @@
+@use '../../../styles/config-page' as *;
+
+:host {
+  display: block;
+}
+
+// Hashes and paths are long single tokens; break them instead of overflowing
+// the table's responsive wrapper.
+.deleted-hash,
+.deleted-path {
+  word-break: break-all;
+}
+
+.deleted-hash {
+  font-family: var(--bs-font-monospace);
+}

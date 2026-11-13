@@ -28,6 +28,7 @@ import { errorHandler } from './middleware/error-handler';
 
 // Routes
 import * as ActorRouter from './routes/actors';
+import * as DeletedRouter from './routes/deleted';
 import * as ImageRouter from './routes/images';
 import * as InsightsRouter from './routes/insights';
 import * as PlaylistRouter from './routes/playlists';
@@ -48,6 +49,7 @@ async function createServer(db: Database): Promise<Server> {
   app.use(Utils.authConnector);
 
   app.use('/api/images', ImageRouter.create(db));
+  app.use('/api/deleted', DeletedRouter.create(db));
   app.use('/api/tags', TagRouter.create(db));
   app.use('/api/actors', ActorRouter.create(db));
   app.use('/api/insights', InsightsRouter.create(db));
