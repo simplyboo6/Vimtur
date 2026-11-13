@@ -11,7 +11,7 @@ import { GalleryService, GalleryView } from 'app/services/gallery.service';
 import { IntersectionService } from 'app/services/intersection.service';
 import { ResizeService } from 'app/services/resize.service';
 import { ScrollMemoryService } from 'app/services/scroll-memory.service';
-import { GALLERY_ROW_HEIGHT } from 'app/shared/gallery-layout';
+import { GALLERY_ROW_HEIGHT, GalleryPosition } from 'app/shared/gallery-layout';
 import { GalleryComponent } from './gallery.component';
 
 const GALLERY_COLUMNS = 3;
@@ -80,6 +80,7 @@ interface Harness {
   component: GalleryComponent;
   host: HTMLElement;
   view: ReplaySubject<GalleryView | undefined>;
+  position: ReplaySubject<GalleryPosition | undefined>;
   seekRequest: Subject<number>;
   setViewport: MockInstance;
   setActive: MockInstance;
@@ -94,12 +95,14 @@ interface Harness {
 function createHarness(options: { attached?: boolean; width?: number; widths?: number[]; top?: number; detect?: boolean } = {}): Harness {
   const attached = options.attached ?? true;
   const view = new ReplaySubject<GalleryView | undefined>(1);
+  const position = new ReplaySubject<GalleryPosition | undefined>(1);
   const seekRequest = new Subject<number>();
   const setViewport = vi.fn();
   const setActive = vi.fn();
   const suppressNextIndexFollow = vi.fn();
   const galleryService = {
     view,
+    position,
     seekRequest,
     setViewport,
     setActive,
@@ -148,6 +151,7 @@ function createHarness(options: { attached?: boolean; width?: number; widths?: n
     component: fixture.componentInstance,
     host,
     view,
+    position,
     seekRequest,
     setViewport,
     setActive,
@@ -290,6 +294,23 @@ describe('GalleryComponent', () => {
 
     expect(harness.setViewport).toHaveBeenCalledTimes(1);
     expect(harness.setViewport.mock.calls[0][0].columns).toBe(2);
+  });
+
+  it('keeps the first visible row in place when the column count changes', () => {
+    const harness = createHarness({ width: 1600 });
+    harness.view.next(galleryView({ total: 100, totalRows: 25, items: createMediaRange(0, 15) }));
+    harness.fixture.detectChanges();
+    harness.position.next({ startIndex: 6, endIndex: 12, total: 100 });
+    expect(harness.setViewport.mock.calls.at(-1)?.[0].columns).toBe(4);
+
+    harness.setViewport.mockClear();
+    scrollToSpy.mockClear();
+    harness.rectSpy.mockReturnValue(rect(800, 100));
+    harness.component.onWindowResize();
+
+    // floor(6 / 2) rows * 304px.
+    expect(scrollToSpy).toHaveBeenCalledWith({ left: 0, top: 912, behavior: 'instant' });
+    expect(harness.setViewport).toHaveBeenLastCalledWith(expect.objectContaining({ columns: 2 }));
   });
 
   it('re-measures the laid-out width after the first render', () => {

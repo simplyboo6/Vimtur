@@ -3,13 +3,10 @@ import { Media } from '@vimtur/common';
 import { ReplaySubject, Subject } from 'rxjs';
 import { CollectionMetadata, CollectionService } from 'app/services/collection.service';
 import { computeWindow, GalleryPosition, GalleryViewport, GalleryWindow } from 'app/shared/gallery-layout';
+import { GALLERY_ROUTE } from 'app/shared/routes';
 import { ConfigService } from './config.service';
 import { MediaService } from './media.service';
 import { ScrollMemoryService } from './scroll-memory.service';
-
-// Matches the gallery component's route; the service also forgets the saved
-// offset because a search can destroy the component before it forgets it.
-const GALLERY_ROUTE = '/gallery';
 
 // Cached media details. The gallery rarely revisits more than a screenful, so
 // the cap bounds memory while leaving recently seen windows a re-scroll away.
@@ -70,7 +67,7 @@ export class GalleryService implements OnDestroy {
   private failedUntil = new Map<string, number>();
   private retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private generation = 0;
-  private pumping = false;
+  private isDrainingQueue = false;
 
   public constructor(mediaService: MediaService, configService: ConfigService, collectionService: CollectionService, scrollMemory: ScrollMemoryService) {
     this.mediaService = mediaService;
@@ -348,10 +345,10 @@ export class GalleryService implements OnDestroy {
 
   private pump(): void {
     // Synchronous responses re-enter here; the outer loop drains the queue.
-    if (this.pumping) {
+    if (this.isDrainingQueue) {
       return;
     }
-    this.pumping = true;
+    this.isDrainingQueue = true;
     try {
       while (this.inFlight.size < this.getBatchSize()) {
         const next = this.queue.shift();
@@ -368,7 +365,7 @@ export class GalleryService implements OnDestroy {
         this.requestDetail(next.hash, next.index);
       }
     } finally {
-      this.pumping = false;
+      this.isDrainingQueue = false;
     }
   }
 

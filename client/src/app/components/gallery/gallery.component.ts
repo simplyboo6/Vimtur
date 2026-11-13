@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, NavigationSkipped, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
 import { Media } from '@vimtur/common';
 import { Subscription } from 'rxjs';
@@ -9,10 +9,9 @@ import { ResizeService } from 'services/resize.service';
 import { ScrollMemoryService } from 'services/scroll-memory.service';
 import { columnsForWidth, GALLERY_ROW_HEIGHT } from 'app/shared/gallery-layout';
 import { getSubtitle, getTitle } from 'app/shared/media-formatting';
+import { GALLERY_ROUTE } from 'app/shared/routes';
 import { LoadingComponent } from '../loading/loading.component';
 import { PreviewComponent } from '../preview/preview.component';
-
-const GALLERY_ROUTE = '/gallery';
 
 interface GalleryRow {
   // Absolute collection index of the row's first item.
@@ -38,9 +37,11 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollMemory: ScrollMemoryService;
   private resizeService: ResizeService;
   private router: Router;
-  private ref: ElementRef;
+  private zone: NgZone;
+  private hostElement: ElementRef;
   private subscriptions: Subscription[] = [];
   private columns = 1;
+  private firstVisibleIndex = 0;
   private lastVersion?: number;
   private pendingScrollTop?: number;
   private scrollFrame?: number;
@@ -53,20 +54,27 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     scrollMemory: ScrollMemoryService,
     resizeService: ResizeService,
     router: Router,
-    ref: ElementRef,
+    zone: NgZone,
+    hostElement: ElementRef,
   ) {
     this.galleryService = galleryService;
     this.collectionService = collectionService;
     this.scrollMemory = scrollMemory;
     this.resizeService = resizeService;
     this.router = router;
-    this.ref = ref;
+    this.zone = zone;
+    this.hostElement = hostElement;
   }
 
   public ngOnInit() {
     this.subscriptions.push(
       this.galleryService.view.subscribe(view => {
         this.applyView(view);
+      }),
+    );
+    this.subscriptions.push(
+      this.galleryService.position.subscribe(position => {
+        this.firstVisibleIndex = position?.startIndex ?? 0;
       }),
     );
     this.subscriptions.push(
@@ -92,12 +100,16 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.subscriptions.push(
       this.resizeService.resizeEmitter.subscribe((entries: Map<unknown, ResizeObserverEntry>) => {
-        if (entries.has(this.ref.nativeElement)) {
-          this.updateViewport();
-        }
+        // ResizeObserver is not zone-patched, so the update needs an explicit
+        // zone run to participate in change detection.
+        this.zone.run(() => {
+          if (entries.has(this.hostElement.nativeElement)) {
+            this.handleResize();
+          }
+        });
       }),
     );
-    this.resizeService.observe(this.ref);
+    this.resizeService.observe(this.hostElement);
 
     this.galleryService.setActive(true);
     this.updateViewport();
@@ -115,22 +127,26 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     this.subscriptions = [];
 
-    if (this.scrollFrame !== undefined && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(this.scrollFrame);
+    if (this.scrollFrame !== undefined) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.scrollFrame);
+      }
+      this.scrollFrame = undefined;
     }
-    this.scrollFrame = undefined;
 
-    if (this.scrollCheckFrame !== undefined && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(this.scrollCheckFrame);
+    if (this.scrollCheckFrame !== undefined) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.scrollCheckFrame);
+      }
+      this.scrollCheckFrame = undefined;
     }
-    this.scrollCheckFrame = undefined;
 
     if (this.scrollRestoreTimer !== undefined) {
       clearTimeout(this.scrollRestoreTimer);
       this.scrollRestoreTimer = undefined;
     }
 
-    this.resizeService.unobserve(this.ref);
+    this.resizeService.unobserve(this.hostElement);
     this.galleryService.setActive(false);
     this.view = undefined;
   }
@@ -143,19 +159,35 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('window:resize')
   public onWindowResize(): void {
+    this.handleResize();
+  }
+
+  private handleResize(): void {
+    if (!this.hostElement.nativeElement.isConnected) {
+      return;
+    }
+
+    const hostRect = this.hostElement.nativeElement.getBoundingClientRect();
+    const nextColumns = columnsForWidth(hostRect.width);
+    if (this.view && nextColumns !== this.columns) {
+      // Keep the row holding the current top item at the top after a breakpoint
+      // change; this is a no-op at scroll 0.
+      const target = Math.floor(this.firstVisibleIndex / nextColumns) * GALLERY_ROW_HEIGHT;
+      this.scrollToY(target);
+    }
     this.updateViewport();
   }
 
   public updateViewport(): void {
-    if (!this.ref.nativeElement.isConnected) {
+    if (!this.hostElement.nativeElement.isConnected) {
       return;
     }
 
-    const rect = this.ref.nativeElement.getBoundingClientRect();
-    const columns = columnsForWidth(rect.width);
+    const hostRect = this.hostElement.nativeElement.getBoundingClientRect();
+    const columns = columnsForWidth(hostRect.width);
     const scrollTop = window.scrollY;
     const viewportHeight = window.innerHeight;
-    const containerTop = rect.top + window.scrollY;
+    const containerTop = hostRect.top + window.scrollY;
     this.columns = columns;
 
     this.galleryService.setViewport({
@@ -205,7 +237,7 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private handleScroll(): void {
-    if (!this.ref.nativeElement.isConnected) {
+    if (!this.hostElement.nativeElement.isConnected) {
       return;
     }
     this.scrollMemory.remember(GALLERY_ROUTE, window.scrollY);
@@ -242,7 +274,7 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scrollMemory.forget(GALLERY_ROUTE);
     this.pendingScrollTop = view.scrollTop;
 
-    if (!this.ref.nativeElement.isConnected) {
+    if (!this.hostElement.nativeElement.isConnected) {
       return;
     }
     this.scrollToY(view.scrollTop);
@@ -256,8 +288,10 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
       clearTimeout(this.scrollRestoreTimer);
       this.scrollRestoreTimer = undefined;
     }
-    if (this.scrollCheckFrame !== undefined && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(this.scrollCheckFrame);
+    if (this.scrollCheckFrame !== undefined) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.scrollCheckFrame);
+      }
       this.scrollCheckFrame = undefined;
     }
 
@@ -285,17 +319,21 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     // scrolls to the top. Restoring on the next macrotask wins, and replacing
     // the timer means a later navigation supersedes an earlier one.
     this.scrollRestoreTimer = setTimeout(() => {
-      this.scrollRestoreTimer = undefined;
-      if (!this.ref.nativeElement.isConnected) {
-        return;
-      }
-      // Only clear the pending seek this callback actually applied.
-      if (this.pendingScrollTop === target) {
-        this.pendingScrollTop = undefined;
-      }
-      this.scrollToY(target);
-      this.updateViewport();
-      this.scheduleScrollRecheck(target);
+      // zone.js patches setTimeout, but keep the explicit run: the restore
+      // updates the viewport/service and must participate in change detection.
+      this.zone.run(() => {
+        this.scrollRestoreTimer = undefined;
+        if (!this.hostElement.nativeElement.isConnected) {
+          return;
+        }
+        // Only clear the pending seek this callback actually applied.
+        if (this.pendingScrollTop === target) {
+          this.pendingScrollTop = undefined;
+        }
+        this.scrollToY(target);
+        this.updateViewport();
+        this.scheduleScrollRecheck(target);
+      });
     }, 0);
   }
 
@@ -303,12 +341,14 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     if (typeof requestAnimationFrame !== 'function') {
       return;
     }
-    if (this.scrollCheckFrame !== undefined && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(this.scrollCheckFrame);
+    if (this.scrollCheckFrame !== undefined) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.scrollCheckFrame);
+      }
     }
     this.scrollCheckFrame = requestAnimationFrame(() => {
       this.scrollCheckFrame = undefined;
-      if (!this.ref.nativeElement.isConnected) {
+      if (!this.hostElement.nativeElement.isConnected) {
         return;
       }
       if (Math.abs(window.scrollY - target) <= 2) {

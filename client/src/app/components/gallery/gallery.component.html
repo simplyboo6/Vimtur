@@ -3,7 +3,7 @@
     <div class="gallery-window" [style.transform]="'translateY(' + view.offsetY + 'px)'">
       @for (row of rows; track row.start) {
         <div class="gallery-row">
-          @for (m of row.items; track $index) {
+          @for (m of row.items; track m ? m.hash : $index) {
             <div class="image-container">
               @if (m) {
                 <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="openMedia(m)">
@@ -26,7 +26,7 @@
       }
     </div>
   </div>
-  <div class="gallery-status" role="status">{{ status }}</div>
+  <div class="gallery-status text-muted" role="status">{{ status }}</div>
 } @else {
   <app-loading></app-loading>
 }
