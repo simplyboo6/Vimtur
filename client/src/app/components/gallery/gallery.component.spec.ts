@@ -18,7 +18,6 @@ const GALLERY_COLUMNS = 3;
 const attachedHosts: HTMLElement[] = [];
 let setScrollY: (value: number) => void;
 let scrollToSpy: MockInstance;
-let scrollBySpy: MockInstance;
 let animationFrames: Map<number, FrameRequestCallback>;
 let nextAnimationFrameId: number;
 
@@ -81,10 +80,10 @@ interface Harness {
   component: GalleryComponent;
   host: HTMLElement;
   view: ReplaySubject<GalleryView | undefined>;
-  scrollByViewportRequest: Subject<number>;
   seekRequest: Subject<number>;
   setViewport: MockInstance;
   setActive: MockInstance;
+  suppressNextIndexFollow: MockInstance;
   collectionService: { goto: MockInstance; getMetadata: () => unknown; isSearching: () => unknown };
   scrollMemory: ScrollMemoryService;
   resizeService: { resizeEmitter: EventEmitter<Map<unknown, ResizeObserverEntry>>; observe: MockInstance; unobserve: MockInstance };
@@ -95,16 +94,16 @@ interface Harness {
 function createHarness(options: { attached?: boolean; width?: number; widths?: number[]; top?: number; detect?: boolean } = {}): Harness {
   const attached = options.attached ?? true;
   const view = new ReplaySubject<GalleryView | undefined>(1);
-  const scrollByViewportRequest = new Subject<number>();
   const seekRequest = new Subject<number>();
   const setViewport = vi.fn();
   const setActive = vi.fn();
+  const suppressNextIndexFollow = vi.fn();
   const galleryService = {
     view,
-    scrollByViewportRequest,
     seekRequest,
     setViewport,
     setActive,
+    suppressNextIndexFollow,
   };
   const collectionService = {
     goto: vi.fn(),
@@ -149,10 +148,10 @@ function createHarness(options: { attached?: boolean; width?: number; widths?: n
     component: fixture.componentInstance,
     host,
     view,
-    scrollByViewportRequest,
     seekRequest,
     setViewport,
     setActive,
+    suppressNextIndexFollow,
     collectionService,
     scrollMemory: TestBed.inject(ScrollMemoryService),
     resizeService,
@@ -166,7 +165,6 @@ beforeEach(() => {
   setScrollY = value => scrollYSpy.mockReturnValue(value);
   vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800);
   scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
-  scrollBySpy = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
   animationFrames = new Map();
   nextAnimationFrameId = 1;
   vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
@@ -252,6 +250,17 @@ describe('GalleryComponent', () => {
 
     expect(harness.host.querySelector('.image-container app-preview')).not.toBeNull();
     expect(harness.host.querySelector('.image-container img.gallery-img')).toBeNull();
+  });
+
+  it('suppresses index following when a tile is clicked', () => {
+    const harness = createHarness();
+    const media = createMedia('h7');
+
+    harness.component.openMedia(media);
+
+    expect(harness.suppressNextIndexFollow).toHaveBeenCalledTimes(1);
+    expect(harness.collectionService.goto).toHaveBeenCalledWith('h7');
+    expect(harness.suppressNextIndexFollow.mock.invocationCallOrder[0]).toBeLessThan(harness.collectionService.goto.mock.invocationCallOrder[0]);
   });
 
   it('reports document coordinates to the gallery service', () => {
@@ -597,14 +606,6 @@ describe('GalleryComponent', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('scrolls the window by a viewport on a scroll request', () => {
-    const harness = createHarness();
-
-    harness.scrollByViewportRequest.next(2);
-
-    expect(scrollBySpy).toHaveBeenCalledWith({ top: 1600, behavior: 'smooth' });
   });
 
   it('scrolls to the target and re-measures the viewport on a seek request', () => {

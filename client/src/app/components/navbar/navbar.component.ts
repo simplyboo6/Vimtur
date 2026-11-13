@@ -157,15 +157,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         title: 'Previous',
         icon: faArrowLeft,
         click: () => {
-          if (this.currentRoute) {
-            if (singularUrls.includes(this.currentRoute)) {
-              this.collectionService.offset(-1);
-            } else if (GALLERY_URL === this.currentRoute) {
-              this.galleryService.scrollByViewport(-1);
-            }
+          if (this.currentRoute && singularUrls.includes(this.currentRoute)) {
+            this.collectionService.offset(-1);
           }
         },
-        visible: navEnabledObservable,
+        visible: isSingularObservable,
       },
       {
         type: 'button',
@@ -213,15 +209,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         title: 'Next',
         icon: faArrowRight,
         click: () => {
-          if (this.currentRoute) {
-            if (singularUrls.includes(this.currentRoute)) {
-              this.collectionService.offset(1);
-            } else if (GALLERY_URL === this.currentRoute) {
-              this.galleryService.scrollByViewport(1);
-            }
+          if (this.currentRoute && singularUrls.includes(this.currentRoute)) {
+            this.collectionService.offset(1);
           }
         },
-        visible: navEnabledObservable,
+        visible: isSingularObservable,
       },
       {
         ...nextDirectoryButtonBase,

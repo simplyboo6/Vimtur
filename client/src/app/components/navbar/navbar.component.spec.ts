@@ -21,7 +21,6 @@ interface Harness {
   offset: MockInstance;
   prompt: MockInstance;
   seekToIndex: MockInstance;
-  scrollByViewport: MockInstance;
 }
 
 function emitRoute(router: Router, url: string): void {
@@ -36,7 +35,6 @@ function createHarness(): Harness {
   const offset = vi.fn();
   const prompt = vi.fn();
   const seekToIndex = vi.fn();
-  const scrollByViewport = vi.fn();
 
   TestBed.configureTestingModule({
     imports: [NavbarComponent],
@@ -44,7 +42,7 @@ function createHarness(): Harness {
       provideRouter([]),
       { provide: AlertService, useValue: { show: alerts } },
       { provide: CollectionService, useValue: { goto, offset, shuffle: vi.fn(), deleteCurrent: vi.fn(), search: vi.fn() } },
-      { provide: GalleryService, useValue: { position, seekToIndex, scrollByViewport } },
+      { provide: GalleryService, useValue: { position, seekToIndex } },
       { provide: MediaService, useValue: { media: undefined } },
       { provide: PromptService, useValue: { prompt } },
       {
@@ -65,7 +63,7 @@ function createHarness(): Harness {
   const host = fixture.nativeElement as HTMLElement;
   fixture.detectChanges();
 
-  return { fixture, host, position, alerts, goto, offset, prompt, seekToIndex, scrollByViewport };
+  return { fixture, host, position, alerts, goto, offset, prompt, seekToIndex };
 }
 
 function click(host: HTMLElement, title: string): void {
@@ -99,16 +97,27 @@ describe('NavbarComponent', () => {
     expect(harness.host.querySelector('.range-indicator')).toBeNull();
   });
 
-  it('scrolls the gallery by a viewport for the gallery arrows', () => {
+  it('hides the viewer Previous/Next buttons on the gallery route', () => {
     const harness = createHarness();
     emitRoute(TestBed.inject(Router), '/gallery');
+    harness.fixture.detectChanges();
+
+    expect(harness.host.querySelector('button[title="Previous"]')).toBeNull();
+    expect(harness.host.querySelector('button[title="Next"]')).toBeNull();
+    // Directory navigation stays available on the gallery.
+    expect(harness.host.querySelector('button[title="Previous Directory"]')).not.toBeNull();
+    expect(harness.host.querySelector('button[title="Next Directory"]')).not.toBeNull();
+  });
+
+  it('steps the collection from the viewer Previous/Next buttons', () => {
+    const harness = createHarness();
+    emitRoute(TestBed.inject(Router), '/viewer');
     harness.fixture.detectChanges();
 
     click(harness.host, 'Previous');
     click(harness.host, 'Next');
 
-    expect(harness.scrollByViewport.mock.calls).toEqual([[-1], [1]]);
-    expect(harness.offset).not.toHaveBeenCalled();
+    expect(harness.offset.mock.calls).toEqual([[-1], [1]]);
   });
 
   it('seeks the gallery only when the prompted goto succeeds', async () => {

@@ -70,12 +70,6 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
       }),
     );
     this.subscriptions.push(
-      this.galleryService.scrollByViewportRequest.subscribe(delta => {
-        // The service only signals the intent; the component owns the window.
-        window.scrollBy({ top: delta * window.innerHeight, behavior: 'smooth' });
-      }),
-    );
-    this.subscriptions.push(
       this.galleryService.seekRequest.subscribe(target => {
         // An explicit goto: the service has already moved the target window.
         this.scrollToY(target);
@@ -203,6 +197,13 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
     return '';
   }
 
+  // A tile click navigates to the hash. Suppress the index-follow once so the
+  // goto's index change cannot move the gallery grid the user just clicked in.
+  public openMedia(media: Media): void {
+    this.galleryService.suppressNextIndexFollow();
+    this.collectionService.goto(media.hash);
+  }
+
   private handleScroll(): void {
     if (!this.ref.nativeElement.isConnected) {
       return;
@@ -322,7 +323,7 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Bootstrap's reboot sets scroll-behavior: smooth on :root, which would
   // animate a two-argument scrollTo across the whole virtual list. Restores and
-  // seeks must jump; only explicit paging (scrollByViewport) animates.
+  // seeks must jump rather than animate.
   private scrollToY(top: number): void {
     window.scrollTo({ left: 0, top, behavior: 'instant' });
   }

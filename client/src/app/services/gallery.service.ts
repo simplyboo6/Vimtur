@@ -49,9 +49,6 @@ export class GalleryService implements OnDestroy {
 
   public readonly position: ReplaySubject<GalleryPosition | undefined> = new ReplaySubject(1);
 
-  // The component owns window.scrollBy.
-  public readonly scrollByViewportRequest = new Subject<number>();
-
   // The component owns window.scrollTo for an explicit goto/seek.
   public readonly seekRequest = new Subject<number>();
 
@@ -59,6 +56,8 @@ export class GalleryService implements OnDestroy {
   private configService: ConfigService;
   private scrollMemory: ScrollMemoryService;
   private metadata?: CollectionMetadata;
+  private index = 0;
+  private suppressIndexFollow = false;
   private active = false;
   private viewport?: GalleryViewport;
   private currentView?: GalleryView;
@@ -104,13 +103,15 @@ export class GalleryService implements OnDestroy {
     }
   }
 
+  // A tile click explicitly navigates to a hash, so the index change it causes
+  // must not reposition the gallery. One-shot: the goto's metadata consumes it.
+  public suppressNextIndexFollow(): void {
+    this.suppressIndexFollow = true;
+  }
+
   public setViewport(viewport: GalleryViewport): void {
     this.viewport = { ...viewport };
     this.refreshView();
-  }
-
-  public scrollByViewport(delta: number): void {
-    this.scrollByViewportRequest.next(delta);
   }
 
   // Scrolls the requested 0-based item's row to the top of the viewport.
@@ -133,6 +134,11 @@ export class GalleryService implements OnDestroy {
   }
 
   private setMetadata(metadata?: CollectionMetadata): void {
+    // One-shot: a suppressed index change is consumed here even if no metadata
+    // follows it; there is deliberately no timer.
+    const suppressFollow = this.suppressIndexFollow;
+    this.suppressIndexFollow = false;
+
     const previous = this.metadata?.collection;
     this.metadata = metadata;
 
@@ -141,9 +147,14 @@ export class GalleryService implements OnDestroy {
       return;
     }
 
+    const previousIndex = this.index;
+    this.index = metadata.index;
+
     if (previous === metadata.collection) {
-      // Same collection: a tile click or offset only moves CollectionService's
-      // index, which the gallery does not act on until an explicit seek.
+      // Same collection: stepping from the viewer/metadata tab must move the
+      // remembered gallery position, but a tile click (which happens while the
+      // gallery is active) must not.
+      this.followInactiveIndex(previousIndex, suppressFollow);
       this.refreshView();
       return;
     }
@@ -152,11 +163,15 @@ export class GalleryService implements OnDestroy {
       for (const hash of metadata.removed) {
         this.cache.delete(hash);
       }
+      // Deleting the current media can move the index too.
+      this.followInactiveIndex(previousIndex, suppressFollow);
       this.refreshView(true);
       return;
     }
 
     if (previous !== undefined && metadata.order === true) {
+      // Reordering can move the current media's index.
+      this.followInactiveIndex(previousIndex, suppressFollow);
       this.refreshView(true);
       return;
     }
@@ -174,6 +189,7 @@ export class GalleryService implements OnDestroy {
 
   private resetCollection(): void {
     this.resetCache();
+    this.index = 0;
     this.currentView = undefined;
     this.view.next(undefined);
     this.lastPosition = undefined;
@@ -189,6 +205,18 @@ export class GalleryService implements OnDestroy {
     this.queue = [];
     this.failedUntil.clear();
     this.clearRetryTimers();
+  }
+
+  // Viewer/metadata stepping moves CollectionService's index while the gallery
+  // is detached, so move the remembered target too; returning to the gallery
+  // then shows the stepped-to media. A tile click changes the index while the
+  // gallery is active and must not move it.
+  private followInactiveIndex(previousIndex: number, suppressFollow: boolean): void {
+    if (suppressFollow || this.active || this.index === previousIndex || !this.viewport) {
+      return;
+    }
+    this.seekViewportToIndex(this.index);
+    this.scrollMemory.remember(GALLERY_ROUTE, this.viewport.scrollTop);
   }
 
   // Places the item's row at the top of the content. containerTop is where the
