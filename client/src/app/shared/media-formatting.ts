@@ -47,3 +47,9 @@ export function getSubtitle(media: Media): string {
   segments.push(dimensions);
   return segments.filter(s => !!s).join(' | ');
 }
+
+// The server caches one thumbnail PNG per media hash. Shared so the gallery and
+// viewer use the same cached path.
+export function getThumbnailSrc(media: Media): string {
+  return `/cache/thumbnails/${media.hash}.png`;
+}

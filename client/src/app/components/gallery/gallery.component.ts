@@ -6,8 +6,8 @@ import { filter } from 'rxjs/operators';
 import { CollectionService } from 'services/collection.service';
 import { GalleryService, GalleryView } from 'services/gallery.service';
 import { ScrollMemoryService } from 'services/scroll-memory.service';
-import { columnsForWidth, GALLERY_ROW_HEIGHT } from 'app/shared/gallery-layout';
-import { getSubtitle, getTitle } from 'app/shared/media-formatting';
+import { columnsForWidth, GALLERY_GAP, GALLERY_ROW_HEIGHT, GALLERY_TILE_HEIGHT } from 'app/shared/gallery-layout';
+import { getSubtitle, getThumbnailSrc, getTitle } from 'app/shared/media-formatting';
 import { GALLERY_ROUTE } from 'app/shared/routes';
 import { LoadingComponent } from '../loading/loading.component';
 import { PreviewComponent } from '../preview/preview.component';
@@ -27,9 +27,15 @@ interface GalleryRow {
 })
 export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   public view?: GalleryView;
+  // The measured column count, also exposed to CSS as --gallery-columns so a
+  // partial last row cannot stretch its tiles across the full width.
+  public columns = 1;
   public readonly rowHeight = GALLERY_ROW_HEIGHT;
+  public readonly gap = GALLERY_GAP;
+  public readonly tileHeight = GALLERY_TILE_HEIGHT;
   public readonly getTitle = getTitle;
   public readonly getSubtitle = getSubtitle;
+  public readonly getThumbnailSrc = getThumbnailSrc;
   public collectionService: CollectionService;
 
   private galleryService: GalleryService;
@@ -37,7 +43,6 @@ export class GalleryComponent implements OnInit, AfterViewInit, OnDestroy {
   private router: Router;
   private hostElement: ElementRef;
   private subscriptions: Subscription[] = [];
-  private columns = 1;
   private firstVisibleIndex = 0;
   private lastVersion?: number;
   private pendingScrollTop?: number;

@@ -11,7 +11,11 @@ img {
 canvas {
   margin: 0 auto;
   max-width: 100%;
+  // The canvas keeps its 16:9 (or source) aspect and is centred in the tile, so
+  // an explicit 100% width with contain letterboxes it instead of stretching.
+  width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 
 .hidden {

@@ -1,5 +1,6 @@
 import { EventEmitter } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { NavigationEnd, NavigationStart, provideRouter, Router, Scroll } from '@angular/router';
 import { Media } from '@vimtur/common';
 import { of, ReplaySubject, Subject } from 'rxjs';
@@ -10,8 +11,9 @@ import { ConfigService } from 'app/services/config.service';
 import { GalleryService, GalleryView } from 'app/services/gallery.service';
 import { IntersectionService } from 'app/services/intersection.service';
 import { ScrollMemoryService } from 'app/services/scroll-memory.service';
-import { GALLERY_ROW_HEIGHT, GalleryPosition } from 'app/shared/gallery-layout';
+import { GALLERY_ROW_HEIGHT, GALLERY_TILE_HEIGHT, GalleryPosition } from 'app/shared/gallery-layout';
 import { GalleryComponent } from './gallery.component';
+import { PreviewComponent } from '../preview/preview.component';
 
 const GALLERY_COLUMNS = 3;
 const attachedHosts: HTMLElement[] = [];
@@ -201,6 +203,9 @@ describe('GalleryComponent', () => {
     harness.fixture.detectChanges();
 
     expect(rowSizes()).toEqual([3, 3, 1]);
+    // The CSS cap on a partial row's tiles is driven by the same measured count.
+    const viewport = harness.host.querySelector('.gallery-viewport') as HTMLElement;
+    expect(viewport.style.getPropertyValue('--gallery-columns')).toBe('3');
   });
 
   it('sizes the container from the total rows and translates the rendered window', () => {
@@ -216,7 +221,7 @@ describe('GalleryComponent', () => {
     expect(window.style.transform).toBe('translateY(608px)');
   });
 
-  it('renders placeholders without an image and loaded items with a link and image', () => {
+  it('renders placeholders without media and loaded items with an overlay tile', () => {
     const harness = createHarness();
 
     harness.view.next(galleryView({ total: 2, totalRows: 1, items: [undefined, createMedia('abc')] }));
@@ -227,8 +232,13 @@ describe('GalleryComponent', () => {
     expect(containers[0].querySelector('img')).toBeNull();
     expect(containers[0].querySelector('app-preview')).toBeNull();
     expect(containers[0].querySelector('.placeholder')?.getAttribute('aria-hidden')).toBe('true');
-    expect(containers[1].querySelector('a')).not.toBeNull();
-    expect(containers[1].querySelector('img')?.getAttribute('src')).toBe('/cache/thumbnails/abc.png');
+
+    const tile = containers[1].querySelector('a.tile');
+    expect(tile).not.toBeNull();
+    expect(tile?.querySelector('.tile-backdrop')?.getAttribute('src')).toBe('/cache/thumbnails/abc.png');
+    expect(tile?.querySelector('.tile-media')?.getAttribute('src')).toBe('/cache/thumbnails/abc.png');
+    expect(tile?.querySelector('.tile-caption strong')?.textContent).toBe('abc.jpg');
+    expect(tile?.querySelector('.tile-caption .subtitle')?.textContent).toBe('Still');
   });
 
   it('renders a preview for a video that has one', () => {
@@ -243,8 +253,13 @@ describe('GalleryComponent', () => {
     harness.view.next(galleryView({ total: 1, totalRows: 1, items: [video] }));
     harness.fixture.detectChanges();
 
-    expect(harness.host.querySelector('.image-container app-preview')).not.toBeNull();
-    expect(harness.host.querySelector('.image-container img.gallery-img')).toBeNull();
+    const preview = harness.fixture.debugElement.query(By.css('.image-container app-preview.tile-media'));
+    expect(preview).not.toBeNull();
+    // The preview canvas fills the tile box, so it is sized from the shared tile
+    // height rather than the old caption-less image height.
+    expect((preview.componentInstance as PreviewComponent).height).toBe(GALLERY_TILE_HEIGHT);
+    expect(harness.host.querySelector('.image-container .tile-backdrop')).not.toBeNull();
+    expect(harness.host.querySelector('.image-container img.tile-media')).toBeNull();
   });
 
   it('suppresses index following when a tile is clicked', () => {
@@ -299,8 +314,8 @@ describe('GalleryComponent', () => {
     harness.rectSpy.mockReturnValue(rect(800, 100));
     harness.component.onWindowResize();
 
-    // floor(6 / 2) rows * 304px.
-    expect(scrollToSpy).toHaveBeenCalledWith({ left: 0, top: 912, behavior: 'instant' });
+    // floor(6 / 2) rows * the media box plus the gap per row.
+    expect(scrollToSpy).toHaveBeenCalledWith({ left: 0, top: Math.floor(6 / 2) * GALLERY_ROW_HEIGHT, behavior: 'instant' });
     expect(harness.setViewport).toHaveBeenLastCalledWith(expect.objectContaining({ columns: 2 }));
   });
 

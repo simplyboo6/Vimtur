@@ -5,6 +5,9 @@
     </div>
   }
   <div class="right-panel full-height">
+    @if (media) {
+      <img class="media-backdrop" [src]="getThumbnailSrc(media)" alt="" aria-hidden="true" />
+    }
     @if (media && tagsOpen && config && config.user.quickTagShowPath && mediaSrc) {
       <a [href]="'/api/images/' + media.hash + '/file?download=true'" class="text-overlay">
         {{ media.path }}
