@@ -90,6 +90,18 @@ export class GalleryService implements OnDestroy {
   // The component owns this: a hidden gallery still renders but must not fetch.
   public setActive(active: boolean): void {
     this.active = active;
+    if (!active) {
+      return;
+    }
+    // The component activates before measuring, so the retained viewport can be
+    // the previous visit's. Queue it here too: a re-attached gallery whose
+    // first measurement matches the retained window would otherwise never
+    // request its details.
+    const collection = this.metadata?.collection;
+    const viewport = this.viewport;
+    if (collection && viewport) {
+      this.queueWindow(computeWindow(collection.length, viewport));
+    }
   }
 
   public setViewport(viewport: GalleryViewport): void {
@@ -216,8 +228,14 @@ export class GalleryService implements OnDestroy {
     // Scrolling inside a row leaves the rendered window identical. Skip the
     // view work so Angular isn't asked to re-render the same tiles every frame.
     // The stored viewport already holds this frame's scrollTop, so a later
-    // goto/seek still starts from where the user actually is.
+    // goto/seek still starts from where the user actually is. Details are still
+    // queued: a window can be emitted while the gallery is detached/inactive
+    // (a search replaces the collection), and the re-attached component's first
+    // measurement is that same window, so without queueing here its details
+    // would never be requested. queueWindow is a no-op when inactive and
+    // dedupes cached/in-flight hashes, so a loaded window makes no requests.
     if (!force && this.isUnchangedWindow(window, collection.length)) {
+      this.queueWindow(window);
       return;
     }
 

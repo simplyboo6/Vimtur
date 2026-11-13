@@ -576,6 +576,41 @@ describe('GalleryService', () => {
       expect(harness.getMedia.mock.calls.length).toBeGreaterThan(0);
       expect(harness.views.at(-1)?.loading).toBe(false);
     });
+
+    it('queues the retained window when the gallery becomes active again', () => {
+      const requests = createDeferredRequests();
+      const harness = createHarness(requests.getMedia);
+      harness.metadata.next({ index: 0, collection: makeCollection(100) });
+      harness.service.setViewport(viewport());
+      requests.resolveAll();
+
+      // A search replaces the collection while the gallery is detached.
+      harness.service.setActive(false);
+      harness.metadata.next({ index: 0, collection: makeCollection(100, 'n') });
+      expect(harness.views.at(-1)?.items.every(item => item === undefined)).toBe(true);
+      const requestsBefore = requests.requestCount();
+
+      // Re-attaching measures the same window as the one already emitted.
+      harness.service.setActive(true);
+      harness.service.setViewport(viewport());
+
+      expect(requests.requestCount()).toBeGreaterThan(requestsBefore);
+      requests.resolveAll();
+      expect(harness.views.at(-1)?.loading).toBe(false);
+      expect(harness.views.at(-1)?.items[0]?.hash).toBe('n0');
+    });
+
+    it('makes no requests when re-measuring a fully loaded window', () => {
+      const harness = createHarness();
+      harness.metadata.next({ index: 0, collection: makeCollection(100) });
+      harness.service.setViewport(viewport());
+      const requests = harness.getMedia.mock.calls.length;
+
+      harness.service.setViewport(viewport());
+      harness.service.setActive(true);
+
+      expect(harness.getMedia.mock.calls.length).toBe(requests);
+    });
   });
 
   describe('scroll memory', () => {
