@@ -3,7 +3,6 @@ import { ActivatedRoute, RouterOutlet } from '@angular/router';
 import { AsyncPipe } from '@angular/common';
 import { CollectionService } from 'services/collection.service';
 import { ConfigService } from 'services/config.service';
-import { GalleryService } from 'services/gallery.service';
 import { UiService } from 'services/ui.service';
 import { LoadingComponent } from '../loading/loading.component';
 import { NavbarComponent } from '../navbar/navbar.component';
@@ -19,19 +18,11 @@ import { AlertOverlayComponent } from '../alert-overlay/alert-overlay.component'
 export class AppComponent implements OnInit {
   protected readonly collectionService: CollectionService;
   private route: ActivatedRoute;
-  private galleryService: GalleryService;
   private configService: ConfigService;
   private uiService: UiService;
 
-  public constructor(
-    collectionService: CollectionService,
-    galleryService: GalleryService,
-    configService: ConfigService,
-    uiService: UiService,
-    route: ActivatedRoute,
-  ) {
+  public constructor(collectionService: CollectionService, configService: ConfigService, uiService: UiService, route: ActivatedRoute) {
     this.collectionService = collectionService;
-    this.galleryService = galleryService;
     this.configService = configService;
     this.uiService = uiService;
     this.route = route;
@@ -67,19 +58,6 @@ export class AppComponent implements OnInit {
             break;
           case 'Delete':
             this.collectionService.deleteCurrent();
-            break;
-          default:
-            break;
-        }
-        break;
-      }
-      case '/gallery': {
-        switch (event.code) {
-          case 'ArrowLeft':
-            this.galleryService.scrollByViewport(-1);
-            break;
-          case 'ArrowRight':
-            this.galleryService.scrollByViewport(1);
             break;
           default:
             break;

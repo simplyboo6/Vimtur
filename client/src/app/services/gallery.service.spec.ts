@@ -662,6 +662,103 @@ describe('GalleryService', () => {
 
       expect(harness.scrollMemory.forget).not.toHaveBeenCalled();
     });
+
+    it('follows an index change made while the gallery is detached', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      harness.service.setActive(false);
+
+      harness.metadata.next({ index: 40, collection });
+
+      // Row 10 of a 4-column layout, aligned with the page top.
+      expect(harness.scrollMemory.remember).toHaveBeenCalledWith('/gallery', 3040);
+      expect(harness.views.at(-1)?.scrollTop).toBe(3040);
+    });
+
+    it('keeps the gallery still for a tile click while it is active', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setActive(true);
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      harness.scrollMemory.remember.mockClear();
+      const views = harness.views.length;
+
+      harness.metadata.next({ index: 40, collection });
+
+      expect(harness.scrollMemory.remember).not.toHaveBeenCalled();
+      expect(harness.views.length).toBe(views);
+      expect(harness.views.at(-1)?.scrollTop).toBe(56);
+    });
+
+    it('does not follow the index change caused by a gallery tile click', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      harness.service.setActive(false);
+      harness.scrollMemory.remember.mockClear();
+
+      // The tile's click handler suppresses the goto's index change once.
+      harness.service.suppressNextIndexFollow();
+      harness.metadata.next({ index: 40, collection });
+
+      expect(harness.scrollMemory.remember).not.toHaveBeenCalled();
+      expect(harness.views.at(-1)?.scrollTop).toBe(56);
+
+      // The suppression is one-shot: the next metadata change follows again.
+      harness.metadata.next({ index: 80, collection });
+
+      expect(harness.scrollMemory.remember).toHaveBeenCalledWith('/gallery', 6080);
+      expect(harness.views.at(-1)?.scrollTop).toBe(6080);
+    });
+
+    it('follows the index for order and removal updates while detached', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      harness.service.setActive(false);
+
+      harness.metadata.next({ index: 40, collection: [...collection], order: true });
+      expect(harness.scrollMemory.remember).toHaveBeenLastCalledWith('/gallery', 3040);
+      expect(harness.views.at(-1)?.scrollTop).toBe(3040);
+
+      harness.metadata.next({ index: 20, collection: collection.slice(0, 199), removed: ['h199'] });
+      expect(harness.scrollMemory.remember).toHaveBeenLastCalledWith('/gallery', 1520);
+      expect(harness.views.at(-1)?.scrollTop).toBe(1520);
+    });
+
+    it('does not remember when order, removal or same-collection updates keep the index', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 0, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 56, containerTop: 56 }));
+      harness.service.setActive(false);
+      harness.scrollMemory.remember.mockClear();
+
+      harness.metadata.next({ index: 0, collection });
+      harness.metadata.next({ index: 0, collection: [...collection], order: true });
+      harness.metadata.next({ index: 0, collection: collection.slice(0, 199), removed: ['h199'] });
+
+      expect(harness.scrollMemory.remember).not.toHaveBeenCalled();
+    });
+
+    it('remembers a target of 0 when stepping back to the first item', () => {
+      const harness = createHarness();
+      const collection = makeCollection(200);
+      harness.metadata.next({ index: 40, collection });
+      harness.service.setViewport(viewport({ columns: 4, rowHeight: 304, scrollTop: 3040, containerTop: 56 }));
+      harness.service.setActive(false);
+      harness.scrollMemory.remember.mockClear();
+
+      harness.metadata.next({ index: 0, collection });
+
+      expect(harness.scrollMemory.remember).toHaveBeenCalledWith('/gallery', 0);
+      expect(harness.views.at(-1)?.scrollTop).toBe(0);
+    });
   });
 
   describe('seekToIndex', () => {

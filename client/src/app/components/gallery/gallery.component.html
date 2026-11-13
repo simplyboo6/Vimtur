@@ -6,7 +6,7 @@
           @for (m of row.items; track $index) {
             <div class="image-container">
               @if (m) {
-                <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="collectionService.goto(m.hash)">
+                <a routerLink="/viewer" class="card" data-toggle="tooltip" data-placement="bottom" [title]="m.path" (click)="openMedia(m)">
                   @if (m.type === 'video' && m.preview) {
                     <app-preview class="img-fluid gallery-img card-body card-small" [slideshow]="true" [height]="204" [media]="m"></app-preview>
                   } @else {
