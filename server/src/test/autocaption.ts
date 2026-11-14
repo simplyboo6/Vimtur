@@ -162,6 +162,19 @@ describe('caption pack registry', () => {
     expect(new Set(CAPTION_PACKS.map((pack) => pack.id)).size).to.equal(CAPTION_PACKS.length);
   });
 
+  it('Pins the BLIP pack files to the verified upstream artifacts', () => {
+    // The upstream repo names its files differently from our cache, so the
+    // registry maps them by `name` (which decides every cache path) and pins
+    // the verified sizes; an edit to either fails here before a download.
+    const pack = CAPTION_PACKS.find((candidate) => candidate.id === 'BLIP-BASE');
+    expect(pack, 'BLIP-BASE pack').to.not.equal(undefined);
+    if (!pack) {
+      throw new Error('Expected the BLIP-BASE pack to be registered');
+    }
+    expect(pack.files.map((file) => file.name)).to.deep.equal(['encoder.onnx', 'decoder.onnx', 'vocab.txt']);
+    expect(pack.files.map((file) => file.size)).to.deep.equal([344_590_705, 645_815_945, 231_508]);
+  });
+
   it('Derives the task id from the BLIP pack id', () => {
     expect(AUTO_CAPTION_TASK_ID).to.equal('AUTO-CAPTION-BLIP-BASE');
   });
