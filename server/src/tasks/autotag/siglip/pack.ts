@@ -1,23 +1,9 @@
-import { mkdir, rename, stat } from 'node:fs/promises';
 import Path from 'node:path';
 
 import Config from '../../../config';
 
-import { downloadAndVerifyFile } from '../download';
+import { ensurePackFilesDownloaded, hasExpectedSize, PACK_DOWNLOAD_TIMEOUT_MS, type PackFile } from '../../download';
 import type { Preprocessing } from '../preprocess';
-
-/**
- * One downloadable file of a model pack: flat files downloaded straight onto
- * their own names inside the pack directory (no archive to unpack).
- */
-export interface PackFile {
-  /** File name inside the pack directory, e.g. 'image.ort'. */
-  name: string;
-  url: string;
-  sha256: string;
-  /** Size in bytes, used by the cached-file sanity check. */
-  size: number;
-}
 
 /**
  * An embedding pack: dual-tower SigLIP-style models shipped as separate
@@ -113,47 +99,13 @@ export async function isPackCached(pack: EmbeddingPackDefinition): Promise<boole
   return true;
 }
 
-/** True when `path` exists with exactly `size` bytes; a stat only, never a read. */
-async function hasExpectedSize(path: string, size: number): Promise<boolean> {
-  try {
-    return (await stat(path)).size === size;
-  } catch {
-    // A missing file is just "not cached yet".
-    return false;
-  }
-}
-
 /**
  * Ensures every pack file is present and verified, downloading what is
- * missing. Per file, like the classifier models: an interrupted download can
- * only ever leave a `.part` name behind, never a complete-looking file.
+ * missing through the shared flat-file helper.
  */
-
-// Total-time budget for one pack file: sized for the 369MB text tower at a
-// ~205KB/s slow-link floor. A total budget (not an idle one) re-downloads
-// from zero on overrun; pack downloads are big one-off costs, so that is
-// accepted in exchange for keeping the shared mechanic simple.
-const PACK_DOWNLOAD_TIMEOUT_MS = 1_800_000;
-
 export async function ensurePackDownloaded(pack: EmbeddingPackDefinition): Promise<void> {
   if (await isPackCached(pack)) {
     return;
   }
-  await mkdir(packDir(pack), { recursive: true });
-  for (const file of pack.files) {
-    const destination = packFilePath(pack, file);
-    // Skip files that are already locally right (partially complete packs).
-    // The sha256 is verified at download time, so the declared size is what
-    // guards offline reuse; a size-mismatched file is re-downloaded when
-    // online and fails honestly when offline rather than feeding a truncated
-    // model to the encoder. No HEAD probe: a remote size cannot be trusted
-    // over the size declared by the verified definition.
-    if (await hasExpectedSize(destination, file.size)) {
-      continue;
-    }
-    const partial = `${destination}.part`;
-    await downloadAndVerifyFile({ url: file.url, sha256: file.sha256 }, partial, PACK_DOWNLOAD_TIMEOUT_MS);
-    await rename(partial, destination);
-    console.log(`Pack file downloaded: ${pack.id}/${file.name}`);
-  }
+  await ensurePackFilesDownloaded(packDir(pack), pack.files, PACK_DOWNLOAD_TIMEOUT_MS);
 }

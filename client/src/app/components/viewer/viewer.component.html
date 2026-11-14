@@ -13,19 +13,43 @@
         {{ media.path }}
       </a>
     }
-    @if (media && media.autoTags?.length && tagsOpen && config && config.user.quickTagShowAutoTags) {
+    @if (
+      media &&
+      tagsOpen &&
+      config &&
+      ((config.user.quickTagShowAutoCaption && media.autoCaption) || (config.user.quickTagShowAutoTags && media.autoTags?.length))
+    ) {
       <div class="text-overlay bottom">
-        May contain: {{ media.autoTags | formatArray }}
-        <button
-          type="button"
-          class="clear-auto-tags"
-          data-id="clear-auto-tags"
-          title="Clear auto-generated tags"
-          aria-label="Clear auto-generated tags"
-          (click)="clearAutoTags()"
-        >
-          <fa-icon [icon]="faCircleXmark" />
-        </button>
+        @if (config.user.quickTagShowAutoCaption && media.autoCaption) {
+          <div>
+            {{ media.autoCaption }}
+            <button
+              type="button"
+              class="clear-auto-tags"
+              data-id="clear-auto-caption"
+              title="Clear generated caption"
+              aria-label="Clear generated caption"
+              (click)="clearAutoCaption()"
+            >
+              <fa-icon [icon]="faCircleXmark" />
+            </button>
+          </div>
+        }
+        @if (config.user.quickTagShowAutoTags && media.autoTags?.length) {
+          <div>
+            May contain: {{ media.autoTags | formatArray }}
+            <button
+              type="button"
+              class="clear-auto-tags"
+              data-id="clear-auto-tags"
+              title="Clear auto-generated tags"
+              aria-label="Clear auto-generated tags"
+              (click)="clearAutoTags()"
+            >
+              <fa-icon [icon]="faCircleXmark" />
+            </button>
+          </div>
+        }
       </div>
     }
     @if (media) {

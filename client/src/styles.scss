@@ -53,16 +53,16 @@ body {
   }
 }
 
-// The × that clears a media item's generated tags: one shared definition for
-// the viewer and the metadata pane, so it lives in the global sheet rather than
-// in two identical component blocks. It renders the same icon (a circled ×) at
-// the same colour and size as the Auto-Tagging page's remove buttons
-// (.tag-remove/.desc-remove), so clearing tags looks the same wherever it
-// appears. Deliberately not Bootstrap's .btn / .btn-link: those paint the link
-// colour and an underline instead of inheriting the surrounding text colour,
-// and their padding is oversized next to the tag list. The 1.5rem minimum
-// keeps the 24px target size (WCAG 2.2 §2.5.8) that the config-page buttons
-// don't guarantee.
+// The × that clears a media item's generated tags or caption: one shared
+// definition for the viewer and the metadata pane, so it lives in the global
+// sheet rather than in two identical component blocks. It renders the same icon
+// (a circled ×) at the same colour and size as the Auto-Tagging page's remove
+// buttons (.tag-remove/.desc-remove), so clearing generated content looks the
+// same wherever it appears. Deliberately not Bootstrap's .btn / .btn-link: those
+// paint the link colour and an underline instead of inheriting the surrounding
+// text colour, and their padding is oversized next to the tag list. The 1.5rem
+// minimum keeps the 24px target size (WCAG 2.2 §2.5.8) that the config-page
+// buttons don't guarantee.
 .clear-auto-tags {
   border: none;
   background: transparent;
