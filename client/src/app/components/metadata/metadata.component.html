@@ -15,6 +15,21 @@
           @if (media.metadata && media.metadata.createdAt) {
             <div>Created: {{ timestampAsDate(media.metadata.createdAt) | date }}</div>
           }
+          @if (media.autoCaption) {
+            <div>
+              Caption: {{ media.autoCaption }}
+              <button
+                type="button"
+                class="clear-auto-tags"
+                data-id="clear-auto-caption"
+                title="Clear generated caption"
+                aria-label="Clear generated caption"
+                (click)="clearAutoCaption()"
+              >
+                <fa-icon [icon]="faCircleXmark" />
+              </button>
+            </div>
+          }
           @if (media.autoTags?.length) {
             <div>
               May contain: {{ media.autoTags | formatArray }}

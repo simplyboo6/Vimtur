@@ -1,0 +1,139 @@
+@if (config) {
+  <div class="card">
+    <h4>Caption Model</h4>
+    <p class="text-muted">Generated captions describe each still and feed the free-text search. The model runs offline on this server.</p>
+    <div class="input-component">
+      <label for="autocaption-model-select">Model</label>
+      <select
+        [ngModel]="selectedModel"
+        (ngModelChange)="saveModel($event)"
+        id="autocaption-model-select"
+        name="autocaption-model-select"
+        class="form-select d-block w-100"
+      >
+        @for (option of modelOptions(); track option.id) {
+          <option [ngValue]="option.id">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="row">
+      <div class="col-md-4 input-component">
+        <label for="autocaption-worker-count">Worker count</label>
+        <!-- The handler reads `.valueAsNumber` from this template reference: it is the input's
+             own parsed value (NaN for a typed-but-empty field, which saveWorkerCount ignores)
+             rather than a cast of the untyped `$event.target` inside the template. -->
+        <input
+          type="number"
+          class="form-control"
+          id="autocaption-worker-count"
+          name="autocaption-worker-count"
+          min="1"
+          max="8"
+          [ngModel]="workerCount"
+          (change)="saveWorkerCount(workerCountInput.valueAsNumber)"
+          #workerCountInput
+          required
+        />
+        <div>
+          <span class="text-muted">Number of parallel captioning workers; each loads the model pair and uses up to ~1 GB of RAM.</span>
+        </div>
+      </div>
+      <div class="col-md-4 input-component">
+        <label for="autocaption-max-tokens">Maximum caption length (tokens)</label>
+        <!-- Same template-reference read as the worker count: `.valueAsNumber` gives the
+             input's parsed value directly, and NaN (typed-but-empty) is ignored by saveMaxTokens. -->
+        <input
+          type="number"
+          class="form-control"
+          id="autocaption-max-tokens"
+          name="autocaption-max-tokens"
+          min="1"
+          max="100"
+          [ngModel]="maxTokens"
+          (change)="saveMaxTokens(maxTokensInput.valueAsNumber)"
+          #maxTokensInput
+          required
+        />
+        <div>
+          <span class="text-muted">Upper bound on generated caption length; generation stops earlier at the model's end token.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h4>Generate Captions</h4>
+    <p class="text-muted">Runs the selected model across every still and writes the generated caption.</p>
+    @if (!applyTaskAvailable()) {
+      <div class="alert alert-warning">
+        <span
+          >The server does not list the <strong>{{ applyTaskId() }}</strong> task, so Apply Captions is unavailable — {{ applyTaskId() }} is not listed by this
+          server. It is missing from this build (or this server) entirely; pick another model in the Caption Model card above.</span
+        >
+      </div>
+    }
+    <!-- The mode selects are enabled whenever the listed apply task declares
+         select arguments: every caption family carries the same
+         skip-existing/replace and skip-tagged/include-tagged choices. -->
+    <div class="row">
+      <div class="col-md-3 form-padded-input">
+        <label for="autocaption-apply-mode">Existing captions</label>
+        <select
+          id="autocaption-apply-mode"
+          name="autocaption-apply-mode"
+          class="form-select d-block w-100"
+          [ngModel]="applyMode"
+          (ngModelChange)="onApplyModeChange($event)"
+          [disabled]="applyModes().length === 0"
+        >
+          @for (value of applyModes(); track value.id) {
+            <option [ngValue]="value.id">{{ value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-3 form-padded-input">
+        <label for="autocaption-apply-tagged-mode">Caption media with manual tags</label>
+        <select
+          id="autocaption-apply-tagged-mode"
+          name="autocaption-apply-tagged-mode"
+          class="form-select d-block w-100"
+          [ngModel]="applyTaggedMode"
+          (ngModelChange)="onApplyTaggedModeChange($event)"
+          [disabled]="applyTaggedModes().length === 0"
+        >
+          @for (value of applyTaggedModes(); track value.id) {
+            <option [ngValue]="value.id">{{ value.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-3 form-padded-input">
+        <label>Status</label>
+        <div>
+          <span class="text-muted"
+            ><strong>{{ applyStatus() }}</strong></span
+          >
+        </div>
+      </div>
+      <div class="col-md-3 form-padded-input">
+        <button type="button" class="btn btn-primary col-12" id="autocaption-apply" [disabled]="!applyTaskAvailable() || applyInFlight()" (click)="apply()">
+          Apply Captions
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h4>Maintenance</h4>
+    <p class="text-muted">Removes generated captions from every media item.</p>
+    <div class="row">
+      <div class="col-md-8 form-padded-input">
+        <span class="text-muted"
+          >Status: <strong>{{ clearStatus() }}</strong></span
+        >
+      </div>
+      <div class="col-md-4 form-padded-input">
+        <button type="button" class="btn btn-danger col-12" id="autocaption-clear" [disabled]="clearInFlight()" (click)="clear()">Clear All Captions</button>
+      </div>
+    </div>
+  </div>
+} @else {
+  <app-loading></app-loading>
+}

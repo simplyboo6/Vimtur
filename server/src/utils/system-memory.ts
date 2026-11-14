@@ -1,8 +1,8 @@
 import OS from 'node:os';
 
 /**
- * Conservative per-worker memory allowance for the zero-shot auto-tagging
- * encoder pool, in bytes.
+ * Conservative per-worker memory allowance for the auto-tagging encoder and
+ * auto-captioning captioner pools, in bytes.
  *
  * Measured on 2026-11-01 with a throwaway probe (not committed) that loaded the
  * compiled SiglipEncoderPool against the cached AVES-SIGLIP2-B32 pack and
@@ -17,6 +17,10 @@ import OS from 'node:os';
  * towards fewer workers rather than breaking the budget. The fixed ~1GB the
  * first worker adds (shared model mappings plus the parent's tokenizer) is not
  * modelled.
+ *
+ * The #159 auto-captioning bake-off measured the BLIP-base caption pack on the
+ * same host: ~1.49GB RSS at 4 workers, i.e. ~370MB marginal per worker, below
+ * this SigLIP range, so one allowance covers both pools.
  */
 const AUTOTAG_WORKER_MEMORY_BYTES = 400 * 1024 * 1024;
 
@@ -28,11 +32,11 @@ const AUTOTAG_WORKER_MEMORY_SHARE = 0.5;
 const MAX_AUTOTAG_WORKERS = 8;
 
 /**
- * RAM-derived ceiling on auto-tagging workers: no more than half of system
- * memory divided by the measured per-worker allowance, within the schema's
- * 1..8. Used as the boot default written into the config DEFAULTS and by
- * encoderInstances(), which clamps an explicit user value against the same
- * rule.
+ * RAM-derived ceiling on auto-tagging encoder and auto-captioning caption
+ * workers: no more than half of system memory divided by the measured
+ * per-worker allowance, within the schema's 1..8. Used as the boot default
+ * written into the config DEFAULTS and by encoderInstances()/captionInstances(),
+ * which clamp an explicit user value against the same rule.
  *
  * os.totalmem() reports host RAM, so a memory-capped container (the Docker
  * image is a supported install) can exceed the budget this computes from.

@@ -234,6 +234,40 @@ describe('Search API', () => {
     });
   });
 
+  describe('Auto caption', () => {
+    const caption = 'a penguin waddling across the sand';
+
+    it('indexes the caption for keyword search and filters on exists', async () => {
+      assertOk(
+        await client.patch(`/api/images/${byName['gamma']}`, { autoCaption: caption }),
+        'PATCH /api/images/:hash autoCaption',
+      );
+      expect((await detail(client, byName['gamma'])).autoCaption).to.equal(caption);
+      expect(await subset(client, { keywordSearch: 'penguin' })).to.deep.equal([byName['gamma']]);
+      expect(await subset(client, { autoCaption: { exists: true } })).to.deep.equal([byName['gamma']]);
+    });
+
+    it("keeps '' as a processed marker and clears with null", async () => {
+      assertOk(
+        await client.patch(`/api/images/${byName['gamma']}`, { autoCaption: '' }),
+        'PATCH /api/images/:hash autoCaption empty',
+      );
+      // The empty caption is a real stored value: processed, nothing produced.
+      expect((await detail(client, byName['gamma'])).autoCaption).to.equal('');
+      expect(await subset(client, { autoCaption: { exists: true } })).to.deep.equal([byName['gamma']]);
+      expect(await subset(client, { keywordSearch: 'penguin' })).to.deep.equal([]);
+
+      assertOk(
+        await client.patch(`/api/images/${byName['gamma']}`, { autoCaption: null }),
+        'PATCH /api/images/:hash autoCaption null',
+      );
+      // The read path omits the field rather than serving null, so both engines
+      // agree on the uncaptioned wire shape.
+      expect(await detail(client, byName['gamma'])).to.not.have.property('autoCaption');
+      expect(await subset(client, { autoCaption: { exists: false } })).to.have.members(all());
+    });
+  });
+
   describe('Sorting and paging', () => {
     it('sortBy rating defaults to descending', async () => {
       expect(await subset(client, { sortBy: 'rating' })).to.deep.equal([

@@ -51,6 +51,19 @@ export class Updater {
       await collection.createIndex({ hash: 1, path: 1 }, { unique: true });
       await Updater.saveUpdate(updatesCollection, '018_media-deleted-composite-key');
     }
+
+    // 019: the caption joins the keyword index. Text indexes cannot be altered
+    // in place, so drop and recreate it with the extra field.
+    if (!(await Updater.hasRun(updatesCollection, '019_auto-caption-text-index'))) {
+      const collection = db.collection('media');
+      // A re-run after an interrupted apply must not throw: the index may
+      // already be gone. Matches 018's guard above.
+      if (await collection.indexExists('keyword_index')) {
+        await collection.dropIndex('keyword_index');
+      }
+      await Updater.createMediaCollectionTextIndex(db, 'media');
+      await Updater.saveUpdate(updatesCollection, '019_auto-caption-text-index');
+    }
   }
 
   private static async collectionExists(db: Db, name: string): Promise<boolean> {
@@ -74,6 +87,7 @@ export class Updater {
         type: 'text',
         tags: 'text',
         autoTags: 'text',
+        autoCaption: 'text',
         actors: 'text',
         'metadata.artist': 'text',
         'metadata.album': 'text',
@@ -85,6 +99,7 @@ export class Updater {
           // Least important to most
           path: 1,
           autoTags: 1,
+          autoCaption: 2,
 
           tags: 3,
           'metadata.artist': 5,

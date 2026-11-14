@@ -92,10 +92,11 @@ export class SiglipEncoderPool implements EncoderPool {
       () => {
         return new SiglipWorkerWrapper();
       },
-      // One instance per configured worker: each instance pins both towers
-      // (roughly a GB here), so the config's worker count is the instance
-      // count, clamped once by encoderInstances(). Inherited pool limitation:
-      // a crashed instance is not evicted mid-pool; its queued chunk fails via
+      // ScalingConnectionPool keeps at least one instance alive and scales the
+      // rest on demand, so maxInstances is a ceiling, not a fixed pool: each
+      // instance pins both towers (roughly a GB here), and the ceiling is
+      // clamped once by encoderInstances(). Inherited pool limitation: a
+      // crashed instance is not evicted mid-pool; its queued chunk fails via
       // continueOnError and the task ends with partial work.
       { maxInstances: instanceCount },
     );

@@ -61,6 +61,7 @@ const DEFAULTS: Partial<Configuration.Main> = {
   // Enabled pHash generation during auto-import.
   enablePhash: false,
   enableAutoTags: true,
+  enableAutoCaption: false,
   database: { provider: 'sqlite' },
   transcoder: {
     // Copy data to speedup setup.
@@ -110,6 +111,7 @@ const DEFAULTS: Partial<Configuration.Main> = {
     quickTagShowPath: true,
     quickTagShowPlaylists: true,
     quickTagShowAutoTags: true,
+    quickTagShowAutoCaption: true,
     useNativeSelectOnMobile: true,
     scaleToScreenWidthOnMobile: true,
 
@@ -131,6 +133,18 @@ const DEFAULTS: Partial<Configuration.Main> = {
     minSupport: 8,
     calibrationSampleSize: 500,
     tags: {},
+  },
+  // Auto-Captioning defaults: workers use the same RAM-derived ceiling and
+  // ~400MB-per-worker estimate as autotags.workers (a captioning worker holds a
+  // full encoder/decoder pair), but the two pools are budgeted independently, so
+  // a server running both can reach twice that ceiling. 25 new tokens is the
+  // ceiling the #159 export harness used; `model` is the BLIP-base pack chosen
+  // by the bake-off and stays a plain string because the roster is the server's
+  // own task list (an unknown id fails closed until its task is registered).
+  autocaption: {
+    model: 'AUTO-CAPTION-BLIP-BASE',
+    workers: autotagWorkerMemoryLimit(),
+    maxTokens: 25,
   },
 };
 

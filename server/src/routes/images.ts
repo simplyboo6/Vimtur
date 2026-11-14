@@ -160,11 +160,14 @@ export function create(db: Database): Router {
     res.sendStatus(204);
   });
 
-  // PATCH is also the clear path for auto-generated tags: the viewer's × and
+  // PATCH is also the clear path for auto-generated values: the viewer's × and
   // the metadata pane send {autoTags: null}, which stores NULL (not the []
   // "processed" marker) so a default skip-existing apply reconsiders the item.
   // A manually tagged item stays protected by the skip-tagged default until
-  // include-tagged is chosen explicitly. See UpdateMedia.autoTags.
+  // include-tagged is chosen explicitly. See UpdateMedia.autoTags. Captions
+  // clear the same way with {autoCaption: null}, returning them to the
+  // uncaptioned state rather than the '' "processed, nothing produced" marker
+  // (see UpdateMedia.autoCaption).
   router.patch('/:hash', async (req, res) => {
     const hash = singleParam(req.params.hash);
     const media = await db.getMedia(hash);
