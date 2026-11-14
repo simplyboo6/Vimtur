@@ -221,6 +221,23 @@ describe('GalleryComponent', () => {
     expect(window.style.transform).toBe('translateY(608px)');
   });
 
+  it('keeps the gallery out of the scroll anchor set', () => {
+    const harness = createHarness();
+    harness.view.next(galleryView({ total: 20, totalRows: 20, items: createMediaRange(0, 20) }));
+    harness.fixture.detectChanges();
+
+    // Scroll anchoring compensates for blocks that resize above the viewport.
+    // The window recycles rows and moves them with a transform, so an anchor
+    // picked inside it would move the scroll position by a row every time a row
+    // is culled: the reported one-slot jump in #178. The host rule already
+    // excludes the whole subtree (Chrome still reports no adjustment with the
+    // spacer back on auto); the spacer repeats it so the intent stays local to
+    // the virtualised element.
+    const viewport = harness.host.querySelector('.gallery-viewport') as HTMLElement;
+    expect(getComputedStyle(harness.host).getPropertyValue('overflow-anchor')).toBe('none');
+    expect(getComputedStyle(viewport).getPropertyValue('overflow-anchor')).toBe('none');
+  });
+
   it('renders placeholders without media and loaded items with an overlay tile', () => {
     const harness = createHarness();
 
