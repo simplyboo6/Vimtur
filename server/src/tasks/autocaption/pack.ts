@@ -27,17 +27,20 @@ export interface CaptionPackDefinition {
   endTokenIds: number[];
 }
 
-// The #159 Phase 0b BLIP export, hosted by hand at this repository because the
-// artifacts are produced by a throwaway spike rather than CI. A missing upload
-// therefore makes the first real run fail the download; it cannot corrupt a
-// pack, because every file is sha256-verified before it is renamed into place.
-const BLIP_URL_PREFIX = 'https://huggingface.co/simplyboo6/vimtur-autocaption-blip-base/resolve/main';
+// A public ONNX conversion of Salesforce/blip-image-captioning-base, published
+// by the `ningpp` HF account under BSD-3-Clause. It was verified against this
+// repo's own #159 export: identical token ids on a 10-image COCO parity set.
+// Every file is pinned by sha256, so integrity does not depend on the uploader;
+// if the repo disappears the verified download fails loudly rather than
+// serving different weights.
+const BLIP_URL_PREFIX = 'https://huggingface.co/ningpp/blip-image-captioning-base-ONNX/resolve/main';
 
 /**
  * BLIP image captioning base: a ViT encoder and a BERT-style cross-attention
  * decoder at 384px, exported as two fp32 graphs (the #159 bake-off rejected
- * int8: dynamic quantisation changed most captions). Sizes and sha256s are the
- * verified Phase 0b export manifest.
+ * int8: dynamic quantisation changed most captions). The sizes and sha256s are
+ * the pinned artifacts of the public conversion above, not this repo's own
+ * export; the two were verified to produce identical token ids.
  */
 export const BLIP_BASE: CaptionPackDefinition = {
   id: 'BLIP-BASE',
@@ -45,15 +48,15 @@ export const BLIP_BASE: CaptionPackDefinition = {
   files: [
     {
       name: 'encoder.onnx',
-      url: `${BLIP_URL_PREFIX}/encoder.onnx`,
-      sha256: 'ced5de48bc9aa21faeb73954fc05a4a127eb7c573b8f72fd0158e17c329acf5a',
-      size: 344_544_963,
+      url: `${BLIP_URL_PREFIX}/blip_vision_encoder.onnx`,
+      sha256: 'c24d82668c01c1d51e0a113efe0d49661d383ebabbf3295f2d2d5e988aefe8d8',
+      size: 344_590_705,
     },
     {
       name: 'decoder.onnx',
-      url: `${BLIP_URL_PREFIX}/decoder.onnx`,
-      sha256: 'f888d4387f4a5e7f95d24eb4d2fdca94ec227af7c7fcaa07e2c081cb1306b319',
-      size: 645_735_366,
+      url: `${BLIP_URL_PREFIX}/blip_text_decoder.onnx`,
+      sha256: 'b83504573c51a41b9ae70adfb56cc82f2658d8b2da2a47c3d0cb71d255aac92e',
+      size: 645_815_945,
     },
     {
       name: 'vocab.txt',
