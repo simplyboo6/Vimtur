@@ -81,4 +81,11 @@ export class ViewerComponent implements OnInit, OnDestroy {
   public clearAutoTags(): void {
     this.mediaService.clearAutoTags();
   }
+
+  // Same one-click reasoning as the tags ×: re-running Auto-Caption regenerates
+  // the caption, and skip-tagged still protects manually tagged media, so no
+  // confirmation gets in the way.
+  public clearAutoCaption(): void {
+    this.mediaService.clearAutoCaption();
+  }
 }

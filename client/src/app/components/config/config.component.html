@@ -405,6 +405,17 @@
                 />
                 <label class="form-check-label" for="config-quick-tag-auto-tag">Show auto-generated tags below media?</label>
               </div>
+              <!-- Auto Captions -->
+              <div class="form-check tag-config">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="config-quick-tag-auto-caption"
+                  [(ngModel)]="config.user.quickTagShowAutoCaption"
+                  (ngModelChange)="updateConfig('user.quickTagShowAutoCaption', $event)"
+                />
+                <label class="form-check-label" for="config-quick-tag-auto-caption">Show generated captions below media?</label>
+              </div>
             </div>
           </div>
           <div class="card">
@@ -609,6 +620,25 @@
                 </span>
               </div>
             </div>
+            <!-- enableAutoCaption -->
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="config-enable-autocaption"
+                [(ngModel)]="config.enableAutoCaption"
+                (ngModelChange)="updateConfig('enableAutoCaption', $event)"
+              />
+              <label class="form-check-label" for="config-enable-autocaption">Enable auto-captioning of images during import?</label>
+              <div>
+                <span class="text-muted">
+                  Enabling this setting will auto-generate captions for images during the import process using the model selected on the Auto-Captioning page;
+                  these captions feed the keyword search. Media that already carries manual tags is skipped (the apply task defaults to "skip-tagged"). The
+                  first use of a model downloads it, and importing itself is unaffected either way. Even if it is disabled here it can still be triggered
+                  manually from the tasks dropdown.
+                </span>
+              </div>
+            </div>
           </div>
           <div class="card">
             <h4>Version</h4>
@@ -622,6 +652,12 @@
         <a ngbNavLink>Auto-Tagging</a>
         <ng-template ngbNavContent>
           <app-autotag-config />
+        </ng-template>
+      </li>
+      <li ngbNavItem="auto-captioning">
+        <a ngbNavLink>Auto-Captioning</a>
+        <ng-template ngbNavContent>
+          <app-autocaption-config />
         </ng-template>
       </li>
       <li ngbNavItem="deleted-paths">

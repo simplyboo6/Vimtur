@@ -6,6 +6,7 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
 import { Autotag, Configuration, ListedTask, QueuedTask, TaskArgDefinitionSelect, TaskArgDefinitionSelectValue } from '@vimtur/common';
 import { Subscription } from 'rxjs';
+import { TaskStatusTracker } from 'app/shared/task-status';
 import { AlertService } from 'services/alert.service';
 import { ConfigService } from 'services/config.service';
 import { ConfirmationService } from 'services/confirmation.service';
@@ -102,21 +103,6 @@ interface AutotagRow {
   quality?: number;
 }
 
-// Failure lifecycle state for one task type (a queue entry's `type`). One track
-// per kind the page shows a status for: the calibration task and whichever
-// apply task is selected.
-interface FailureTrack {
-  // Error of the latest failed run, raised and cleared by syncFailure;
-  // undefined when no failure is the current outcome.
-  failure?: string;
-  // Per-entry `complete:running:aborted:error` seen in the previous queue
-  // snapshot, keyed by queue id (see syncFailure).
-  entryStates: Map<string, string>;
-  // False until the first snapshot seeds the track, so a run that failed before
-  // the page loaded still reads as Failed.
-  snapshotSeen: boolean;
-}
-
 @Component({
   selector: 'app-autotag-config',
   templateUrl: './autotag-config.component.html',
@@ -154,15 +140,12 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   // queued, starting or finishing (any per-entry state change since the last
   // snapshot).
   private calibrationQueueSignature?: string;
-  // Failure lifecycle state per task type; see syncFailure. One track is kept
-  // for the calibration task and one for the selected apply task. A failure is
-  // held explicitly instead of read off the queue tail: the server splices a
-  // successful entry out of the queue (task-manager.ts auto-clears a completed
-  // run via cancel → splice) while a failed entry stays behind with
-  // complete: true and its error. After a failure followed by a success the
-  // tail is the OLD failed entry again, so a tail lookup reported "Failed"
-  // while Last Run said Complete.
-  private readonly failureTracks = new Map<string, FailureTrack>();
+  // Status and failure state for the calibration and apply tasks; see
+  // TaskStatusTracker. A failure is held explicitly instead of read off the queue
+  // tail: the server splices a successful entry out of the queue while a failed
+  // entry stays behind with complete: true and its error, so after a failure
+  // followed by a success the tail is the OLD failed entry again.
+  private readonly statusTracker = new TaskStatusTracker();
   // Apply task id whose failure track is live. The id changes with the model
   // selection, so a stale track is dropped on the change rather than left to
   // colour the new selection's status (see clearPreviousApplyFailure).
@@ -210,9 +193,9 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
           // Re-seed from the current queue: a config write emits no queue
           // snapshot, so without this a newly selected task whose run already
           // errored would read as Idle until the queue next changes.
-          // syncFailure skips unchanged entries, so this is idempotent for a
-          // track already in step.
-          this.syncFailure(this.applyTaskId(), this.applyEntries());
+          // TaskStatusTracker.sync skips unchanged entries, so this is
+          // idempotent for a track already in step.
+          this.statusTracker.sync(this.applyTaskId(), this.applyEntries());
         },
         // ConfigService already alerts on a failed fetch; a stream error here
         // (the replay subject never errors in practice) only leaves the page on
@@ -257,7 +240,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
             this.loadLastRun();
           }
           this.calibrationQueueSignature = signature;
-          this.syncFailure(CALIBRATION_TASK_ID, entries);
+          this.statusTracker.sync(CALIBRATION_TASK_ID, entries);
           // Apply runs share the lifecycle but track the selected task id only.
           // The selected id lives in the config, and a queue snapshot can arrive
           // before the config GET resolves (the queue is replayed from the
@@ -265,7 +248,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
           // until the config is available.
           if (this.config) {
             this.clearPreviousApplyFailure();
-            this.syncFailure(this.applyTaskId(), this.applyEntries());
+            this.statusTracker.sync(this.applyTaskId(), this.applyEntries());
           }
         },
         // The queue is also replayed from the service's own HTTP read and kept
@@ -551,13 +534,13 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
 
   public calibrationStatus(): string {
     const entries = (this.queue ?? []).filter(task => task.type === CALIBRATION_TASK_ID);
-    return this.taskStatus(CALIBRATION_TASK_ID, entries, this.failureFor(CALIBRATION_TASK_ID));
+    return this.statusTracker.status(CALIBRATION_TASK_ID, entries, this.tasks);
   }
 
   // Same precedence for the apply task the selected model runs: running beats
   // queued beats a recorded failure, and Idle is the no-run state.
   public applyStatus(): string {
-    return this.taskStatus(this.applyTaskId(), this.applyEntries(), this.failureFor(this.applyTaskId()));
+    return this.statusTracker.status(this.applyTaskId(), this.applyEntries(), this.tasks);
   }
 
   // A calibration run that is queued or running (or just requested) disables the
@@ -747,62 +730,6 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Derives a task type's failure from the changes in a queue snapshot: a new
-  // queued/running attempt clears an older failure, a run completing with an
-  // error raises it, and an entry leaving the queue (a successful run is spliced
-  // by task-manager.ts, as is a cancelled queued entry) clears it. Unchanged
-  // entries are skipped, so an older failed entry still sitting in the queue
-  // never re-raises its error after a newer run succeeded. Queue ids reuse freed
-  // slots (task-manager.ts allocates the lowest free suffix), so only an entry's
-  // own state is compared, never its position.
-  private syncFailure(taskId: string, entries: QueuedTask[]): void {
-    const track = this.failureTrack(taskId);
-    const states = new Map<string, string>();
-    for (const entry of entries) {
-      const state = `${entry.complete}:${entry.running}:${entry.aborted}:${entry.error ?? ''}`;
-      states.set(entry.id, state);
-      if (track.snapshotSeen && track.entryStates.get(entry.id) === state) {
-        continue;
-      }
-      if (!entry.complete) {
-        track.failure = undefined;
-      } else if (entry.aborted) {
-        // An abort is a user action, not a failed run; the failure it replaced
-        // was already cleared when the run was queued.
-        continue;
-      } else if (entry.error !== undefined) {
-        track.failure = entry.error;
-      } else {
-        // A completed run without an error supersedes an earlier failure; with
-        // auto-clear off the successful entry stays in the queue, so it is
-        // still the outcome to show.
-        track.failure = undefined;
-      }
-    }
-    for (const id of track.entryStates.keys()) {
-      if (!states.has(id)) {
-        track.failure = undefined;
-      }
-    }
-    track.entryStates = states;
-    // The first snapshot seeds the failure state, so a run that already failed
-    // before the page loaded still reads as Failed.
-    track.snapshotSeen = true;
-  }
-
-  private failureTrack(taskId: string): FailureTrack {
-    let track = this.failureTracks.get(taskId);
-    if (track === undefined) {
-      track = { entryStates: new Map<string, string>(), snapshotSeen: false };
-      this.failureTracks.set(taskId, track);
-    }
-    return track;
-  }
-
-  private failureFor(taskId: string): string | undefined {
-    return this.failureTracks.get(taskId)?.failure;
-  }
-
   // The apply status is keyed by the selected task id. When the selection
   // changes, the previous id's track is dropped: that failure belongs to a task
   // the page no longer shows, and the new id starts unseeded, so the next queue
@@ -817,7 +744,7 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
       // autotags.model equal to the calibration id drop it.
       this.applyFailureTaskId !== CALIBRATION_TASK_ID
     ) {
-      this.failureTracks.delete(this.applyFailureTaskId);
+      this.statusTracker.forget(this.applyFailureTaskId);
     }
     this.applyFailureTaskId = taskId;
   }
@@ -826,32 +753,6 @@ export class AutotagConfigComponent implements OnInit, OnDestroy {
   // read and re-seed derives from.
   private applyEntries(): QueuedTask[] {
     return (this.queue ?? []).filter(task => task.type === this.applyTaskId());
-  }
-
-  private taskStatus(taskId: string, entries: QueuedTask[], failure: string | undefined): string {
-    const running = entries.find(task => task.running);
-    if (running) {
-      // A long run reports each phase through the queue entry's description and
-      // the server restores the task's registered description on completion, so a
-      // running entry whose description differs from the roster's is a phase label
-      // rather than the task name. No listed task yet (the roster GET is still in
-      // flight) leaves the registered description unknown, and progress alone is
-      // safer than mistaking the task name for a phase.
-      const registered = this.tasks?.find(task => task.id === taskId)?.description;
-      if (registered !== undefined && running.description !== registered) {
-        return `Running — ${running.description} (${running.current}/${running.max}) …`;
-      }
-      return `Running — ${running.current}/${running.max} …`;
-    }
-    if (entries.some(task => !task.complete)) {
-      return 'Queued — waiting for a worker slot.';
-    }
-    // Failures come from the synced track rather than a queue tail lookup; see
-    // the failureTracks field comment.
-    if (failure !== undefined) {
-      return `Failed — ${failure}`;
-    }
-    return 'Idle — not currently running.';
   }
 
   private applyTask(): ListedTask | undefined {

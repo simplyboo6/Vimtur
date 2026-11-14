@@ -6,6 +6,7 @@ import Config from '../config';
 import { NotFound } from '../errors';
 import { TaskManager } from '../task-manager';
 import { getTasks } from '../tasks';
+import { autocaptionSettings, pickCaptionTask } from '../tasks/autocaption/settings';
 import { pickImportTask } from '../tasks/autotag/siglip/pick-import-task';
 import { AUTO_TAG_TASK_ID, autotagSettings, countApplicableTags } from '../tasks/autotag/siglip/state';
 import type { Database, RouterTask } from '../types';
@@ -90,6 +91,29 @@ export async function create(db: Database, io: SocketIO.Server): Promise<Router>
               }
             } catch (err) {
               console.warn('Skipping auto-tagging on import: could not evaluate tag thresholds or start the task', err);
+            }
+          }
+          if (Config.get().enableAutoCaption) {
+            // Auto-captioning is an optional extra on an import: a missing or
+            // corrupt pack must warn and skip rather than fail the import,
+            // exactly like the auto-tagging gate above.
+            try {
+              const settings = autocaptionSettings();
+              const selection = pickCaptionTask(settings.model);
+              if (selection.action === 'unknown-model') {
+                console.warn(
+                  `Skipping auto-captioning on import: the configured model ${settings.model} is not a known` +
+                    ' AUTO-CAPTION task - select a model on the Auto-Captioning page.',
+                );
+              } else if (taskManager.hasTask(selection.taskId)) {
+                taskManager.start(selection.taskId);
+              } else {
+                console.warn(
+                  `Skipping auto-captioning on import: ${selection.taskId} is not registered on this server.`,
+                );
+              }
+            } catch (err) {
+              console.warn('Skipping auto-captioning on import: could not start the task', err);
             }
           }
           return [];

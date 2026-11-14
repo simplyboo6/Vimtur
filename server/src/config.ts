@@ -111,6 +111,7 @@ const DEFAULTS: Partial<Configuration.Main> = {
     quickTagShowPath: true,
     quickTagShowPlaylists: true,
     quickTagShowAutoTags: true,
+    quickTagShowAutoCaption: true,
     useNativeSelectOnMobile: true,
     scaleToScreenWidthOnMobile: true,
 

@@ -146,6 +146,13 @@ export class MetadataComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.mediaService.clearAutoTags();
   }
 
+  // Same one-click reasoning as the tags ×: re-running Auto-Caption regenerates
+  // the caption, and skip-tagged still protects manually tagged media, so no
+  // confirmation gets in the way.
+  public clearAutoCaption(): void {
+    this.mediaService.clearAutoCaption();
+  }
+
   public isMetadataChanged(field: 'artist' | 'album' | 'title', media?: Media, model?: MediaModel): boolean {
     if (!media || !model || !model.metadata || !media.metadata) {
       return false;

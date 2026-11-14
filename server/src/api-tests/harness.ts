@@ -36,6 +36,9 @@ export interface StartServerOptions {
   // restart the server and its persisted state. The caller takes ownership of
   // cleanup: stop() then skips the rmSync.
   root?: string;
+  // Extra environment variables for the spawned server, applied after the
+  // harness's own (and after process.env), so a test can override either.
+  env?: Record<string, string>;
 }
 
 export interface ApiServer {
@@ -108,6 +111,7 @@ export async function startServer(options: StartServerOptions = {}): Promise<Api
           // real pack still wins over TEST_MODE, so seeded runs use the real
           // encoder.
           TEST_MODE: '1',
+          ...options.env,
         },
       });
       const spawned = child;

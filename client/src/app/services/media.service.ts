@@ -300,6 +300,18 @@ export class MediaService {
     this.saveMedia(this.media.hash, { autoTags: null });
   }
 
+  // Clears the generated caption through the standard media update
+  // (autoCaption: null, the unprocessed state — not the '' "processed, nothing
+  // produced" marker). Re-running Auto-Caption regenerates it, so no
+  // confirmation gets in the way.
+  public clearAutoCaption() {
+    if (!this.media || !this.media.autoCaption) {
+      return;
+    }
+
+    this.saveMedia(this.media.hash, { autoCaption: null });
+  }
+
   public addTag(value: string | TagListItem) {
     if (!this.media) {
       return;

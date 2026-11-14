@@ -32,8 +32,15 @@ function getTaskLoaders(dir: string): TaskLoader[] {
 }
 
 // Task modules are loaded per directory; autotag groups its implementations by
-// model family, and a family's directory only exists once it is implemented.
-const TASK_DIRS = [__dirname, `${__dirname}/autotag`, `${__dirname}/autotag/mobilenet`, `${__dirname}/autotag/siglip`];
+// model family, and autocaption follows the same grouping. A family's directory
+// only exists once it is implemented.
+const TASK_DIRS = [
+  __dirname,
+  `${__dirname}/autotag`,
+  `${__dirname}/autotag/mobilenet`,
+  `${__dirname}/autotag/siglip`,
+  `${__dirname}/autocaption`,
+];
 
 const taskLoaders = TASK_DIRS.filter((dir) => FS.existsSync(dir)).flatMap((dir) => getTaskLoaders(dir));
 

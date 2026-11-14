@@ -8,6 +8,7 @@
 - Video, gif and image support
 - Tagging media
 - Auto-Tagging of images using image classification (ONNX Runtime)
+- Auto-Captioning of images into searchable text using an on-device ONNX caption model
 - Various forms of searching (weighted keyword, tag selection, etc)
 - Metadata support for Artist/Album/Title/[People/Actors]
 - Auto-scraped metadata from files where possible
@@ -49,6 +50,9 @@ This will start an instance of the program listening on (http://localhost:3523)[
 - Auto-tagging requires internet connectivity the first time a model is used. The model is downloaded from the ONNX Model
   Zoo mirror and verified by checksum before use. Media is all classified locally. Further classifications with that
   model will use the cached download.
+- Auto-captioning downloads a ~1GB model pack on first use, verifies it by checksum and then runs entirely on the
+  CPU. Captions are stored on the media record and included in the keyword search. Expect a few seconds per still on
+  older CPUs; it is an import-time background task, not an interactive one.
 - The downloaders can be found under the Download Files task under the Config tab.
 
 ### Github Sponsors

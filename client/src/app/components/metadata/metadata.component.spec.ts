@@ -199,3 +199,29 @@ describe('MetadataComponent inline creation', () => {
     expect(select.text).toBeUndefined();
   });
 });
+
+describe('MetadataComponent generated caption', () => {
+  it('labels the caption above May contain and clears it through the media service', async () => {
+    const { fixture, media, http } = await createHarness({ ...createMedia(), autoCaption: 'a dog on a beach', autoTags: ['tag'] } as unknown as Media);
+    // The PATCH response is the cleared media, as the server returns it.
+    http.patch.mockReturnValue(of({ ...media, autoCaption: undefined }));
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Caption:');
+    // Assert presence first: indexOf is -1 when the caption is missing, and
+    // -1 < indexOf('May contain:') would pass vacuously.
+    expect(text).toContain('a dog on a beach');
+    expect(text.indexOf('a dog on a beach')).toBeLessThan(text.indexOf('May contain:'));
+
+    const button = fixture.debugElement.query(By.css('[data-id="clear-auto-caption"]'));
+    expect(button).not.toBeNull();
+
+    (button.nativeElement as HTMLButtonElement).click();
+    await flush(fixture);
+
+    // null is the unprocessed state, not the '' "processed, nothing produced" marker.
+    expect(http.patch).toHaveBeenCalledWith('/api/images/abc', { autoCaption: null }, expect.anything());
+    expect(fixture.nativeElement.textContent).not.toContain('a dog on a beach');
+    expect(fixture.debugElement.query(By.css('[data-id="clear-auto-caption"]'))).toBeNull();
+  });
+});

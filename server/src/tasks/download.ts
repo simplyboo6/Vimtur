@@ -1,5 +1,7 @@
 import Crypto from 'node:crypto';
 import FS from 'node:fs';
+import { mkdir, rename, stat } from 'node:fs/promises';
+import Path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
@@ -8,11 +10,33 @@ export interface FileDefinition {
   sha256: string;
 }
 
+/**
+ * One downloadable file of a model pack: flat files downloaded straight onto
+ * their own names inside the pack directory (no archive to unpack).
+ */
+export interface PackFile {
+  /** File name inside the pack directory, e.g. 'image.ort'. */
+  name: string;
+  url: string;
+  sha256: string;
+  /** Size in bytes, used by the cached-file sanity check. */
+  size: number;
+}
+
 // Blob-model downloads: the response is streamed into the partial file and
 // hashed on the way through, so nothing holds two copies of a 178MB model in
 // memory. Generous because the largest registry model is ~180MB on slow links.
 const HEAD_TIMEOUT_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 600_000;
+
+/**
+ * Total-time budget for one pack file, shared by every flat-file pack: 30
+ * minutes, sized for the largest pack file (the 616MiB BLIP decoder) at a
+ * ~350KB/s slow-link floor. A total budget (not an idle one) re-downloads from
+ * zero on overrun; packs are a large one-off cost, so that is accepted in
+ * exchange for keeping the shared mechanic simple.
+ */
+export const PACK_DOWNLOAD_TIMEOUT_MS = 1_800_000;
 
 type NodeCallback = (err?: Error | null, data?: Buffer) => void;
 
@@ -101,6 +125,48 @@ async function remoteSize(url: string): Promise<number | undefined> {
   }
   const length = res.headers.get('content-length');
   return length ? Number(length) : undefined;
+}
+
+/** True when `path` exists with exactly `size` bytes; a stat only, never a read. */
+export async function hasExpectedSize(path: string, size: number): Promise<boolean> {
+  try {
+    return (await stat(path)).size === size;
+  } catch {
+    // A missing file is just "not cached yet".
+    return false;
+  }
+}
+
+/**
+ * Ensures every file is present at its declared size in `cacheDir`, downloading
+ * the rest. Per file: an interrupted download can only ever leave a `.part`
+ * name behind, never a complete-looking file. A failed first download may
+ * leave an empty pack directory behind, which the pack's isPackCached size
+ * check treats as not cached.
+ */
+export async function ensurePackFilesDownloaded(
+  cacheDir: string,
+  files: readonly PackFile[],
+  timeoutMs: number,
+): Promise<void> {
+  await mkdir(cacheDir, { recursive: true });
+  for (const file of files) {
+    const destination = Path.resolve(cacheDir, file.name);
+    // Skip files that are already locally right (partially complete packs).
+    // The sha256 is verified at download time, so the declared size is what
+    // guards offline reuse; a size-mismatched file is re-downloaded when
+    // online and fails honestly when offline rather than feeding a truncated
+    // model to the encoder. No HEAD probe: a remote size cannot be trusted
+    // over the size declared by the verified definition.
+    if (await hasExpectedSize(destination, file.size)) {
+      continue;
+    }
+    const partial = `${destination}.part`;
+    await downloadAndVerifyFile({ url: file.url, sha256: file.sha256 }, partial, timeoutMs);
+    await rename(partial, destination);
+    // The pack directory is named after the pack id, so this names the pack.
+    console.log(`Pack file downloaded: ${Path.basename(cacheDir)}/${file.name}`);
+  }
 }
 
 // Streams the body hashing every chunk in flight, without materialising the

@@ -4,7 +4,7 @@ import Path from 'node:path';
 
 import { ImportUtils } from '../../../cache/import-utils';
 import Config from '../../../config';
-import { downloadAndVerifyFile, type FileDefinition, isFileCached } from '../download';
+import { downloadAndVerifyFile, type FileDefinition, isFileCached } from '../../download';
 import type { Preprocessing } from '../preprocess';
 
 export interface ModelDefinition extends FileDefinition {
