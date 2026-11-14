@@ -50,14 +50,24 @@ export class SqliteConnector extends Database {
   }): Promise<SqliteConnector> {
     const db = new SqliteController(filename);
     await db.exec('CREATE TABLE IF NOT EXISTS `migrations` (`id` TEXT NOT NULL PRIMARY KEY)');
-    for (const migrationFilename of ['001-initial.sql', '002-media-deleted-primary-key.sql', '003-task-state.sql']) {
+    for (const migrationFilename of [
+      '001-initial.sql',
+      '002-media-deleted-primary-key.sql',
+      '003-task-state.sql',
+      '004-auto-caption.sql',
+    ]) {
       if (await db.get('SELECT * FROM `migrations` WHERE `id` = ?', [migrationFilename])) {
         continue;
       }
       const path = Path.resolve(__dirname, 'migrations', migrationFilename);
       const migration = await FS.readFile(path).then((file) => file.toString());
-      await db.exec(migration);
-      await db.run('INSERT INTO `migrations` (`id`) VALUES (?)', [migrationFilename]);
+      await db.transaction((transaction) => {
+        // The schema change and its migration record must land together: a
+        // half-applied migration (e.g. the column added, the record missing)
+        // would fail on the next boot and leave the database unbootable.
+        transaction.exec(migration);
+        transaction.run('INSERT INTO `migrations` (`id`) VALUES (?)', [migrationFilename]);
+      });
     }
 
     return new SqliteConnector(db, libraryPath);

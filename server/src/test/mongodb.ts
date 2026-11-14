@@ -230,6 +230,111 @@ describeMongo('Database Tests: MongoDB', () => {
     });
   });
 
+  describe('autoCaption state', () => {
+    // caption-text: a real caption; caption-empty: the stored "processed,
+    // nothing produced" '' marker; caption-none: never captioned.
+    const CAPTIONS: Record<string, string | undefined> = {
+      'caption-text': 'a dog on a beach',
+      'caption-empty': '',
+      'caption-none': undefined,
+    };
+
+    beforeEach(async () => {
+      for (const [hash, autoCaption] of Object.entries(CAPTIONS)) {
+        await createMedia(hash);
+        // Only write the overlay when the fixture has one: an inserted
+        // `autoCaption: undefined` would store null and defeat exists: false.
+        if (autoCaption !== undefined) {
+          await database.saveMedia(hash, { autoCaption });
+        }
+      }
+    });
+
+    afterEach(async () => {
+      await database.testCleanup();
+    });
+
+    it('round-trips a caption and filters on exists', async () => {
+      expect((await database.getMedia('caption-text'))?.autoCaption).to.equal('a dog on a beach');
+      expect(await database.subset({ autoCaption: { exists: true } })).to.have.members([
+        'caption-text',
+        'caption-empty',
+      ]);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.deep.equal(['caption-none']);
+    });
+
+    it("keeps '' as the processed-with-nothing marker", async () => {
+      expect((await database.getMedia('caption-empty'))?.autoCaption).to.equal('');
+      expect(await database.subset({ autoCaption: { exists: true } })).to.include('caption-empty');
+      expect(await database.subset({ autoCaption: { exists: false } })).to.not.include('caption-empty');
+    });
+
+    it('clears back to unprocessed with an explicit null', async () => {
+      const saved = await database.saveMedia('caption-text', { autoCaption: null });
+      // Mongo stores a null field; the read path (saveMedia's read-back and
+      // getMedia) drops it so the wire shape matches SQLite's absent property.
+      expect(saved).to.not.have.property('autoCaption');
+      expect(await database.getMedia('caption-text')).to.not.have.property('autoCaption');
+      const raw = await getRawMediaDocument('caption-text');
+      expect(raw?.autoCaption, 'stored representation').to.equal(null);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.have.members([
+        'caption-text',
+        'caption-none',
+      ]);
+      expect(await database.subset({ autoCaption: { exists: true } })).to.deep.equal(['caption-empty']);
+    });
+
+    it('saveBulkMedia with autoCaption: null clears only captioned rows', async () => {
+      const cleared = await database.saveBulkMedia({ autoCaption: { exists: true } }, { autoCaption: null });
+      // Both the sentence and the '' marker were processed; the untouched row
+      // was never captioned.
+      expect(cleared).to.equal(2);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.have.members([
+        'caption-text',
+        'caption-empty',
+        'caption-none',
+      ]);
+    });
+
+    it('indexes the caption for keyword search', async () => {
+      await createMedia('caption-search');
+      await database.saveMedia('caption-search', { autoCaption: 'a penguin waddling across the sand' });
+      expect(await database.subset({ keywordSearch: 'penguin' })).to.deep.equal(['caption-search']);
+    });
+
+    it('drops a cleared caption from the keyword index', async () => {
+      await createMedia('caption-index');
+      await database.saveMedia('caption-index', { autoCaption: 'a penguin waddling across the sand' });
+      expect(await database.subset({ keywordSearch: 'penguin' })).to.deep.equal(['caption-index']);
+      await database.saveMedia('caption-index', { autoCaption: null });
+      expect(await database.subset({ keywordSearch: 'penguin' })).to.deep.equal([]);
+    });
+  });
+
+  describe('string exists filters', () => {
+    beforeEach(async () => {
+      await createMedia('string-absent');
+      await createMedia('string-null');
+      // metadata.artist is the plain nullable string on the update type, so it
+      // can pin both stored shapes without a cast: absent, explicit null, and a
+      // real value.
+      await database.saveMedia('string-null', { metadata: { artist: null } });
+      await createMedia('string-set');
+      await database.saveMedia('string-set', { metadata: { artist: 'a photographer' } });
+    });
+
+    afterEach(async () => {
+      await database.testCleanup();
+    });
+
+    it('treats an explicit null and an absent field alike', async () => {
+      // SQLite reports both an explicit NULL and a missing column through
+      // IS NULL, and a stored string through IS NOT NULL.
+      expect(await database.subset({ artist: { exists: false } })).to.have.members(['string-absent', 'string-null']);
+      expect(await database.subset({ artist: { exists: true } })).to.deep.equal(['string-set']);
+    });
+  });
+
   describe('countSubset', () => {
     // Mirrors the SQLite fixture set: the calibration eligibility funnel the
     // zero-shot tasks count before sampling.

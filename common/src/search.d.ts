@@ -33,6 +33,9 @@ export interface SubsetConstraints {
   type?: StringFilter;
   // Only currently searched by Full-text, but exists: false is used.
   autoTags?: StringFilter;
+  // The generated caption. Plain string semantics, so exists distinguishes the
+  // stored '' "processed, nothing" marker from an uncaptioned row.
+  autoCaption?: StringFilter;
 
   // Strings
   hash?: StringFilter;

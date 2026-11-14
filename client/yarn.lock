@@ -4278,8 +4278,8 @@ __metadata:
 
 "@vimtur/common@file:../common::locator=client%40workspace%3A.":
   version: 5.0.0
-  resolution: "@vimtur/common@file:../common#../common::hash=82202b&locator=client%40workspace%3A."
-  checksum: 10c0/49e05c424c6f290b52291524a89720e1806920c3cc246277259ec6bb2e0d8f2d6c694f8d45f42c055ef23ee8636b7ff5695210facbca7a70a27e0d96c025ad32
+  resolution: "@vimtur/common@file:../common#../common::hash=3ffe05&locator=client%40workspace%3A."
+  checksum: 10c0/223b9a74f7cbd7b5b18f86d652c9d5f7e65c08707f75851d6e4618fc1914a0dcaec60079a653fc5d9d73f4963a9c5ac869b687a3aebbf5d2cb0e7cf29430ebd2
   languageName: node
   linkType: hard
 

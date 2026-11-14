@@ -22,9 +22,11 @@ export abstract class Database {
   public abstract saveMedia(hash: string, media: UpdateMedia | BaseMedia): Promise<Media>;
   /**
    * Applies an update to every media matching `constraints`. UpdateMedia's
-   * autoTags: null clears the generated tags back to the unprocessed state
-   * (see its doc comment); [] is the pipeline's "processed, nothing scored"
-   * marker, so the two are distinct. Returns the number of matched media.
+   * null values clear generated values back to the unprocessed state (see its
+   * doc comments): autoTags: null clears the generated tags and autoCaption:
+   * null clears the caption. The processed-with-nothing markers stay distinct:
+   * [] for an empty tag list, '' for an empty caption. Returns the number of
+   * matched media.
    */
   public abstract saveBulkMedia(constraints: SubsetConstraints, media: UpdateMedia): Promise<number>;
   public abstract removeMedia(hash: string, ignoreInImport: boolean): Promise<void>;

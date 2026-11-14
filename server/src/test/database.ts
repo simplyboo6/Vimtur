@@ -2,7 +2,7 @@ import 'source-map-support/register';
 
 import type { BaseMedia, DeletedMedia, Media, Playlist } from '@vimtur/common';
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { afterEach, describe, it } from 'mocha';
 
 import { SqliteConnector } from '../database/sqlite';
 import { SearchIndexer } from '../insights/tokens';
@@ -289,6 +289,65 @@ describe('Database Tests', () => {
       // unprocessed work set alongside the never-scored manual row.
       expect(await database.subset({ autoTags: { exists: false } })).to.include('patch-clear');
       expect(await database.subset({ autoTags: { exists: true } })).to.not.include('patch-clear');
+    });
+  });
+
+  describe('autoCaption state', () => {
+    // '' is the pipeline's "processed, nothing produced" marker while NULL is
+    // the uncaptioned state, mirroring autoTags' [] vs null.
+    const saveCaption = (hash: string, autoCaption?: string): Promise<Media> => {
+      return database.saveMedia(hash, {
+        hash,
+        path: `/tmp/${hash}.jpg`,
+        dir: '/tmp',
+        type: 'still',
+        actors: [],
+        tags: [],
+        hashDate: Date.now(),
+        metadata: { height: 1080, width: 1920 },
+        ...(autoCaption === undefined ? {} : { autoCaption }),
+      });
+    };
+
+    afterEach(async () => {
+      await database.testCleanup();
+    });
+
+    it('round-trips a caption and filters on exists', async () => {
+      await saveCaption('caption-text', 'a dog on a beach');
+      expect((await database.getMedia('caption-text'))?.autoCaption).to.equal('a dog on a beach');
+      expect(await database.subset({ autoCaption: { exists: true } })).to.deep.equal(['caption-text']);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.deep.equal([]);
+    });
+
+    it("keeps '' as the processed-with-nothing marker", async () => {
+      await saveCaption('caption-empty', '');
+      expect((await database.getMedia('caption-empty'))?.autoCaption).to.equal('');
+      expect(await database.subset({ autoCaption: { exists: true } })).to.deep.equal(['caption-empty']);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.deep.equal([]);
+    });
+
+    it('clears back to unprocessed with an explicit null', async () => {
+      await saveCaption('caption-clear', 'a cat in a window');
+      await database.saveMedia('caption-clear', { autoCaption: null });
+      expect(await database.getMedia('caption-clear')).to.not.have.property('autoCaption');
+      expect(await database.subset({ autoCaption: { exists: false } })).to.deep.equal(['caption-clear']);
+      expect(await database.subset({ autoCaption: { exists: true } })).to.deep.equal([]);
+    });
+
+    it('saveBulkMedia with autoCaption: null clears only captioned rows', async () => {
+      await saveCaption('caption-bulk-text', 'a dog on a beach');
+      await saveCaption('caption-bulk-empty', '');
+      await saveCaption('caption-bulk-none');
+      const cleared = await database.saveBulkMedia({ autoCaption: { exists: true } }, { autoCaption: null });
+      // Both the sentence and the '' marker were processed; the untouched row
+      // was never captioned.
+      expect(cleared).to.equal(2);
+      expect(await database.subset({ autoCaption: { exists: false } })).to.have.members([
+        'caption-bulk-text',
+        'caption-bulk-empty',
+        'caption-bulk-none',
+      ]);
     });
   });
 

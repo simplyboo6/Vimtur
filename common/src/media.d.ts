@@ -40,6 +40,10 @@ export interface BaseMedia {
   type: MediaType;
   tags: string[];
   autoTags?: string[];
+  // The generated caption. Absent means it has not been captioned; '' means the
+  // pipeline processed the image and produced nothing. Mirrors autoTags'
+  // null/[] distinction.
+  autoCaption?: string;
   actors: string[];
   hashDate: number;
   metadata?: Metadata;
@@ -111,6 +115,15 @@ export interface UpdateMedia {
    * Configuration's explicit-null manualThreshold override.
    */
   autoTags?: string[] | null;
+  /**
+   * The generated caption, written as a whole string. Omit it to leave the
+   * current value alone, send a string to replace it, or send null to clear it
+   * back to the unprocessed state. null and '' are different states: '' means
+   * the pipeline processed the image and produced no caption, while null
+   * (stored as SQL NULL / an absent field) means it has not been captioned and
+   * a skip-existing run will consider it again.
+   */
+  autoCaption?: string | null;
 }
 
 export interface MediaResolution {

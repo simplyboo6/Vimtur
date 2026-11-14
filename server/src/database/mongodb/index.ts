@@ -616,15 +616,22 @@ export class MongoConnector extends Database {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the destructure exposes the stored document without _id
       const { _id, playlists, ...document } = result;
       // A cleared row stores an explicit null (the Mongo representation of the
-      // unprocessed state), but Media.autoTags is typed string[]. Rows that were
-      // never auto-tagged — including everything SCAN/INDEX inserts — have the
-      // field absent; both read as unprocessed. Drop the null on the read path
-      // only, so both engines serve cleared rows identically: SQLite omits the
-      // property when its auto_tags column is NULL, while the stored Mongo field
+      // unprocessed state), but Media.autoTags is typed string[] and
+      // Media.autoCaption is typed string. Rows that were never generated —
+      // including everything SCAN/INDEX inserts — have the field absent; both
+      // read as unprocessed. Drop the null on the read path only, so both
+      // engines serve cleared rows identically: SQLite omits the property when
+      // its auto_tags/auto_caption column is NULL, while the stored Mongo field
       // stays null or absent.
-      const storedDocument = document as typeof document & { autoTags?: string[] | null };
+      const storedDocument = document as typeof document & {
+        autoTags?: string[] | null;
+        autoCaption?: string | null;
+      };
       if (storedDocument.autoTags === null) {
         delete storedDocument.autoTags;
+      }
+      if (storedDocument.autoCaption === null) {
+        delete storedDocument.autoCaption;
       }
       return {
         ...storedDocument,
@@ -655,7 +662,8 @@ export class MongoConnector extends Database {
     // dotted paths, which are not part of the collection's static field typing.
     // An explicit autoTags: null lands as a null field, Mongo's representation
     // of the unprocessed state; [] stays the "processed, nothing scored" marker
-    // the array filters key off.
+    // the array filters key off. autoCaption follows the same convention with
+    // null vs '' (the "processed, nothing produced" marker).
     const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
     const result = await collection.updateMany(this.buildMediaMatch(constraints), { $set: update });
     return result.matchedCount;
@@ -670,8 +678,9 @@ export class MongoConnector extends Database {
     if (await this.getMedia(hash)) {
       // The flattened update contains dynamically generated `metadata.<key>`
       // dotted paths, which are not part of the collection's static field
-      // typing. An explicit autoTags: null is stored as a null field (the
-      // unprocessed state); [] is the "processed, nothing scored" marker.
+      // typing. An explicit autoTags: null (or autoCaption: null) is stored as a
+      // null field (the unprocessed state); [] and '' are the "processed,
+      // nothing produced" markers.
       const update = flattenMediaUpdate(media) as MatchKeysAndValues<BaseMedia>;
       await collection.updateOne({ hash }, { $set: update });
     } else {
@@ -921,6 +930,7 @@ export class MongoConnector extends Database {
     filters.push(createStringFilter('dir', constraints.dir));
     filters.push(createStringFilter('path', constraints.path));
     filters.push(createStringFilter('duplicateOf', constraints.duplicateOf));
+    filters.push(createStringFilter('autoCaption', constraints.autoCaption));
 
     filters.push(createNumberFilter('metadata.height', constraints.quality));
     filters.push(createNumberFilter('rating', constraints.rating));
