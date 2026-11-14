@@ -48,6 +48,7 @@ export interface RawMedia {
   duplicate_of: string | null;
   clone_date: number | null;
   auto_tags: string | null; // JSON string[]
+  auto_caption: string | null;
   clones: string | null; // JSON string[]
   unrelated: string | null; // JSON string[]
 
@@ -86,6 +87,7 @@ export const mediaFieldMap: Array<{ db: keyof RawMedia; js: keyof Media; cast?: 
   { db: 'duplicate_of', js: 'duplicateOf' },
   { db: 'clone_date', js: 'cloneDate' },
   { db: 'auto_tags', js: 'autoTags', cast: 'json' },
+  { db: 'auto_caption', js: 'autoCaption' },
   { db: 'clones', js: 'clones', cast: 'json' },
   { db: 'unrelated', js: 'unrelated', cast: 'json' },
 ];
@@ -576,7 +578,18 @@ export function buildMediaQuery(
   const fieldMap = [...mediaFieldMap, ...mediaMetadataFieldMap, ...searchFieldMap];
 
   // String filters
-  for (const field of ['type', 'autoTags', 'hash', 'dir', 'path', 'duplicateOf', 'artist', 'album', 'title'] as const) {
+  for (const field of [
+    'type',
+    'autoTags',
+    'autoCaption',
+    'hash',
+    'dir',
+    'path',
+    'duplicateOf',
+    'artist',
+    'album',
+    'title',
+  ] as const) {
     if (!constraints[field]) {
       continue;
     }

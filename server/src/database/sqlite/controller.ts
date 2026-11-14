@@ -30,6 +30,9 @@ interface WorkerWrapper {
 
 interface TransactCallbackArg {
   run: (query: string, values?: unknown[]) => void;
+  // Batches multi-statement DDL (e.g. a migration file) into the same
+  // transaction as the statements around it.
+  exec: (query: string) => void;
 }
 
 export class SqliteController {
@@ -123,6 +126,9 @@ export class SqliteController {
     callback({
       run: (query: string, values?: unknown[]): void => {
         jobs.push({ type: 'run', query, values });
+      },
+      exec: (query: string): void => {
+        jobs.push({ type: 'exec', query });
       },
     });
     if (jobs.length === 0) {

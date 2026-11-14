@@ -66,6 +66,7 @@ export namespace Configuration {
     quickTagShowPath?: boolean;
     quickTagShowPlaylists?: boolean;
     quickTagShowAutoTags?: boolean;
+    quickTagShowAutoCaption?: boolean;
 
     showTaskNotifications?: boolean;
     autoClearCompletedTasks?: boolean;
@@ -148,6 +149,52 @@ export namespace Configuration {
     tags?: { [tag: string]: AutoTagMetadata };
   }
 
+  // Page-level settings for the Auto-Captioning pipeline.
+  export interface AutoCaption {
+    /**
+     * The AUTO-CAPTION task id of the selected model, e.g.
+     * AUTO-CAPTION-BLIP-BASE. The roster is the server's own listed
+     * AUTO-CAPTION-* tasks (GET /api/tasks), so no enum is possible here;
+     * unknown values fail closed at their use sites (the import skips with a
+     * warning, the Auto-Captioning page shows the apply-unavailable alert).
+     */
+    model: string;
+    /**
+     * Number of concurrent captioning workers. The boot default is derived from
+     * host RAM (no more than half of system memory at ~400MB per worker); an
+     * explicit value above that budget or the host's CPU count is silently
+     * clamped at use, never rejected.
+     * @minimum 1
+     * @maximum 8
+     */
+    workers: number;
+    /**
+     * Maximum new tokens to generate per caption. Greedy decoding stops on the
+     * model's end id, so this is a ceiling rather than a target.
+     * @minimum 1
+     * @maximum 100
+     */
+    maxTokens: number;
+  }
+
+  // Overlay-shaped mirror of AutoCaption with every field optional, so a client
+  // can write one settings field without echoing the rest.
+  export interface PartialAutoCaption {
+    // See AutoCaption.model: the AUTO-CAPTION task id; membership is validated
+    // at the use sites, not by this schema.
+    model?: string;
+    /**
+     * @minimum 1
+     * @maximum 8
+     */
+    workers?: number;
+    /**
+     * @minimum 1
+     * @maximum 100
+     */
+    maxTokens?: number;
+  }
+
   export interface Mongo {
     provider: 'mongodb';
     uri: string;
@@ -172,6 +219,13 @@ export namespace Configuration {
     // zero-shot task needs an applicable threshold (calibration or a manual
     // override); without one, the import skips auto-tagging.
     enableAutoTags: boolean;
+    // Enable auto-captioning of stills as part of import, using the model
+    // selected in the Auto-Captioning settings (autocaption.model, an
+    // AUTO-CAPTION task id). Off by default: captioning costs far more per
+    // still than auto-tagging.
+    enableAutoCaption: boolean;
+    // Auto-Captioning pipeline settings.
+    autocaption?: AutoCaption;
     // Auto-Tagging pipeline settings, for both the classifier and the
     // zero-shot embedding tasks.
     autotags?: AutoTags;
@@ -195,6 +249,7 @@ export namespace Configuration {
     cachePath?: string; // Path to store thumbnails and cached media.
     transcoder?: PartialTranscoder;
     autotags?: PartialAutoTags;
+    autocaption?: PartialAutoCaption;
     user?: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.

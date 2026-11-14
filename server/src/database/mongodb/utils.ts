@@ -5,7 +5,10 @@ function createStringFilterCommon(field: string, options?: StringFilterCommon): 
     return {};
   }
 
-  const filter: object = {};
+  // Plain string semantics, aligned with SQLite's IS [NOT] NULL: Mongo's
+  // $exists alone also counts an explicit null, which saveMedia stores for
+  // cleared generated values (autoTags, autoCaption).
+  const filter: Record<string, unknown> = {};
   Object.assign(
     filter,
     options.equalsAny
@@ -31,14 +34,23 @@ function createStringFilterCommon(field: string, options?: StringFilterCommon): 
       : {},
   );
 
-  Object.assign(
-    filter,
-    options.exists !== undefined
-      ? {
-          $exists: options.exists,
-        }
-      : {},
-  );
+  if (options.exists === true) {
+    // SQLite's IS NOT NULL. Mongo's $exists alone also counts an explicit
+    // null, which saveMedia stores for cleared generated values (autoTags,
+    // autoCaption), so exclude it to keep both engines aligned.
+    filter.$ne = null;
+  }
+  if (options.exists === false) {
+    // SQLite's IS NULL reports an explicit null and a missing column
+    // identically. Mongo's { field: null } matches both, so no $exists arm is
+    // needed; a value predicate in the same filter is contradictory with IS
+    // NULL and correctly matches nothing.
+    const nullArm = { [field]: null };
+    if (Object.keys(filter).length === 0) {
+      return nullArm;
+    }
+    return { $and: [{ [field]: filter }, nullArm] };
+  }
 
   if (Object.keys(filter).length === 0) {
     return {};
