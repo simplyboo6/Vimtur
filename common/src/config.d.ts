@@ -1,3 +1,11 @@
+// The namespace below declares its own `Partial` (the writable configuration
+// document), which shadows the global utility type throughout the namespace
+// body. Per-section overlays therefore reach the utility through this alias,
+// so a client can write one settings field without echoing the rest. The alias
+// is implicitly exported by a `.d.ts` module, so the name stays
+// section-specific.
+type SectionOverlay<T> = Partial<T>;
+
 export namespace Configuration {
   // Settings to use during video transcoding.
   export interface Transcoder {
@@ -127,28 +135,6 @@ export namespace Configuration {
     tags?: { [tag: string]: AutoTagMetadata };
   }
 
-  // Overlay-shaped mirror of AutoTags with every field optional, so a client
-  // can write one settings field (e.g. only tags) without echoing the rest.
-  export interface PartialAutoTags {
-    // See AutoTags.model: the AUTO-TAG task id; membership is validated at
-    // the use sites, not by this schema.
-    model?: string;
-    /**
-     * @minimum 1
-     * @maximum 8
-     */
-    workers?: number;
-    /**
-     * @minimum 1
-     */
-    minSupport?: number;
-    /**
-     * @minimum 1
-     */
-    calibrationSampleSize?: number;
-    tags?: { [tag: string]: AutoTagMetadata };
-  }
-
   // Page-level settings for the Auto-Captioning pipeline.
   export interface AutoCaption {
     /**
@@ -175,24 +161,6 @@ export namespace Configuration {
      * @maximum 100
      */
     maxTokens: number;
-  }
-
-  // Overlay-shaped mirror of AutoCaption with every field optional, so a client
-  // can write one settings field without echoing the rest.
-  export interface PartialAutoCaption {
-    // See AutoCaption.model: the AUTO-CAPTION task id; membership is validated
-    // at the use sites, not by this schema.
-    model?: string;
-    /**
-     * @minimum 1
-     * @maximum 8
-     */
-    workers?: number;
-    /**
-     * @minimum 1
-     * @maximum 100
-     */
-    maxTokens?: number;
   }
 
   export interface Mongo {
@@ -234,22 +202,13 @@ export namespace Configuration {
     password?: string; // Optional clear-text login password.
   }
 
-  export interface PartialTranscoder {
-    maxCopyEnabled?: boolean;
-    minQuality?: number;
-    qualities?: number[];
-    enableCachingKeyframes?: boolean;
-    enablePrecachingKeyframes?: boolean;
-    enableVideoCaching?: boolean;
-  }
-
   export interface Partial {
     port?: number; // The listen port.
     libraryPath?: string; // Path to the source library.
     cachePath?: string; // Path to store thumbnails and cached media.
-    transcoder?: PartialTranscoder;
-    autotags?: PartialAutoTags;
-    autocaption?: PartialAutoCaption;
+    transcoder?: SectionOverlay<Transcoder>;
+    autotags?: SectionOverlay<AutoTags>;
+    autocaption?: SectionOverlay<AutoCaption>;
     user?: User;
     username?: string; // Optional clear-text login username.
     password?: string; // Optional clear-text login password.
