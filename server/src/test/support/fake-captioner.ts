@@ -7,12 +7,14 @@ import type { CaptionPackDefinition } from '../../tasks/autocaption/pack';
 /**
  * Deterministic TEST_MODE stand-in for the captioner. It lives with the tests
  * and is never loaded outside TEST_MODE (captioner.ts reaches it through a
- * guarded dynamic import), though it does compile into dist/test. The caption
- * is seeded from the file's content hash, so the same file always produces the
- * same text and the pipeline's state machine behaves like the real one — while
- * needing neither ONNX sessions nor a downloaded pack. The text is
- * intentionally meaningless: the fake exists to exercise the plumbing, not
- * model quality.
+ * guarded dynamic import), though it does compile into dist/test — deliberately
+ * left there: the Dockerfile copies the whole server tree, and stripping the
+ * test output would turn every TEST_MODE run into a Cannot-find-module failure
+ * instead of keeping the fake out of the loaded path. The caption is seeded from
+ * the file's content hash, so the same file always produces the same text and
+ * the pipeline's state machine behaves like the real one — while needing neither
+ * ONNX sessions nor a downloaded pack. The text is intentionally meaningless:
+ * the fake exists to exercise the plumbing, not model quality.
  */
 export class FakeCaptionerPool implements CaptionerPool {
   public async caption(_pack: CaptionPackDefinition, absolutePath: string): Promise<string> {
