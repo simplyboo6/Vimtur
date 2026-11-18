@@ -72,7 +72,18 @@
       border-radius: 50%;
 
       // Fills the 10rem overlay circle's 4rem content box, as the inline SVG did.
+      // The host also has to be the icon's box rather than an inline box around
+      // it: fa-icon wraps its <svg> (1.25em wide, 1em tall, vertical-align
+      // -0.125em) in a host whose line box is 1.5x the 4rem font size (the
+      // Bootstrap body line-height), which leaves the glyph 1rem below the
+      // centre of the host's box. The spinner animates the host, so it rotated
+      // around that off-centre point (#181), and the play glyph sat low in the
+      // circle. Dropping the line box and centring the icon in the host keeps
+      // the rotation centre on the glyph whatever height the circle gives it.
       & > fa-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 4rem;
         color: white;
         opacity: 0.7;
