@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { after, before, describe, it } from 'mocha';
 import Sharp from 'sharp';
 
-import { ensureCaptionerPool, FakeCaptionerPool } from '../tasks/autocaption/captioner';
+import { ensureCaptionerPool } from '../tasks/autocaption/captioner';
 import { decodeGreedy } from '../tasks/autocaption/decode';
 import type { LogitsRunner, LogitsTensor } from '../tasks/autocaption/decode';
 import { loadVocab, WordPieceDetokenizer } from '../tasks/autocaption/detokenizer';
@@ -14,6 +14,8 @@ import { AUTO_CAPTION_TASK_ID, BLIP_BASE, CAPTION_PACKS, isPackCached, packDir }
 import { preprocessCaptionImage } from '../tasks/autocaption/preprocess';
 import type { CaptionPreprocess } from '../tasks/autocaption/preprocess';
 import { pickCaptionTask } from '../tasks/autocaption/settings';
+
+import { FakeCaptionerPool } from './support/fake-captioner';
 
 // Unit tests for the Auto-Captioning primitives. The detokeniser and greedy
 // loop are pure, and the pool boundary is covered by the deterministic fake, so
@@ -352,7 +354,7 @@ describe('fake captioner pool', () => {
     expect(await isPackCached(BLIP_BASE), 'BLIP pack cached in the test cache').to.equal(false);
     const pool = await ensureCaptionerPool(BLIP_BASE);
     try {
-      expect(pool.kind).to.equal('fake');
+      expect(pool).to.be.instanceOf(FakeCaptionerPool);
       const samePath = Path.join(imageDir, 'same.jpg');
       const first = await pool.caption(BLIP_BASE, samePath);
       const second = await pool.caption(BLIP_BASE, samePath);
