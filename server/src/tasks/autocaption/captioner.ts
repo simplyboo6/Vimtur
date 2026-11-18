@@ -1,5 +1,3 @@
-import Crypto from 'node:crypto';
-import FS from 'node:fs';
 import OS from 'node:os';
 
 import { ScalingConnectionPool } from 'proper-job';
@@ -19,8 +17,6 @@ import { CaptionWorkerWrapper } from './workers/caption-worker-wrapper';
  * without any models.
  */
 export interface CaptionerPool {
-  /** Implementation identity, for tests that need to know the fake ran. */
-  readonly kind: 'ort' | 'fake';
   caption(pack: CaptionPackDefinition, absolutePath: string): Promise<string>;
   quit(): Promise<void>;
 }
@@ -52,6 +48,9 @@ export function captionInstances(): number {
 export async function ensureCaptionerPool(pack: CaptionPackDefinition): Promise<CaptionerPool> {
   if (!(await isPackCached(pack))) {
     if (process.env['TEST_MODE']) {
+      // The deterministic stand-in lives with the tests, not in the shipped
+      // captioner; the dynamic import keeps it out of a normal run entirely.
+      const { FakeCaptionerPool } = await import('../../test/support/fake-captioner');
       return new FakeCaptionerPool();
     }
     await ensurePackDownloaded(pack);
@@ -65,8 +64,6 @@ export async function ensureCaptionerPool(pack: CaptionPackDefinition): Promise<
  * and never parse the 30k-entry vocabulary per message.
  */
 export class OrtCaptionerPool implements CaptionerPool {
-  public readonly kind = 'ort' as const;
-
   private readonly pool: ScalingConnectionPool<CaptionWorkerWrapper>;
   private readonly detokenizer: WordPieceDetokenizer;
   private readonly pack: CaptionPackDefinition;
@@ -145,38 +142,5 @@ export class OrtCaptionerPool implements CaptionerPool {
       throw new Error(`Pack ${pack.id} has no ${name} file`);
     }
     return packFilePath(pack, file);
-  }
-}
-
-/**
- * Deterministic TEST_MODE stand-in for the captioner. The caption is seeded
- * from the file's content hash, so the same file always produces the same text
- * and the pipeline's state machine behaves like the real one — while needing
- * neither ONNX sessions nor a downloaded pack. The text is intentionally
- * meaningless: the fake exists to exercise the plumbing, not model quality.
- */
-export class FakeCaptionerPool implements CaptionerPool {
-  public readonly kind = 'fake';
-
-  public async caption(_pack: CaptionPackDefinition, absolutePath: string): Promise<string> {
-    // Seeded from the file bytes: identical content captions identically. A
-    // '00' digest prefix is the deterministic "model produced nothing" fixture,
-    // so the empty-caption ('' marker) path is testable end to end.
-    const digest = Crypto.createHash('sha256')
-      .update(await FS.promises.readFile(absolutePath))
-      .digest('hex');
-    // The marker api-test searches for a 00-prefixed fixture before starting the
-    // server and passes that exact digest here: a prefix match would also make
-    // an unrelated fixture return '' on ~1 in 256 ImageMagick builds, and those
-    // tests expect a real caption. The prefix stays as the no-env fallback for
-    // ad-hoc TEST_MODE runs.
-    const emptySha = process.env['AUTOCAPTION_FAKE_EMPTY_SHA'];
-    const empty = emptySha !== undefined ? digest === emptySha : digest.startsWith('00');
-    return empty ? '' : `a still image (fake caption ${digest.slice(0, 8)})`;
-  }
-
-  public async quit(): Promise<void> {
-    // Nothing to release: no sessions were ever created.
-    return Promise.resolve();
   }
 }
